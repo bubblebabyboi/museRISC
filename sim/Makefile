@@ -242,7 +242,8 @@ SOC_RTL   := $(CORE_RTL) $(CRYPTO)/sha256_block.sv \
              $(SOCDIR)/muserisc_bootrom.sv \
              $(SOCDIR)/muserisc_crypto_bridge.sv \
              $(SOCDIR)/muserisc_soc_top.sv
-SOCFW     := $(ROOT)/build/soc-tests
+# Absolute: recipes below cd into $(BUILD), where ROOT-relative paths break.
+SOCFW     := $(abspath $(ROOT)/build/soc-tests)
 
 $(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(SOC_RTL) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/socrtl --top-module muserisc_soc_top \
