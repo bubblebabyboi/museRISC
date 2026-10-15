@@ -37,7 +37,7 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_decoder.sv \
             $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
             $(RTL)/muserisc_core.sv
-TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
+TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed vec_trap_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr \
@@ -150,13 +150,16 @@ rvc: $(BUILD)/rvc_tb
 	cd $(BUILD) && COV_FILE=cov_rvc.dat ./rvc_tb
 
 ## ---- Vector unit test ------------------------------------------------------
+# Harness = muserisc_vec + banked muserisc_vregfile + TB backdoor.
 $(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) \
                  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-                 $(RTL)/muserisc_vec.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec \
+                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+                 $(ROOT)/tb/sv/muserisc_vec_harness.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec_harness \
 	  -o $(abspath $(BUILD)/vec_tb) $(PKG) \
 	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_vec.sv \
+	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
 vec: $(BUILD)/vec_tb
@@ -289,6 +292,7 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_hyp.dat ./core_tb hyp_directed.bin
 	cd $(BUILD) && COV_FILE=cov_vecsw.dat ./core_tb vec_directed.bin
 	cd $(BUILD) && COV_FILE=cov_fpvecsw.dat ./core_tb fpvec_directed.bin
+	cd $(BUILD) && COV_FILE=cov_vectrap.dat ./core_tb vec_trap_directed.bin --irq-timer-after 2000
 	cd $(BUILD) && COV_FILE=cov_trap_pa_fetch.dat ./core_tb trap_pa_fetch.bin 100000 --expect-trap 1
 	cd $(BUILD) && COV_FILE=cov_trap_pa_load.dat ./core_tb trap_pa_load.bin 100000 --expect-trap 5
 
@@ -316,7 +320,9 @@ COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
               $(BUILD)/cov_trap_ecall.dat $(BUILD)/cov_trap_ebreak.dat \
               $(BUILD)/cov_trap_smisalign.dat $(BUILD)/cov_trap_ystore.dat \
               $(BUILD)/cov_vec.dat $(BUILD)/cov_vecsw.dat \
-              $(BUILD)/cov_trap_ycsr.dat $(BUILD)/cov_counter_time.dat $(BUILD)/cov_hyp.dat \
+              $(BUILD)/cov_fpvecsw.dat $(BUILD)/cov_vectrap.dat \
+              $(BUILD)/cov_trap_ycsr.dat \
+              $(BUILD)/cov_counter_time.dat $(BUILD)/cov_hyp.dat \
               $(BUILD)/cov_trap_pa_fetch.dat \
               $(BUILD)/cov_trap_pa_load.dat
 coverage:

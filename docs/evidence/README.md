@@ -1325,3 +1325,132 @@ stages 4c/5:
   not a Linux boot on the RTL SoC — Linux evidence
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
+
+## Element-serial vector unit + banked VRF (2026-10-15, #32)
+
+- Change: `muserisc_vec.sv` goes from whole-group combinational
+  evaluation to a 4-stage element-serial engine on a 64-bit
+  datapath. It has an iterative multiplier and divider and one
+  shared `fp_eval`/`fp_estimate` call.
+  `muserisc_vregfile.sv` goes from a 32x512 flop array with
+  three 4096-bit group read ports to three 1R1W 256x64
+  byte-write RAM replicas with synchronous read, which can map
+  to SRAM or BRAM.
+  The MEM vector load/store sequencer in `muserisc_core.sv` now
+  reads and writes VRF elements directly. It no longer has
+  4096-bit EX/MEM, MEM/WB or capture registers, or an address
+  multiplier.
+  See [`docs/CORE.md`](../CORE.md) "Vector unit" for the design,
+  the stall/trap/interrupt contract, and per-op cycle counts.
+- Behavior changes (all spec-conformant):
+  - every completed vector instruction resets `vstart` to 0;
+  - `vslidedown` offsets near 2^64 no longer wrap;
+  - segment loads never leave a partially written segment on a
+    fault;
+  - a CSR access or vset right behind a vector load/store
+    observes its `vstart`/`vl` update;
+  - fault-only-first traps only when element 0 faults, and
+    trims `vl` for a fault on any later element;
+  - `vmv<nr>r.v` and whole-register loads/stores honor `vstart`.
+- Unit TB (`tb/cpp/vec_tb.cpp` on
+  `tb/sv/muserisc_vec_harness.sv`, which is the unit plus the
+  VRF):
+  - randomized against an independent C++ RVV golden model for
+    all 88 integer VOP classes;
+  - covers SEW x LMUL (1/8..8) x vl x vstart x v0 masking x
+    vta/vma x vxrm;
+  - compares the whole VRF before and after every op, and
+    exercises every allowed source/destination overlap;
+  - also includes host-IEEE FP directed checks, a kill-mid-op
+    check and cycle probes.
+
+  `make core-test`: **VEC TB PASS (61,672 checks, 22,880
+  random trials, seed 0x5eed8a)**. The seed can be overridden
+  with `VEC_TB_SEED`.
+- New directed test `sw/core-tests/vec_trap_directed.S`
+  (`--irq-timer-after 2000`), 16 checks:
+  - an M-timer interrupt during a long `vmacc` is taken at the
+    next boundary, with no replay;
+  - a misaligned indexed load commits the elements before the
+    fault and sets `vstart`;
+  - a PMP-faulting segment load leaves no partial segment and
+    resumes from `vstart`;
+  - FOF segment trim is visible to back-to-back
+    `csrr vl` / `vsetvli x0,x0`;
+  - arithmetic with `vstart>0`;
+  - strided store fault;
+  - FOF with element 0 masked off, and FOF with `vstart>0`;
+  - FOF element-0 trap;
+  - `vstart>0` and the fault-to-`vstart` rescale on
+    whole-register loads/stores and `vmv1r.v`.
+- Coverage (merged `make core-test`, Verilator line+toggle):
+  - `muserisc_vec.sv`: every line hit. Every toggle point hit
+    except some bits of `fl_q`, the flags of exact widening FP
+    conversions, which can never raise OF/UF/DZ/NX.
+  - `muserisc_vregfile.sv`: 100%.
+- Gates on this branch (Verilator 5.048; wall-clock in
+  parentheses):
+  - `make lint`: clean (6 s). Also clean with Ubuntu 24.04
+    Verilator 5.020.
+  - `make test`: `ALL PHASE-0 KATs PASS` (42 s).
+  - `make core-test`: all PASS (190 s).
+  - `make riscv-tests`:
+    [`riscv-tests-core-vecserial-2026-10-15.csv`](riscv-tests-core-vecserial-2026-10-15.csv)
+    **123/123** (33 s).
+  - `soc_rtl_tb` crypto firmware: `SOC CRYPTO PASS`,
+    `SOC RTL TB PASS` at 11,097,819 cycles. `make -C sim
+    socrtl` itself fails to find `crypto_soc_test.bin`: it
+    `cd`s into `build/sim` and then uses a path relative to
+    `sim/`. That bug is pre-existing and was worked around by
+    running the binary by hand.
+  - Yosys `read_slang` elaboration of the full SoC file list
+    from `flow/designs/nangate45/muserisc_soc/config.mk`:
+    clean in 13 s.
+- ACT, full core set (I/M, priv, A/F/D/B/K/Zicond, C, Vx8-64,
+  Vls8-64, Vf32/Vf64; 2,578 ELFs):
+  [`act-core-vecserial-2026-10-15.csv`](act-core-vecserial-2026-10-15.csv)
+  **2,577/2,578**:
+  - Vx/Vls **1,872/1,872**;
+  - Vf32/Vf64 **162/162**;
+  - scalar+priv **543/544**, with only the existing
+    `PMPSm_cfg_A_tor_zero-00` PA0 waiver failing.
+
+  Run with `sim/run_act_core_par.sh` from #37 (32 jobs, 185 s).
+  It uses the same per-ELF verdict and CSV format as
+  `sim/run_act_core.sh`, writes one result file per ELF, checks
+  that the row count and test names match the ELFs, and exits
+  1 on any FAIL. On the equivalent development branch, a
+  serial `run_act_core.sh` run matched it row for row, cycle
+  counts included.
+
+  Simulated cycles: the vector suites take 2.4-5.9x as many as
+  the old single-cycle-per-instruction unit (element-serial by
+  design); the scalar suites take about 5% more (the ACT
+  prologue initializes vector registers).
+- Synthesis
+  (`scripts/synth_vec.sh`: Yosys + OpenROAD STA from
+  `openroad/orfs:latest`, Nangate45 typical, 10 ns, Kogge-Stone
+  carry networks, ORFS `abc_speed`, sv2v v0.0.13 pinned).
+  `fp_eval`/`fp_estimate` are black-boxed in both designs by
+  `flow/vec-synth/fpu_stub_pkg.sv`, and the VRF RAM replicas
+  are black-boxed as SRAM macros. Log:
+  [`vec-serial-synth-2026-10-15.log`](vec-serial-synth-2026-10-15.log).
+
+  | Block | Before | After |
+  |---|---|---|
+  | `muserisc_vec` | Yosys did not finish elaboration (killed at 141 GiB after ~4 h; 512-way unrolled loops with 22 `*`/`/`/`%` and 15 `fp_eval`/`fp_estimate` sites per element) | **52,735 um^2**, 1,371 flops, depth **76** generic gates, worst path **3.29 ns** (inputs at 0 delay) |
+  | `muserisc_vregfile` | **603,640 um^2** (16,384 flops + 3x4096-bit muxes), depth 18 | **5,254 um^2** logic + 3x 256x64 1R1W SRAM (fakeram45_512x64 is 17,302 um^2, an upper bound for each), depth 6 |
+
+  In the ORFS SoC flow, which has no SRAM macros configured,
+  the three RAM replicas synthesize as flops (49,152 bits,
+  about 3x the old flat VRF's flop count) unless they are
+  mapped to `fakeram45` macros.
+- Linux (`soc_tb`, OpenSBI v1.9 + Linux 6.6): this RTL does not
+  change the scalar pipeline when no vector instruction runs,
+  and the boot runs no vector instruction. The boot livelocks
+  in S-external interrupts after `/init`'s `uname`, and the
+  pre-change RTL livelocks the same way, cycle for cycle. It
+  passes
+  (`MUSERISC_LINUX_BOOT_OK`, 508,685,709 cycles) once the
+  separate `mip` CSRRS/CSRRC pin-latching fix is applied; that
+  fix is upstreamed in its own PR.
