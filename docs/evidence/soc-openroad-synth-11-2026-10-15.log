@@ -1,0 +1,57 @@
+Full-SoC OpenROAD synthesis attempt (#11), 2026-10-15
+Design: flow/designs/nangate45/muserisc_soc
+  DESIGN_NAME=muserisc_soc_top, CLOCK_PERIOD=10ns,
+  CORE_UTILIZATION=20, SYNTH_HDL_FRONTEND=slang,
+  SYNTH_SLANG_ARGS=--unroll-limit=200000.
+Source: merged main 4c5a51a (SoC e15e1c4 + slang hoist
+0b8225b + CLINT CI syntax fix).
+
+Local attempt (Docker Desktop, linux/amd64 emulation,
+7.654 GiB container memory limit), on merged tree:
+$ DESIGN=muserisc_soc ./scripts/openroad_docker.sh synth
+OPENROAD: /OpenROAD-flow-scripts/tools/OpenROAD
+1. Executing Liberty frontend: .../NangateOpenCellLibrary_typical.lib
+2. Executing Liberty frontend: .../NangateOpenCellLibrary_typical.lib
+3. Executing SLANG frontend.
+Elapsed time: 13:18.41[h:]min:sec. CPU time: user 774.02
+sys 5.80 (97%). Peak memory: 7626592KB.
+make[1]: *** [Makefile:305: do-yosys-canonicalize] Error 247
+make: *** [Makefile:308: results/nangate45/
+  muserisc_soc_top/base/1_1_yosys_canonicalize.rtlil] Error 2
+orfs_rc=2
+
+Interpretation (evidence-backed steps, in order):
+- Default Yosys Verilog-2005 frontend rejects the core
+  ("unexpected TOK_IMPORT" on package imports).
+- With slang, elaboration first failed on 15
+  use-before-declaration identifiers in muserisc_core;
+  hoisting those six declarations (0b8225b) fixed that
+  class. Verilator lint remains clean.
+- Next failure class was slang's default unroll limit
+  (4000), exhausted by fp_eval (muserisc_fpu_pkg.sv:199)
+  and the 512-wide vector loops (muserisc_vec.sv).
+- With --unroll-limit=200000, slang canonicalize runs
+  13m18s and dies at 7.45 GiB peak (7,626,592 KB),
+  i.e. at the local Docker VM ceiling, producing no
+  netlist (build/orfs-results/.../base is empty).
+  This is a memory-envelope failure of elaborating the
+  whole-vector combinational datapath, not a syntax or
+  constraint error. No GDS, timing, or area claim for
+  the full SoC follows from this run.
+
+Decision (owner, 2026-10-15): rerun on the existing
+stopped AWS instance vivado_rnd (r7i.4xlarge, native
+x86, 128 GiB) instead of refactoring first or shelving
+the ASIC slice. The datapath-serialization refactor
+shared with #32 remains required for timing closure
+even if large-host synthesis elaborates.
+
+Launch note (paused by owner, 2026-10-15): the first
+StartInstances attempt for i-08b892776eb5a4661 at
+2026-10-15T16:06:26Z failed with
+InsufficientInstanceCapacity in us-east-1; the
+instance was verified still `stopped` afterwards.
+No AWS work was launched by this attempt and no
+museRISC instance was left running for this task.
+Resume by retrying the start (or selecting another
+large native x86 host) before rerunning synth/P&R.
