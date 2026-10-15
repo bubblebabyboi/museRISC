@@ -1325,3 +1325,39 @@ stages 4c/5:
   not a Linux boot on the RTL SoC — Linux evidence
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
+
+## mip CSRRS/CSRRC must not latch the S-mode interrupt pins (2026-10-15, #21)
+
+- Symptom: the `soc_tb` Linux boot (OpenSBI v1.9 + Linux 6.6)
+  got as far as `/init`'s `uname` line. It then took
+  S-external interrupts back to back until the cycle limit,
+  and every PLIC claim returned 0.
+- Root cause: CSRRS/CSRRC built the new `mip` value from the
+  read value, which ORs the `irq_s_ext_i` pin into SEIP and
+  `irq_s_timer_i` into STIP. OpenSBI's
+  `csr_set/csr_clear(mip, MIP_STIP)` on each timer event
+  therefore latched a high PLIC S-context line into the
+  software SEIP bit. The privileged spec says the RMW uses
+  only the software bit.
+- Fix: `muserisc_csr` exports `rmw_rdata_o`. It equals
+  `rdata_o`, except that for `mip`, SEIP and STIP are the
+  software bits. The core uses it for CSRRS(I)/CSRRC(I), and
+  reads still return pin | software bit. `muserisc_soc_top`
+  drives `irq_s_ext_i` from the PLIC, so the RTL SoC had the
+  same bug.
+- Regression: a new `core_tb` IRQ_CTL store (0x10000008) lets
+  directed tests drive the interrupt pins.
+  `irq_seip_rmw.S` and `irq_mip_rmw_variants.S` fail (tests
+  4 and 3) on the 4c5a51a CSR/core RTL and pass with the
+  fix. `csr_tb` checks `rmw_rdata_o`.
+- Gates on this branch: `make lint` clean; `make test`
+  passes; `make core-test` passes (24/24 directed);
+  `make riscv-tests` 123/123; ACT on the core
+  [`act-core-irq-mip-rmw-2026-10-15.csv`](act-core-irq-mip-rmw-2026-10-15.csv)
+  2,577/2,578, with only the `PMPSm_cfg_A_tor_zero-00`
+  waiver. `soc_rtl_tb` passes `SOC CRYPTO PASS` and
+  OpenSBI + `HELLO FROM S-MODE`. Lint, unit TBs, the core
+  harness and the SoC TB builds are also clean under
+  Ubuntu's Verilator 5.020. Commands, counts and wall times
+  are in
+  [`irq-mip-rmw-21-2026-10-15.log`](irq-mip-rmw-21-2026-10-15.log).

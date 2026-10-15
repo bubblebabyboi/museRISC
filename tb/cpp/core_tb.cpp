@@ -5,6 +5,10 @@
 // - flat binary (directed tests): loaded at PA 0, boot PC 0, a
 //   store to EXIT_ADDR ends the test (0 = pass, nonzero =
 //   failing test number); --expect-trap freezes at the first trap.
+//   A store to IRQ_CTL_ADDR drives the external interrupt pins
+//   from the next cycle on (mip bit positions: 3 MSIP, 5 STIP,
+//   7 MTIP, 9 SEIP, 11 MEIP), so directed tests can raise and
+//   drop level interrupts at known points.
 // - ELF64 (riscv-tests, stage 3c): PT_LOAD segments are placed
 //   at their physical addresses, boot PC = entry point, and the
 //   run ends on the HTIF convention: a write to `tohost` of 1 =
@@ -27,6 +31,7 @@
 
 namespace {
 constexpr uint64_t kExitAddr = 0x10000000ULL;
+constexpr uint64_t kIrqCtlAddr = 0x10000008ULL;
 
 struct PagedMem {
   std::unordered_map<uint64_t, std::array<uint8_t, 4096>> pages;
@@ -194,6 +199,7 @@ int main(int argc, char** argv) {
   dut->irq_s_timer_i = 0;
   dut->irq_s_ext_i = 0;
   bool irq_active = false;
+  uint64_t irq_ctl = 0;  // pins driven by stores to kIrqCtlAddr
   // Pulse every IRQ pin once while still in reset (mie = 0, so no
   // trap can be taken) so the level inputs exercised only by the
   // unit testbench still toggle through the core pins.
@@ -222,6 +228,13 @@ int main(int argc, char** argv) {
       dut->irq_m_timer_i = 0;  // level interrupt: clear once taken
       irq_active = false;
       irq_timer_after = -1;
+    }
+    if (!elf_mode) {
+      dut->irq_m_soft_i = (irq_ctl >> 3) & 1;
+      dut->irq_s_timer_i = (irq_ctl >> 5) & 1;
+      if (!irq_active) dut->irq_m_timer_i = (irq_ctl >> 7) & 1;
+      dut->irq_s_ext_i = (irq_ctl >> 9) & 1;
+      dut->irq_m_ext_i = (irq_ctl >> 11) & 1;
     }
     // Combinational memory phase (clock low). Two settles: first
     // present the instruction so the core drives this cycle's data
@@ -277,6 +290,7 @@ int main(int argc, char** argv) {
                     static_cast<unsigned long long>(cycle + 1));
         return finish(1);
       }
+      if (!elf_mode && daddr == kIrqCtlAddr) irq_ctl = wdata;
       const uint64_t base = daddr & ~7ull;
       for (int i = 0; i < 8; ++i) {
         if ((be & (1u << i)) != 0) {

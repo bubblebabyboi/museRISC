@@ -40,7 +40,7 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
 TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
-            trap_store_misalign trap_younger_store trap_younger_csr \
+            trap_store_misalign trap_younger_store trap_younger_csr irq_seip_rmw irq_mip_rmw_variants \
             trap_pa_fetch trap_pa_load
 
 .PHONY: all alu muldiv decoder regfile csr mmu fpu bext rvc vec core sw coverage clean riscv-tests \
@@ -285,6 +285,8 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_trap_smisalign.dat ./core_tb trap_store_misalign.bin 100000 --expect-trap 6
 	cd $(BUILD) && COV_FILE=cov_trap_ystore.dat ./core_tb trap_younger_store.bin 100000 --expect-trap 4
 	cd $(BUILD) && COV_FILE=cov_trap_ycsr.dat ./core_tb trap_younger_csr.bin
+	cd $(BUILD) && COV_FILE=cov_irq_seip_rmw.dat ./core_tb irq_seip_rmw.bin
+	cd $(BUILD) && COV_FILE=cov_irq_mip_rmw_variants.dat ./core_tb irq_mip_rmw_variants.bin
 	cd $(BUILD) && COV_FILE=cov_counter_time.dat ./core_tb counter_time_directed.bin
 	cd $(BUILD) && COV_FILE=cov_hyp.dat ./core_tb hyp_directed.bin
 	cd $(BUILD) && COV_FILE=cov_vecsw.dat ./core_tb vec_directed.bin
@@ -316,7 +318,9 @@ COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
               $(BUILD)/cov_trap_ecall.dat $(BUILD)/cov_trap_ebreak.dat \
               $(BUILD)/cov_trap_smisalign.dat $(BUILD)/cov_trap_ystore.dat \
               $(BUILD)/cov_vec.dat $(BUILD)/cov_vecsw.dat \
-              $(BUILD)/cov_trap_ycsr.dat $(BUILD)/cov_counter_time.dat $(BUILD)/cov_hyp.dat \
+              $(BUILD)/cov_trap_ycsr.dat $(BUILD)/cov_irq_seip_rmw.dat \
+              $(BUILD)/cov_irq_mip_rmw_variants.dat \
+              $(BUILD)/cov_counter_time.dat $(BUILD)/cov_hyp.dat \
               $(BUILD)/cov_trap_pa_fetch.dat \
               $(BUILD)/cov_trap_pa_load.dat
 coverage:

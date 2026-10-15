@@ -465,6 +465,25 @@ int main(int argc, char** argv) {
   d->eval();
   CHECK(d->irq_cause_o == (0x8000000000000000ULL | 1));
   wr(0x344, 0);
+  // mip RMW base (#21): reads see pin | SW bit, but the value a
+  // CSRRS/CSRRC builds on holds only the software SEIP/STIP.
+  d->irq_s_ext_i = 1;
+  d->irq_s_timer_i = 1;
+  CHECK((rd(0x344) & 0x220) == 0x220);
+  CHECK((d->rmw_rdata_o & 0x220) == 0);
+  CHECK((d->rmw_rdata_o & ~0x220ull) == (d->rdata_o & ~0x220ull));
+  wr(0x344, d->rmw_rdata_o | (1ull << 1));  // CSRRS mip, SSIP shape
+  d->irq_s_ext_i = 0;
+  d->irq_s_timer_i = 0;
+  CHECK((rd(0x344) & 0x220) == 0);           // nothing latched
+  wr(0x344, 0x220);                           // SW SEIP|STIP
+  CHECK((rd(0x344) & 0x220) == 0x220);
+  CHECK((d->rmw_rdata_o & 0x220) == 0x220);
+  wr(0x344, 0);
+  d->irq_s_ext_i = 1;
+  rd(0x144);                                  // sip: not the mip RMW path
+  CHECK(d->rmw_rdata_o == d->rdata_o);        // other CSRs: same value
+  d->irq_s_ext_i = 0;
   wr(0x304, 0);
   wr(0x300, 0);
 
