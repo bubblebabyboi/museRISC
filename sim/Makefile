@@ -43,9 +43,9 @@ TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed
             trap_store_misalign trap_younger_store trap_younger_csr \
             trap_pa_fetch trap_pa_load
 
-.PHONY: all alu muldiv decoder regfile csr mmu fpu bext rvc vec core sw coverage clean riscv-tests \
+.PHONY: all alu muldiv decoder regfile csr plic mmu fpu bext rvc vec core sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop
-all: alu muldiv decoder regfile csr mmu fpu bext rvc vec core coverage
+all: alu muldiv decoder regfile csr plic mmu fpu bext rvc vec core coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 riscv-tests: $(BUILD)/core_tb
@@ -98,6 +98,15 @@ $(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/muserisc_csr.sv | $(BUILD) $(O
 
 csr: $(BUILD)/csr_tb
 	cd $(BUILD) && COV_FILE=cov_csr.dat ./csr_tb
+
+## ---- RTL PLIC unit test (claim arbitration vs a reference model) ----
+$(BUILD)/plic_tb: $(ROOT)/tb/cpp/plic_tb.cpp $(ROOT)/rtl/soc/muserisc_plic.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/plic --top-module muserisc_plic \
+	  -o $(abspath $(BUILD)/plic_tb) $(ROOT)/rtl/soc/muserisc_plic.sv \
+	  $(abspath $(ROOT)/tb/cpp/plic_tb.cpp)
+
+plic: $(BUILD)/plic_tb
+	cd $(BUILD) && COV_FILE=cov_plic.dat ./plic_tb
 
 ## ---- MMU unit test -------------------------------------------------------
 $(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/muserisc_mmu.sv | $(BUILD) $(OBJ)
