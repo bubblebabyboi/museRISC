@@ -1,8 +1,8 @@
 // Scalar-MMIO to AXI4-Lite bridge for muse_crypto_top.
-// The core parks in MEM while stall_o is asserted (see
-// dmem_stall_i in muserisc_core), so one 32-bit load/store
+// The SoC fabric (muserisc_soc_fabric) holds its device access
+// while stall_o is asserted, so one 32-bit uncached load/store
 // becomes one AXI-Lite transaction: issue in IDLE, complete
-// the core access in the cycle RVALID/BVALID is presented.
+// the access in the cycle RVALID/BVALID is presented.
 // 32-bit aligned accesses only (the register map in
 // sw/muse_crypto.h); AMO/LR/SC and vector accesses to this
 // window are not supported, as on typical device MMIO.

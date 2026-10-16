@@ -14,7 +14,9 @@ cd "$(dirname "$0")/.."
 
 RT=${RISCV_TESTS_DIR:-third_party/cva6/tmp/riscv-tests}
 BUILD=build/riscv-tests
-CORE_TB=build/sim/core_tb
+CORE_TB=${CORE_TB:-build/sim/core_tb}
+# Extra harness options (e.g. bus latency) for every run.
+CORE_TB_ARGS=${CORE_TB_ARGS:-}
 mkdir -p "$BUILD"
 
 PREFIX=$(command -v riscv64-unknown-elf-gcc >/dev/null 2>&1 \
@@ -63,9 +65,9 @@ for suite in rv64ui rv64um rv64ua rv64uf rv64ud rv64uc rv64mi rv64si; do
     # One ELF run contributes coverage (notably the boot_pc_i
     # pin, which directed binaries tie to 0).
     if [ "$name" = rv64ui-p-simple ]; then
-      out=$(COV_FILE=build/sim/cov_rvtest.dat "$CORE_TB" "$elf" 2000000 2>&1)
+      out=$(COV_FILE=build/sim/cov_rvtest.dat "$CORE_TB" "$elf" 2000000 $CORE_TB_ARGS 2>&1)
     else
-      out=$("$CORE_TB" "$elf" 2000000 2>&1)
+      out=$("$CORE_TB" "$elf" 2000000 $CORE_TB_ARGS 2>&1)
     fi
     rc=$?
     cycles=$(echo "$out" | sed -n 's/.* \([0-9][0-9]*\) cycles.*/\1/p')

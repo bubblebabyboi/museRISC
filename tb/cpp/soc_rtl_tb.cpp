@@ -2,20 +2,24 @@
 // around muserisc_core), this drives muserisc_soc_top --
 // core, fabric, boot ROM, CLINT, PLIC, UART and crypto are
 // all RTL. The harness only provides external RAM behind
-// the SoC's mem_* ports (128 MiB at 0x8000_0000, async
-// read, the same dual-eval protocol as core_tb/soc_tb),
-// loads binaries into it, and captures the UART byte
-// stream (uart_tx_valid_o) plus optional RX byte input.
+// the SoC's mem_* memory-bus port (128 MiB at 0x8000_0000,
+// served by the mbus slave model with optional random
+// latency/backpressure, tb/cpp/mbus_model.h), loads binaries
+// into it, and captures the UART byte stream
+// (uart_tx_valid_o) plus optional RX byte input.
 //
 // Usage: soc_rtl_tb [max_cycles] --boot 0xADDR
 //          --load 0xADDR=FILE [--load ...]
 //          [--uart-log FILE] [--uart-in FILE]
-//          [--exit-string TEXT] [--trace-traps]
+//          [--exit-string TEXT] [--trace-traps] [--no-cache]
+//          [--mem-lat A:B] [--mem-gap N] [--mem-ready PCT]
+//          [--mem-seed S]
 // Exit status: 0 exit string seen, 2 timeout/usage error.
 // With no --exit-string, success is a trap-free run to
 // max_cycles is NOT assumed: timeout (2) is returned.
 #include "Vmuserisc_soc_top.h"
 #include "verilated.h"
+#include "mbus_model.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -54,9 +58,15 @@ int main(int argc, char** argv) {
   const char* uart_in_path = nullptr;
   std::string exit_string;
   bool trace_traps = false;
+  bool cache_en = true;
+  MbusConfig bus_cfg;
   for (int i = 1; i < argc; ++i) {
     auto need = [&](int i) { return i + 1 < argc; };
-    if (std::strcmp(argv[i], "--load") == 0 && need(i)) {
+    if (const int n = bus_cfg.Parse(argc, argv, i)) {
+      i += n - 1;
+    } else if (std::strcmp(argv[i], "--no-cache") == 0) {
+      cache_en = false;
+    } else if (std::strcmp(argv[i], "--load") == 0 && need(i)) {
       char* eq = std::strchr(argv[++i], '=');
       if (eq == nullptr) {
         std::fprintf(stderr, "--load wants 0xADDR=FILE\n");
@@ -106,14 +116,6 @@ int main(int argc, char** argv) {
     }
     for (uint8_t b : in) rxq.push_back(b);
   }
-  auto fetch32 = [&](uint64_t a) -> uint32_t {
-    uint32_t v = 0;
-    for (int i = 0; i < 4; ++i) {
-      const uint64_t b = a + i;
-      if (InRam(b)) v |= uint32_t(ram[b - kRamBase]) << (8 * i);
-    }
-    return v;
-  };
   auto fetch64 = [&](uint64_t a) -> uint64_t {
     uint64_t v = 0;
     for (int i = 0; i < 8; ++i) {
@@ -122,6 +124,19 @@ int main(int argc, char** argv) {
     }
     return v;
   };
+  // External RAM behind the SoC's memory bus (RAM has no read
+  // side effects, so every read is the same).
+  MbusModel bus(
+      bus_cfg,
+      [&](uint64_t a, uint8_t, bool, bool) { return fetch64(a); },
+      [&](uint64_t a, uint8_t be, uint64_t wdata) {
+        const uint64_t base = a & ~7ull;
+        for (int i = 0; i < 8; ++i) {
+          if ((be & (1u << i)) && InRam(base + i)) {
+            ram[base + i - kRamBase] = uint8_t(wdata >> (8 * i));
+          }
+        }
+      });
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
@@ -130,8 +145,11 @@ int main(int argc, char** argv) {
   dut->clk_i = 0;
   dut->rst_ni = 0;
   dut->boot_pc_i = boot_pc;
-  dut->mem_imem_rdata_i = 0;
-  dut->mem_dmem_rdata_i = 0;
+  dut->cache_en_i = cache_en ? 1 : 0;
+  dut->mem_req_ready_i = 0;
+  dut->mem_rsp_valid_i = 0;
+  dut->mem_rsp_rdata_i = 0;
+  dut->mem_rsp_last_i = 0;
   dut->uart_rx_i = 1;
   dut->uart_rx_data_i = 0;
   dut->uart_rx_valid_i = 0;
@@ -157,11 +175,14 @@ int main(int argc, char** argv) {
     }
     if (rx_pace > 0) rx_pace--;
     dut->clk_i = 0;
-    // Combinational external RAM (dual-eval protocol):
-    // present fetch data, settle, then data data.
-    dut->mem_imem_rdata_i = fetch32(dut->mem_imem_addr_o);
-    dut->eval();
-    dut->mem_dmem_rdata_i = fetch64(dut->mem_dmem_addr_o);
+    // External RAM bus slave outputs for this cycle, settle.
+    {
+      const auto d = bus.Outputs();
+      dut->mem_req_ready_i = d.req_ready;
+      dut->mem_rsp_valid_i = d.rsp_valid;
+      dut->mem_rsp_rdata_i = d.rsp_rdata;
+      dut->mem_rsp_last_i = d.rsp_last;
+    }
     dut->eval();
     if (trace_traps && dut->trap_o) {
       std::fprintf(stderr, "trap cy=%llu cause=0x%llx pc=0x%llx\n",
@@ -169,21 +190,21 @@ int main(int argc, char** argv) {
                    static_cast<unsigned long long>(dut->trap_cause_o),
                    static_cast<unsigned long long>(dut->trap_pc_o));
     }
-    const uint64_t daddr = dut->mem_dmem_addr_o;
-    const uint8_t be = dut->mem_dmem_be_o;
-    const uint64_t wdata = dut->mem_dmem_wdata_o;
+    MbusModel::Req req{};
+    req.valid = dut->mem_req_valid_o;
+    req.fire = req.valid && dut->mem_req_ready_i;
+    req.addr = dut->mem_req_addr_o;
+    req.write = dut->mem_req_write_o;
+    req.len = dut->mem_req_len_o;
+    req.wdata = dut->mem_req_wdata_o;
+    req.be = dut->mem_req_be_o;
+    req.last = dut->mem_req_last_o;
+    req.inst = dut->mem_req_inst_o;
     const bool tx_valid = dut->uart_tx_valid_o != 0;
     const uint8_t tx_byte = dut->uart_tx_data_o;
     dut->clk_i = 1;
     dut->eval();
-    if (be != 0) {
-      const uint64_t base = daddr & ~7ull;
-      for (int i = 0; i < 8; ++i) {
-        if ((be & (1u << i)) && InRam(base + i)) {
-          ram[base + i - kRamBase] = uint8_t(wdata >> (8 * i));
-        }
-      }
-    }
+    bus.Edge(req);
     if (tx_valid) {
       std::fputc(tx_byte, stdout);
       std::fflush(stdout);
@@ -204,9 +225,8 @@ int main(int argc, char** argv) {
       }
     }
   }
-  std::fprintf(stderr, "\nSOC RTL TB TIMEOUT after %llu cycles (pc 0x%llx)\n",
-               static_cast<unsigned long long>(max_cycles),
-               static_cast<unsigned long long>(dut->mem_imem_addr_o));
+  std::fprintf(stderr, "\nSOC RTL TB TIMEOUT after %llu cycles\n",
+               static_cast<unsigned long long>(max_cycles));
   dut->final();
   return 2;
 }

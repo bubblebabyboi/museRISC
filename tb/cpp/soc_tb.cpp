@@ -1,7 +1,10 @@
-// Platform harness for booting firmware/OS payloads on
-// muserisc_core (issue #21). Unlike core_tb (directed compliance
-// tests, untouched), this models a minimal machine around the
-// same Harvard SRAM ports:
+// Platform harness for booting firmware/OS payloads on the
+// museRISC CPU (muserisc_cpu: core + L1 I$/D$; issue #21). This
+// models a minimal machine behind the CPU's memory-bus master
+// port (tb/cpp/mbus_model.h, latency/backpressure options as in
+// core_tb). Only DRAM is cacheable (muserisc_cpu default PMA);
+// ROM, CLINT, PLIC and UART are reached by uncached single-beat
+// accesses, so device side effects happen once per load/store:
 //
 //   0x0000_1000  boot ROM (boot_stub.S; a0=hartid, a1=DTB)
 //   0x0200_0000  CLINT  msip / mtimecmp / mtime (1 tick/cycle)
@@ -15,10 +18,14 @@
 // Usage: soc_tb [max_cycles] --boot 0xADDR
 //          --load 0xADDR=FILE [--load ...]
 //          [--uart-log FILE] [--uart-in FILE]
-//          [--exit-string TEXT]
+//          [--exit-string TEXT] [--no-cache] [--mem-lat A:B]
+//          [--mem-gap N] [--mem-ready PCT] [--mem-seed S]
 // Exit status: 0 exit string seen, 2 timeout/usage/load error.
-#include "Vmuserisc_core.h"
+// (--dump shows the bus-side RAM image, which can lag dirty
+// D$ lines.)
+#include "Vmuserisc_cpu.h"
 #include "verilated.h"
+#include "mbus_model.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -186,10 +193,8 @@ struct Platform {
     }
   }
 
-  // Aligned 64-bit bus word with no side effects. The core's
-  // page-table walker borrows this port without asserting
-  // dmem_re_o, so walker cycles must still see true memory
-  // contents; only genuine load instructions get Read().
+  // Aligned 64-bit bus word with no side effects (cache line
+  // refills; only single-beat data reads get Read()).
   uint64_t PeekWord(uint64_t addr) const {
     uint64_t v = 0;
     for (int i = 0; i < 8; ++i) {
@@ -318,10 +323,18 @@ int main(int argc, char** argv) {
   std::vector<uint64_t> breakpoints;
   long trace_after_trap = 0;
   uint64_t sample_pc_every = 0, sample_pc_from = 0;
+  uint64_t trace_mmio_from = ~0ull;  // --trace-mmio-from CYCLE
+  uint64_t cur_cycle = 0;
   std::vector<std::pair<uint64_t, uint64_t>> dumps;
+  bool cache_en = true;
+  MbusConfig bus_cfg;
   for (int i = 1; i < argc; ++i) {
     auto need = [&](int i) { return i + 1 < argc; };
-    if (std::strcmp(argv[i], "--load") == 0 && need(i)) {
+    if (const int n = bus_cfg.Parse(argc, argv, i)) {
+      i += n - 1;
+    } else if (std::strcmp(argv[i], "--no-cache") == 0) {
+      cache_en = false;
+    } else if (std::strcmp(argv[i], "--load") == 0 && need(i)) {
       char* eq = std::strchr(argv[++i], '=');
       if (eq == nullptr) {
         std::fprintf(stderr, "--load wants 0xADDR=FILE\n");
@@ -343,8 +356,15 @@ int main(int argc, char** argv) {
       const char* colon = std::strchr(spec, ':');
       dumps.push_back({std::strtoull(spec, nullptr, 0),
                        colon ? std::strtoull(colon + 1, nullptr, 0) : 64});
+    } else if (std::strcmp(argv[i], "--trace-mmio-from") == 0 && need(i)) {
+      // Log every single-beat (I/O) bus access from this cycle on.
+      trace_mmio_from = std::strtoull(argv[++i], nullptr, 0);
     } else if (std::strcmp(argv[i], "--sample-pc") == 0 && need(i)) {
       // FROM:EVERY guest fetch sampler for long-boot diagnosis.
+      // EVERY must not be a multiple of the timer-tick period
+      // (40,000 cycles for the DT 10 MHz timebase at HZ=250),
+      // or every sample lands at the same point of the tick
+      // handler; use e.g. 5024721.
       const char* spec = argv[++i];
       const char* colon = std::strchr(spec, ':');
       sample_pc_from = std::strtoull(spec, nullptr, 0);
@@ -390,13 +410,47 @@ int main(int argc, char** argv) {
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_core> dut{new Vmuserisc_core{&context}};
+  const std::unique_ptr<Vmuserisc_cpu> dut{new Vmuserisc_cpu{&context}};
+  // Bus slave: instruction fetches and line refills are
+  // side-effect free; single-beat data reads/writes reach the
+  // devices exactly once.
+  MbusModel bus(
+      bus_cfg,
+      [&](uint64_t a, uint8_t be, bool inst, bool burst) -> uint64_t {
+        if (inst) {
+          uint64_t w = 0;
+          for (int i = 0; i < 8; ++i) {
+            w |= uint64_t(plat.FetchByte((a & ~7ull) + i)) << (8 * i);
+          }
+          return w;
+        }
+        if (burst) return plat.PeekWord(a);
+        const uint64_t v = plat.Read(a);
+        if (cur_cycle >= trace_mmio_from) {
+          std::fprintf(stderr, "mmio cy=%llu R a=0x%llx be=%02x v=0x%016llx\n",
+                       static_cast<unsigned long long>(cur_cycle),
+                       static_cast<unsigned long long>(a), be,
+                       static_cast<unsigned long long>(v));
+        }
+        return v;
+      },
+      [&](uint64_t a, uint8_t be, uint64_t wdata) {
+        if (cur_cycle >= trace_mmio_from && !(a >= kRamBase && a - kRamBase < kRamSize)) {
+          std::fprintf(stderr, "mmio cy=%llu W a=0x%llx be=%02x v=0x%016llx\n",
+                       static_cast<unsigned long long>(cur_cycle),
+                       static_cast<unsigned long long>(a), be,
+                       static_cast<unsigned long long>(wdata));
+        }
+        plat.Write(a, be, wdata);
+      });
   dut->clk_i = 0;
   dut->rst_ni = 0;
   dut->boot_pc_i = boot_pc;
-  dut->imem_rdata_i = 0;
-  dut->dmem_rdata_i = 0;
-  dut->dmem_stall_i = 0;
+  dut->cache_en_i = cache_en ? 1 : 0;
+  dut->bus_req_ready_i = 0;
+  dut->bus_rsp_valid_i = 0;
+  dut->bus_rsp_rdata_i = 0;
+  dut->bus_rsp_last_i = 0;
   dut->trap_halt_i = 0;
   dut->irq_m_timer_i = dut->irq_m_soft_i = dut->irq_m_ext_i = 0;
   dut->irq_s_timer_i = dut->irq_s_ext_i = 0;
@@ -409,28 +463,31 @@ int main(int argc, char** argv) {
   size_t exit_match = 0;
   long pc_window = 0;
   for (uint64_t cycle = 0; cycle < max_cycles; ++cycle) {
+    cur_cycle = cycle;
     plat.mtime++;
     dut->irq_m_timer_i = plat.mtime >= plat.mtimecmp ? 1 : 0;
     dut->irq_m_soft_i = (plat.msip & 1) ? 1 : 0;
     dut->irq_m_ext_i = plat.PlicEip(0) ? 1 : 0;
     dut->irq_s_ext_i = plat.PlicEip(1) ? 1 : 0;
-    // Same dual-eval combinational-memory protocol as core_tb.
-    dut->clk_i = 0;
-    uint64_t word = 0;
-    for (int i = 0; i < 8; ++i) {
-      word |= uint64_t(plat.FetchByte((dut->imem_addr_o & ~7ull) + i))
-              << (8 * i);
+    if (cycle >= trace_mmio_from) {
+      static int last_irq = -1;
+      const int now_irq = (dut->irq_m_ext_i << 2) | (dut->irq_s_ext_i << 1) |
+                          dut->irq_m_timer_i;
+      if (now_irq != last_irq) {
+        std::fprintf(stderr, "irq cy=%llu mext=%d sext=%d mtimer=%d uart_lvl=%d in_service=%d ier=%x\n",
+                     static_cast<unsigned long long>(cycle), dut->irq_m_ext_i,
+                     dut->irq_s_ext_i, dut->irq_m_timer_i,
+                     plat.UartIrqLevel() ? 1 : 0, plat.in_service ? 1 : 0,
+                     plat.ier);
+        last_irq = now_irq;
+      }
     }
-    dut->imem_rdata_i =
-        static_cast<uint32_t>(word >> ((dut->imem_addr_o & 7ull) * 8));
-    dut->eval();
-    // Always present read data (walker reads do not assert
-    // dmem_re_o); MMIO side effects only for real loads.
-    dut->dmem_rdata_i = dut->dmem_re_o ? plat.Read(dut->dmem_addr_o)
-                                       : plat.PeekWord(dut->dmem_addr_o);
+    // Clock-low phase: bus slave outputs, settle.
+    dut->clk_i = 0;
+    MbusDrive(&bus, dut.get());
     dut->eval();
     for (size_t b = 0; b < breakpoints.size(); ++b) {
-      if (breakpoints[b] != 0 && dut->imem_addr_o == breakpoints[b]) {
+      if (breakpoints[b] != 0 && dut->dbg_fetch_pa_o == breakpoints[b]) {
         std::fprintf(stderr, "bp hit 0x%llx cy=%llu\n",
                      static_cast<unsigned long long>(breakpoints[b]),
                      static_cast<unsigned long long>(cycle));
@@ -448,24 +505,22 @@ int main(int argc, char** argv) {
     }
     if (sample_pc_every != 0 && cycle >= sample_pc_from &&
         (cycle % sample_pc_every) == 0) {
-      std::fprintf(stderr, "sample cy=%llu fetch_pa=0x%llx daddr=0x%llx\n",
+      std::fprintf(stderr, "sample cy=%llu fetch_pa=0x%llx bus_addr=0x%llx\n",
                    static_cast<unsigned long long>(cycle),
-                   static_cast<unsigned long long>(dut->imem_addr_o),
-                   static_cast<unsigned long long>(dut->dmem_addr_o));
+                   static_cast<unsigned long long>(dut->dbg_fetch_pa_o),
+                   static_cast<unsigned long long>(dut->bus_req_addr_o));
     }
     if (pc_window > 0) {
       std::fprintf(stderr, "  fetch cy=%llu pc=0x%llx\n",
                    static_cast<unsigned long long>(cycle),
-                   static_cast<unsigned long long>(dut->imem_addr_o));
+                   static_cast<unsigned long long>(dut->dbg_fetch_pa_o));
       pc_window--;
     }
-    const uint64_t daddr = dut->dmem_addr_o;
-    const uint8_t be = dut->dmem_be_o;
-    const uint64_t wdata = dut->dmem_wdata_o;
+    const MbusModel::Req req = MbusSample(dut.get());
     const size_t out_before = plat.uart_out.size();
     dut->clk_i = 1;
     dut->eval();
-    if (be != 0) plat.Write(daddr, be, wdata);
+    bus.Edge(req);
     if (!exit_string.empty() && plat.uart_out.size() > out_before) {
       const size_t from =
           exit_match > 0 ? plat.uart_out.size() - exit_match : 0;
@@ -495,9 +550,9 @@ int main(int argc, char** argv) {
                    static_cast<unsigned long long>(v));
     }
   }
-  std::fprintf(stderr, "\nSOC TB TIMEOUT after %llu cycles (pc 0x%llx)\n",
+  std::fprintf(stderr, "\nSOC TB TIMEOUT after %llu cycles (fetch pa 0x%llx)\n",
                static_cast<unsigned long long>(max_cycles),
-               static_cast<unsigned long long>(dut->imem_addr_o));
+               static_cast<unsigned long long>(dut->dbg_fetch_pa_o));
   dut->final();
   return 2;
 }

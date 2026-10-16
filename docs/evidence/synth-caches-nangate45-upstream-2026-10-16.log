@@ -1,0 +1,17 @@
+Warning: Replacing memory \valid_q with list of registers. See /work/build/synth/caches.v:260
+Warning: Replacing memory \data_we with list of registers. See /work/build/synth/caches.v:204
+Warning: Replacing memory \linebuf_q with list of registers. See /work/build/synth/caches.v:693
+Warning: Replacing memory \dirty_q with list of registers. See /work/build/synth/caches.v:648
+Warning: Replacing memory \valid_q with list of registers. See /work/build/synth/caches.v:647
+Warning: Replacing memory \data_we with list of registers. See /work/build/synth/caches.v:557
+== muserisc_icache
+        4        -   muserisc_sram_sp
+   Area for cell type \muserisc_sram_sp is unknown!
+   Chip area for module '\muserisc_icache': 2927.596000
+== muserisc_dcache
+        8        -   muserisc_sram_sp
+   Area for cell type \muserisc_sram_sp is unknown!
+   Chip area for module '\muserisc_dcache': 13795.558000
+== muserisc_bus_arb
+   Chip area for module '\muserisc_bus_arb': 259.350000
+rc=0 wall=9s cmd=bash scripts/synth_caches.sh
