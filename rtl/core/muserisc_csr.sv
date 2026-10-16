@@ -234,18 +234,21 @@ module muserisc_csr (
   logic        vset_vill;
   logic [63:0] vset_vlmax;
   always_comb begin
-    logic [63:0] sew_bits;
-    sew_bits = 64'd8 << vset_vtype_i[5:3];
+    logic [12:0] group_bits;
+    // VLMAX = LMUL*VLEN/SEW. Both factors are powers of two,
+    // so the quotient is a right shift by log2(SEW) = vsew+3
+    // (a division here synthesizes to a 64-bit divider).
     unique case (vset_vtype_i[2:0])
-      3'd0: vset_vlmax = 64'd512 / sew_bits;
-      3'd1: vset_vlmax = 64'd1024 / sew_bits;
-      3'd2: vset_vlmax = 64'd2048 / sew_bits;
-      3'd3: vset_vlmax = 64'd4096 / sew_bits;
-      3'd5: vset_vlmax = 64'd64 / sew_bits;
-      3'd6: vset_vlmax = 64'd128 / sew_bits;
-      3'd7: vset_vlmax = 64'd256 / sew_bits;
-      default: vset_vlmax = 64'd0;
+      3'd0: group_bits = 13'd512;
+      3'd1: group_bits = 13'd1024;
+      3'd2: group_bits = 13'd2048;
+      3'd3: group_bits = 13'd4096;
+      3'd5: group_bits = 13'd64;
+      3'd6: group_bits = 13'd128;
+      3'd7: group_bits = 13'd256;
+      default: group_bits = 13'd0;
     endcase
+    vset_vlmax = {51'd0, group_bits >> ({1'b0, vset_vtype_i[5:3]} + 4'd3)};
     // vill: reserved fields or SEW > ELEN. Fractional LMUL
     // with SEW/LMUL > ELEN (VLMAX < 8) is also supported.
     vset_vill = (vset_vtype_i[5:3] > 3'd3) ||
