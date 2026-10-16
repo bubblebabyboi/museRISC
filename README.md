@@ -46,7 +46,7 @@ core: current CPU claims refer to the in-house core under
   |  RV64 IMABC + F/D + B/Zicond/scalar crypto + H                 |
   |  M/HS/VS/VU/U, Sv39 + Sv39x4 MMU, PMP, traps and interrupts    |
   +-----------------------------+----------------------------------+
-                                | instruction/data SRAM-style ports
+                                | L1 I$ 8K + D$ 16K (write-back), one memory bus
           +---------------------+----------------------+
           |                                            |
   +-------v------------------+              +----------v-----------+
@@ -101,6 +101,11 @@ Key implementation files are
   self-checking ELFs
   ([#29](https://github.com/bubblebabyboi/museRISC/issues/29)).
   Full V and FP16 (Zvfh/Vf16) are not claimed.
+- **L1 caches:** the core's memory ports are request/response
+  with blocking L1 I$/D$ (SRAM-macro/BRAM-friendly arrays) in
+  `muserisc_cpu` behind one AXI4-mappable memory bus; the core
+  gates re-run with caches on and random bus latency, and with
+  caches off ([evidence](docs/evidence/README.md), `docs/CORE.md`).
 - **Crypto:** KATs pass and the standalone macro is
   place-and-route complete with GDS generated. Core attach
   (B4, [#4](https://github.com/bubblebabyboi/museRISC/issues/4))
@@ -179,6 +184,7 @@ RV64GCV, built in stages; unchecked items are not claims.
 | ACT vector (integer) | 1872/1872 run, 43 not generated | [`act-core-stage8-2026-10-14.csv`](docs/evidence/act-core-stage8-2026-10-14.csv) |
 | OpenSBI | PASS | [`core-stage6a-opensbi-2026-10-14.log`](docs/evidence/core-stage6a-opensbi-2026-10-14.log) |
 | Linux 6.6 | PASS to `/init` | [`core-stage6-linux-boot-2026-10-14.log`](docs/evidence/core-stage6-linux-boot-2026-10-14.log) |
+| L1 caches (random bus latency): riscv-tests / ACT | 123/123 · 2577/2578 (1 waiver) | [`act-core-l1cache-upstream-2026-10-16.csv`](docs/evidence/act-core-l1cache-upstream-2026-10-16.csv), [`l1cache-upstream-2026-10-16.log`](docs/evidence/l1cache-upstream-2026-10-16.log) |
 | Linux KVM smoke | PASS (MMIO exit) | [`core-stage7-kvm-smoke-2026-10-14.log`](docs/evidence/core-stage7-kvm-smoke-2026-10-14.log) |
 | Crypto KATs | PASS | `make test` |
 
