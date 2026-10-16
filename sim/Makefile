@@ -37,7 +37,7 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_decoder.sv \
             $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
             $(RTL)/muserisc_core.sv
-TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
+TESTS    := rv64i_directed rv64m_directed irq_exc_race_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr \
@@ -277,6 +277,14 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_rvcsw.dat ./core_tb rvc_directed.bin
 	cd $(BUILD) && COV_FILE=cov_pipeline.dat ./core_tb pipeline_directed.bin
 	cd $(BUILD) && COV_FILE=cov_priv.dat ./core_tb priv_directed.bin --irq-timer-after 2000
+	@# Timer IRQ at every offset across a run of trapping misaligned
+	@# loads: the interrupt must survive exceptions taken while it
+	@# is pending.
+	cd $(BUILD) && for o in $$(seq 20 120); do \
+	  COV_FILE=cov_irqexc_$$o.dat ./core_tb irq_exc_race_directed.bin --irq-timer-after $$o \
+	    > irq_exc_$$o.log 2>&1 || { echo "offset $$o:"; cat irq_exc_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS irq_exc_race_directed.bin (101/101 IRQ offsets 20..120)"
+	cd $(BUILD) && verilator_coverage --write cov_irqexc.dat cov_irqexc_*.dat
 	cd $(BUILD) && COV_FILE=cov_vm.dat ./core_tb vm_directed.bin
 	cd $(BUILD) && COV_FILE=cov_trap_illegal.dat ./core_tb trap_illegal.bin 100000 --expect-trap 2
 	cd $(BUILD) && COV_FILE=cov_trap_misalign.dat ./core_tb trap_misalign.bin 100000 --expect-trap 4
@@ -310,7 +318,7 @@ COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
               $(BUILD)/cov_amo.dat $(BUILD)/cov_fp.dat \
               $(BUILD)/cov_bext.dat $(BUILD)/cov_bextsw.dat \
               $(BUILD)/cov_rvc.dat $(BUILD)/cov_rvcsw.dat \
-              $(BUILD)/cov_pipeline.dat $(BUILD)/cov_priv.dat \
+              $(BUILD)/cov_pipeline.dat $(BUILD)/cov_priv.dat $(BUILD)/cov_irqexc.dat \
               $(BUILD)/cov_vm.dat \
               $(BUILD)/cov_trap_illegal.dat $(BUILD)/cov_trap_misalign.dat \
               $(BUILD)/cov_trap_ecall.dat $(BUILD)/cov_trap_ebreak.dat \
