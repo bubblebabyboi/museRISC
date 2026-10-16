@@ -16,9 +16,11 @@ OBJ    := $(BUILD)/obj
 
 VERILATOR ?= verilator
 VFLAGS    := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME \
-             --coverage-line --coverage-toggle --assert \
+             --coverage-line --coverage-toggle --assert -I$(RTL) \
              -CFLAGS "-std=c++17 -O2" --Mdir
 PKG       := $(RTL)/muserisc_pkg.sv
+# `included by muserisc_fpu_pkg.sv and muserisc_fpu.sv (dependency only)
+FPU_INC   := $(RTL)/muserisc_fpu_ops.svh
 
 RISCV_PREFIX ?= $(shell command -v riscv64-unknown-elf-gcc >/dev/null 2>&1 \
                   && echo riscv64-unknown-elf- || echo riscv64-elf-)
@@ -29,6 +31,7 @@ SWFLAGS       := -march=rv64imafdc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zkn
 CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_fpregfile.sv $(RTL)/muserisc_alu.sv \
             $(RTL)/muserisc_muldiv.sv \
+            $(RTL)/muserisc_muldiv_mc.sv \
             $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
             $(RTL)/muserisc_bext_pkg.sv $(RTL)/muserisc_bext.sv \
             $(RTL)/muserisc_vregfile.sv \
@@ -37,15 +40,15 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_decoder.sv \
             $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
             $(RTL)/muserisc_core.sv
-TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
+TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr \
             trap_pa_fetch trap_pa_load
 
-.PHONY: all alu muldiv decoder regfile csr mmu fpu bext rvc vec core sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop
-all: alu muldiv decoder regfile csr mmu fpu bext rvc vec core coverage
+.PHONY: all alu muldiv muldiv_mc decoder regfile csr mmu fpu fpu-ds1 bext rvc vec core core-ds1 sw coverage clean riscv-tests \
+        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb
+all: alu muldiv muldiv_mc decoder regfile csr mmu fpu fpu-ds1 bext rvc vec core core-ds1 core-mdcomb coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 riscv-tests: $(BUILD)/core_tb
@@ -64,13 +67,32 @@ alu: $(BUILD)/alu_tb
 	cd $(BUILD) && COV_FILE=cov_alu.dat ./alu_tb
 
 ## ---- Muldiv unit test ---------------------------------------------------
-$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
+$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h \
+                    $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv --top-module muserisc_muldiv \
 	  -o $(abspath $(BUILD)/muldiv_tb) $(RTL)/muserisc_muldiv.sv \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_tb.cpp)
 
 muldiv: $(BUILD)/muldiv_tb
 	cd $(BUILD) && COV_FILE=cov_muldiv.dat ./muldiv_tb
+
+## ---- Multi-cycle muldiv unit test (COMB=0 and the COMB=1 legacy mode) ----
+MULDIV_MC_SRC := $(RTL)/muserisc_muldiv.sv $(RTL)/muserisc_muldiv_mc.sv
+MULDIV_MC_DEP := $(ROOT)/tb/cpp/muldiv_mc_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h $(MULDIV_MC_SRC)
+$(BUILD)/muldiv_mc_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc --top-module muserisc_muldiv_mc \
+	  -o $(abspath $(BUILD)/muldiv_mc_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+$(BUILD)/muldiv_mc_comb_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc_comb --top-module muserisc_muldiv_mc \
+	  -GCOMB=1 -CFLAGS -DMDU_COMB \
+	  -o $(abspath $(BUILD)/muldiv_mc_comb_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+muldiv_mc: $(BUILD)/muldiv_mc_tb $(BUILD)/muldiv_mc_comb_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc.dat ./muldiv_mc_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc_comb.dat ./muldiv_mc_comb_tb 100000
 
 ## ---- Decoder unit test -------------------------------------------------
 $(BUILD)/decoder_tb: $(ROOT)/tb/cpp/decoder_tb.cpp $(PKG) $(RTL)/muserisc_decoder.sv | $(BUILD) $(OBJ)
@@ -115,7 +137,7 @@ $(SF_HOST)/softfloat.a: softfloat-host/Makefile softfloat-host/platform.h
 	mkdir -p $(SF_HOST)
 	cp softfloat-host/Makefile softfloat-host/platform.h $(SF_HOST)/
 	cd $(SF_HOST) && sed -i.bak 's|../../source|../../third_party/berkeley-softfloat-3/source|' Makefile && $(MAKE) -j8
-$(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp \
+$(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
                  $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
                  $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu --top-module muserisc_fpu \
@@ -127,6 +149,22 @@ $(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp \
 
 fpu: $(BUILD)/fpu_tb
 	cd $(BUILD) && COV_FILE=cov_fpu.dat ./fpu_tb
+
+# Same TB on the FPU_DS_BITS=1 configuration (one div/sqrt step
+# per cycle: the shorter-critical-path alternative).
+$(BUILD)/fpu_tb_ds1: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
+                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu_ds1 --top-module muserisc_fpu \
+	  +define+MUSERISC_FPU_DS_BITS=1 -CFLAGS -DFPU_DS_BITS=1 \
+	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
+	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
+	  -o $(abspath $(BUILD)/fpu_tb_ds1) $(RTL)/muserisc_fpu_pkg.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
+
+fpu-ds1: $(BUILD)/fpu_tb_ds1
+	cd $(BUILD) && COV_FILE=cov_fpu_ds1.dat ./fpu_tb_ds1
 
 ## ---- B/crypto unit test ---------------------------------------------------
 $(BUILD)/bext_tb: $(ROOT)/tb/cpp/bext_tb.cpp \
@@ -150,7 +188,7 @@ rvc: $(BUILD)/rvc_tb
 	cd $(BUILD) && COV_FILE=cov_rvc.dat ./rvc_tb
 
 ## ---- Vector unit test ------------------------------------------------------
-$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) \
+$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
                  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
                  $(RTL)/muserisc_vec.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec \
@@ -210,13 +248,13 @@ cryptotop: $(BUILD)/crypto_top_tb
 crypto: sha256 sha512 keccak ecfield cryptotop
 
 ## ---- Core harness + directed software ---------------------------------
-$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) | $(BUILD) $(OBJ)
+$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module muserisc_core \
 	  -o $(abspath $(BUILD)/core_tb) $(CORE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
 
 ## ---- SoC platform harness (Linux/OpenSBI boot, issue #21) --------------
-$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(CORE_RTL) | $(BUILD) $(OBJ)
+$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/soc --top-module muserisc_core \
 	  -o $(abspath $(BUILD)/soc_tb) $(CORE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_tb.cpp)
@@ -244,7 +282,7 @@ SOC_RTL   := $(CORE_RTL) $(CRYPTO)/sha256_block.sv \
              $(SOCDIR)/muserisc_soc_top.sv
 SOCFW     := $(ROOT)/build/soc-tests
 
-$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(SOC_RTL) | $(BUILD) $(OBJ)
+$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(SOC_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/socrtl --top-module muserisc_soc_top \
 	  -o $(abspath $(BUILD)/soc_rtl_tb) $(SOC_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
@@ -271,12 +309,38 @@ $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUIL
 core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_rv64i.dat ./core_tb rv64i_directed.bin
 	cd $(BUILD) && COV_FILE=cov_rv64m.dat ./core_tb rv64m_directed.bin
+	cd $(BUILD) && COV_FILE=cov_md.dat ./core_tb md_directed.bin
+	cd $(BUILD) && COV_FILE=cov_mdkill.dat ./core_tb md_kill_directed.bin
+	@# Timer IRQ at every offset across a window wider than the
+	@# longest M op (64-bit divide: 35 cycles in EX), plus a
+	@# misaligned-load exception killing an in-flight divide.
+	cd $(BUILD) && for o in $$(seq 100 171); do \
+	  COV_FILE=cov_mdirq_$$o.dat ./core_tb md_irq_directed.bin --irq-timer-after $$o \
+	    > md_irq_$$o.log 2>&1 || { cat md_irq_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS md_irq_directed.bin (72/72 IRQ offsets 100..171)"
+	cd $(BUILD) && verilator_coverage --write cov_mdirq.dat cov_mdirq_*.dat
 	cd $(BUILD) && COV_FILE=cov_amo.dat ./core_tb amo_directed.bin
 	cd $(BUILD) && COV_FILE=cov_fp.dat ./core_tb fp_directed.bin
+	cd $(BUILD) && COV_FILE=cov_fpstall.dat ./core_tb fp_stall_directed.bin
+	@# Timer IRQ at every offset across a window wider than the
+	@# longest FP op (fdiv.d/fsqrt.d: 32 cycles in EX).
+	cd $(BUILD) && for o in $$(seq 100 147); do \
+	  COV_FILE=cov_fpirq_$$o.dat ./core_tb fp_irq_directed.bin --irq-timer-after $$o \
+	    > fp_irq_$$o.log 2>&1 || { cat fp_irq_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS fp_irq_directed.bin (48/48 IRQ offsets 100..147)"
+	cd $(BUILD) && verilator_coverage --write cov_fpirq.dat cov_fpirq_*.dat
 	cd $(BUILD) && COV_FILE=cov_bextsw.dat ./core_tb bext_directed.bin
 	cd $(BUILD) && COV_FILE=cov_rvcsw.dat ./core_tb rvc_directed.bin
 	cd $(BUILD) && COV_FILE=cov_pipeline.dat ./core_tb pipeline_directed.bin
 	cd $(BUILD) && COV_FILE=cov_priv.dat ./core_tb priv_directed.bin --irq-timer-after 2000
+	@# Timer IRQ at every offset across a run of trapping misaligned
+	@# loads: the interrupt must survive exceptions taken while it
+	@# is pending.
+	cd $(BUILD) && for o in $$(seq 20 120); do \
+	  COV_FILE=cov_irqexc_$$o.dat ./core_tb irq_exc_race_directed.bin --irq-timer-after $$o \
+	    > irq_exc_$$o.log 2>&1 || { echo "offset $$o:"; cat irq_exc_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS irq_exc_race_directed.bin (101/101 IRQ offsets 20..120)"
+	cd $(BUILD) && verilator_coverage --write cov_irqexc.dat cov_irqexc_*.dat
 	cd $(BUILD) && COV_FILE=cov_vm.dat ./core_tb vm_directed.bin
 	cd $(BUILD) && COV_FILE=cov_trap_illegal.dat ./core_tb trap_illegal.bin 100000 --expect-trap 2
 	cd $(BUILD) && COV_FILE=cov_trap_misalign.dat ./core_tb trap_misalign.bin 100000 --expect-trap 4
@@ -292,6 +356,52 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_trap_pa_fetch.dat ./core_tb trap_pa_fetch.bin 100000 --expect-trap 1
 	cd $(BUILD) && COV_FILE=cov_trap_pa_load.dat ./core_tb trap_pa_load.bin 100000 --expect-trap 5
 
+## ---- M unit in COMB=1 (legacy single-cycle) mode: whole directed suite --
+# Proves the core still elaborates and runs with the combinational M
+# unit behind the handshake (+define+MUSERISC_MULDIV_COMB). No coverage
+# is written (the main `core` run owns the cov_*.dat files).
+MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_directed.bin \
+  amo_directed.bin fp_directed.bin fp_stall_directed.bin bext_directed.bin \
+  rvc_directed.bin pipeline_directed.bin "priv_directed.bin --irq-timer-after 2000" "irq_exc_race_directed.bin --irq-timer-after 40" \
+  vm_directed.bin "trap_illegal.bin 100000 --expect-trap 2" \
+  "trap_misalign.bin 100000 --expect-trap 4" "trap_ecall.bin 100000 --expect-trap 11" \
+  "trap_ebreak.bin 100000 --expect-trap 3" "trap_store_misalign.bin 100000 --expect-trap 6" \
+  "trap_younger_store.bin 100000 --expect-trap 4" trap_younger_csr.bin \
+  counter_time_directed.bin hyp_directed.bin vec_directed.bin \
+  fpvec_directed.bin \
+  "trap_pa_fetch.bin 100000 --expect-trap 1" "trap_pa_load.bin 100000 --expect-trap 5"
+$(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module muserisc_core \
+	  +define+MUSERISC_MULDIV_COMB \
+	  -o $(abspath $(BUILD)/core_tb_mdcomb) $(CORE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-mdcomb: $(BUILD)/core_tb_mdcomb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+	cd $(BUILD) && for r in $(MDCOMB_RUNS); do \
+	  ./core_tb_mdcomb $$r > mdcomb.log 2>&1 || { cat mdcomb.log; exit 1; }; \
+	  tail -1 mdcomb.log | sed 's/^CORE TB PASS/CORE TB PASS [M COMB=1]/'; \
+	done
+	cd $(BUILD) && for o in $$(seq 100 7 171); do \
+	  ./core_tb_mdcomb md_irq_directed.bin --irq-timer-after $$o > mdcomb.log 2>&1 \
+	    || { cat mdcomb.log; exit 1; }; \
+	done; echo "CORE TB PASS [M COMB=1] md_irq_directed.bin (11 IRQ offsets 100..170)"
+
+## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
+$(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module muserisc_core \
+	  +define+MUSERISC_FPU_DS_BITS=1 \
+	  -o $(abspath $(BUILD)/core_tb_ds1) $(CORE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-ds1: $(BUILD)/core_tb_ds1 $(BUILD)/fp_directed.bin $(BUILD)/fp_stall_directed.bin $(BUILD)/fp_irq_directed.bin $(BUILD)/fpvec_directed.bin
+	cd $(BUILD) && ./core_tb_ds1 fp_directed.bin
+	cd $(BUILD) && ./core_tb_ds1 fp_stall_directed.bin
+	cd $(BUILD) && ./core_tb_ds1 fpvec_directed.bin
+	cd $(BUILD) && for o in $$(seq 100 3 172); do \
+	  ./core_tb_ds1 fp_irq_directed.bin --irq-timer-after $$o \
+	    > fp_irq_ds1_$$o.log 2>&1 || { cat fp_irq_ds1_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS fp_irq_directed.bin on FPU_DS_BITS=1 (25 IRQ offsets 100..172)"
+
 ## ---- Coverage ----------------------------------------------------------
 # Annotate from this directory: the .dat files record source paths
 # relative to sim/, where verilator was invoked. Inputs are listed
@@ -303,14 +413,17 @@ COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
               $(wildcard $(BUILD)/cov_ecfield.dat) \
               $(wildcard $(BUILD)/cov_cryptotop.dat) \
               $(BUILD)/cov_alu.dat $(BUILD)/cov_muldiv.dat \
+              $(BUILD)/cov_muldiv_mc.dat $(BUILD)/cov_muldiv_mc_comb.dat \
               $(BUILD)/cov_decoder.dat $(BUILD)/cov_regfile.dat \
               $(BUILD)/cov_csr.dat $(BUILD)/cov_mmu.dat \
-              $(BUILD)/cov_fpu.dat \
+              $(BUILD)/cov_fpu.dat $(BUILD)/cov_fpu_ds1.dat \
               $(BUILD)/cov_rv64i.dat $(BUILD)/cov_rv64m.dat \
+              $(BUILD)/cov_md.dat $(BUILD)/cov_mdirq.dat $(BUILD)/cov_mdkill.dat \
               $(BUILD)/cov_amo.dat $(BUILD)/cov_fp.dat \
+              $(BUILD)/cov_fpstall.dat $(BUILD)/cov_fpirq.dat \
               $(BUILD)/cov_bext.dat $(BUILD)/cov_bextsw.dat \
               $(BUILD)/cov_rvc.dat $(BUILD)/cov_rvcsw.dat \
-              $(BUILD)/cov_pipeline.dat $(BUILD)/cov_priv.dat \
+              $(BUILD)/cov_pipeline.dat $(BUILD)/cov_priv.dat $(BUILD)/cov_irqexc.dat \
               $(BUILD)/cov_vm.dat \
               $(BUILD)/cov_trap_illegal.dat $(BUILD)/cov_trap_misalign.dat \
               $(BUILD)/cov_trap_ecall.dat $(BUILD)/cov_trap_ebreak.dat \

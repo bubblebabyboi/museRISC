@@ -50,10 +50,78 @@ stage 2 reused the same modules inside a classic 5-stage pipeline
 one load-use bubble, all control transfers resolved in EX
 (predict not-taken, two flushed slots), and exceptions carried to
 WB so a trapping instruction and everything younger perform no
-writes. The M-unit divider is combinational in stage 2 (a
-correctness vehicle; an iterative divider with an EX stall
-replaces it before any synthesis target). Pipeline performance
+writes. The M-unit divider was combinational in stage 2 (a
+correctness vehicle); the multi-cycle `muserisc_muldiv_mc` with
+an EX stall has since replaced it (see "M unit" below).
+Pipeline performance
 beyond correctness is not yet a goal at this stage.
+
+## EX-stage multi-cycle units (fpu-multicycle)
+
+The scalar FPU (`rtl/core/muserisc_fpu.sv`) is a multi-cycle
+unit: the FP instruction stays in EX until the unit completes.
+The handshake is generic so other EX units (the multi-cycle M
+unit, see "M unit" below) reuse it unchanged:
+
+| Signal | Driver | Meaning |
+|---|---|---|
+| `req_i` | core | level: the instruction in EX uses this unit and is not already excepting (`idex_valid && uses_unit && !idex_exc && !ex_illegal`) |
+| `done_o` | unit | `result_o`/`flags_o` valid this cycle; may be in the issue cycle (fast ops) |
+| `ack_i` | core | `ex_advance`: EX moves to EX/MEM this cycle (`!trap_take && !freeze && !mem_stall && !ex_hold`), consuming the result |
+| `kill_i` | core | `trap_take`; dropping `req_i` also squashes |
+
+Core side (`muserisc_core.sv`):
+
+- `ex_mc_busy = OR over units of (req && !done)`; `ex_hold =
+  vec_wb_stall || ex_mc_busy`. While `ex_hold`, PC, IF/ID and
+  ID/EX keep their contents, a bubble enters EX/MEM, and the
+  older instructions in MEM/WB drain normally. `irq_inject` is
+  suppressed, so an interrupt is taken on the next instruction
+  boundary after the held op completes (precise, never mid-op).
+- Held-EX operand refresh: every held cycle copies the
+  forwarded `ex_rs1/rs2/frs1-3` back into ID/EX, because the
+  producers keep draining through MEM/WB and would otherwise
+  fall out of the forwarding window. (This also fixed a latent
+  stale-operand bug on the pre-existing `vec_wb_stall` hold:
+  `fp_stall_directed.S` test 4 fails on the previous core.)
+- Side effects of the EX instruction (fflags accrual, FS dirty)
+  commit only in its `done` cycle under the usual
+  `!trap_fire && !mem_exc && !mem_stall` gating, so a squashed
+  op leaves no architectural trace.
+- The unit samples its operands and the resolved rounding mode
+  when it accepts the op (idle and `req_i`), so later changes
+  of the forwarding network or of `frm` cannot affect it; a
+  `done` without `ack` (e.g. `mem_stall` from an older vector
+  load) parks the result in a HOLD state until EX advances.
+- Adding a unit: compute its `req`, OR `req && !done` into
+  `ex_mc_busy`, drive `ack_i` from `ex_advance` and `kill_i`
+  from `trap_take`, select its result into `ex_result`, and
+  gate any EX-committed side effect with its `done`.
+
+FPU structure: every operation is a chain of stage functions in
+`muserisc_fpu_ops.svh` (unpack, special cases, align, add,
+normalise, round; radix-2 restoring divide/sqrt steps; float/int
+conversions). `muserisc_fpu` puts a register after each stage
+and runs `FPU_DS_BITS` (= 2) divide/sqrt steps per cycle; the
+vector unit calls `fp_eval`, which chains the very same
+functions combinationally, so scalar and vector results are
+identical by construction (simulation additionally asserts
+every multi-cycle completion against `fp_eval`). Normalisation
+uses log-depth leading-zero shifters; there are no
+data-dependent loops. The vector FP path itself remains
+combinational (out of scope for this change).
+
+Latency (cycles the instruction occupies EX; 1 = no stall):
+
+| Operation | Cycles |
+|---|---|
+| `fsgnj*`, `fmv.x.*`, `fmv.*.x` | 1 |
+| `feq/flt/fle`, `fmin/fmax`, `fclass`, any special-operand shortcut (NaN/Inf, 0×Inf, x/0, 0/x, √±0, √−x) | 2 |
+| `fcvt.int.fp`, `fcvt.fp.int`, `fcvt.s.d`/`fcvt.d.s` | 3 |
+| `fadd`/`fsub`/`fmul` (S and D) | 5 |
+| `fmadd`/`fmsub`/`fnmsub`/`fnmadd` | 7 |
+| `fdiv.s`/`fsqrt.s` | 17 |
+| `fdiv.d`/`fsqrt.d` | 32 |
 
 ## Requirements carried from the CVA6+Ara characterization
 
@@ -90,3 +158,72 @@ handling state arrives in stage 3. The core harness
 (`tb/cpp/core_tb.cpp`) maps RAM at 0 and treats a store to
 `0x1000_0000` as test exit (value 0 = pass, nonzero = failing test
 number), matching the `sw/core-tests/` convention.
+
+## M unit: `muserisc_muldiv_mc` (multi-cycle)
+
+`rtl/core/muserisc_muldiv_mc.sv` is the RV64M unit in EX
+(`u_muldiv`), on the generic multi-cycle handshake above:
+`muldiv_req = idex_valid && muldiv && !idex_exc && !ex_illegal`,
+its `req && !done` term is ORed into `ex_mc_busy`, `ack =
+ex_advance`, `kill = trap_take`. Operands are sampled in the
+issue cycle, so later forwarding changes are ignored;
+`done_o`/`result_o` come only from unit registers. The unit
+returns to IDLE on ack, kill or a dropped `req`, and nothing is
+registered in a done state, so a done result can never be seen
+by the next op (which always starts from IDLE). The M unit and
+the FPU are asserted (simulation) never to be in flight together,
+and an M op never shares EX with an FP or vector op. Vector
+integer mul/div (in `muserisc_vec`) are unaffected. An interrupt
+waits for a held M op like any EX hold
+(it is injected on a younger instruction). An older instruction's
+exception kills it (`kill = trap_take`) and it re-executes after
+the handler returns. That kill can come at any cycle of the op: an
+older access parked in MEM by `mem_stall` (a page-table walk, or a
+vector load/store that faults on a later element) keeps the M op
+running in EX for as long as the stall lasts. A result finished
+during the stall is acked in the cycle the stall ends with the
+fault and then flushed from EX/MEM by the trap; a trap firing in
+the done cycle itself kills the unit in its done state. Covered by
+`md_kill_directed.S` (vector load faulting on element 8 behind
+long divides, multiplies and x/0; x/0 behind a misaligned load)
+and `md_irq_directed.S`.
+
+| op | cycles in EX, default `COMB=0` (minimum 2: every M op stalls EX) |
+|----|------------------------------------------------------------------|
+| MUL, MULH, MULHSU, MULHU, MULW | 3 |
+| DIV/REM(U)(W) by zero, signed overflow | 2 |
+| other DIV/REM(U)(W) | 3 + n, n = max(0, ceil((clz\|b\| − clz\|a\| + 1)/2)) |
+
+n is 0..32 (0..16 for W forms): |a| < |b| with a different MSB
+position takes 3 cycles, a full 64-bit quotient 35 (the unit's
+`done` is in cycle 2 / 1 / 2 + n counting the issue cycle as 0). Multiplier: 65×65
+signed (per-op sign/zero extension) as four 33×33 signed partial
+products registered in MUL1 (2×2 DSP48 tiles on FPGA, Booth arrays on
+ASIC), summed in MUL2. Divider: radix-4 restoring recurrence on
+magnitudes (compare against d, 2d, 3d in parallel), normalized by
+leading-zero counts so only significant quotient digits iterate;
+FIX applies signs and the W sign extension. `COMB=1` keeps the legacy
+single-cycle behaviour behind the same handshake (`done_o = req_i`);
+the core selects it with `+define+MUSERISC_MULDIV_COMB`
+(`make -C sim core-mdcomb` runs the directed suite on that build).
+Simulation builds cross-check every completion against
+`muserisc_muldiv`.
+
+Verification (`make -C sim muldiv_mc`, `tb/cpp/muldiv_mc_tb.cpp`,
+golden `tb/cpp/muldiv_golden.h`): edge-operand cross product and
+exhaustive −20..20 operands for every op and W form, every divider
+step count, and 1M randomized ops with handshake stress (done held
+without ack, operands scrambled while busy, ack noise, back-to-back
+issue, kill / req drop / asynchronous reset at every cycle of an
+operation including the done hold); exact latency is checked on
+every op. Verilator line and toggle coverage of
+`muserisc_muldiv_mc.sv` is 100% (COMB=0 and COMB=1 builds merged).
+
+Block synthesis (`scripts/synth_unit_nangate45.sh`, Yosys `synth
+-booth` + ABC, OpenSTA at 10 ns, no placement/buffering; evidence in
+`docs/evidence/muldiv-multicycle-upstream-2026-10-16.log`):
+
+| unit | cell area | flops | worst path |
+|------|-----------|-------|------------|
+| `muserisc_muldiv` (combinational) | 49,787 µm² | 0 | 115.8 ns in→out (1,758 cells) |
+| `muserisc_muldiv_mc` | 28,566 µm² | 274 | 4.69 ns reg→reg (MUL1 partial products, 70 cells); 4.25 ns reg→`result_o` (MUL2 sum); divider ITER step 3.3 ns |

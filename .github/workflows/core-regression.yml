@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          make -C sim alu muldiv decoder regfile csr mmu fpu \
+          make -C sim alu muldiv muldiv_mc decoder regfile csr mmu fpu \
             bext rvc vec crypto 2>&1 | tee build-ci-unit.log
           grep -E "TB PASS" build-ci-unit.log >> "$GITHUB_STEP_SUMMARY"
 

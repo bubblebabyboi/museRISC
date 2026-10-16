@@ -1,0 +1,221 @@
+# Multi-cycle FPU (#32) on upstream main 4c5a51a: gate evidence, 2026-10-15
+# Verilator 5.048 (deps/), riscv64-unknown-elf GCC 16, host x86_64 (48 cores, shared)
+
+== make core-test (unit TBs incl. fpu-ds1, directed asm incl. fp_stall/fp_irq, core-ds1) ==
+ALU TB PASS (205642 checks)
+MULDIV TB PASS (165877 checks)
+DECODER TB PASS (12343 checks)
+REGFILE TB PASS (4194 checks)
+CSR TB PASS (207 checks)
+MMU TB PASS (74 checks)
+checks[arith] = 92456
+checks[class] = 23120
+checks[cmp] = 23121
+checks[f2f] = 23121
+checks[f2i] = 23113
+checks[fma] = 92440
+checks[fma-cancel] = 2
+checks[fma-zero] = 500
+checks[i2f] = 27108
+checks[minmax] = 23098
+checks[mv] = 46219
+checks[pool] = 56004
+checks[sgnj] = 23112
+checks[sqrt] = 23132
+checks[tininess] = 3
+checks[undef] = 14
+latency (cycles in EX) per op:
+  add.d     2:1316 5:13846
+  add.s     2:1876 5:12603
+  class.d   2:11616
+  class.s   2:11618
+  cmp.d     2:15156
+  cmp.s     2:14481
+  div.d     2:1553 32:13593
+  div.s     2:2069 17:12411
+  fmadd.d   2:1267 7:12181
+  fmadd.s   2:2187 7:10870
+  fmsub.d   2:1277 7:12121
+  fmsub.s   2:2100 7:10962
+  fnmadd.d  2:1248 7:12214
+  fnmadd.s  2:2156 7:10858
+  fnmsub.d  2:1239 7:12140
+  fnmsub.s  2:2156 7:11001
+  minmax.d  2:15151
+  minmax.s  2:14463
+  mul.d     2:1283 5:13871
+  mul.s     2:1860 5:12612
+  mvfx.d    1:11559
+  mvfx.s    1:11554
+  mvxf.d    1:11550
+  mvxf.s    1:11556
+  sgnj.d    1:11734
+  sgnj.s    1:11720
+  sqrt.d    2:5431 32:6436
+  sqrt.s    2:5645 17:6190
+  sub.d     2:1299 5:13864
+  sub.s     2:1954 5:12510
+  undef.d   2:8
+  undef.s   2:6
+cycles simulated: 2930169
+FPU TB PASS (476563 checks)
+checks[arith] = 92441
+checks[class] = 23123
+checks[cmp] = 23124
+checks[f2f] = 23114
+checks[f2i] = 23119
+checks[fma] = 92454
+checks[fma-cancel] = 2
+checks[fma-zero] = 500
+checks[i2f] = 27103
+checks[minmax] = 23102
+checks[mv] = 46237
+checks[pool] = 56004
+checks[sgnj] = 23118
+checks[sqrt] = 23105
+checks[tininess] = 3
+checks[undef] = 14
+latency (cycles in EX) per op:
+  add.d     2:1290 5:13868
+  add.s     2:1868 5:12591
+  class.d   2:11625
+  class.s   2:11612
+  cmp.d     2:15168
+  cmp.s     2:14472
+  div.d     2:1541 59:13612
+  div.s     2:2090 30:12383
+  fmadd.d   2:1214 7:12217
+  fmadd.s   2:2137 7:10947
+  fmsub.d   2:1202 7:12163
+  fmsub.s   2:2228 7:10908
+  fnmadd.d  2:1266 7:12184
+  fnmadd.s  2:2157 7:10871
+  fnmsub.d  2:1276 7:12160
+  fnmsub.s  2:2193 7:10868
+  minmax.d  2:15154
+  minmax.s  2:14464
+  mul.d     2:1297 5:13858
+  mul.s     2:1838 5:12639
+  mvfx.d    1:11571
+  mvfx.s    1:11576
+  mvxf.d    1:11552
+  mvxf.s    1:11538
+  sgnj.d    1:11732
+  sgnj.s    1:11728
+  sqrt.d    2:5354 59:6495
+  sqrt.s    2:5623 30:6203
+  sub.d     2:1270 5:13888
+  sub.s     2:1943 5:12529
+  undef.d   2:10
+  undef.s   2:4
+cycles simulated: 3716009
+FPU TB PASS (476563 checks)
+BEXT TB PASS (54980 checks)
+RVC TB PASS (49152 checks)
+VEC TB PASS (1014624 checks)
+CORE TB PASS rv64i_directed.bin (315 cycles)
+CORE TB PASS rv64m_directed.bin (167 cycles)
+CORE TB PASS amo_directed.bin (413 cycles)
+CORE TB PASS fp_directed.bin (1013 cycles)
+CORE TB PASS fp_stall_directed.bin (895 cycles)
+done; echo "CORE TB PASS fp_irq_directed.bin (48/48 IRQ offsets 100..147)"
+CORE TB PASS fp_irq_directed.bin (48/48 IRQ offsets 100..147)
+CORE TB PASS bext_directed.bin (402 cycles)
+CORE TB PASS rvc_directed.bin (202 cycles)
+CORE TB PASS pipeline_directed.bin (648 cycles)
+CORE TB PASS priv_directed.bin (801012 cycles)
+CORE TB PASS vm_directed.bin (8744 cycles)
+CORE TB PASS trap_illegal.bin (expected trap cause 2 at pc 0x4, 5 cycles)
+CORE TB PASS trap_misalign.bin (expected trap cause 4 at pc 0x4, 5 cycles)
+CORE TB PASS trap_ecall.bin (expected trap cause 11 at pc 0x4, 5 cycles)
+CORE TB PASS trap_ebreak.bin (expected trap cause 3 at pc 0x4, 5 cycles)
+CORE TB PASS trap_store_misalign.bin (expected trap cause 6 at pc 0x8, 6 cycles)
+CORE TB PASS trap_younger_store.bin (expected trap cause 4 at pc 0x4, 5 cycles)
+CORE TB PASS trap_younger_csr.bin (61 cycles)
+CORE TB PASS counter_time_directed.bin (8423 cycles)
+CORE TB PASS hyp_directed.bin (810 cycles)
+CORE TB PASS vec_directed.bin (803 cycles)
+CORE TB PASS fpvec_directed.bin (267 cycles)
+CORE TB PASS trap_pa_fetch.bin (expected trap cause 1 at pc 0x100000000000000, 9 cycles)
+CORE TB PASS trap_pa_load.bin (expected trap cause 5 at pc 0x8, 6 cycles)
+CORE TB PASS fp_directed.bin (1417 cycles)
+CORE TB PASS fp_stall_directed.bin (1138 cycles)
+CORE TB PASS fpvec_directed.bin (267 cycles)
+done; echo "CORE TB PASS fp_irq_directed.bin on FPU_DS_BITS=1 (25 IRQ offsets 100..172)"
+CORE TB PASS fp_irq_directed.bin on FPU_DS_BITS=1 (25 IRQ offsets 100..172)
+  lines with all attached points covered : 42.00%  (1979/4618)
+See lines with '%00' in ../build/sim/coverage
+EXIT=0 WALL=282s
+
+== FPU coverage (merged build/sim/cov_merged.dat; per-file line/branch/toggle) ==
+../rtl/core/muserisc_fpu.sv: line 39/39 (100.0%), branch 22/22 (100.0%), toggle 3682/3698 (99.6%)
+../rtl/core/muserisc_fpu_ops.svh: line 123/123 (100.0%), branch 156/156 (100.0%)
+
+== TestFloat (scripts/testfloat_fpu_vectors.sh; berkeley-testfloat-3 a9c849f1 level 1 seed 42; 36 ops x 5 rounding modes) ==
+vectors: 64648560
+checks[testfloat] = 64648560
+FPU TB PASS (64648560 checks)
+EXIT=0 WALL=1163s
+
+== make lint / make test / riscv-tests ==
+EXIT=0 WALL=5s
+ALL PHASE-0 KATs PASS
+EXIT=0 WALL=4s
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+EXIT=0 WALL=33s
+
+== Verilator 5.020 (Ubuntu 24.04 apt, the CI version; Docker): lint, unit TBs, make -C sim core, riscv-tests smoke subset ==
+lint rc=0
+unit rc=0
+ALU TB PASS (205642 checks)
+MULDIV TB PASS (165877 checks)
+DECODER TB PASS (12343 checks)
+REGFILE TB PASS (4194 checks)
+CSR TB PASS (207 checks)
+MMU TB PASS (74 checks)
+FPU TB PASS (476563 checks)
+FPU TB PASS (476563 checks)
+BEXT TB PASS (54980 checks)
+RVC TB PASS (49152 checks)
+VEC TB PASS (1014624 checks)
+core rc=0
+rt rc=0
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 26/26 PASS, 0 FAIL
+
+== RTL SoC (soc_rtl_tb): crypto firmware, and OpenSBI v1.9 + s_hello ==
+SOC CRYPTO START
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 11097819 cycles)
+EXIT=0 WALL=2142s
+HELLO FROM S-MODE
+SOC RTL TB PASS (exit string at 6059345 cycles)
+EXIT=0 WALL=830s
+yosys read_slang elaboration of muserisc_soc_top (openroad/orfs):
+  not completed: elaboration of the upstream combinational vector unit runs for hours (a concurrent ORFS run on unmodified upstream main sat in the SLANG frontend for >3 h); the FPU itself synthesizes (below)
+
+== ACT on the core (2,578 ELFs, parallel run of sim/run_act_core.sh's per-ELF command; CSV act-core-fpu-multicycle-upstream-2026-10-15.csv) ==
+FAIL PMPSm_cfg_A_tor_zero-00 (8020 cycles)
+ACT (muserisc-core): 2577/2578 PASS, 1 FAIL
+EXIT=1 WALL=453s
+
+== Synthesis: scripts/synth_fpu.sh muserisc_fpu 2.0 (sv2v v0.0.13, Yosys + OpenROAD/OpenSTA from openroad/orfs:latest, Nangate45 typical; register-to-register, inputs/outputs unconstrained) ==
+    35546 4.44E+04 cells
+        4    21.28   DFFR_X1
+     1384 6.26E+03   DFF_X1
+   Chip area for module '\muserisc_fpu': 44416.148000
+     of which used for sequential elements: 6279.728000 (14.14%)
+tns max -598.51
+wns max -3.34
+clk period_min = 5.34 fmax = 187.31
+Design area 45847 um^2 100% utilization.
+(critical path: the 2-step div/sqrt recurrence, ds_q -> ds_q)
+FPU_DS_BITS=1 (SV2V_FLAGS=-DMUSERISC_FPU_DS_BITS=1):
+   Chip area for module '\muserisc_fpu': 43325.282000
+wns max -1.73
+clk period_min = 3.73 fmax = 267.99
+
+== soc_tb Linux boot vs upstream main (OpenSBI v1.9 cbf9f67 + Linux 6.6): no-coverage builds of both, M-level trap trace + UART, first 30M cycles ==
+base: 710 trap events, uart 2701 bytes
+mine: 710 trap events, uart 2701 bytes
+TRAP+UART SEQUENCE IDENTICAL over 30000000 cycles
+including cycle numbers
