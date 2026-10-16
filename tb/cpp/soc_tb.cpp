@@ -113,8 +113,9 @@ struct Platform {
   uint32_t PlicClaim(int ctx) {
     int best = 0;
     for (int s = 1; s < 32; ++s) {
-      if (PlicPending(s) && (enable[ctx] >> s & 1u) &&
-          prio[s] > threshold[ctx] &&
+      // The threshold gates only the EIP notification (spec);
+      // priority 0 never interrupts.
+      if (PlicPending(s) && (enable[ctx] >> s & 1u) && prio[s] != 0 &&
           (best == 0 || prio[s] > prio[best])) {
         best = s;
       }
@@ -230,7 +231,10 @@ struct Platform {
       if (o >= 0x200004 && (o & 0xFFC) == 4) {
         const uint32_t src =
             uint32_t(wdata >> (8 * (addr & 7))) & 0xFFFFFFFFu;
-        if (src == kUartIrq) in_service = false;
+        const int ctx = int((o - 0x200000) / 0x1000);
+        // Ignored for a source not enabled for the context (spec).
+        if (src == kUartIrq && ctx < 2 && (enable[ctx] >> src & 1u))
+          in_service = false;
         return;
       }
     }
@@ -268,14 +272,20 @@ struct Platform {
     auto merge = [](uint32_t* r, int byte, uint8_t v) {
       *r = (*r & ~(0xFFu << (8 * byte))) | (uint32_t(v) << (8 * byte));
     };
+    // Priorities and thresholds are WARL with 3 implemented bits,
+    // as in rtl/soc/muserisc_plic.sv.
     if (o < 0x80) {
       merge(&prio[o / 4], int(o & 3), b);
+      prio[o / 4] &= 7u;
     } else if (o >= 0x2000 && o < 0x2200) {
       const int ctx = int((o - 0x2000) / 0x80);
       if (ctx < 2 && (o & 0x7C) == 0) merge(&enable[ctx], int(o & 3), b);
     } else if (o >= 0x200000 && (o & 0xFFC) == 0) {
       const int ctx = int((o - 0x200000) / 0x1000);
-      if (ctx < 2) merge(&threshold[ctx], int(o & 3), b);
+      if (ctx < 2) {
+        merge(&threshold[ctx], int(o & 3), b);
+        threshold[ctx] &= 7u;
+      }
     }
   }
 
