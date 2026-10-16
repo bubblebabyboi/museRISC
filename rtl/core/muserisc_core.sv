@@ -99,6 +99,10 @@ module muserisc_core import muserisc_pkg::*; (
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
   logic        mem_stall;     // data translation miss: hold all regs
+  logic        fpu_req, fpu_done;
+  logic        ex_mc_busy;    // a multi-cycle EX unit is still working
+  logic        ex_hold;       // EX holds (multi-cycle unit / vector WB)
+  logic        ex_advance;    // EX contents move to EX/MEM this cycle
   logic        sfence_fire;   // SFENCE.VMA commits this cycle
   // Forward declarations for signals driven in later
   // stages but read in EX/ID gating (slang synthesis
@@ -239,7 +243,7 @@ module muserisc_core import muserisc_pkg::*; (
   end
 
   assign irq_inject = irq_valid && ifid_valid_q && !stall && !flush &&
-                      !freeze && !mem_stall && !vec_wb_stall;
+                      !freeze && !mem_stall && !ex_hold;
 
   // Which sources the ID instruction reads (load-use interlock).
   logic [6:0] id_opcode;
@@ -457,7 +461,30 @@ module muserisc_core import muserisc_pkg::*; (
   logic [2:0]  fpu_rm;
   assign fpu_rm = (idex_ctrl_q.funct3 == 3'b111) ? csr_frm
                                                  : idex_ctrl_q.funct3;
+  // ---- EX-stage multi-cycle units (generic handshake) ----
+  // A unit with req && !done holds EX (ex_mc_busy): IF/ID/EX
+  // keep their contents, a bubble enters EX/MEM, and older
+  // instructions in MEM/WB drain normally. The result is
+  // consumed (ack) on the cycle EX advances; a trap squashes
+  // the unit (kill). See docs/CORE.md "EX-stage multi-cycle
+  // units". A new unit adds its req && !done term to
+  // ex_mc_busy and uses the same ack/kill.
+  assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                   !ex_illegal;
+  assign ex_mc_busy = fpu_req && !fpu_done;
+  // EX holds for a busy multi-cycle unit or a vector op waiting
+  // on a vector-load VRF write.
+  assign ex_hold = vec_wb_stall || ex_mc_busy;
+  // EX contents move to EX/MEM this cycle.
+  assign ex_advance = !trap_take && !freeze && !mem_stall && !ex_hold;
+
   muserisc_fpu u_fpu (
+      .clk_i     (clk_i),
+      .rst_ni    (rst_ni),
+      .req_i     (fpu_req),
+      .ack_i     (ex_advance),
+      .kill_i    (trap_take),
+      .done_o    (fpu_done),
       .op_i      (idex_ctrl_q.fpu_op),
       .fmt_d_i   (idex_ctrl_q.fmt_d),
       .rm_i      (fpu_rm),
@@ -481,9 +508,10 @@ module muserisc_core import muserisc_pkg::*; (
   // its trap before this instruction writes architectural state
   // (OpenSBI's mtvec restore right after a trapping CSR probe
   // otherwise beats the in-flight trap to the vector).
+  // fpu_done: flags commit once, on the cycle the FP op leaves EX.
   assign csr_fflags_we = idex_valid_q && idex_ctrl_q.fp_op &&
                          !idex_exc_q && !ex_illegal && !trap_fire &&
-                         !mem_exc && !mem_stall;
+                         !mem_exc && !mem_stall && fpu_done;
   assign fp_dirty_ex = (csr_fflags_we && idex_ctrl_q.fp_rd) ||
                        vec_fflags_we;
   assign fp_dirty_mem = exmem_valid_q && exmem_ctrl_q.fp_rd &&
@@ -1589,7 +1617,7 @@ module muserisc_core import muserisc_pkg::*; (
   always_comb begin
     if (flush)                             pc_d = redirect_pc;
     else if (stall || freeze || fetch_stall || straddle_enter ||
-             vec_wb_stall)
+             ex_hold)
                                            pc_d = pc_q;
     else if (fetch_fault)                  pc_d = pc_q + 64'd4;
     else                                   pc_d = pc_q +
@@ -1681,7 +1709,7 @@ module muserisc_core import muserisc_pkg::*; (
       memwb_tval_q <= mem_tval;
       memwb_gpa_q <= mem_gpa;
 
-      exmem_valid_q <= idex_valid_q && !vec_wb_stall;
+      exmem_valid_q <= idex_valid_q && !ex_hold;
       exmem_pc_q <= idex_pc_q;
       exmem_ctrl_q <= idex_ctrl_q;
       exmem_result_q <= ex_result;
@@ -1700,9 +1728,17 @@ module muserisc_core import muserisc_pkg::*; (
       exmem_tval_q <= ex_tval;
       exmem_gpa_q <= ex_gpa;
 
-      if (vec_wb_stall) begin
-        // Hold the EX vector op; it re-executes next cycle
-        // against the updated VRF.
+      if (ex_hold) begin
+        // Hold the EX instruction (a vector op re-executes next
+        // cycle against the updated VRF; a multi-cycle unit keeps
+        // working). Refresh its source operands with this
+        // cycle's forwarded values: the producers keep draining
+        // through MEM/WB and would fall out of forwarding range.
+        idex_rs1_q <= ex_rs1;
+        idex_rs2_q <= ex_rs2;
+        idex_frs1_q <= ex_frs1;
+        idex_frs2_q <= ex_frs2;
+        idex_frs3_q <= ex_frs3;
       end else if (stall || flush) begin
         idex_valid_q <= 1'b0;
       end else if (irq_inject) begin
@@ -1750,7 +1786,7 @@ module muserisc_core import muserisc_pkg::*; (
         ifid_valid_q <= 1'b0;
         ifid_exc_q <= 1'b0;
         straddle_q <= 1'b0;
-      end else if (!stall && !fetch_stall && !vec_wb_stall) begin
+      end else if (!stall && !fetch_stall && !ex_hold) begin
         if (straddle_enter) begin
           // Hold the low parcel; complete it next cycle.
           ifid_valid_q <= 1'b0;
@@ -1769,7 +1805,7 @@ module muserisc_core import muserisc_pkg::*; (
           ifid_gpa_q <= mmu_if_fault_guest ? mmu_if_fault_gpa : 64'd0;
           straddle_q <= 1'b0;
         end
-      end else if (fetch_stall && !stall && !vec_wb_stall) begin
+      end else if (fetch_stall && !stall && !ex_hold) begin
         // Walker is resolving this PC: bubble ID until it lands.
         ifid_valid_q <= 1'b0;
         ifid_exc_q <= 1'b0;

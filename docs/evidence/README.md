@@ -1325,3 +1325,92 @@ stages 4c/5:
   not a Linux boot on the RTL SoC — Linux evidence
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
+
+## Multi-cycle synthesizable FPU + EX-stage stall protocol (2026-10-15, #32)
+
+- `rtl/core/muserisc_fpu.sv` is a multi-cycle F/D unit. An FSM
+  runs over registered stages; div/sqrt is a radix-2 restoring
+  recurrence at `FPU_DS_BITS` (2) steps per cycle;
+  normalisation uses log-depth leading-zero shifters; rounding
+  is a separate stage; there are no data-dependent loops. The
+  arithmetic lives in `rtl/core/muserisc_fpu_ops.svh`, which is
+  `include`d both by the module and by `muserisc_fpu_pkg.sv`,
+  whose `fp_eval` chains the same functions combinationally
+  for the (still combinational) vector FP path. Per-op latency
+  and the generic EX-stage req/done/ack/kill handshake are in
+  [`docs/CORE.md`](../CORE.md) ("EX-stage multi-cycle units").
+  All numbers below:
+  [`fpu-multicycle-upstream-2026-10-15.log`](fpu-multicycle-upstream-2026-10-15.log).
+- FPU unit TB vs SoftFloat: **476,563 checks**, also on the
+  `FPU_DS_BITS = 1` build (`make -C sim fpu-ds1`). The TB
+  covers random/special/boundary operands for every op × both
+  formats × 5 IEEE modes, round-to-odd and NaN-boxing. On the
+  handshake side it checks randomized ack delays (HOLD),
+  operand scrambling while busy, back-to-back issue, mid-op
+  kills/request drops and in-flight resets, and every op's
+  latency. TestFloat (`scripts/testfloat_fpu_vectors.sh`,
+  berkeley-testfloat-3 a9c849f1, level 1, seed 42, 36 F/D ops
+  × 5 rounding modes): **64,648,560/64,648,560 PASS**
+  (1,163 s).
+- Coverage (merged `make core-test`): `muserisc_fpu.sv` line
+  39/39, branch 22/22, toggle 3,682/3,698; the untoggled
+  points are flag bits that are constant by construction.
+  `muserisc_fpu_ops.svh` line 123/123, branch 156/156.
+  Verilator collects no line coverage inside package
+  functions; the module-local `include` makes the arithmetic
+  visible. `fpu_tb` now writes its coverage before freeing the
+  model.
+- Directed tests:
+  - `fp_directed.S` tests 11–16: dependent chains through
+    multi-cycle ops; int, store and branch consumers; FP
+    load-use; fflags ordering vs CSR accesses; dynamic rm
+    sampled at issue.
+  - `fp_stall_directed.S`:
+    - an older trap or vector-load fault kills an in-flight
+      fdiv, which then replays cleanly;
+    - FP ops completing during an older vector load's
+      `mem_stall` park in HOLD;
+    - FP ops in branch/jump shadows never execute;
+    - precise ecall/illegal right after long ops;
+    - FS dirtying;
+    - vector ops interleaved with fdiv/fsqrt;
+    - the held-EX operand refresh (test 4 fails on the
+      previous core: a scalar operand of an instruction held
+      by `vec_wb_stall` went stale once its producer retired).
+  - `fp_irq_directed.S`: timer IRQ at 48 consecutive offsets
+    across in-flight ops; results identical to an IRQ-free run.
+  - `core-ds1`: the FP suites on an `FPU_DS_BITS = 1` core.
+- Gates on upstream `main` 4c5a51a:
+  - `make core-test` green (282 s);
+  - `make lint` clean;
+  - `make test` `ALL PHASE-0 KATs PASS`;
+  - [`riscv-tests-core-fpu-multicycle-upstream-2026-10-15.csv`](riscv-tests-core-fpu-multicycle-upstream-2026-10-15.csv)
+    **123/123**;
+  - [`act-core-fpu-multicycle-upstream-2026-10-15.csv`](act-core-fpu-multicycle-upstream-2026-10-15.csv)
+    **2,577/2,578**: the scalar 543/544, with only the known
+    `PMPSm_cfg_A_tor_zero-00` PA0 waiver failing, plus the
+    vector 2,034/2,034. No new waivers;
+  - Verilator 5.020 (the CI version, Docker): lint, unit TBs,
+    `make -C sim core` and the riscv-tests smoke subset pass;
+  - RTL SoC: crypto firmware `SOC CRYPTO PASS`, and OpenSBI
+    v1.9 + S-mode payload `HELLO FROM S-MODE` on
+    `soc_rtl_tb`.
+- Linux (`soc_tb`): on this base, upstream `main` itself does
+  not complete the boot (S-external interrupt livelock after
+  `/init`, fixed by the separate mip RMW change). The M-level
+  trap trace and UART output of this branch are therefore
+  compared with upstream `main`. They are cycle-identical over
+  the first 30M boot cycles (710 trap events each). With the
+  mip fix and the element-serial vector unit, the same FPU
+  boots Linux to `MUSERISC_LINUX_BOOT_OK` at 502,782,909
+  cycles.
+- Synthesis (`scripts/synth_fpu.sh`):
+  - Flow: sv2v v0.0.13 → Yosys → OpenROAD
+    repair_design/repair_timing + OpenSTA, Nangate45 typical,
+    no wire parasitics, Yosys ripple-carry adders.
+  - **44,416 µm²** (35,546 cells, 1,388 flops), register-to-
+    register min period **5.34 ns (187 MHz)**. Inputs and
+    outputs are unconstrained. The critical path is the 2-step
+    div/sqrt recurrence.
+  - With `FPU_DS_BITS = 1` (div/sqrt 30/59 cycles):
+    43,325 µm², 3.73 ns (268 MHz).
