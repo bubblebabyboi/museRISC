@@ -1325,3 +1325,328 @@ stages 4c/5:
   not a Linux boot on the RTL SoC — Linux evidence
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
+
+## Multi-cycle synthesizable FPU + EX-stage stall protocol (2026-10-15, #32)
+
+- `rtl/core/muserisc_fpu.sv` is a multi-cycle F/D unit. An FSM
+  runs over registered stages; div/sqrt is a radix-2 restoring
+  recurrence at `FPU_DS_BITS` (2) steps per cycle;
+  normalisation uses log-depth leading-zero shifters; rounding
+  is a separate stage; there are no data-dependent loops. The
+  arithmetic lives in `rtl/core/muserisc_fpu_ops.svh`, which is
+  `include`d both by the module and by `muserisc_fpu_pkg.sv`,
+  whose `fp_eval` chains the same functions combinationally
+  for the (still combinational) vector FP path. Per-op latency
+  and the generic EX-stage req/done/ack/kill handshake are in
+  [`docs/CORE.md`](../CORE.md) ("EX-stage multi-cycle units").
+  All numbers below:
+  [`fpu-multicycle-upstream-2026-10-15.log`](fpu-multicycle-upstream-2026-10-15.log).
+- FPU unit TB vs SoftFloat: **476,563 checks**, also on the
+  `FPU_DS_BITS = 1` build (`make -C sim fpu-ds1`). The TB
+  covers random/special/boundary operands for every op × both
+  formats × 5 IEEE modes, round-to-odd and NaN-boxing. On the
+  handshake side it checks randomized ack delays (HOLD),
+  operand scrambling while busy, back-to-back issue, mid-op
+  kills/request drops and in-flight resets, and every op's
+  latency. TestFloat (`scripts/testfloat_fpu_vectors.sh`,
+  berkeley-testfloat-3 a9c849f1, level 1, seed 42, 36 F/D ops
+  × 5 rounding modes): **64,648,560/64,648,560 PASS**
+  (1,163 s).
+- Coverage (merged `make core-test`): `muserisc_fpu.sv` line
+  39/39, branch 22/22, toggle 3,682/3,698; the untoggled
+  points are flag bits that are constant by construction.
+  `muserisc_fpu_ops.svh` line 123/123, branch 156/156.
+  Verilator collects no line coverage inside package
+  functions; the module-local `include` makes the arithmetic
+  visible. `fpu_tb` now writes its coverage before freeing the
+  model.
+- Directed tests:
+  - `fp_directed.S` tests 11–16: dependent chains through
+    multi-cycle ops; int, store and branch consumers; FP
+    load-use; fflags ordering vs CSR accesses; dynamic rm
+    sampled at issue.
+  - `fp_stall_directed.S`:
+    - an older trap or vector-load fault kills an in-flight
+      fdiv, which then replays cleanly;
+    - FP ops completing during an older vector load's
+      `mem_stall` park in HOLD;
+    - FP ops in branch/jump shadows never execute;
+    - precise ecall/illegal right after long ops;
+    - FS dirtying;
+    - vector ops interleaved with fdiv/fsqrt;
+    - the held-EX operand refresh (test 4 fails on the
+      previous core: a scalar operand of an instruction held
+      by `vec_wb_stall` went stale once its producer retired).
+  - `fp_irq_directed.S`: timer IRQ at 48 consecutive offsets
+    across in-flight ops; results identical to an IRQ-free run.
+  - `core-ds1`: the FP suites on an `FPU_DS_BITS = 1` core.
+- Gates on upstream `main` 4c5a51a:
+  - `make core-test` green (282 s);
+  - `make lint` clean;
+  - `make test` `ALL PHASE-0 KATs PASS`;
+  - [`riscv-tests-core-fpu-multicycle-upstream-2026-10-15.csv`](riscv-tests-core-fpu-multicycle-upstream-2026-10-15.csv)
+    **123/123**;
+  - [`act-core-fpu-multicycle-upstream-2026-10-15.csv`](act-core-fpu-multicycle-upstream-2026-10-15.csv)
+    **2,577/2,578**: the scalar 543/544, with only the known
+    `PMPSm_cfg_A_tor_zero-00` PA0 waiver failing, plus the
+    vector 2,034/2,034. No new waivers;
+  - Verilator 5.020 (the CI version, Docker): lint, unit TBs,
+    `make -C sim core` and the riscv-tests smoke subset pass;
+  - RTL SoC: crypto firmware `SOC CRYPTO PASS`, and OpenSBI
+    v1.9 + S-mode payload `HELLO FROM S-MODE` on
+    `soc_rtl_tb`.
+- Linux (`soc_tb`): on this base, upstream `main` itself does
+  not complete the boot (S-external interrupt livelock after
+  `/init`, fixed by the separate mip RMW change). The M-level
+  trap trace and UART output of this branch are therefore
+  compared with upstream `main`. They are cycle-identical over
+  the first 30M boot cycles (710 trap events each). With the
+  mip fix and the element-serial vector unit, the same FPU
+  boots Linux to `MUSERISC_LINUX_BOOT_OK` at 502,782,909
+  cycles.
+- Synthesis (`scripts/synth_fpu.sh`):
+  - Flow: sv2v v0.0.13 → Yosys → OpenROAD
+    repair_design/repair_timing + OpenSTA, Nangate45 typical,
+    no wire parasitics, Yosys ripple-carry adders.
+  - **44,416 µm²** (35,546 cells, 1,388 flops), register-to-
+    register min period **5.34 ns (187 MHz)**. Inputs and
+    outputs are unconstrained. The critical path is the 2-step
+    div/sqrt recurrence.
+  - With `FPU_DS_BITS = 1` (div/sqrt 30/59 cycles):
+    43,325 µm², 3.73 ns (268 MHz).
+
+## Multi-cycle M unit (2026-10-16, #32)
+
+- `muserisc_muldiv_mc` replaces the combinational M unit in EX on
+  the generic multi-cycle protocol of #41 (`docs/CORE.md`, "M unit").
+  Gates on the upstream stack:
+  [`muldiv-multicycle-upstream-2026-10-16.log`](muldiv-multicycle-upstream-2026-10-16.log):
+  lint, test, core-test (new `md_directed`, `md_irq_directed` at 72
+  IRQ offsets, `md_kill_directed` late kills, `core-mdcomb`),
+  riscv-tests 123/123, ACT 2,577/2,578 regenerated in-tree
+  ([`act-core-muldiv-multicycle-upstream-2026-10-16.csv`](act-core-muldiv-multicycle-upstream-2026-10-16.csv),
+  only the known `PMPSm_cfg_A_tor_zero-00` waiver), Verilator 5.020,
+  `socrtl` + OpenSBI on `soc_rtl_tb`. Block synthesis: 28.6k µm²,
+  4.69 ns reg→reg, against 49.8k µm² and 115.8 ns combinational for
+  the old unit. Not run on this base: SoC `read_slang` and the Linux
+  boot (combinational vector unit too slow; see the log).
+
+## L1 I$/D$ + latency-tolerant core memory interface (2026-10-16, #32)
+
+- `muserisc_cpu` = `muserisc_core` + `muserisc_icache` (8 KiB 2-way)
+  + `muserisc_dcache` (16 KiB 4-way write-back) + `muserisc_bus_arb`
+  behind one valid/ready memory bus (`docs/CORE.md`, "Memory
+  interface and L1 caches"); `muserisc_soc_top` instantiates it via
+  `muserisc_soc_fabric`. Gates on the upstream stack (on top of
+  #43), all with the harness bus model's every-cycle request
+  stability check:
+  [`l1cache-upstream-2026-10-16.log`](l1cache-upstream-2026-10-16.log).
+- `make lint` clean; `make test` PASS; `make core-test`: 99
+  `CORE TB PASS`, 0 fail, unit TBs incl. `icache_tb` / `dcache_tb`;
+  every directed test (6 new: `smc_fencei`, `amo_cache`,
+  `mmio_bypass`, `vm_sfence_cache`, `fp_hold_cache`, `ptw_drop`)
+  runs with caches + random bus latency and with caches off,
+  including the `md_irq` (72), `fp_irq` (48) and `irq_exc_race`
+  (101) IRQ-offset sweeps. Coverage (merged): `muserisc_icache`,
+  `muserisc_dcache`, `muserisc_bus_arb`, `muserisc_sram_sp` 100 %
+  line and branch.
+- riscv-tests 123/123 with caches + random latency
+  ([csv](riscv-tests-core-l1cache-upstream-2026-10-16.csv)) and
+  uncached ([csv](riscv-tests-core-l1cache-nocache-upstream-2026-10-16.csv)).
+- ACT, the same 2,578 ELFs as #43: 2,577/2,578 with caches + random
+  latency ([csv](act-core-l1cache-upstream-2026-10-16.csv)) and
+  uncached ([csv](act-core-l1cache-nocache-upstream-2026-10-16.csv));
+  only the known `PMPSm_cfg_A_tor_zero-00` waiver. Run with the
+  parallel runner of #37 (same per-ELF verdict and 5M budget).
+- `soc_rtl_tb`: crypto + ECDSA PASS (18,851,904 cycles cached +
+  random latency; 34,486,744 uncached); OpenSBI + `s_hello` HELLO
+  at latency 1 (11,317,000) and random latency (11,362,632).
+- Cycle cost of the blocking caches (2 cycles per hit, one request
+  in flight): riscv-tests 2.74x total cycles (3.15x geomean) against
+  #41's CSV, uncached 3.64x; ACT 3.14x (uncached 3.81x) against
+  #43's CSV; `soc_rtl_tb` crypto 1.70x and OpenSBI hello 1.87x
+  against #43.
+- Synthesis, `scripts/synth_caches.sh` (Yosys + Nangate45, arrays as
+  black boxes): I$ 2,928 um2, D$ 13,796 um2, arbiter 259 um2
+  ([log](synth-caches-nangate45-upstream-2026-10-16.log)).
+- Verilator 5.020 (Docker ubuntu:24.04): lint clean, unit TBs PASS,
+  `make -C sim core` PASS, `soc_tb` / `soc_rtl_tb` build,
+  riscv-tests smoke 26/26.
+- Not run on this base: the Linux boot (the combinational vector
+  unit makes `soc_tb` too slow for a multi-billion-cycle boot).
+- `priv_directed` test 11 leaves its IRQ wait loop once `irq_flag`
+  is set (the test drops from 1.2M to 2,735 cycles with caches +
+  random latency). Re-run after that change: `make lint` clean
+  (5.048 and 5.020); `make core-test` 99 `CORE TB PASS`, 0 fail
+  (344 s); riscv-tests 123/123 cached + random latency and uncached;
+  stress at 20 % bus ready (seeds 401-402 x {lat 1-6 gap 2,
+  `--no-cache` lat 1-4, lat 2-30 gap 6}, riscv-tests + directed):
+  870 runs, 0 failures, 0 protocol errors; Verilator 5.020 unit TBs,
+  `make -C sim core`, SoC builds and riscv-tests smoke 26/26 PASS.
+
+## Element-serial vector unit + banked VRF (2026-10-15, #32)
+
+- Change: `muserisc_vec.sv` goes from whole-group combinational
+  evaluation to a 4-stage element-serial engine on a 64-bit
+  datapath. It has an iterative multiplier and divider and one
+  shared `fp_eval`/`fp_estimate` call.
+  `muserisc_vregfile.sv` goes from a 32x512 flop array with
+  three 4096-bit group read ports to three 1R1W 256x64
+  byte-write RAM replicas with synchronous read, which can map
+  to SRAM or BRAM.
+  The MEM vector load/store sequencer in `muserisc_core.sv` now
+  reads and writes VRF elements directly. It no longer has
+  4096-bit EX/MEM, MEM/WB or capture registers, or an address
+  multiplier.
+  See [`docs/CORE.md`](../CORE.md) "Vector unit" for the design,
+  the stall/trap/interrupt contract, and per-op cycle counts.
+- Behavior changes (all spec-conformant):
+  - every completed vector instruction resets `vstart` to 0;
+  - `vslidedown` offsets near 2^64 no longer wrap;
+  - segment loads never leave a partially written segment on a
+    fault;
+  - a CSR access or vset right behind a vector load/store
+    observes its `vstart`/`vl` update;
+  - fault-only-first traps only when element 0 faults, and
+    trims `vl` for a fault on any later element;
+  - `vmv<nr>r.v` and whole-register loads/stores honor `vstart`.
+- Unit TB (`tb/cpp/vec_tb.cpp` on
+  `tb/sv/muserisc_vec_harness.sv`, which is the unit plus the
+  VRF):
+  - randomized against an independent C++ RVV golden model for
+    all 88 integer VOP classes;
+  - covers SEW x LMUL (1/8..8) x vl x vstart x v0 masking x
+    vta/vma x vxrm;
+  - compares the whole VRF before and after every op, and
+    exercises every allowed source/destination overlap;
+  - also includes host-IEEE FP directed checks, a kill-mid-op
+    check and cycle probes.
+
+  `make core-test`: **VEC TB PASS (61,672 checks, 22,880
+  random trials, seed 0x5eed8a)**. The seed can be overridden
+  with `VEC_TB_SEED`.
+- New directed test `sw/core-tests/vec_trap_directed.S`
+  (`--irq-timer-after 2000`), 16 checks:
+  - an M-timer interrupt during a long `vmacc` is taken at the
+    next boundary, with no replay;
+  - a misaligned indexed load commits the elements before the
+    fault and sets `vstart`;
+  - a PMP-faulting segment load leaves no partial segment and
+    resumes from `vstart`;
+  - FOF segment trim is visible to back-to-back
+    `csrr vl` / `vsetvli x0,x0`;
+  - arithmetic with `vstart>0`;
+  - strided store fault;
+  - FOF with element 0 masked off, and FOF with `vstart>0`;
+  - FOF element-0 trap;
+  - `vstart>0` and the fault-to-`vstart` rescale on
+    whole-register loads/stores and `vmv1r.v`.
+- Coverage (merged `make core-test`, Verilator line+toggle):
+  - `muserisc_vec.sv`: every line hit. Every toggle point hit
+    except some bits of `fl_q`, the flags of exact widening FP
+    conversions, which can never raise OF/UF/DZ/NX.
+  - `muserisc_vregfile.sv`: 100%.
+- Gates on this branch (Verilator 5.048; wall-clock in
+  parentheses):
+  - `make lint`: clean (6 s). Also clean with Ubuntu 24.04
+    Verilator 5.020.
+  - `make test`: `ALL PHASE-0 KATs PASS` (42 s).
+  - `make core-test`: all PASS (190 s).
+  - `make riscv-tests`:
+    [`riscv-tests-core-vecserial-2026-10-15.csv`](riscv-tests-core-vecserial-2026-10-15.csv)
+    **123/123** (33 s).
+  - `soc_rtl_tb` crypto firmware: `SOC CRYPTO PASS`,
+    `SOC RTL TB PASS` at 11,097,819 cycles. `make -C sim
+    socrtl` itself fails to find `crypto_soc_test.bin`: it
+    `cd`s into `build/sim` and then uses a path relative to
+    `sim/`. That bug is pre-existing and was worked around by
+    running the binary by hand.
+  - Yosys `read_slang` elaboration of the full SoC file list
+    from `flow/designs/nangate45/muserisc_soc/config.mk`:
+    clean in 13 s.
+- ACT, full core set (I/M, priv, A/F/D/B/K/Zicond, C, Vx8-64,
+  Vls8-64, Vf32/Vf64; 2,578 ELFs):
+  [`act-core-vecserial-2026-10-15.csv`](act-core-vecserial-2026-10-15.csv)
+  **2,577/2,578**:
+  - Vx/Vls **1,872/1,872**;
+  - Vf32/Vf64 **162/162**;
+  - scalar+priv **543/544**, with only the existing
+    `PMPSm_cfg_A_tor_zero-00` PA0 waiver failing.
+
+  Run with `sim/run_act_core_par.sh` from #37 (32 jobs, 185 s).
+  It uses the same per-ELF verdict and CSV format as
+  `sim/run_act_core.sh`, writes one result file per ELF, checks
+  that the row count and test names match the ELFs, and exits
+  1 on any FAIL. On the equivalent development branch, a
+  serial `run_act_core.sh` run matched it row for row, cycle
+  counts included.
+
+  Simulated cycles: the vector suites take 2.4-5.9x as many as
+  the old single-cycle-per-instruction unit (element-serial by
+  design); the scalar suites take about 5% more (the ACT
+  prologue initializes vector registers).
+- Synthesis
+  (`scripts/synth_vec.sh`: Yosys + OpenROAD STA from
+  `openroad/orfs:latest`, Nangate45 typical, 10 ns, Kogge-Stone
+  carry networks, ORFS `abc_speed`, sv2v v0.0.13 pinned).
+  `fp_eval`/`fp_estimate` are black-boxed in both designs by
+  `flow/vec-synth/fpu_stub_pkg.sv`, and the VRF RAM replicas
+  are black-boxed as SRAM macros. Log:
+  [`vec-serial-synth-2026-10-15.log`](vec-serial-synth-2026-10-15.log).
+
+  | Block | Before | After |
+  |---|---|---|
+  | `muserisc_vec` | Yosys did not finish elaboration (killed at 141 GiB after ~4 h; 512-way unrolled loops with 22 `*`/`/`/`%` and 15 `fp_eval`/`fp_estimate` sites per element) | **52,735 um^2**, 1,371 flops, depth **76** generic gates, worst path **3.29 ns** (inputs at 0 delay) |
+  | `muserisc_vregfile` | **603,640 um^2** (16,384 flops + 3x4096-bit muxes), depth 18 | **5,254 um^2** logic + 3x 256x64 1R1W SRAM (fakeram45_512x64 is 17,302 um^2, an upper bound for each), depth 6 |
+
+  In the ORFS SoC flow, which has no SRAM macros configured,
+  the three RAM replicas synthesize as flops (49,152 bits,
+  about 3x the old flat VRF's flop count) unless they are
+  mapped to `fakeram45` macros.
+- Linux (`soc_tb`, OpenSBI v1.9 + Linux 6.6): this RTL does not
+  change the scalar pipeline when no vector instruction runs,
+  and the boot runs no vector instruction. The boot livelocks
+  in S-external interrupts after `/init`'s `uname`, and the
+  pre-change RTL livelocks the same way, cycle for cycle. It
+  passes
+  (`MUSERISC_LINUX_BOOT_OK`, 508,685,709 cycles) once the
+  separate `mip` CSRRS/CSRRC pin-latching fix is applied; that
+  fix is upstreamed in its own PR.
+
+## SoC synthesis with all large arrays on SRAM macros (2026-10-16, branch `soc-sram-synth`)
+
+- ORFS synthesis of the whole `muserisc_soc_top`, measured on the
+  development tree CantelopePeel/museRISC at b634ffc (this stack plus
+  #45, #48 and #35). All
+  15 large arrays are macros: 3 VRF banks, 6 L1 data ways and 6 L1 tag
+  ways.
+  - On Nangate45 the macros are fakeram45, partly generated.
+  - On sky130hd they are the OpenRAM macros prebuilt in ORFS.
+- Flat results:
+  - Nangate45: 504,350 µm² std cells + 158,051 µm² macros, 26,447
+    flops.
+  - sky130hd: 2,364,368 µm² + 6,225,284 µm², 26,453 flops.
+- Unrepaired fmax (period bisection in OpenSTA):
+  - Nangate45: 162 MHz.
+  - sky130hd: 12.3 MHz. It is set by the OpenRAM half-cycle reads: 18.4
+    MHz with the VRF outputs registered, 23.0 MHz with all 15
+    registered.
+- The rough sky130 placed core size is 11.8–13.5 mm².
+- The VRF never presents a same-address read and write to a macro:
+  S3 write combining, a full-word bypass, and a retry for partial
+  writes. The `srammacro` models return whole-word garbage for that
+  mode, permanently.
+- Summary: [`../SOC_AREA.md`](../SOC_AREA.md). Runs, timing, collision
+  statistics, mutations, gates and the vendor-model check:
+  [`soc-sram-synth-2026-10-16.log`](soc-sram-synth-2026-10-16.log),
+  with stat and STA reports in `soc-sram-synth-*-2026-10-16.*`.
+- Gates:
+  - lint (5.048, and Docker 5.020 run non-root);
+  - test;
+  - core-test, including `srammacro`;
+  - riscv-tests 123/123;
+  - `socrtl` and OpenSBI hello, cached and uncached;
+  - vendor OpenRAM model run;
+  - ACT 2,577/2,578
+    ([`act-core-soc-sram-synth-2026-10-16.csv`](act-core-soc-sram-synth-2026-10-16.csv)),
+    with only the `PMPSm_cfg_A_tor_zero-00` waiver failing.

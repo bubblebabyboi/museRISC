@@ -16,9 +16,17 @@ OBJ    := $(BUILD)/obj
 
 VERILATOR ?= verilator
 VFLAGS    := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME \
-             --coverage-line --coverage-toggle --assert \
+             --coverage-line --coverage-toggle --assert -I$(RTL) \
              -CFLAGS "-std=c++17 -O2" --Mdir
+# The platform harness writes no coverage; build it without the
+# (expensive) coverage instrumentation for long OS boots.
+VFLAGS_FAST := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert -O3 -I$(RTL) \
+               -CFLAGS "-std=c++17 -O2" --Mdir
 PKG       := $(RTL)/muserisc_pkg.sv
+# `included by muserisc_fpu_pkg.sv and muserisc_fpu.sv (dependency only)
+FPU_INC   := $(RTL)/muserisc_fpu_ops.svh
+# Harness bus timing for the randomized-latency runs (core_tb).
+CORE_RAND_ARGS := --mem-lat 1:6 --mem-gap 2 --mem-ready 70
 
 RISCV_PREFIX ?= $(shell command -v riscv64-unknown-elf-gcc >/dev/null 2>&1 \
                   && echo riscv64-unknown-elf- || echo riscv64-elf-)
@@ -29,6 +37,7 @@ SWFLAGS       := -march=rv64imafdc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zkn
 CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_fpregfile.sv $(RTL)/muserisc_alu.sv \
             $(RTL)/muserisc_muldiv.sv \
+            $(RTL)/muserisc_muldiv_mc.sv \
             $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
             $(RTL)/muserisc_bext_pkg.sv $(RTL)/muserisc_bext.sv \
             $(RTL)/muserisc_vregfile.sv \
@@ -36,20 +45,29 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_rvc.sv \
             $(RTL)/muserisc_decoder.sv \
             $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
-            $(RTL)/muserisc_core.sv
-TESTS    := rv64i_directed rv64m_directed amo_directed fp_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
+            $(RTL)/muserisc_cache_pkg.sv $(RTL)/muserisc_core.sv
+# L1 caches + CPU wrapper (muserisc_cpu is the harness top).
+CACHE_RTL := $(RTL)/muserisc_cache_pkg.sv $(RTL)/muserisc_sram_sp.sv \
+             $(RTL)/muserisc_icache.sv $(RTL)/muserisc_dcache.sv \
+             $(RTL)/muserisc_bus_arb.sv
+CPU_RTL  := $(CORE_RTL) $(filter-out $(RTL)/muserisc_cache_pkg.sv,$(CACHE_RTL)) \
+            $(RTL)/muserisc_cpu.sv
+TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed vec_trap_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr \
-            trap_pa_fetch trap_pa_load
+            trap_pa_fetch trap_pa_load \
+            smc_fencei_directed amo_cache_directed mmio_bypass_directed \
+            vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
 
-.PHONY: all alu muldiv decoder regfile csr mmu fpu bext rvc vec core sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop
-all: alu muldiv decoder regfile csr mmu fpu bext rvc vec core coverage
+.PHONY: all alu muldiv muldiv_mc decoder regfile csr mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
+        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb srammacro directed-bins
+all: alu muldiv muldiv_mc decoder regfile csr mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
+# Caches on, seeded random bus latency/gaps/backpressure.
 riscv-tests: $(BUILD)/core_tb
-	bash $(ROOT)/sim/run_riscv_tests.sh
+	CORE_TB_ARGS="$(CORE_RAND_ARGS)" bash $(ROOT)/sim/run_riscv_tests.sh
 
 $(BUILD) $(OBJ):
 	mkdir -p $@
@@ -64,13 +82,32 @@ alu: $(BUILD)/alu_tb
 	cd $(BUILD) && COV_FILE=cov_alu.dat ./alu_tb
 
 ## ---- Muldiv unit test ---------------------------------------------------
-$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
+$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h \
+                    $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv --top-module muserisc_muldiv \
 	  -o $(abspath $(BUILD)/muldiv_tb) $(RTL)/muserisc_muldiv.sv \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_tb.cpp)
 
 muldiv: $(BUILD)/muldiv_tb
 	cd $(BUILD) && COV_FILE=cov_muldiv.dat ./muldiv_tb
+
+## ---- Multi-cycle muldiv unit test (COMB=0 and the COMB=1 legacy mode) ----
+MULDIV_MC_SRC := $(RTL)/muserisc_muldiv.sv $(RTL)/muserisc_muldiv_mc.sv
+MULDIV_MC_DEP := $(ROOT)/tb/cpp/muldiv_mc_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h $(MULDIV_MC_SRC)
+$(BUILD)/muldiv_mc_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc --top-module muserisc_muldiv_mc \
+	  -o $(abspath $(BUILD)/muldiv_mc_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+$(BUILD)/muldiv_mc_comb_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc_comb --top-module muserisc_muldiv_mc \
+	  -GCOMB=1 -CFLAGS -DMDU_COMB \
+	  -o $(abspath $(BUILD)/muldiv_mc_comb_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+muldiv_mc: $(BUILD)/muldiv_mc_tb $(BUILD)/muldiv_mc_comb_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc.dat ./muldiv_mc_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc_comb.dat ./muldiv_mc_comb_tb 100000
 
 ## ---- Decoder unit test -------------------------------------------------
 $(BUILD)/decoder_tb: $(ROOT)/tb/cpp/decoder_tb.cpp $(PKG) $(RTL)/muserisc_decoder.sv | $(BUILD) $(OBJ)
@@ -115,7 +152,7 @@ $(SF_HOST)/softfloat.a: softfloat-host/Makefile softfloat-host/platform.h
 	mkdir -p $(SF_HOST)
 	cp softfloat-host/Makefile softfloat-host/platform.h $(SF_HOST)/
 	cd $(SF_HOST) && sed -i.bak 's|../../source|../../third_party/berkeley-softfloat-3/source|' Makefile && $(MAKE) -j8
-$(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp \
+$(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
                  $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
                  $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu --top-module muserisc_fpu \
@@ -127,6 +164,22 @@ $(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp \
 
 fpu: $(BUILD)/fpu_tb
 	cd $(BUILD) && COV_FILE=cov_fpu.dat ./fpu_tb
+
+# Same TB on the FPU_DS_BITS=1 configuration (one div/sqrt step
+# per cycle: the shorter-critical-path alternative).
+$(BUILD)/fpu_tb_ds1: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
+                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu_ds1 --top-module muserisc_fpu \
+	  +define+MUSERISC_FPU_DS_BITS=1 -CFLAGS -DFPU_DS_BITS=1 \
+	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
+	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
+	  -o $(abspath $(BUILD)/fpu_tb_ds1) $(RTL)/muserisc_fpu_pkg.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
+
+fpu-ds1: $(BUILD)/fpu_tb_ds1
+	cd $(BUILD) && COV_FILE=cov_fpu_ds1.dat ./fpu_tb_ds1
 
 ## ---- B/crypto unit test ---------------------------------------------------
 $(BUILD)/bext_tb: $(ROOT)/tb/cpp/bext_tb.cpp \
@@ -150,17 +203,73 @@ rvc: $(BUILD)/rvc_tb
 	cd $(BUILD) && COV_FILE=cov_rvc.dat ./rvc_tb
 
 ## ---- Vector unit test ------------------------------------------------------
-$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) \
+# Harness = muserisc_vec + banked muserisc_vregfile + TB backdoor.
+$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
                  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-                 $(RTL)/muserisc_vec.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec \
+                 $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+                 $(ROOT)/tb/sv/muserisc_vec_harness.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec_harness \
 	  -o $(abspath $(BUILD)/vec_tb) $(PKG) \
 	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_vec.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
 vec: $(BUILD)/vec_tb
 	cd $(BUILD) && COV_FILE=cov_vec.dat ./vec_tb
+
+# Same harness with randomized initial state (--x-initial unique,
+# +verilator+rand+reset+2): the simulation cross-checks must stay
+# quiet until reset. Short runs; seeds 1, 2 and 4 each fired a
+# cross-check at time 0 before the reset gating. No coverage.
+$(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
+                 $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
+                 $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+                 $(ROOT)/tb/sv/muserisc_vec_harness.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert --coverage-line \
+	  --x-initial unique -I$(RTL) -CFLAGS "-std=c++17 -O2" \
+	  --Mdir $(OBJ)/vec_xinit --top-module muserisc_vec_harness \
+	  -o $(abspath $(BUILD)/vec_tb_xinit) $(PKG) \
+	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
+
+vec-xinit: $(BUILD)/vec_tb_xinit
+	cd $(BUILD) && for s in 1 2 4; do \
+	  ./vec_tb_xinit 20 +verilator+rand+reset+2 +verilator+seed+$$s > vec_xinit.log 2>&1 \
+	    || { cat vec_xinit.log; exit 1; }; \
+	  tail -1 vec_xinit.log | sed "s/^VEC TB PASS/VEC TB PASS [random initial state, seed $$s]/"; \
+	done
+
+## ---- L1 cache unit tests ----------------------------------------------
+# Small geometry (4 sets x 2 ways x 32 B lines) so the random
+# streams hit every miss/evict/write-back path constantly; two
+# cacheable windows with I/O around them.
+CACHE_TB_G := -GSETS=4 -GWAYS=2 -GLINE_BYTES=32 \
+              "-GC0_BASE=64'h1000" "-GC0_SIZE=64'h2000" \
+              "-GC1_BASE=64'h0080000000000000" "-GC1_SIZE=64'h0080000000000000"
+$(BUILD)/dcache_tb: $(ROOT)/tb/cpp/dcache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/dcache --top-module muserisc_dcache $(CACHE_TB_G) \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/dcache_tb) $(CACHE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/dcache_tb.cpp)
+
+dcache: $(BUILD)/dcache_tb
+	cd $(BUILD) && COV_FILE=cov_dcache.dat ./dcache_tb
+
+$(BUILD)/icache_tb: $(ROOT)/tb/cpp/icache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/icache --top-module muserisc_icache $(CACHE_TB_G) \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/icache_tb) $(CACHE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/icache_tb.cpp)
+
+icache: $(BUILD)/icache_tb
+	cd $(BUILD) && COV_FILE=cov_icache.dat ./icache_tb
 
 ## ---- Crypto accelerator KATs (issue #19) --------------------------------
 $(BUILD)/sha256_tb: $(ROOT)/tb/cpp/sha256_tb.cpp $(CRYPTO)/sha256_block.sv | $(BUILD) $(OBJ)
@@ -210,15 +319,21 @@ cryptotop: $(BUILD)/crypto_top_tb
 crypto: sha256 sha512 keccak ecfield cryptotop
 
 ## ---- Core harness + directed software ---------------------------------
-$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module muserisc_core \
-	  -o $(abspath $(BUILD)/core_tb) $(CORE_RTL) \
+# core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
+# plus the default DRAM window at 0x8000_0000 (ELF tests).
+$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module muserisc_cpu \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/core_tb) $(CPU_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
 
 ## ---- SoC platform harness (Linux/OpenSBI boot, issue #21) --------------
-$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(CORE_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/soc --top-module muserisc_core \
-	  -o $(abspath $(BUILD)/soc_tb) $(CORE_RTL) \
+# Default cacheability: DRAM 0x8000_0000.. only; ROM/CLINT/PLIC/UART are I/O.
+$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/soc --top-module muserisc_cpu \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/soc_tb) $(CPU_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_tb.cpp)
 
 $(ROOT)/build/linux/boot_stub.bin: $(ROOT)/sw/linux/boot_stub.S
@@ -235,17 +350,20 @@ soc: $(BUILD)/soc_tb $(ROOT)/build/linux/boot_stub.bin $(ROOT)/build/linux/s_hel
 
 ## ---- RTL SoC harness (synthesizable SoC, issue #4) ---------------------
 SOCDIR    := $(ROOT)/rtl/soc
-SOC_RTL   := $(CORE_RTL) $(CRYPTO)/sha256_block.sv \
+SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv \
              $(CRYPTO)/ec_field.sv $(CRYPTO)/muse_crypto_top.sv \
              $(SOCDIR)/muserisc_clint.sv $(SOCDIR)/muserisc_plic.sv \
              $(SOCDIR)/muserisc_uart16550.sv \
              $(SOCDIR)/muserisc_bootrom.sv \
              $(SOCDIR)/muserisc_crypto_bridge.sv \
+             $(SOCDIR)/muserisc_soc_fabric.sv \
              $(SOCDIR)/muserisc_soc_top.sv
 SOCFW     := $(ROOT)/build/soc-tests
 
-$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(SOC_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/socrtl --top-module muserisc_soc_top \
+# Long firmware runs: no coverage instrumentation (as soc_tb).
+$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl --top-module muserisc_soc_top \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/soc_rtl_tb) $(SOC_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
 
@@ -260,68 +378,163 @@ $(SOCFW)/crypto_soc_test.bin: $(ROOT)/sw/soc-tests/crypto_soc_test.c \
 	$(RISCV_OBJCOPY) -O binary $(SOCFW)/crypto_soc_test.elf $@
 
 socrtl: $(BUILD)/soc_rtl_tb $(SOCFW)/crypto_soc_test.bin
-	cd $(BUILD) && COV_FILE=cov_socrtl.dat ./soc_rtl_tb 200000000 \
-	  --load 0x80000000=$(SOCFW)/crypto_soc_test.bin \
+	cd $(BUILD) && ./soc_rtl_tb 400000000 $(CORE_RAND_ARGS) \
+	  --load 0x80000000=$(abspath $(SOCFW))/crypto_soc_test.bin \
 	  --exit-string "SOC CRYPTO PASS"
 
 $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUILD)
 	$(RISCV_GCC) $(SWFLAGS) $< -o $(BUILD)/$*.elf
 	$(RISCV_OBJCOPY) -O binary $(BUILD)/$*.elf $@
 
+# Every directed test runs twice: caches on with seeded random bus
+# latency/gaps/backpressure, and caches off (all accesses uncached
+# single beats, minimum latency).
 core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
-	cd $(BUILD) && COV_FILE=cov_rv64i.dat ./core_tb rv64i_directed.bin
-	cd $(BUILD) && COV_FILE=cov_rv64m.dat ./core_tb rv64m_directed.bin
-	cd $(BUILD) && COV_FILE=cov_amo.dat ./core_tb amo_directed.bin
-	cd $(BUILD) && COV_FILE=cov_fp.dat ./core_tb fp_directed.bin
-	cd $(BUILD) && COV_FILE=cov_bextsw.dat ./core_tb bext_directed.bin
-	cd $(BUILD) && COV_FILE=cov_rvcsw.dat ./core_tb rvc_directed.bin
-	cd $(BUILD) && COV_FILE=cov_pipeline.dat ./core_tb pipeline_directed.bin
-	cd $(BUILD) && COV_FILE=cov_priv.dat ./core_tb priv_directed.bin --irq-timer-after 2000
-	cd $(BUILD) && COV_FILE=cov_vm.dat ./core_tb vm_directed.bin
-	cd $(BUILD) && COV_FILE=cov_trap_illegal.dat ./core_tb trap_illegal.bin 100000 --expect-trap 2
-	cd $(BUILD) && COV_FILE=cov_trap_misalign.dat ./core_tb trap_misalign.bin 100000 --expect-trap 4
-	cd $(BUILD) && COV_FILE=cov_trap_ecall.dat ./core_tb trap_ecall.bin 100000 --expect-trap 11
-	cd $(BUILD) && COV_FILE=cov_trap_ebreak.dat ./core_tb trap_ebreak.bin 100000 --expect-trap 3
-	cd $(BUILD) && COV_FILE=cov_trap_smisalign.dat ./core_tb trap_store_misalign.bin 100000 --expect-trap 6
-	cd $(BUILD) && COV_FILE=cov_trap_ystore.dat ./core_tb trap_younger_store.bin 100000 --expect-trap 4
-	cd $(BUILD) && COV_FILE=cov_trap_ycsr.dat ./core_tb trap_younger_csr.bin
-	cd $(BUILD) && COV_FILE=cov_counter_time.dat ./core_tb counter_time_directed.bin
-	cd $(BUILD) && COV_FILE=cov_hyp.dat ./core_tb hyp_directed.bin
-	cd $(BUILD) && COV_FILE=cov_vecsw.dat ./core_tb vec_directed.bin
-	cd $(BUILD) && COV_FILE=cov_fpvecsw.dat ./core_tb fpvec_directed.bin
-	cd $(BUILD) && COV_FILE=cov_trap_pa_fetch.dat ./core_tb trap_pa_fetch.bin 100000 --expect-trap 1
-	cd $(BUILD) && COV_FILE=cov_trap_pa_load.dat ./core_tb trap_pa_load.bin 100000 --expect-trap 5
+	bash $(ROOT)/sim/run_directed.sh rand $(CORE_RAND_ARGS)
+	bash $(ROOT)/sim/run_directed.sh nocache --no-cache
+
+## ---- M unit in COMB=1 (legacy single-cycle) mode: whole directed suite --
+# Proves the core still elaborates and runs with the combinational M
+# unit behind the handshake (+define+MUSERISC_MULDIV_COMB). No coverage
+# is written (the main `core` run owns the cov_*.dat files).
+MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_directed.bin \
+  amo_directed.bin fp_directed.bin fp_stall_directed.bin bext_directed.bin \
+  rvc_directed.bin pipeline_directed.bin "priv_directed.bin 6000000 --irq-timer-after 2000" "irq_exc_race_directed.bin --irq-timer-after 40" \
+  vm_directed.bin "trap_illegal.bin 100000 --expect-trap 2" \
+  "trap_misalign.bin 100000 --expect-trap 4" "trap_ecall.bin 100000 --expect-trap 11" \
+  "trap_ebreak.bin 100000 --expect-trap 3" "trap_store_misalign.bin 100000 --expect-trap 6" \
+  "trap_younger_store.bin 100000 --expect-trap 4" trap_younger_csr.bin \
+  counter_time_directed.bin hyp_directed.bin vec_directed.bin \
+  fpvec_directed.bin "vec_trap_directed.bin --irq-timer-after 2000" \
+  "trap_pa_fetch.bin 100000 --expect-trap 1" "trap_pa_load.bin 100000 --expect-trap 5"
+$(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module muserisc_cpu \
+	  +define+MUSERISC_MULDIV_COMB \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/core_tb_mdcomb) $(CPU_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-mdcomb: $(BUILD)/core_tb_mdcomb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+	cd $(BUILD) && for r in $(MDCOMB_RUNS); do \
+	  ./core_tb_mdcomb $$r $(CORE_RAND_ARGS) > mdcomb.log 2>&1 || { cat mdcomb.log; exit 1; }; \
+	  tail -1 mdcomb.log | sed 's/^CORE TB PASS/CORE TB PASS [M COMB=1]/'; \
+	done
+	cd $(BUILD) && for o in $$(seq 100 7 171); do \
+	  ./core_tb_mdcomb md_irq_directed.bin --irq-timer-after $$o $(CORE_RAND_ARGS) > mdcomb.log 2>&1 \
+	    || { cat mdcomb.log; exit 1; }; \
+	done; echo "CORE TB PASS [M COMB=1] md_irq_directed.bin (11 IRQ offsets 100..170)"
+
+## ---- Core with random initial state -----------------------------------
+# --x-initial unique build: the whole directed suite (run_directed.sh,
+# caches on, random bus latency) with +verilator+rand+reset+2 at two
+# seeds. Every simulation check must stay quiet until reset, and the
+# core and the test programs must not depend on initial register
+# contents (e.g. a test using sp without setting it).
+$(BUILD)/core_tb_xinit: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_xinit --top-module muserisc_cpu \
+	  --x-initial unique \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/core_tb_xinit) $(CPU_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+	for s in 1 3; do \
+	  CORE_TB=./core_tb_xinit bash $(ROOT)/sim/run_directed.sh xinit$$s $(CORE_RAND_ARGS) \
+	    +verilator+rand+reset+2 +verilator+seed+$$s || exit 1; \
+	done
+
+## ---- SRAM-macro builds (ORFS flows) ---------------------------------
+# Under MUSERISC_SRAM_FAKERAM45 (nangate45) / MUSERISC_SRAM_SKY130
+# (sky130hd) the VRF banks and the L1 data/tag ways instantiate SRAM
+# macros. Rebuild the vector unit TB, the core TB (muserisc_cpu with
+# the real cache geometry) and the RTL SoC on each macro family's
+# behavioural models (which, like the real macros, do not hold read
+# data) and rerun the vector TB, every directed core test (random bus
+# latency) and the SoC crypto firmware, so the wrappers (masks,
+# selects, half select, read capture) are checked bit-exactly.
+SRAM_DEF_fakeram45 := +define+MUSERISC_SRAM_FAKERAM45
+SRAM_DEF_sky130    := +define+MUSERISC_SRAM_SKY130
+SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/muserisc_soc/sram/,\
+  fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
+SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/muserisc_soc/sram/,\
+  sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
+SRAM_MACROS := fakeram45 sky130
+.SECONDEXPANSION:
+$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/muserisc_vec_pkg.sv \
+                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+                 $(ROOT)/tb/sv/muserisc_vec_harness.sv $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec_$* --top-module muserisc_vec_harness \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) -o $(abspath $@) $(PKG) \
+	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
+
+$(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
+                  $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module muserisc_cpu \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CPU_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+$(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
+                     $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module muserisc_soc_top \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(SOC_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
+
+# All directed-test binaries (used by vendor_model_check.sh).
+directed-bins: $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+
+srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/core_tb_,$(SRAM_MACROS)) \
+           $(addprefix $(BUILD)/soc_rtl_tb_,$(SRAM_MACROS)) \
+           $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS))) $(SOCFW)/crypto_soc_test.bin
+	cd $(BUILD) && for m in $(SRAM_MACROS); do \
+	  ./vec_tb_$$m > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [SRAM macro $$m]/"; \
+	  CORE_TB=./core_tb_$$m COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh $$m $(CORE_RAND_ARGS) \
+	    > srammacro_core_$$m.log 2>&1 || { tail -40 srammacro_core_$$m.log; exit 1; }; \
+	  echo "CORE TB PASS: $$(grep -c 'CORE TB PASS' srammacro_core_$$m.log) directed runs, 0 FAIL [SRAM macro $$m]"; \
+	  ./soc_rtl_tb_$$m 400000000 $(CORE_RAND_ARGS) \
+	    --load 0x80000000=$(abspath $(SOCFW))/crypto_soc_test.bin \
+	    --exit-string "SOC CRYPTO PASS" > srammacro.log 2>&1 || { tail -20 srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [SRAM macro $$m]/"; \
+	done
+
+## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
+$(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module muserisc_cpu \
+	  +define+MUSERISC_FPU_DS_BITS=1 \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $(BUILD)/core_tb_ds1) $(CPU_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-ds1: $(BUILD)/core_tb_ds1 $(BUILD)/fp_directed.bin $(BUILD)/fp_stall_directed.bin $(BUILD)/fp_irq_directed.bin $(BUILD)/fpvec_directed.bin
+	cd $(BUILD) && ./core_tb_ds1 fp_directed.bin $(CORE_RAND_ARGS)
+	cd $(BUILD) && ./core_tb_ds1 fp_stall_directed.bin $(CORE_RAND_ARGS)
+	cd $(BUILD) && ./core_tb_ds1 fpvec_directed.bin $(CORE_RAND_ARGS)
+	cd $(BUILD) && for o in $$(seq 100 3 172); do \
+	  ./core_tb_ds1 fp_irq_directed.bin --irq-timer-after $$o $(CORE_RAND_ARGS) \
+	    > fp_irq_ds1_$$o.log 2>&1 || { cat fp_irq_ds1_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS fp_irq_directed.bin on FPU_DS_BITS=1 (25 IRQ offsets 100..172)"
 
 ## ---- Coverage ----------------------------------------------------------
 # Annotate from this directory: the .dat files record source paths
-# relative to sim/, where verilator was invoked. Inputs are listed
-# explicitly so a stale merged file can never feed back into a merge.
-COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
-              $(wildcard $(BUILD)/cov_sha256.dat) \
-              $(wildcard $(BUILD)/cov_sha512.dat) \
-              $(wildcard $(BUILD)/cov_keccak.dat) \
-              $(wildcard $(BUILD)/cov_ecfield.dat) \
-              $(wildcard $(BUILD)/cov_cryptotop.dat) \
-              $(BUILD)/cov_alu.dat $(BUILD)/cov_muldiv.dat \
-              $(BUILD)/cov_decoder.dat $(BUILD)/cov_regfile.dat \
-              $(BUILD)/cov_csr.dat $(BUILD)/cov_mmu.dat \
-              $(BUILD)/cov_fpu.dat \
-              $(BUILD)/cov_rv64i.dat $(BUILD)/cov_rv64m.dat \
-              $(BUILD)/cov_amo.dat $(BUILD)/cov_fp.dat \
-              $(BUILD)/cov_bext.dat $(BUILD)/cov_bextsw.dat \
-              $(BUILD)/cov_rvc.dat $(BUILD)/cov_rvcsw.dat \
-              $(BUILD)/cov_pipeline.dat $(BUILD)/cov_priv.dat \
-              $(BUILD)/cov_vm.dat \
-              $(BUILD)/cov_trap_illegal.dat $(BUILD)/cov_trap_misalign.dat \
-              $(BUILD)/cov_trap_ecall.dat $(BUILD)/cov_trap_ebreak.dat \
-              $(BUILD)/cov_trap_smisalign.dat $(BUILD)/cov_trap_ystore.dat \
-              $(BUILD)/cov_vec.dat $(BUILD)/cov_vecsw.dat \
-              $(BUILD)/cov_trap_ycsr.dat $(BUILD)/cov_counter_time.dat $(BUILD)/cov_hyp.dat \
-              $(BUILD)/cov_trap_pa_fetch.dat \
-              $(BUILD)/cov_trap_pa_load.dat
+# relative to sim/, where verilator was invoked.
+# Every cov_*.dat written by this build's runs (globbed at recipe
+# time; the merged output is excluded so it never feeds back).
 coverage:
 	@rm -f $(BUILD)/cov_merged.dat
-	@verilator_coverage --write $(BUILD)/cov_merged.dat $(COV_INPUTS)
+	@verilator_coverage --write $(BUILD)/cov_merged.dat $$(ls $(BUILD)/cov_*.dat | grep -v cov_merged)
 	@verilator_coverage --annotate $(BUILD)/coverage $(BUILD)/cov_merged.dat | tail -5
 
 clean:

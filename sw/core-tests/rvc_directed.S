@@ -83,6 +83,7 @@ jalr_target:
     ld a3, 0(a5)
     li a4, 0x4008000000000000 // 3.0
     bne a3, a4, fail
+    la sp, cell               // sp is never set by the harness
     c.fldsp fa0, 0(sp)        // just execute (value unchecked)
     c.fsdsp fa0, 0(sp)
 

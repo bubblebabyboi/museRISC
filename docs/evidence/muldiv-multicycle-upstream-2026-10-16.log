@@ -1,0 +1,71 @@
+# Multi-cycle M unit (muserisc_muldiv_mc) on the upstream stack, 2026-10-16:
+# branch up-muldiv-multicycle = up-fpu-multicycle (upstream PR #41, 62d8720)
+# + the core_tb IRQ-harness fix (upstream PR #42) + this change. Host:
+# 48 cores shared with other agents; Verilator 5.048 unless noted.
+
+== make lint ==         rc=0, 0 warnings (9 s)
+== make test ==         ALL PHASE-0 KATs PASS (52 s)
+== make core-test ==    rc=0 (885 s)
+unit TBs: ALU, MULDIV, MULDIV_MC (985,873 checks, 125,137 squashes),
+  MULDIV_MC COMB=1 (203,248 checks), DECODER, REGFILE, CSR, MMU, FPU,
+  FPU ds1, BEXT, RVC, VEC: all TB PASS
+directed (core_tb), all PASS, including:
+  CORE TB PASS md_directed.bin (1058 cycles)
+  CORE TB PASS md_kill_directed.bin (273 cycles)
+  CORE TB PASS md_irq_directed.bin (72/72 IRQ offsets 100..171)
+  CORE TB PASS irq_exc_race_directed.bin (101/101 IRQ offsets 20..120)
+  CORE TB PASS fp_irq_directed.bin (48/48 IRQ offsets 100..147)
+core-ds1 (FPU_DS_BITS=1 core) PASS
+core-mdcomb (+define+MUSERISC_MULDIV_COMB core: the M unit in its
+  single-cycle mode): 26 directed programs + md_irq at 11 offsets PASS
+Coverage of muserisc_muldiv_mc.sv: core directed runs only line 39/39,
+  branch 62/62, toggle 4939/4940; merged with the unit TBs
+  line 39/39, branch 62/62, toggle 4942/4942.
+
+== make riscv-tests ==  rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS (35 s)
+
+== ACT on the core (all ELFs regenerated in this tree) ==
+EXTENSIONS=I,M:  64/64 PASS (M 13/13) (61 s)
+Full stage-7 scalar + Vx/Vls/Vf set (scalar suites via
+scripts/build_act4_core.sh, vector suites via make tests vector-tests +
+act --keep-going as in scripts/build_act4_cva6v.sh, core DUT config):
+  ACT (muserisc-core): 2577/2578 PASS, 1 FAIL (6,966 s at JOBS=32; the
+  combinational vector unit on this base is slow to simulate)
+  FAIL PMPSm_cfg_A_tor_zero-00 (the known PA0 waiver)
+  CSV: act-core-muldiv-multicycle-upstream-2026-10-16.csv
+  (same 2,578 test names as the #41 evidence)
+
+== Verilator 5.020 (Ubuntu 24.04 apt, Docker, tree copy) ==
+make lint rc=0, 0 warnings; make -C sim muldiv_mc PASS (both builds);
+make -C sim core rc=0; make -C sim core-mdcomb rc=0 (1,395 s incl. apt).
+A first attempt aborted in the core build with a Verilator 5.020
+"Internal Error: attempted to destroy locked Thread Pool" (-j 0 under
+heavy host load); the re-run of the same tree passed.
+
+== RTL SoC (soc_rtl_tb) ==
+make -C sim socrtl (SOCFW passed as an absolute path, see #39):
+  SOC CRYPTO PASS, SOC RTL TB PASS (exit string at 11097819 cycles)
+  (1,533 s incl. build)
+OpenSBI v1.9 fw_jump + muserisc.dtb + s_hello (boot ROM at 0x1000):
+  HELLO FROM S-MODE, SOC RTL TB PASS (exit string at 6062907 cycles) (810 s)
+
+== M unit block synthesis (scripts/synth_unit_nangate45.sh: Yosys
+   synth -booth + ABC, OpenSTA at 10 ns, Nangate45 typical, no
+   placement/buffering) ==
+muserisc_muldiv_mc: 28,566.006 um^2, 274 flops (3 with reset),
+  reg->reg 4.693 ns (MUL1 33x33 partial products),
+  reg->result_o 4.249 ns (MUL2 sum), worst setup slack 5.247 ns (22 s)
+muserisc_muldiv (old combinational): 49,786.954 um^2, 0 flops,
+  in->out 115.824 ns, slack -105.824 ns (124 s)
+
+== Not run on this base ==
+Yosys read_slang of the whole SoC: elaborating the combinational vector
+  unit on this base takes hours (#41 saw > 3 h). On the fork (with the
+  element-serial vector unit) the SoC elaborates in 5 s with this unit
+  (u_muldiv: 4 $mul, no $div; fork PR CantelopePeel/museRISC#14).
+Linux boot: upstream main livelocks after /init without #36. With #36's
+  RTL applied locally the soc_tb boot was still in the kernel's silent
+  early phase after 2 h (this base simulates at ~17k cycles/s; a boot
+  needs ~510M cycles) and was stopped. The same unit boots to
+  MUSERISC_LINUX_BOOT_OK at 510,301,199 cycles on the fork (with #36
+  and the element-serial vector unit).

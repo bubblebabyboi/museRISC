@@ -1,0 +1,28 @@
+== FAKERAM45 yosys exit 0 (24 s)
+macro instances by type:
+  fakeram45_256x64_1r1w: 3
+  fakeram45_512x64: 6
+  fakeram45_64x44: 6
+  inferred memories: 21, largest:
+    2048 bits (64x32) u_crypto_bridge.u_crypto.u_sha.w
+    2048 bits (64x32) $flatten\u_crypto_bridge.\u_crypto.\u_sha.$auto$proc_rom.cc:155:do_switch$2
+    2048 bits (32x64) u_cpu.u_core.u_regfile.regs_q
+    2048 bits (32x64) u_cpu.u_core.u_fpregfile.mem_q
+  mem_dump.py --max-bits 4096 exit 0
+- Total inferred memory bits (all instances): 0
+- SYNTH_MEMORY_MAX_BITS: 4096
+- Status: OK
+== SKY130 yosys exit 0 (24 s)
+macro instances by type:
+  sky130_sram_1rw1r_128x256_8: 6
+  sky130_sram_1rw1r_44x64_8: 6
+  sky130_sram_1rw1r_64x256_8: 3
+  inferred memories: 21, largest:
+    2048 bits (64x32) u_crypto_bridge.u_crypto.u_sha.w
+    2048 bits (64x32) $flatten\u_crypto_bridge.\u_crypto.\u_sha.$auto$proc_rom.cc:155:do_switch$2
+    2048 bits (32x64) u_cpu.u_core.u_regfile.regs_q
+    2048 bits (32x64) u_cpu.u_core.u_fpregfile.mem_q
+  mem_dump.py --max-bits 4096 exit 0
+- Total inferred memory bits (all instances): 0
+- SYNTH_MEMORY_MAX_BITS: 4096
+- Status: OK

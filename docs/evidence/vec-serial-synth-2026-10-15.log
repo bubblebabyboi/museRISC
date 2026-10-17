@@ -1,0 +1,47 @@
+# Vector unit synthesis snapshot (scripts/synth_vec.sh), 2026-10-15
+# Yosys + OpenROAD STA in openroad/orfs:latest, Nangate45 typical, PERIOD=10ns,
+# sv2v v0.0.13. Timing: worst path with inputs at 0 delay (set_input_delay 0), not strictly reg-to-reg.
+# Kogge-Stone carry networks, ORFS abc_speed.script (buffering/sizing), no wire load.
+# fp_eval/fp_estimate stubbed (flow/vec-synth/fpu_stub_pkg.sv); VRF RAM replicas black-boxed.
+
+== AFTER (this branch) muserisc_vec
+    42324 5.27E+04 cells
+        7    37.24   DFFR_X1
+        1     5.32   DFFS_X1
+     1363 6.16E+03   DFF_X1
+   Chip area for module '\muserisc_vec': 52734.766000
+Longest topological path in muserisc_vec (length=76):
+Startpoint: vs2_i_MUX2_X1_B_1_S_MUX2_X1_S_4_Z_DFF_X1_D
+Endpoint: sat_o_NOR2_X1_A1_A2_AOI211_X1_ZN_C2_NOR3_X1_ZN_A1_INV_X1_A_ZN_OAI21_X1_B2_ZN_OR3
+                   3.285   data arrival time
+                  -3.285   data arrival time
+Startpoint: vs2_i_MUX2_X1_B_1_S_MUX2_X1_S_4_Z_DFF_X1_D
+Endpoint: sat_o_NOR2_X1_A1_A2_AOI211_X1_ZN_C2_NOR3_X1_ZN_A1_INV_X1_A_ZN_OAI21_X1_B2_ZN_NOR
+
+== AFTER (this branch) muserisc_vregfile
+     1818 5.25E+03 cells
+      731 3.31E+03   DFF_X1
+        3        -   muserisc_vrf_bank
+   Area for cell type \muserisc_vrf_bank is unknown!
+   Chip area for module '\muserisc_vregfile': 5253.766000
+Longest topological path in muserisc_vregfile (length=6):
+
+== BEFORE (main before this change) muserisc_vregfile
+   408500 6.04E+05 cells
+    16384 7.41E+04   DFF_X1
+   Chip area for module '\muserisc_vregfile': 603639.651999
+Longest topological path in muserisc_vregfile (length=18):
+Startpoint: wnum_i[3] (input port clocked by clk)
+Endpoint: we_i_INV_X2_A_ZN_OR3_X2_A1_ZN_AOI21_X1_B2_ZN_AOI211_X1_B_C1_AOI221_X1_C2_B2_AOI2
+                   0.507   data arrival time
+                  -0.507   data arrival time
+Startpoint: wnum_i[3] (input port clocked by clk)
+Endpoint: we_i_INV_X2_A_ZN_OR3_X2_A1_A2_BUF_X2_A_Z_BUF_X1_A_2_Z_BUF_X1_A_5_Z_NOR2_X1_A2_A1
+
+== BEFORE (main before this change) muserisc_vec: Yosys did not finish elaboration.
+   Run killed by a host-memory guard at 141.1 GiB after ~4 h (14,527 s) still in
+   the frontend (512-iteration unrolled element loops, each with 64-bit
+   mul/div/rem and up to 15 fp_eval/fp_estimate call sites). The only change made for
+   Yosys was rewriting 'for (i < (512 >> sew))' as 'for (i < 512) if (i < (512 >> sew))'.
+   Operator sites inside the element loops: 22 '*', '/', '%' and 15 fp_eval/fp_estimate.
+   AFTER: one 64x16 multiplier, no divider (iterative), 2 fp call sites (one fp_eval, one fp_estimate).
