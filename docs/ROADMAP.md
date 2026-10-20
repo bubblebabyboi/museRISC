@@ -1,47 +1,42 @@
 # Roadmap
 
-## Phase 0 — Foundation (v0.1 baseline, 2026-10-12) ✅
+Detailed, ordered remaining work: [REMAINING-WORK-PLAN.md](REMAINING-WORK-PLAN.md).
+Issue status: [TASKS.md](TASKS.md).
+
+## Phase 0 — Foundation (2026-10-12) ✅
 - [x] Repo scaffold, spec, locked decisions (RV64GCV / dual-curve / sim+OpenROAD)
 - [x] SHA-256 + SHA-512 block cores, Keccak-f1600, EC field unit + KATs
-- [x] AXI-Lite `muse_crypto` top + SoC shell, Verilator lint clean
+- [x] AXI-Lite `muse_crypto` top, Verilator lint clean
 - [x] Ed25519 (RFC 8032) + secp256k1 (ECDSA) reference ops over field primitives
-- [x] Toolchain up: riscv64-elf-gcc 16.2, Yosys, Sail 0.15, mise/UDB for ACT4
-- [x] ACT4 harness validated: 51 RV64I tests pass on Sail (not hardware)
-- [x] CVA6/Ara/arch-test fetched at pinned commits; Spike builds in Docker
-- [~] OpenROAD: synth/place/CTS OK; detail route not clean (see B3)
+- [x] Toolchain, ACT4 harness, CVA6/Ara/arch-test at pinned commits
 
-## Baseline gates (next, in order)
+## Baseline gates ✅ except B4
+- [x] **B1/B2** CVA6 host smoke + regression (historical reference host)
+- [x] **B3** `muse_crypto` OpenROAD closure, nangate45 GDS (#3)
+- [ ] **B4** SoC integration on the in-house core (#4): synthesizable SoC
+      and on-core secp256k1 verify done; Ed25519 verify remaining (W1)
 
-Tracked as GitHub issues #1-#4 - see [docs/TASKS.md](TASKS.md).
-- [x] **B1** CVA6 Verilator model built; `rv64ui-p-add` and
-      `rv64ui-p-simple` report `*** SUCCESS ***`; evidence in
-      `docs/evidence/b1-cva6-2026-10-12.log` (issue #1)
-- [x] **B2** Full CVA6 `riscv-asm-tests` list with Spike as behavioral
-      oracle — Spike solo + CVA6 solo 174/174, tandem lockstep 173/174
-      (+1 waived config divergence, zero mismatches), ACT4 `I,M` 64/64
-      on the model; evidence in `docs/evidence/` (issue #2, closed
-      2026-10-12)
-- [ ] **B3** OpenROAD `muse_crypto` clean at 28% util (40% run ended
-      with 645 route violations): final metrics + GDS artifact
-- [ ] **B4** SoC integration: crypto on CVA6 AXI @ 0x2000_0000,
-      bare-metal driver, on-core signature-verify demo
+## Phase 1 — In-house RV64GCV core (replaces CVA6/Ara) ✅
+- [x] Stages 1–9 in `docs/CORE.md`: scalar IMABC, F/D, B/Zicond/scalar
+      crypto, Sv39/PMP, Linux 6.6 + OpenSBI boot, H, integer + FP vector
+      (RVV 1.0, VLEN 512); riscv-tests 123/123, ACT 2577/2578 (one PA0
+      platform waiver)
+- [x] Timing-closure refactors (PRs #33–#50): multi-cycle FPU/M, L1
+      caches, element-serial vector, SRAM-macro arrays; SoC synthesizes
+      (`docs/SOC_AREA.md`)
 
-## Phase 2 — Full G + hardened crypto
-- [ ] ACT4 A/F/D green + TestFloat; riscv-dv random regression in CI
-- [ ] Hardware scalar-mul sequencer (constant-time ladder), fault review
-- [ ] SHA-512/Keccak streaming (DMA) into the accelerator top
-- [ ] OpenROAD full-SoC closure (hierarchical, macro-hardened crypto)
+## Phase 2 — Hardened crypto
+- [ ] Streaming SHA-512/Keccak into the accelerator top (#6, W3)
+- [ ] Constant-time hardware scalar-mul sequencer (#5, W2)
+- [ ] Side-channel/fault security review before any key handling (#12, W4)
+- [ ] SHA-256 chain benchmark: scalar vs vector vs accelerator (#10, W6)
 
-## Phase 3 — Vector
-- [ ] Integrate Ara (RVV 1.0), VLEN config, ACT4 vector tests green
-- [ ] Vectorised SHA-256 chain benchmark vs scalar (Solana PoH-style)
+## Phase 3 — Verification hardening
+- [ ] riscv-dv random regression + branch protection (#8, W5)
+- [ ] ISA follow-ups and legacy waivers (#20, W5)
 
-## Phase 4 — MPW readiness
-- [ ] Caravel wrapper (or equivalent harness), padring, DFT/scan decision
-- [ ] DRC/LVS/antenna clean in target PDK, GDS review, shuttle checklist
-- Realistic area check first: if RV64GCV+crypto exceeds the harness,
-  ship the crypto macro + RV64GC host and keep vector as FPGA/ASIC-v2.
-
-Effort honesty: Phases 2–4 are months of focused work with the
-integrate-don't-rewrite strategy; a from-scratch RV64GCV would be
-longer and is explicitly out of scope.
+## Phase 4 — Physical proof
+- [ ] FPGA: AWS F2 bring-up, ≥100 MHz, bare-metal → Linux (#32, W8)
+- [ ] ASIC: full-SoC OpenROAD closure (#11), then MPW go/no-go (#13) (W7).
+      Area check first: if RV64GCV+crypto exceeds the harness, ship the
+      crypto macro + RV64GC host and keep vector as FPGA/ASIC-v2.

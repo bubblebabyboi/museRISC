@@ -1,24 +1,39 @@
 # Task tracking
 
-Canonical tracking is GitHub Issues, in order. Do not start a baseline
-gate until the previous gate's evidence is committed under
-`docs/evidence/` and its issue can be closed with a link to that evidence.
+Canonical tracking is GitHub Issues. Execution order and acceptance
+for everything still open is in
+[docs/REMAINING-WORK-PLAN.md](REMAINING-WORK-PLAN.md) (packages
+W0–W8). An issue closes only with a link to committed evidence under
+`docs/evidence/`.
 
 ## Baseline gates ([milestone: Baseline B1-B4](https://github.com/bubblebabyboi/museRISC/milestone/1))
 
-- [x] [#1](https://github.com/bubblebabyboi/museRISC/issues/1) **[B1] Host smoke** — CVA6 Verilator model passes `rv64ui-p-add` / `rv64ui-p-simple`; evidence in `docs/evidence/`
-- [x] [#2](https://github.com/bubblebabyboi/museRISC/issues/2) **[B2] Host regression** — full `riscv-asm-tests` with Spike solo + `SPIKE_TANDEM` lockstep, then ACT4 `I,M` ELFs on the CVA6 model *(done 2026-10-12: Spike solo + CVA6 solo 174/174, tandem 173/174 + 1 waived divergence, ACT4 I/M 64/64; see `docs/evidence/b2-combined-matrix-2026-10-12.csv`)*
-- [x] [#3](https://github.com/bubblebabyboi/museRISC/issues/3) **[B3] OpenROAD closure** — clean route for `muse_crypto` (nangate45), final metrics + GDS *(done 2026-10-13: DRC/antenna/liberty-electrical 0, setup +4.52 ns / hold +0.039 ns @ 10 ns; GDS in release `b3-nangate45-2026-10-13`)*
-- [ ] [#4](https://github.com/bubblebabyboi/museRISC/issues/4) **[B4] SoC integration** — `muse_crypto` on the CVA6 AXI fabric + driver + on-core signature verify *(blocked by #3 evidence flow; host confidence from #1/#2 in place)*
+- [x] [#1](https://github.com/bubblebabyboi/museRISC/issues/1) **[B1] Host smoke** — CVA6 Verilator model passes `rv64ui-p-add` / `rv64ui-p-simple` *(historical CVA6 baseline)*
+- [x] [#2](https://github.com/bubblebabyboi/museRISC/issues/2) **[B2] Host regression** — Spike solo + CVA6 solo 174/174, tandem 173/174 + 1 waived divergence, ACT4 I/M 64/64 *(historical CVA6 baseline; `docs/evidence/b2-combined-matrix-2026-10-12.csv`)*
+- [x] [#3](https://github.com/bubblebabyboi/museRISC/issues/3) **[B3] OpenROAD closure** — `muse_crypto` nangate45: DRC/antenna/liberty-electrical 0, setup +4.52 ns / hold +0.039 ns @ 10 ns; GDS in release `b3-nangate45-2026-10-13`
+- [ ] [#4](https://github.com/bubblebabyboi/museRISC/issues/4) **[B4] SoC integration** — host is the in-house core (#18), not CVA6. Synthesizable SoC + on-core secp256k1 ECDSA verify done (`docs/evidence/soc-rtl-4-2026-10-15.log`); Ed25519 verify remaining → plan W1
 
-## Features ([milestone: v1 features](https://github.com/bubblebabyboi/museRISC/milestone/2))
+## In-house core ([epic #18](https://github.com/bubblebabyboi/museRISC/issues/18))
 
-- [ ] [#5](https://github.com/bubblebabyboi/museRISC/issues/5) Hardware scalar-multiply sequencer (constant-time) for Ed25519 + secp256k1
-- [ ] [#6](https://github.com/bubblebabyboi/museRISC/issues/6) Streaming SHA-512 and Keccak/SHA3 into the accelerator top (sponge + DMA)
-- [x] [#7](https://github.com/bubblebabyboi/museRISC/issues/7) ACT4 A/F/D compliance + TestFloat for the FPU *(done 2026-10-13 on the ISA sweep: ACT A 20/22 + F/D 200/200, TestFloat 12/12, privileged ACT 126/134; follow-ups in [#20](https://github.com/bubblebabyboi/museRISC/issues/20))*
-- [ ] [#8](https://github.com/bubblebabyboi/museRISC/issues/8) riscv-dv random regression + GitHub Actions CI
-- [ ] [#9](https://github.com/bubblebabyboi/museRISC/issues/9) Ara RVV 1.0 vector integration + ACT4 vector tests *(blocked by #2)*
-- [ ] [#10](https://github.com/bubblebabyboi/museRISC/issues/10) Vectorised SHA-256 chain benchmark (Solana PoH-style) vs scalar + accelerator *(blocked by #4, #9)*
-- [ ] [#11](https://github.com/bubblebabyboi/museRISC/issues/11) Full-SoC hierarchical OpenROAD closure (sky130hd) *(blocked by #3, #4)*
-- [ ] [#12](https://github.com/bubblebabyboi/museRISC/issues/12) Security review: side-channel and fault hardening before any key handling
-- [ ] [#13](https://github.com/bubblebabyboi/museRISC/issues/13) MPW readiness: Caravel harness decision, DRC/LVS, shuttle checklist *(blocked by #11)*
+- [x] Stages 1–9 (`docs/CORE.md`): RV64IMABC + F/D + B/Zicond/scalar crypto, Linux/OpenSBI boot ([#21](https://github.com/bubblebabyboi/museRISC/issues/21)), H ([#22](https://github.com/bubblebabyboi/museRISC/issues/22)), integer V ([#23](https://github.com/bubblebabyboi/museRISC/issues/23)), FP vector ([#29](https://github.com/bubblebabyboi/museRISC/issues/29))
+- [x] Timing-closure refactors from PRs #33–#50: multi-cycle FPU and M unit, L1 I$/D$, element-serial vector unit, vector FP on the shared FPU, SRAM-macro arrays (toward [#32](https://github.com/bubblebabyboi/museRISC/issues/32))
+
+## Open work (see the plan for order and acceptance)
+
+- [ ] [#5](https://github.com/bubblebabyboi/museRISC/issues/5) Hardware scalar-multiply sequencer (constant-time) for Ed25519 + secp256k1 → W2
+- [ ] [#6](https://github.com/bubblebabyboi/museRISC/issues/6) Streaming SHA-512 and Keccak/SHA3 into the accelerator top → W3
+- [ ] [#12](https://github.com/bubblebabyboi/museRISC/issues/12) Security review before any key handling → W4
+- [ ] [#8](https://github.com/bubblebabyboi/museRISC/issues/8) riscv-dv random regression + branch protection → W5
+- [ ] [#20](https://github.com/bubblebabyboi/museRISC/issues/20) ISA verification follow-ups and legacy waivers → W5
+- [ ] [#10](https://github.com/bubblebabyboi/museRISC/issues/10) SHA-256 chain benchmark: scalar vs in-house V vs accelerator → W6
+- [ ] [#11](https://github.com/bubblebabyboi/museRISC/issues/11) Full-SoC hierarchical OpenROAD closure → W7
+- [ ] [#13](https://github.com/bubblebabyboi/museRISC/issues/13) MPW readiness: Caravel decision, DRC/LVS, shuttle checklist → W7
+- [ ] [#32](https://github.com/bubblebabyboi/museRISC/issues/32) AWS EC2 F2 FPGA bring-up (`docs/FPGA_F2.md`) → W8
+
+## Closed
+
+#7 ACT4 A/F/D + TestFloat · #9 Ara RVV (superseded by in-house V) ·
+#16 C extension verification · #17 B/Zicond/scalar-crypto verification ·
+#19 SystemVerilog/Verilator port · #27 helper packages ·
+#28 CI core TBs + upstream smokes · #30 QEMU boot oracle ·
+#31 OpenROAD rerun + tagged release
