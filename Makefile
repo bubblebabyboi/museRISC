@@ -1,5 +1,6 @@
 # museRISC Phase-0 make targets. See docs/ROADMAP.md for phased goals.
-RTL := rtl/crypto/sha256_block.sv rtl/crypto/keccak_f1600.sv \
+RTL := rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv \
+       rtl/crypto/keccak_f1600.sv rtl/crypto/muse_hash_stream.sv \
        rtl/crypto/ec_field.sv rtl/crypto/muse_crypto_top.sv \
        rtl/soc/muserisc_clint.sv rtl/soc/muserisc_plic.sv \
        rtl/soc/muserisc_uart16550.sv rtl/soc/muserisc_bootrom.sv \
@@ -29,6 +30,7 @@ CACHE_RTL := rtl/core/muserisc_sram_sp.sv \
 test: ## Python golden self-check + Verilator C++ crypto KATs (needs python3, verilator)
 	python3 sw/golden.py
 	python3 sw/ec_ops.py
+	python3 sw/hash_kat.py --self-check
 	$(MAKE) -C sim crypto
 	@echo "ALL PHASE-0 KATs PASS"
 

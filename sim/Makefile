@@ -61,7 +61,7 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb srammacro directed-bins
+        crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins
 all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
@@ -313,19 +313,36 @@ $(BUILD)/ec_field_tb: $(ROOT)/tb/cpp/ec_field_tb.cpp $(CRYPTO)/ec_field.sv | $(B
 ecfield: $(BUILD)/ec_field_tb
 	cd $(BUILD) && COV_FILE=cov_ecfield.dat ./ec_field_tb
 
+CRYPTO_TOP_RTL := $(CRYPTO)/sha256_block.sv $(CRYPTO)/sha512_block.sv \
+                  $(CRYPTO)/keccak_f1600.sv $(CRYPTO)/muse_hash_stream.sv \
+                  $(CRYPTO)/ec_field.sv $(CRYPTO)/muse_crypto_top.sv
 $(BUILD)/crypto_top_tb: $(ROOT)/tb/cpp/crypto_top_tb.cpp \
-                     $(CRYPTO)/sha256_block.sv $(CRYPTO)/ec_field.sv \
-                     $(CRYPTO)/muse_crypto_top.sv | $(BUILD) $(OBJ)
+                     $(CRYPTO_TOP_RTL) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/cryptotop --top-module muse_crypto_top \
-	  -o $(abspath $(BUILD)/crypto_top_tb) \
-	  $(CRYPTO)/sha256_block.sv $(CRYPTO)/ec_field.sv \
-	  $(CRYPTO)/muse_crypto_top.sv \
+	  -o $(abspath $(BUILD)/crypto_top_tb) $(CRYPTO_TOP_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/crypto_top_tb.cpp)
 
 cryptotop: $(BUILD)/crypto_top_tb
 	cd $(BUILD) && COV_FILE=cov_cryptotop.dat ./crypto_top_tb
 
-crypto: sha256 sha512 keccak ecfield cryptotop
+# Streaming SHA-512 / SHA3-256 / Keccak-256 / SHAKE256 through the
+# AXI-Lite top (issue #6). Vectors are generated at build time from
+# Python hashlib + the in-repo Keccak-256 sponge (sw/hash_kat.py).
+$(BUILD)/hash_stream_kats.h: $(ROOT)/sw/hash_kat.py $(ROOT)/sw/golden.py | $(BUILD)
+	python3 $(ROOT)/sw/hash_kat.py --header $@
+
+$(BUILD)/hash_stream_tb: $(ROOT)/tb/cpp/hash_stream_tb.cpp \
+                     $(BUILD)/hash_stream_kats.h \
+                     $(CRYPTO_TOP_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/hashstream --top-module muse_crypto_top \
+	  -CFLAGS -I$(abspath $(BUILD)) \
+	  -o $(abspath $(BUILD)/hash_stream_tb) $(CRYPTO_TOP_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/hash_stream_tb.cpp)
+
+hashstream: $(BUILD)/hash_stream_tb
+	cd $(BUILD) && COV_FILE=cov_hashstream.dat ./hash_stream_tb
+
+crypto: sha256 sha512 keccak ecfield cryptotop hashstream
 
 ## ---- Core harness + directed software ---------------------------------
 # core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
@@ -359,7 +376,9 @@ soc: $(BUILD)/soc_tb $(ROOT)/build/linux/boot_stub.bin $(ROOT)/build/linux/s_hel
 
 ## ---- RTL SoC harness (synthesizable SoC, issue #4) ---------------------
 SOCDIR    := $(ROOT)/rtl/soc
-SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv \
+HASH_RTL  := $(CRYPTO)/sha512_block.sv $(CRYPTO)/keccak_f1600.sv \
+             $(CRYPTO)/muse_hash_stream.sv
+SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
              $(CRYPTO)/ec_field.sv $(CRYPTO)/muse_crypto_top.sv \
              $(SOCDIR)/muserisc_clint.sv $(SOCDIR)/muserisc_plic.sv \
              $(SOCDIR)/muserisc_uart16550.sv \
@@ -391,6 +410,23 @@ socrtl: $(BUILD)/soc_rtl_tb $(SOCFW)/crypto_soc_test.bin
 	cd $(BUILD) && ./soc_rtl_tb 400000000 $(CORE_RAND_ARGS) \
 	  --load 0x80000000=$(abspath $(SOCFW))/crypto_soc_test.bin \
 	  --exit-string "SOC CRYPTO PASS"
+
+# Streaming hash engine on the RTL SoC (issue #6); shares the
+# soc-tests startup code and link script.
+$(SOCFW)/hash_soc_test.bin: $(ROOT)/sw/hash-tests/hash_soc_test.c \
+		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld \
+		$(ROOT)/sw/muse_crypto.h
+	mkdir -p $(SOCFW)
+	$(RISCV_GCC) -march=rv64imafdc -mabi=lp64 -mcmodel=medany \
+	  -nostdlib -ffreestanding -fno-builtin -O1 \
+	  -T $(ROOT)/sw/soc-tests/link.ld \
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/hash_soc_test.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/hash_soc_test.elf $@
+
+sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
+	cd $(BUILD) && ./soc_rtl_tb 50000000 $(CORE_RAND_ARGS) \
+	  --load 0x80000000=$(abspath $(SOCFW))/hash_soc_test.bin \
+	  --exit-string "SOC HASH PASS"
 
 $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUILD)
 	$(RISCV_GCC) $(SWFLAGS) $< -o $(BUILD)/$*.elf

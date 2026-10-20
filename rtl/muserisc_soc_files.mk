@@ -28,6 +28,9 @@ MUSERISC_SOC_RTL = \
   core/muserisc_bus_arb.sv \
   core/muserisc_cpu.sv \
   crypto/sha256_block.sv \
+  crypto/sha512_block.sv \
+  crypto/keccak_f1600.sv \
+  crypto/muse_hash_stream.sv \
   crypto/ec_field.sv \
   crypto/muse_crypto_top.sv \
   soc/muserisc_clint.sv \

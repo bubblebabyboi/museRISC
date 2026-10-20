@@ -9,6 +9,7 @@ Last updated: 2026-10-14 (in-house core stages 1–8: RV64 IMABC FD SU + Sv39/PM
 | SHA-256 core | FIPS 180-4 "abc"/empty KATs (`tb/cpp/sha256_tb.cpp`) | PASS (`make test`) |
 | SHA-512 core | FIPS 180-4 / hashlib KATs (`tb/cpp/sha512_tb.cpp`) | PASS (`make test`) |
 | Keccak-f1600 | Golden model vs hashlib SHA3-256 (`tb/cpp/keccak_tb.cpp`) | PASS (`make test`) |
+| Streaming hash (accelerator top) | 70 multi-block KATs through AXI-Lite: SHA-512, SHA3-256, SHAKE256 vs hashlib; Keccak-256 vs in-repo sponge checked against published vectors (`tb/cpp/hash_stream_tb.cpp`, `sw/hash_kat.py`); RTL SoC firmware `sw/hash-tests/` | PASS (`make test`, `make -C sim sochash`); see `docs/evidence/` (2026-10-20) |
 | EC field unit | Python mod-arith cross-check, edge cases | PASS (`make test`) |
 | Ed25519 (ref model) | RFC 8032 TEST 1+2 sign/verify (`sw/ec_ops.py`) | PASS (algorithm only; HW sequencer pending) |
 | secp256k1 (ref model) | `cryptography` ECDSA oracle vector | PASS (algorithm only) |

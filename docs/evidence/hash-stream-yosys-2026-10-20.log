@@ -1,0 +1,62 @@
+# yosys Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000334): read_verilog -sv crypto RTL; hierarchy -check -top muse_crypto_top; proc; opt; stat (CI regression.yml step), exit 0
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+     2209 muse_crypto_top
+       62 ec_field
+      440 muse_hash_stream
+      180   keccak_f1600
+      786   sha512_block
+      625 sha256_block
+
+        +----------Count including submodules.
+        | 
+     2410 wires
+    88514 wire bits
+      551 public wires
+    41421 public wire bits
+       66 ports
+     6732 port bits
+        3 memories
+    12288 memory bits
+        - processes
+     2209 cells
+       50   $add
+       42   $adff
+       31   $adffe
+       45   $and
+      163   $dffe
+      769   $eq
+       10   $ge
+        1   $le
+       31   $logic_and
+       28   $logic_not
+       10   $logic_or
+        8   $lt
+        3   $meminit
+        3   $memrd_v2
+      538   $mux
+       14   $ne
+        2   $neg
+       40   $not
+       53   $or
+       20   $pmux
+      160   $reduce_and
+       50   $reduce_bool
+        1   $reduce_or
+        8   $sdffce
+        4   $shift
+        4   $shiftx
+        2   $shl
+       20   $sub
+       99   $xor
+        3 submodules
+        1   ec_field
+        1   muse_hash_stream
+        1   sha256_block
+
+Warnings: 9 unique messages, 9 total
+End of script. Logfile hash: ef5ecf0ad1, time: 1.22s, user: 1.17s, system: 0.03s, MEM: 77.52 MB peak
+Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000334)
+Time spent: 17% 4x opt_muxtree (0 sec), 17% 6x opt_expr (0 sec), ...

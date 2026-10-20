@@ -1797,3 +1797,50 @@ and `tb/cpp/core_tb.cpp` where #36's IRQ_CTL test register met
   the (uncommitted) ACT test tree before building: the current
   ACT build tool skips linking every ELF when any one Sail
   signature run fails.
+
+## W3 / #6 — Streaming SHA-512 + Keccak/SHA3 in the accelerator (2026-10-20)
+
+Branch `6-sha512-keccak-stream` (based on `integrate-prs`, i.e. the
+#33–#50 stack). Design and register map: `docs/SPEC.md` 3/3.1
+(register FIFO streaming with hardware padding; no DMA, rationale
+there). RTL `rtl/crypto/muse_hash_stream.sv`, `sha512_block.sv`
+(`cont` chaining input), `muse_crypto_top.sv` (0x8C..0xA3, AXI write
+backpressure), `rtl/soc/muserisc_crypto_bridge.sv` (address phase
+now waits for AWREADY/ARREADY).
+
+- KATs: [`hash-stream-make-test-2026-10-20.log`](hash-stream-make-test-2026-10-20.log)
+  — `make test`, clean `build/sim`, 27 s wall: `TB_HASH_STREAM PASS`
+  (70 KATs through AXI-Lite: SHA-512 ×25, SHA3-256 ×20,
+  Keccak-256 ×20, SHAKE256 ×5 incl. 500-byte multi-squeeze;
+  lengths 0..7, rate−1, rate, rate+1, 2·rate±1, 3·rate+5, 1000, the
+  SHA-512 length-field edge 110–113 / rate+111/112, Keccak 132–135),
+  plus register/abort/interleave checks, `ALL PHASE-0 KATs PASS`.
+  References: Python `hashlib` (SHA-512, SHA3-256, SHAKE256);
+  Keccak-256 from the in-repo sponge in `sw/hash_kat.py`, checked
+  against three published Keccak-256 vectors and against hashlib
+  (same sponge with domain 0x06/0x1F).
+- Lint: [`hash-stream-lint-2026-10-20.log`](hash-stream-lint-2026-10-20.log)
+  — `make lint`, Homebrew Verilator 5.044, clean. **Not run:** the
+  CI-parity Verilator 5.020 Docker lint (Docker daemon unavailable
+  locally); CI `regression.yml` covers it.
+- Core gate: [`hash-stream-core-test-2026-10-20.log`](hash-stream-core-test-2026-10-20.log)
+  — `make core-test` (extract), 1456 s wall, exit 0, including
+  `srammacro` (SoC crypto firmware `SOC RTL TB PASS` at 18,851,904
+  cycles on both fakeram45 and sky130 SRAM-macro builds, i.e. legacy
+  SHA-256/field users unchanged through the modified bridge).
+- RTL SoC: [`hash-stream-soc-rtl-2026-10-20.log`](hash-stream-soc-rtl-2026-10-20.log)
+  — `make -C sim sochash` (builds `soc_rtl_tb`, runs
+  `sw/hash-tests/hash_soc_test.c` on the in-house core): SHA-512
+  ("abc", 1000 B), SHA3-256 (137 B), Keccak-256("abc"), SHAKE256
+  (200 B, one squeeze) all match; `SOC HASH PASS`, cached
+  104,279 cycles, `--no-cache` 343,961. SHA-512 of 1000 B costs
+  22,606 cycles cached (MMIO-store bound, ~22 cycles/byte).
+- Synthesizability: [`hash-stream-yosys-2026-10-20.log`](hash-stream-yosys-2026-10-20.log)
+  — the CI yosys `proc; opt; stat` step on the crypto top, exit 0.
+- Caveats: at SoC MMIO speed the hash buffer never fills while the
+  core is busy, so the AWREADY backpressure path is exercised only
+  in `hash_stream_tb` (direct AXI master, 288 stall cycles), not
+  through the bridge in the SoC. Functional only, not a
+  side-channel claim (see SPEC security note). Full standalone
+  `make -C sim socrtl` (EC firmware, ~25 min) not rerun separately;
+  the same firmware passed inside `srammacro` above.

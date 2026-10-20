@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
   dut->clk = 0;
   dut->rst_n = 0;
   dut->start = 0;
+  dut->cont = 0;  // single-block KATs start from the IV
   PutWide(dut->block_in, Block{});
   tick();
   tick();

@@ -2,7 +2,9 @@
 // The SoC fabric (muserisc_soc_fabric) holds its device access
 // while stall_o is asserted, so one 32-bit uncached load/store
 // becomes one AXI-Lite transaction: issue in IDLE, complete
-// the access in the cycle RVALID/BVALID is presented.
+// the access in the cycle RVALID/BVALID is presented. The address
+// phase waits for AWREADY/ARREADY (muse_crypto_top backpressures
+// hash-stream writes while its block buffer is full).
 // 32-bit aligned accesses only (the register map in
 // sw/muse_crypto.h); AMO/LR/SC and vector accesses to this
 // window are not supported, as on typical device MMIO.
@@ -64,7 +66,7 @@ module muserisc_crypto_bridge (
 
   /* verilator lint_off UNUSEDSIGNAL */
   logic unused_ready;
-  assign unused_ready = axi_awready ^ axi_wready ^ axi_arready;
+  assign unused_ready = axi_wready;  // same as awready in muse_crypto_top
   /* verilator lint_on UNUSEDSIGNAL */
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -73,8 +75,8 @@ module muserisc_crypto_bridge (
     end else begin
       unique case (state_q)
         IDLE: begin
-          if (req_rd) state_q <= RD;
-          else if (req_wr) state_q <= WR;
+          if (req_rd && axi_arready) state_q <= RD;
+          else if (req_wr && axi_awready) state_q <= WR;
         end
         RD: if (rd_done) state_q <= IDLE;
         WR: if (wr_done) state_q <= IDLE;

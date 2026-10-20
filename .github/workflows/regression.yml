@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          yosys -Q -p "read_verilog -sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/ec_field.sv rtl/crypto/muse_crypto_top.sv; hierarchy -check -top muse_crypto_top; proc; opt; stat" 2>&1 | tee build-ci-yosys.log
+          yosys -Q -p "read_verilog -sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/muse_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/muse_crypto_top.sv; hierarchy -check -top muse_crypto_top; proc; opt; stat" 2>&1 | tee build-ci-yosys.log
 
       - name: Upload regression logs
         if: always()

@@ -1,0 +1,14 @@
+# make -C sim sochash (soc_rtl_tb build = SoC build check; Verilator 5.044 -j 4; firmware riscv64-elf-gcc 16.2)
+# build+run wall 97 s (first build), rerun 1 s; caches on, random bus latency
+	  --exit-string "SOC HASH PASS"
+loaded 2104 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/6-sha512-keccak-stream/build/soc-tests/hash_soc_test.bin
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+SOC RTL TB PASS (exit string at 104279 cycles)
+
+# --no-cache (all accesses uncached), same binary
+# ./soc_rtl_tb 50000000 --no-cache --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --load 0x80000000=hash_soc_test.bin --exit-string 'SOC HASH PASS'
+loaded 2104 bytes at 0x80000000 from ../soc-tests/hash_soc_test.bin
+SHA-512 1000 B: 0x0000000000013c4d cycles
+SOC HASH PASS
+SOC RTL TB PASS (exit string at 343961 cycles)

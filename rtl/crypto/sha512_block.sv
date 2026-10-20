@@ -1,11 +1,16 @@
-// museRISC SHA-512 single-block core (FIPS 180-4). One 1024-bit block
-// per start pulse; padding by driver. Iterative 1 round/cycle x80.
+// museRISC SHA-512 block core (FIPS 180-4). One 1024-bit block per
+// start pulse; padding by driver (or muse_hash_stream). Iterative
+// 1 round/cycle x80. `cont`=0 starts from the FIPS IV; `cont`=1
+// chains from the previous block's result (multi-block messages).
+// The chaining value after reset is undefined: the first block of
+// every message must use cont=0.
 // K/H constants generated from prime cube/square roots (FIPS 180-4).
 `default_nettype none
 module sha512_block (
     input  wire          clk,
     input  wire          rst_n,
     input  wire          start,
+    input  wire          cont,
     input  wire [1023:0] block_in,
     output logic [511:0] digest_out,
     output logic         busy,
@@ -139,22 +144,27 @@ module sha512_block (
       busy <= 1'b0; done <= 1'b0; digest_out <= '0; round <= '0;
     end else if (start && !busy) begin
       busy <= 1'b1; done <= 1'b0; round <= '0;
-      h[0] <= 64'h6a09e667f3bcc908;
-      h[1] <= 64'hbb67ae8584caa73b;
-      h[2] <= 64'h3c6ef372fe94f82b;
-      h[3] <= 64'ha54ff53a5f1d36f1;
-      h[4] <= 64'h510e527fade682d1;
-      h[5] <= 64'h9b05688c2b3e6c1f;
-      h[6] <= 64'h1f83d9abfb41bd6b;
-      h[7] <= 64'h5be0cd19137e2179;
-      a <= 64'h6a09e667f3bcc908;
-      b <= 64'hbb67ae8584caa73b;
-      c <= 64'h3c6ef372fe94f82b;
-      d <= 64'ha54ff53a5f1d36f1;
-      e <= 64'h510e527fade682d1;
-      f <= 64'h9b05688c2b3e6c1f;
-      g <= 64'h1f83d9abfb41bd6b;
-      hh <= 64'h5be0cd19137e2179;
+      if (!cont) begin
+        h[0] <= 64'h6a09e667f3bcc908;
+        h[1] <= 64'hbb67ae8584caa73b;
+        h[2] <= 64'h3c6ef372fe94f82b;
+        h[3] <= 64'ha54ff53a5f1d36f1;
+        h[4] <= 64'h510e527fade682d1;
+        h[5] <= 64'h9b05688c2b3e6c1f;
+        h[6] <= 64'h1f83d9abfb41bd6b;
+        h[7] <= 64'h5be0cd19137e2179;
+        a <= 64'h6a09e667f3bcc908;
+        b <= 64'hbb67ae8584caa73b;
+        c <= 64'h3c6ef372fe94f82b;
+        d <= 64'ha54ff53a5f1d36f1;
+        e <= 64'h510e527fade682d1;
+        f <= 64'h9b05688c2b3e6c1f;
+        g <= 64'h1f83d9abfb41bd6b;
+        hh <= 64'h5be0cd19137e2179;
+      end else begin
+        a <= h[0]; b <= h[1]; c <= h[2]; d <= h[3];
+        e <= h[4]; f <= h[5]; g <= h[6]; hh <= h[7];
+      end
       for (int i = 0; i < 16; i++) begin
         w[i] <= block_in[1023 - 64 * i -: 64];
       end
@@ -167,6 +177,10 @@ module sha512_block (
         digest_out <= {h[0] + (t1 + t2), h[1] + a, h[2] + b,
                        h[3] + c, h[4] + (d + t1), h[5] + e,
                        h[6] + f, h[7] + g};
+        h[0] <= h[0] + (t1 + t2); h[1] <= h[1] + a;
+        h[2] <= h[2] + b;         h[3] <= h[3] + c;
+        h[4] <= h[4] + (d + t1);  h[5] <= h[5] + e;
+        h[6] <= h[6] + f;         h[7] <= h[7] + g;
       end
       round <= round + 7'd1;
     end else begin
