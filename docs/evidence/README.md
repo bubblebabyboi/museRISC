@@ -1772,3 +1772,28 @@ stages 4c/5:
   - ACT 2,577/2,578
     ([`act-core-soc-sram-synth-2026-10-16.csv`](act-core-soc-sram-synth-2026-10-16.csv)),
     with only the `PMPSm_cfg_A_tor_zero-00` waiver failing.
+
+## W0: merged PR stack #33–#50 gates (2026-10-20)
+
+All 18 open PRs merged in dependency order on branch
+`integrate-prs` (merge commits, not squashed; conflicts were
+`docs/evidence/README.md` sections, `sim/Makefile` target lists,
+and `tb/cpp/core_tb.cpp` where #36's IRQ_CTL test register met
+#44's mbus harness; both kept). Full log:
+[`w0-stack-gates-2026-10-20.log`](w0-stack-gates-2026-10-20.log).
+
+- `make lint` clean on Verilator 5.044 (macOS), 5.048
+  (`deps/`) and CI's 5.020 (ubuntu:24.04 in Docker).
+- `make test`: ALL PHASE-0 KATs PASS. `make core-test`: 212
+  `TB PASS` lines, no failures (1,277 s, macOS).
+- `make riscv-tests`: **123/123**.
+- ACT, full core set:
+  [`act-core-w0-stack-2026-10-20.csv`](act-core-w0-stack-2026-10-20.csv)
+  **2,577/2,578** (Vx 821/821, Vls 1,051/1,051, Vf 162/162,
+  scalar+priv 543/544 with only the `PMPSm_cfg_A_tor_zero-00`
+  PA0 waiver failing) — identical to the #38 result on the
+  pre-stack tree. The 34 Sail generation failures listed in
+  `act-vector-core-genfail-2026-10-14.csv` were moved out of
+  the (uncommitted) ACT test tree before building: the current
+  ACT build tool skips linking every ELF when any one Sail
+  signature run fails.

@@ -1,0 +1,61 @@
+W0: gates on the merged PR stack #33-#50 (branch integrate-prs), 2026-10-20
+
+== Local: macOS arm64, Homebrew Verilator 5.044, riscv64-elf-gcc 16.2.0, integrate-prs @ 8c3013e (merge of #50; all 18 PRs)
+lint rc=0 4s
+test rc=0 3s
+core-test rc=0 1277s
+total 1284s
+core-test: 212 'TB PASS' lines, 0 TB FAIL/TIMEOUT
+Total coverage (3464/8113) 42.00%
+
+== vivado_rnd (AWS r7i.4xlarge, Ubuntu 24.04), integrate-prs @ 48f4c13
+deps Verilator: 5.048 (scripts/install_deps.sh)
+CI-parity lint: ubuntu:24.04 apt verilator (5.020) in Docker
+deps rc=0 174s
+fetch-act rc=0 26s
+lint548 rc=0 6s
+lint5020 rc=0 25s
+riscv-tests rc=0 36s
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+== ACT full core set (scripts/build_act4_core.sh per sw/act4-core/README.md + make vector-tests for Vx/Vls/Vf; run: sim/run_act_core_par.sh, 14 jobs)
+ACT (muserisc-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 375s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+Not generated (34, Sail trap-signature overflow at generation, same set as act-vector-core-genfail-2026-10-14.csv); sources moved aside so the ACT build tool links the rest:
+  Vls16-vloxei32.v-00.S
+  Vls16-vloxei64.v-00.S
+  Vls16-vloxseg2ei32.v-00.S
+  Vls16-vloxseg4ei32.v-00.S
+  Vls16-vloxseg4ei64.v-00.S
+  Vls16-vloxseg8ei32.v-00.S
+  Vls16-vloxseg8ei64.v-00.S
+  Vls16-vsoxseg2ei32.v-00.S
+  Vls16-vsoxseg4ei32.v-00.S
+  Vls16-vsoxseg4ei64.v-00.S
+  Vls16-vsoxseg8ei32.v-00.S
+  Vls16-vsoxseg8ei64.v-00.S
+  Vls32-vloxei64.v-00.S
+  Vls32-vloxseg2ei64.v-00.S
+  Vls32-vloxseg4ei64.v-00.S
+  Vls32-vloxseg8ei64.v-00.S
+  Vls32-vsoxseg2ei64.v-00.S
+  Vls32-vsoxseg4ei64.v-00.S
+  Vls32-vsoxseg8ei64.v-00.S
+  Vls8-vloxei16.v-00.S
+  Vls8-vloxei32.v-00.S
+  Vls8-vloxei64.v-00.S
+  Vls8-vloxseg2ei16.v-00.S
+  Vls8-vloxseg4ei16.v-00.S
+  Vls8-vloxseg4ei32.v-00.S
+  Vls8-vloxseg8ei16.v-00.S
+  Vls8-vloxseg8ei32.v-00.S
+  Vls8-vloxseg8ei64.v-00.S
+  Vls8-vsoxseg2ei16.v-00.S
+  Vls8-vsoxseg4ei16.v-00.S
+  Vls8-vsoxseg4ei32.v-00.S
+  Vls8-vsoxseg8ei16.v-00.S
+  Vls8-vsoxseg8ei32.v-00.S
+  Vls8-vsoxseg8ei64.v-00.S
