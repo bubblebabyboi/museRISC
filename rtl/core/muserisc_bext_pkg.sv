@@ -1,7 +1,7 @@
 // museRISC in-house core: helpers for muserisc_bext
 // (issue #27). Op encodings plus bit-manipulation and AES
-// helper functions, extracted verbatim from
-// muserisc_bext.sv; no behavior change.
+// helper functions (originally extracted from muserisc_bext.sv;
+// the AES S-box is now a composite-field GF((2^4)^2) circuit).
 `default_nettype none
 package muserisc_bext_pkg;
 
@@ -107,7 +107,10 @@ package muserisc_bext_pkg;
     return (v >> sh) | (v << (5'd0 - sh));
   endfunction
 
-  // ---- AES tables from first principles -----------------------
+  // ---- AES GF(2^8) arithmetic --------------------------------
+  // General GF(2^8) multiply (AES polynomial 0x11B). Only ever
+  // called with a constant second operand (MixColumns), which
+  // folds to a shallow xtime/XOR network at elaboration.
   function automatic logic [7:0] gf_mul(input logic [7:0] x,
                                         input logic [7:0] y);
     logic [7:0] r;
@@ -121,33 +124,108 @@ package muserisc_bext_pkg;
     return r;
   endfunction
 
-  function automatic logic [7:0] gf_inv(input logic [7:0] x);
-    // x^254 by repeated squaring (0 maps to 0).
-    logic [7:0] r, base;
-    int e;
-    r = 8'h01; base = x; e = 254;
-    if (x == 8'h00) return 8'h00;
-    while (e > 0) begin
-      if ((e & 1) != 0) r = gf_mul(r, base);
-      base = gf_mul(base, base);
-      e = e >> 1;
+  // ---- AES S-box: composite field GF((2^4)^2) ------------------
+  // The GF(2^8) inverse at the heart of SubBytes/InvSubBytes is
+  // computed in an isomorphic tower field (Satoh/Canright style)
+  // instead of as x^254, which was 8 chained variable GF(2^8)
+  // multiplies in a while loop: very deep, and not
+  // synthesizable by Yosys.
+  //   GF(16)      = GF(2)[w]/(w^4 + w + 1), polynomial basis
+  //   GF(16^2)    = GF(16)[z]/(z^2 + z + LAM), element h*z + l
+  //                 packed {h[3:0], l[3:0]}
+  //   (h z + l)^-1 = (h d) z + (h + l) d,
+  //                 d = (h^2 LAM + h l + l^2)^-1 in GF(16)
+  // The isomorphism maps z-tower generator 0x14 to AES element
+  // 0x1E; LAM and the root were chosen (exhaustive search over
+  // all 8 LAM x 8 conjugate roots) to minimise the total weight
+  // of the four 8x8 GF(2) matrices below (unique minimum: 110,
+  // next 112). scripts/gen_aes_tower.py reproduces every
+  // constant here (incl. the GF(16) inverse table); run it with
+  // --check to compare against this file. Forward and inverse
+  // S-boxes share one tower inverter: the input matrix folds in
+  // the AES->tower map (and, for decryption, the inverse
+  // affine transform), the output matrix folds in the tower->
+  // AES map (and, for encryption, the forward affine
+  // transform). The constants are checked exhaustively (all
+  // 256 inputs, both directions) against the FIPS-197 tables
+  // in tb/cpp/bext_tb.cpp.
+  localparam logic [3:0] AES_TOWER_LAM = 4'hA;
+  // 8x8 GF(2) matrices, packed {row7, ..., row0}; row o bit i is
+  // the coefficient of input bit i in output bit o.
+  localparam logic [63:0] AES_M_IN_FWD = {   // AES -> tower
+      8'b10100000, 8'b01110010, 8'b10101100, 8'b11011100,
+      8'b11001010, 8'b11000010, 8'b00101100, 8'b00100001};
+  localparam logic [63:0] AES_M_IN_INV = {   // inv-affine, -> tower
+      8'b11000110, 8'b10111110, 8'b01110001, 8'b10000110,
+      8'b00010111, 8'b00110010, 8'b00100011, 8'b00110000};
+  localparam logic [7:0]  AES_C_IN_INV = 8'h33;  // tower(0x05)
+  localparam logic [63:0] AES_M_OUT_FWD = {  // tower ->, affine
+      8'b00011110, 8'b10010000, 8'b10110110, 8'b10110111,
+      8'b01010001, 8'b00001011, 8'b00000101, 8'b10110001};
+  localparam logic [63:0] AES_M_OUT_INV = {  // tower -> AES
+      8'b00100010, 8'b01010110, 8'b10100010, 8'b11000100,
+      8'b00001100, 8'b10101100, 8'b01110000, 8'b10100011};
+
+  // Constant 8x8 GF(2) matrix times vector: one balanced XOR
+  // tree (reduction) per output bit.
+  function automatic logic [7:0] gf2_mat8(input logic [63:0] m,
+                                          input logic [7:0] x);
+    logic [7:0] y;
+    for (int o = 0; o < 8; o++) y[o] = ^(m[o*8 +: 8] & x);
+    return y;
+  endfunction
+
+  function automatic logic [3:0] gf16_mul(input logic [3:0] a,
+                                          input logic [3:0] b);
+    logic [6:0] p;
+    p = 7'b0;
+    for (int i = 0; i < 4; i++) begin
+      if (b[i]) p = p ^ (7'(a) << i);
     end
-    return r;
+    // reduce w^6..w^4 with w^4 = w + 1
+    // (w^5 = w^2 + w, w^6 = w^3 + w^2).
+    return p[3:0] ^ {p[6], p[5] ^ p[6], p[4] ^ p[5], p[4]};
   endfunction
 
-  function automatic logic [7:0] aes_sbox(input logic [7:0] x);
-    logic [7:0] s;
-    s = gf_inv(x);
-    return s ^ {s[6:0], s[7]} ^ {s[5:0], s[7:6]} ^
-           {s[4:0], s[7:5]} ^ {s[3:0], s[7:4]} ^ 8'h63;
+  // Squaring is linear in GF(16): (a3 a2 a1 a0)^2.
+  function automatic logic [3:0] gf16_sq(input logic [3:0] a);
+    return {a[3], a[3] ^ a[1], a[2], a[2] ^ a[0]};
   endfunction
 
-  function automatic logic [7:0] aes_isbox(input logic [7:0] x);
-    // inverse affine transform, then GF inverse
-    logic [7:0] s;
-    s = {x[6:0], x[7]} ^ {x[4:0], x[7:5]} ^ {x[1:0], x[7:2]} ^
-        8'h05;
-    return gf_inv(s);
+  // GF(16) inverse (0 -> 0): a 4-input function, so a 16-entry
+  // table is both the shallowest and the smallest form.
+  function automatic logic [3:0] gf16_inv(input logic [3:0] a);
+    unique case (a)
+      4'h0: return 4'h0;  4'h1: return 4'h1;
+      4'h2: return 4'h9;  4'h3: return 4'hE;
+      4'h4: return 4'hD;  4'h5: return 4'hB;
+      4'h6: return 4'h7;  4'h7: return 4'h6;
+      4'h8: return 4'hF;  4'h9: return 4'h2;
+      4'hA: return 4'hC;  4'hB: return 4'h5;
+      4'hC: return 4'hA;  4'hD: return 4'h4;
+      4'hE: return 4'h3;  default: return 4'h8;
+    endcase
+  endfunction
+
+  // Inverse in GF(16^2) (0 -> 0, as AES requires).
+  function automatic logic [7:0] gf256t_inv(input logic [7:0] x);
+    logic [3:0] h, l, d;
+    h = x[7:4];
+    l = x[3:0];
+    d = gf16_inv(gf16_mul(gf16_sq(h), AES_TOWER_LAM) ^
+                 gf16_mul(h, l) ^ gf16_sq(l));
+    return {gf16_mul(h, d), gf16_mul(h ^ l, d)};
+  endfunction
+
+  // Shared forward / inverse AES S-box (inv = 1: InvSubBytes).
+  function automatic logic [7:0] aes_sbox_fi(input logic [7:0] x,
+                                             input logic inv);
+    logic [7:0] t, v;
+    t = inv ? (gf2_mat8(AES_M_IN_INV, x) ^ AES_C_IN_INV)
+            : gf2_mat8(AES_M_IN_FWD, x);
+    v = gf256t_inv(t);
+    return inv ? gf2_mat8(AES_M_OUT_INV, v)
+               : (gf2_mat8(AES_M_OUT_FWD, v) ^ 8'h63);
   endfunction
 
   // MixColumns on one 32-bit column (little-endian bytes).
@@ -177,11 +255,12 @@ package muserisc_bext_pkg;
 
   // One aes64 round half: rs1 (a) and rs2 (b) together hold
   // the 128-bit state (a = columns 0-1, b = columns 2-3,
-  // column-major little-endian). Apply (Inv)ShiftRows and
-  // (Inv)SubBytes, producing the low 64-bit half; swapping
-  // the operands produces the high half. Byte selection
+  // column-major little-endian). Select the (Inv)ShiftRows
+  // bytes of the low 64-bit half (swapping the operands gives
+  // the high half); muserisc_bext then applies (Inv)SubBytes
+  // through its eight shared S-box lanes. Byte selection
   // follows the K spec (cross-checked against CVA6 aes.sv).
-  function automatic logic [63:0] aes_sub_shift(
+  function automatic logic [63:0] aes_shift_rows(
       input logic [63:0] a, input logic [63:0] b, input logic inv);
     logic [7:0] s [16];
     logic [7:0] o [8];
@@ -195,9 +274,6 @@ package muserisc_bext_pkg;
     end else begin
       o[0] = s[0];  o[1] = s[13]; o[2] = s[10]; o[3] = s[7];
       o[4] = s[4];  o[5] = s[1];  o[6] = s[14]; o[7] = s[11];
-    end
-    for (int i = 0; i < 8; i++) begin
-      o[i] = inv ? aes_isbox(o[i]) : aes_sbox(o[i]);
     end
     return {o[7], o[6], o[5], o[4], o[3], o[2], o[1], o[0]};
   endfunction

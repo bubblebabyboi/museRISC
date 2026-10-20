@@ -1325,3 +1325,89 @@ stages 4c/5:
   not a Linux boot on the RTL SoC — Linux evidence
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
+
+## Shallow AES S-box in muserisc_bext (2026-10-15, branch `aes-sbox-shallow`)
+
+- The scalar-crypto S-box (aes64es/esm/ds/dsm/ks1i) computed
+  the GF(2^8) inverse as x^254 — 8 chained variable GF(2^8)
+  multiplies in a `while` loop: very deep, and rejected by
+  Yosys (`Function gf_inv can only be called with constant
+  arguments`). It is now a composite-field GF((2^4)^2)
+  circuit (Satoh/Canright style, polynomial basis,
+  GF(16) = GF(2)[w]/(w^4+w+1), z^2+z+0xA): forward and
+  inverse share one tower inverter, with the AES<->tower
+  isomorphism and the (inverse) affine transform folded into
+  four 8x8 GF(2) matrices (λ and the isomorphism root chosen
+  by exhaustive search for minimum matrix weight — unique
+  minimum 110, next 112; reproduced and checked against the
+  RTL by `scripts/gen_aes_tower.py --check`).
+  `muserisc_bext` now has eight S-box lanes, each shared by
+  SubBytes/InvSubBytes and also serving aes64ks1i (lanes
+  0-3), instead of 16 (+4 ks1i) S-box instances. Still
+  single-cycle, combinational.
+- Why not a 256-entry table per direction: per lane, table
+  pair 793 um2 / 8 levels / 0.52 ns vs tower 313 um2 / 17
+  levels / 1.07 ns; at unit level the critical path differs
+  by 0.04 ns (2.461 vs 2.497 ns, buffered) because
+  MixColumns and the result mux share the path, while tables
+  cost +3,800 um2 (+17%).
+- Synthesis (Yosys 0.68 + OpenSTA from `openroad/orfs:latest`,
+  Nangate45 typical, 10 ns virtual clock), full log with
+  method and critical paths:
+  [`bext-sbox-synth-2026-10-15.log`](bext-sbox-synth-2026-10-15.log).
+  Baseline = original RTL with the while loop hand-unrolled
+  (the original itself does not synthesize):
+
+  | muserisc_bext | cells | area um2 | ltp levels | STA (buffered) | Yosys wall |
+  |---|---|---|---|---|---|
+  | original | — | — | — | Yosys error | — |
+  | original, unrolled | 45,293 | 55,156 | 89 | 6.961 ns (87 cells) | 15:53 |
+  | this change | 18,795 | 22,786 | 60 | 2.497 ns (32 cells) | 1:17 |
+
+  The new ltp of 60 is the 64-bit ripple-carry `+` (Zba),
+  not the AES path. Other loops in the unit (clmul, clz/ctz,
+  cpop, MixColumns `gf_mul` by constants, SHA sigma) are
+  constant-bound, synthesize, and are off the critical
+  path — left alone.
+- Unit TB ([`tb/cpp/bext_tb.cpp`](../../tb/cpp/bext_tb.cpp)):
+  new exhaustive sweep of both S-boxes (all 256 inputs on
+  all 8 lanes via aes64es/aes64ds, plus aes64ks1i lanes 0-3)
+  against the literal FIPS-197 tables, which are themselves
+  self-checked against the GF(2^8) inverse + affine
+  definition; op loop extended to the unassigned encodings
+  59-63 (must return 0). **60,866 checks PASS**; a single
+  flipped matrix bit fails 128/256 sweep inputs (mutation
+  check). Coverage of `muserisc_bext.sv` from the unit TB:
+  **line 100% (70/70), toggle 100% (974/974)**. Verilator
+  does not instrument inlined package-function bodies, so
+  the S-box internals are covered by the exhaustive sweep
+  rather than line counts. Two fixes made these numbers
+  real: the TB wrote coverage *after* `delete dut` (reading
+  freed counters — origin/main's TB reported garbage counts
+  such as 2,444,302,752 hits on one line; fixed, the old RTL
+  measures 98.6% line / 92.8% toggle), and `a32z` became a
+  block-local variable (its constant-zero upper half was 64
+  untoggleable points). `fpu_tb.cpp` and `rvc_tb.cpp` have
+  the same write-after-delete pattern (out of scope here).
+- Gates: `make lint` clean (17 s); `make test`
+  `ALL PHASE-0 KATs PASS` (101 s); `make core-test` green —
+  all unit TBs + 32 directed core binaries incl.
+  `bext_directed` (AES-128 FIPS-197 KAT in the pipeline)
+  (357 s cold / 152 s rebuild); `make riscv-tests` **123/123**
+  (29 s).
+- ACT on the core:
+  [`act-core-bext-sbox-2026-10-15.csv`](act-core-bext-sbox-2026-10-15.csv)
+  **92/92 PASS**, no waivers — Zba 8, Zbb 24, Zbc 3, Zbs 8,
+  Zbkb 14, Zbkc 2, Zbkx 2, Zkne 4, Zknd 5, Zknh 8, Zicond 2,
+  Zcb 7 + ZcbZba 1 + ZcbZbb 3 + ZcbZmmul 1: same test names
+  and verdicts as `act-core-stage7-2026-10-14.csv`. Every
+  test runs exactly +263 cycles vs that file, crypto and
+  non-crypto alike. Confirmed not this RTL: the same ELFs on
+  a `core_tb` built from origin/main give an identical CSV
+  (review round 1); the cause is the vector-register prologue
+  (`vsetvli` + `vmv.v.x v0..v31`) that ACT emits since
+  Zve*/Zvl* entered `sw/act4-core/muserisc-core.yaml` in
+  stages 8c/9. ELFs:
+  `EXTENSIONS=Zba,Zbb,Zbc,Zbs,Zbkb,Zbkc,Zbkx,Zicond,Zkne,Zknd,Zknh`
+  then `EXTENSIONS=Zcb` via `scripts/build_act4_core.sh`
+  (17 s + cached), then `sim/run_act_core.sh` (48 s).

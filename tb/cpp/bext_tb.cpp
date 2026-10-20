@@ -2,9 +2,10 @@
 // Golden model written independently from the extension
 // manuals (bit operations), FIPS-197 (AES), and FIPS-180-4
 // (SHA rotate/shift sets). The AES S-box here is a literal
-// transcription of the FIPS-197 table (the RTL derives it
-// from the GF(2^8) inverse), so the two implementations
-// only agree if both are right.
+// transcription of the FIPS-197 table (the RTL computes it in
+// the composite field GF((2^4)^2)), so the two implementations
+// only agree if both are right; both S-box directions are
+// swept exhaustively.
 
 #include <cstdint>
 #include <cstdio>
@@ -245,7 +246,9 @@ int main(int argc, char** argv) {
   const uint64_t edges[] = {0, 1, ~0ULL, 0x8000000000000000ULL,
     0x00FF00FF00FF00FFULL, 0x0123456789ABCDEFULL,
     0x00000000FFFFFFFFULL, 0xFFFFFFFF00000000ULL, 3, 63, 64};
-  for (int op = 0; op <= 58; op++) {
+  // ops 59-63 are unassigned encodings (the decoder never emits
+  // them); the unit must return 0 for them (case default).
+  for (int op = 0; op <= 63; op++) {
     // aes64ks1i's second operand is a 4-bit rcon index (the
     // decoder rejects > 10); constrain it to legal values.
     auto bb = [&](uint64_t v) { return op == 49 ? (v % 11) : v; };
@@ -260,9 +263,54 @@ int main(int argc, char** argv) {
       for (int rc = 0; rc <= 10; rc++) cmp(op, rng(), rc);
   }
 
+  // Exhaustive S-box sweep, both directions, every lane: the
+  // RTL computes SubBytes/InvSubBytes in a composite field
+  // GF((2^4)^2), so check all 256 inputs against the FIPS-197
+  // tables (and the tables against the GF(2^8) definition).
+  long sbox_fail = 0;
+  for (int x = 0; x < 256; x++) {
+    // reference self-check: SBOX = affine(x^-1), ISBOX = SBOX^-1
+    uint8_t inv = 0;
+    for (int y = 1; y < 256 && x; y++)
+      if (gold::gmul(x, y) == 1) { inv = y; break; }
+    uint8_t aff = inv;
+    for (int k = 1; k <= 4; k++)
+      aff ^= (uint8_t)((inv << k) | (inv >> (8 - k)));
+    aff ^= 0x63;
+    if (gold::SBOX[x] != aff || gold::ISBOX[gold::SBOX[x]] != x) {
+      std::printf("FAIL reference S-box mismatch at %02x\n", x);
+      sbox_fail++;
+    }
+    const uint64_t rep = 0x0101010101010101ULL * (uint64_t)x;
+    const uint64_t want_f = 0x0101010101010101ULL * gold::SBOX[x];
+    const uint64_t want_i = 0x0101010101010101ULL * gold::ISBOX[x];
+    // aes64es/ds with every state byte = x: all 8 lanes see x.
+    uint64_t got_f = run(44, rep, rep), got_i = run(46, rep, rep);
+    // aes64ks1i with rcon 0xA (no RotWord, Rcon 0): lanes 0-3.
+    uint64_t got_k = run(49, rep, 0xA);
+    checks += 3;
+    if (got_f != want_f || got_i != want_i || got_k != want_f) {
+      if (sbox_fail < 15)
+        std::printf("FAIL sbox x=%02x fwd=%016llx inv=%016llx ks=%016llx\n",
+                    x, (unsigned long long)got_f,
+                    (unsigned long long)got_i, (unsigned long long)got_k);
+      sbox_fail++;
+    }
+    // byte-distinct states through the full golden as well
+    cmp(44, rep ^ 0x0011223344556677ULL, rep ^ 0x8899AABBCCDDEEFFULL);
+    cmp(46, rep ^ 0x0011223344556677ULL, rep ^ 0x8899AABBCCDDEEFFULL);
+  }
+  fails += sbox_fail;
+  cmp(0, 1, 2);  // back to a low op (op_i[5] 1->0 toggle)
+  std::printf("S-box sweep: 256/256 inputs x {fwd, inv, ks1i}, %ld fail\n",
+              sbox_fail);
+
   dut->final();
-  delete dut;
+  // Write coverage while the model (which owns the counters) is
+  // still alive; writing after `delete dut` read freed memory and
+  // produced garbage line counts.
   if (cov_path != nullptr) context.coveragep()->write(cov_path);
+  delete dut;
   if (fails) { std::printf("BEXT TB FAIL (%ld/%ld)\n", fails, checks);
     return 1; }
   std::printf("BEXT TB PASS (%ld checks)\n", checks);

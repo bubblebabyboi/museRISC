@@ -1,0 +1,109 @@
+museRISC muserisc_bext — AES S-box rework: synthesis before/after (2026-10-15)
+==========================================================================
+
+Tools (Docker image openroad/orfs:latest,
+sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663,
+created 2026-10-11):
+  Yosys 0.68+post, OpenROAD (OpenSTA) from the same image,
+  sv2v v0.0.13 (SV -> Verilog-2005 front end for Yosys),
+  Nangate45 NangateOpenCellLibrary_typical.lib.
+
+Flow (per variant):
+  sv2v muserisc_bext_pkg.sv muserisc_bext.sv -w bext.v
+  yosys: read_verilog bext.v; hierarchy -check -top <top>;
+         synth -flatten -top <top>; dfflibmap -liberty LIB;
+         abc -D 10000 -liberty LIB; opt_clean -purge;
+         stat -liberty LIB; write_verilog -noattr netlist.v
+  yosys: read_liberty -lib LIB; read_verilog netlist.v; ltp -noff
+         (logic depth = longest topological path, in cells)
+  openroad/OpenSTA: virtual 10 ns clock, input/output delay 0,
+         report_checks -path_delay max. Two figures:
+         "raw"    = unbuffered mapped netlist (high-fanout op
+                    decode nets dominate),
+         "repair" = after initialize_floorplan + setRC +
+                    repair_design (fanout/slew buffering and
+                    resizing only, no placement, no wires).
+  The unit is purely combinational, so every path is
+  input port -> output port.
+
+1. Original RTL (origin/main 896e88c) — NOT SYNTHESIZABLE
+---------------------------------------------------------
+  gf_inv() computes x^254 with a `while (e > 0)` loop around
+  8 chained variable x variable gf_mul() calls. Yosys:
+
+    bext.v:156: ERROR: Function \muserisc_bext_pkg_gf_inv can
+    only be called with constant arguments.
+
+  For a before/after comparison the while loop was rewritten
+  by hand, outside the repo, as the equivalent constant-bound
+  loop (`for i in 0..7: if (254 >> i) & 1 then r = gf_mul(r,
+  base); base = gf_mul(base, base)`), i.e. exactly the
+  circuit the original describes once it can be unrolled.
+  That "original (unrolled)" variant is the baseline below.
+
+2. Full muserisc_bext unit
+--------------------------
+  variant                    yosys   cells   area um2  ltp  STA raw  STA repair
+  original (while loop)      ERROR   -       -         -    -        -
+  original (unrolled equiv)  15:53   45,293  55,156    89   8.077 ns 6.961 ns
+  this PR (GF((2^4)^2))      1:17    18,795  22,786    60   3.957 ns 2.497 ns
+  alt: 256-entry case LUTs   1:20    22,606  26,591    64   3.501 ns 2.461 ns
+
+  (yosys = wall clock of the synthesis run; area = Yosys
+  `stat -liberty` chip area; repaired area is within 0.2%.)
+
+  Area -59% (55,156 -> 22,786 um2), critical path -64%
+  (6.961 -> 2.497 ns after buffering; 87 -> 32 cells), and the
+  synthesis run itself goes from ~16 min to ~1.3 min.
+
+  Critical path, this PR (after repair_design), 32 cells:
+    op_i[4] -> op decode (NOR3_X4, fanout 135: S-box
+    direction / ks1i select) -> S-box input mux -> input
+    matrix XORs -> GF(16) arithmetic + GF(16) inverse ->
+    GF(16) multiplies -> output matrix -> MixColumns XORs ->
+    result mux -> result_o[37]. 2.497 ns, slack 7.503 ns at
+    10 ns.
+  Original (unrolled, after repair_design): op_i[3] ->
+    result_o[2], 87 cells, 6.961 ns: the eight-deep chain of
+    GF(2^8) multipliers inside each S-box.
+
+  The ltp of 60 in the new unit is no longer the AES path: it
+  is the 64-bit ripple-carry adder that ABC maps for the
+  Zba sh*add / add.uw `+` (AOI21/OAI21 carry chain from
+  a_i[2]), which STA shows is not the critical path (cells
+  ~25-40 ps each). Left alone: a `+` is the right RTL; a
+  faster adder is a mapping choice (e.g. ORFS ADDER_MAP),
+  not an RTL defect.
+
+3. One S-box lane (forward + inverse, as instantiated 8x)
+--------------------------------------------------------
+  Wrapper: y = aes_sbox_fi(x, inv) (original: inv ?
+  aes_isbox(x) : aes_sbox(x)).
+
+  variant                    area um2  ltp  STA (raw = repair)
+  original (unrolled equiv)  3,537     82   6.042 / 5.741 ns
+  this PR (GF((2^4)^2))        313     17   1.074 ns
+  alt: 256-entry case LUTs     793      8   0.518 ns
+
+  Design choice: composite field. Per lane it is 2.5x smaller
+  than the LUT pair (one inverter shared by both directions
+  vs. two 256-entry tables), and the unit-level critical path
+  is within 0.04 ns of the LUT variant (2.497 vs 2.461 ns)
+  because the S-box is only part of the AES path (input mux,
+  MixColumns, result mux). Both are far inside a 10 ns cycle
+  and stay single-cycle. The LUT halves S-box depth but costs
+  +3,800 um2 (+17%) for the unit.
+
+4. Other loops / deep chains reviewed (no change needed)
+---------------------------------------------------------
+  - gf_mul in mixcol/imixcol: only constant second operands;
+    folds to xtime/XOR networks (synthesized fine above).
+  - clmul128: constant 64-iteration loop -> AND array + XOR
+    trees; ABC rebalances; not on the critical path.
+  - clz64/ctz64 (priority loops), cpop (`cnt +=` loop), SHA
+    sigma/sum (fixed rotates/XOR), xperm4/8 (mux trees):
+    constant-bound and synthesizable; none on the critical
+    path above.
+  - The only unsynthesizable construct was the while loop in
+    gf_inv (plus its early `return`): Yosys only evaluates such
+    functions for constant arguments. Removed.
