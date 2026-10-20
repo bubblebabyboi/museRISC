@@ -6,8 +6,10 @@
 // register after it, so the longest path is one stage function
 // (a 53x27 partial product, a 128-bit shift or add, a log-depth
 // normaliser, two radix-2 div/sqrt steps, or round-and-pack).
-// The vector unit chains the same functions combinationally
-// through fp_eval, so scalar and vector results cannot drift.
+// The vector unit runs its FP element sub-steps on this same
+// instance (the core muxes its ports while the vector unit is
+// busy); fp_eval chains the same functions combinationally as
+// the simulation reference.
 //
 // Why multi-cycle rather than pipelined: the in-order core
 // holds an FP instruction in EX until it completes (no
@@ -233,7 +235,7 @@ module muserisc_fpu import muserisc_fpu_pkg::*; (
 
 `ifndef SYNTHESIS
   // Simulation cross-check: every multi-cycle completion must
-  // equal the combinational fp_eval chain (the vector path's
+  // equal the combinational fp_eval chain (the reference
   // definition) on the operands sampled at issue.
   logic [4:0]  chk_op;
   logic        chk_d;

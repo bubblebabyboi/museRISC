@@ -47,10 +47,12 @@ export VERILOG_FILES = \
 # muserisc_fpu_ops.svh is `included by muserisc_fpu_pkg.sv and
 # muserisc_fpu.sv.
 export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/muserisc_soc/core
-# The L1 cache data arrays (muserisc_sram_sp, 512x64 = 32 Kbit per
-# way) are inferred memories. With no SRAM macros configured they
+# The vector register file is three 256x64 (16 Kbit) 1R1W RAM
+# replicas (muserisc_vrf_bank). With no SRAM macros configured they
 # are built from flops; allow that instead of tripping ORFS's
 # 4096-bit inferred-memory guard (map to fakeram45 macros later).
+# The L1 cache data arrays (muserisc_sram_sp, 512x64 = 32 Kbit per
+# way) are the largest single memories, so the guard is 32768.
 export SYNTH_MEMORY_MAX_BITS = 32768
 export SDC_FILE      = $(DESIGN_HOME)/nangate45/muserisc_soc/constraint.sdc
 # First full-SoC closure attempt (issue #11 slice): start

@@ -24,8 +24,10 @@ req/done/ack/kill handshake (`docs/CORE.md`, "EX-stage
 multi-cycle units"). Its arithmetic lives in
 `muserisc_fpu_ops.svh`, which is `include`d both by the module
 (registered stage by stage) and by `muserisc_fpu_pkg.sv`
-(`fp_eval`, the combinational chain the vector unit uses), so
-scalar and vector FP share one definition. Build with
+(`fp_eval`, the combinational chain used as the simulation
+reference). The vector unit runs its FP element sub-steps on
+the same FPU instance, so scalar and vector FP share one
+definition and one datapath. Build with
 `-I rtl/core` (the Makefiles do). Synthesis check:
 `scripts/synth_fpu.sh` (sv2v + Yosys + OpenSTA, Nangate45).
 

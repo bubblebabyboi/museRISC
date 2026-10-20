@@ -1,7 +1,8 @@
 // museRISC in-house core: IEEE-754 binary32/binary64 arithmetic
-// definitions shared by the scalar multi-cycle FPU
-// (muserisc_fpu) and the combinational vector FP path
-// (muserisc_vec via fp_eval/fp_estimate).
+// definitions for the multi-cycle FPU (muserisc_fpu, which also
+// runs the vector unit's FP element sub-steps), the vector
+// vfrec7/vfrsqrt7 estimate, and the combinational simulation
+// reference (fp_eval/fp_estimate).
 //
 // Every operation is expressed as a short chain of stage
 // functions over packed structs:
@@ -19,10 +20,9 @@
 //
 // muserisc_fpu registers between these stages (one stage per
 // cycle, FPU_DS_BITS div/sqrt steps per cycle); fp_eval chains
-// the very same functions combinationally for the vector unit,
-// so scalar and vector results are bit-identical by
-// construction (and muserisc_fpu cross-checks against fp_eval
-// in simulation). No data-dependent loops: normalisation uses
+// the very same functions combinationally as the reference
+// that muserisc_fpu and muserisc_vec cross-check every result
+// against in simulation. No data-dependent loops: normalisation uses
 // log-depth leading-zero shifters (norm64/norm128), and the
 // only loop (fp_eval's div/sqrt chain) has a constant bound.
 //
@@ -281,11 +281,11 @@ package muserisc_fpu_pkg;
   // The operand is normalized through unpack(); the result
   // is assembled from the table fraction with no rounding
   // (and no UF/NX except reciprocal overflow, per Sail).
-  function automatic fp_eval_result_t fp_estimate(
+  // Split in two stages: unpack(), then fp_est_fin() on the
+  // unpacked operand (the vector unit registers in between).
+  function automatic fp_eval_result_t fp_est_fin(
       input logic rsqrt, input logic d, input logic [2:0] rm,
-      input logic [63:0] v);
-    /* verilator no_inline_task */
-    unpacked_t u;
+      input unpacked_t u);
     fp_eval_result_t r;
     logic signed [15:0] eo, emax, emin;
     logic [6:0] idx, f7;
@@ -293,7 +293,6 @@ package muserisc_fpu_pkg;
     logic [62:0] field;
     logic [7:0] sig8;
     begin
-      u = unpack(v, d);
       emax = d ? 16'sd1023 : 16'sd127;
       emin = d ? -16'sd1022 : -16'sd126;
       canon = d ? 64'h7FF8_0000_0000_0000
@@ -352,11 +351,17 @@ package muserisc_fpu_pkg;
     end
   endfunction
 
+  function automatic fp_eval_result_t fp_estimate(
+      input logic rsqrt, input logic d, input logic [2:0] rm,
+      input logic [63:0] v);
+    return fp_est_fin(rsqrt, d, rm, unpack(v, d));
+  endfunction
+
   // ---------------------------------------------------------
   // Whole evaluation, combinational: the same stage functions
-  // muserisc_fpu sequences, chained without registers. Used per
-  // element by the vector unit and as the simulation
-  // cross-check reference inside muserisc_fpu.
+  // muserisc_fpu sequences, chained without registers. The
+  // simulation cross-check reference for every FPU completion
+  // (scalar and vector sub-steps); not used in synthesis.
   // ---------------------------------------------------------
   function automatic fp_eval_result_t fp_eval(
       input logic [4:0]  op,

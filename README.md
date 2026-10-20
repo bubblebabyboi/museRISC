@@ -92,9 +92,10 @@ Key implementation files are
   43 tests were not generated/selected (documented in
   the evidence index).
 - **Floating-point V vector:** Zve32f/Zve64f/Zve64d
-  executes per element through the shared scalar FPU
-  evaluation (`fp_eval`/`fp_estimate` in
-  `muserisc_fpu_pkg.sv`), including widening/narrowing
+  executes per element on the core's multi-cycle scalar
+  FPU (`muserisc_fpu`, shared with the vector unit; the
+  `vfrec7`/`vfrsqrt7` estimates run in the vector unit),
+  including widening/narrowing
   forms, FMA, conversions (incl. `vfncvt.rod`),
   reductions, and the `vfrec7`/`vfrsqrt7` estimates. It
   passes the ACT Vf32+Vf64 suites, 162/162 generated
