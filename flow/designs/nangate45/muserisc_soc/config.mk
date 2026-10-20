@@ -15,6 +15,7 @@ export VERILOG_FILES = \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_fpregfile.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_alu.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_muldiv.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_muldiv_mc.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_fpu_pkg.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_fpu.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_bext_pkg.sv \

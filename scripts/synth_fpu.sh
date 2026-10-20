@@ -31,7 +31,7 @@ RTL="${RTL_DIR:-rtl/core}"
 case "$TOP" in
   muserisc_fpu) SRCS="$RTL/muserisc_fpu_pkg.sv $RTL/muserisc_fpu.sv" ;;
   *) SRCS="$RTL/muserisc_pkg.sv $RTL/muserisc_regfile.sv \
-       $RTL/muserisc_fpregfile.sv $RTL/muserisc_alu.sv $RTL/muserisc_muldiv.sv \
+       $RTL/muserisc_fpregfile.sv $RTL/muserisc_alu.sv $RTL/muserisc_muldiv.sv $RTL/muserisc_muldiv_mc.sv \
        $RTL/muserisc_fpu_pkg.sv $RTL/muserisc_fpu.sv $RTL/muserisc_bext_pkg.sv \
        $RTL/muserisc_bext.sv $RTL/muserisc_vregfile.sv $RTL/muserisc_vec_pkg.sv \
        $RTL/muserisc_vec.sv $RTL/muserisc_rvc.sv $RTL/muserisc_decoder.sv \

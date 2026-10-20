@@ -10,6 +10,7 @@ BUILD := build
 CORE_RTL := rtl/core/muserisc_pkg.sv rtl/core/muserisc_regfile.sv \
             rtl/core/muserisc_fpregfile.sv rtl/core/muserisc_alu.sv \
             rtl/core/muserisc_muldiv.sv \
+            rtl/core/muserisc_muldiv_mc.sv \
             rtl/core/muserisc_fpu_pkg.sv rtl/core/muserisc_fpu.sv \
             rtl/core/muserisc_bext_pkg.sv rtl/core/muserisc_bext.sv \
             rtl/core/muserisc_vregfile.sv \
@@ -30,6 +31,8 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module keccak_f1600 rtl/crypto/keccak_f1600.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sha512_block rtl/crypto/sha512_block.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module muserisc_core $(CORE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module muserisc_muldiv_mc rtl/core/muserisc_muldiv.sv rtl/core/muserisc_muldiv_mc.sv
+	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module muserisc_muldiv_mc -GCOMB=1 rtl/core/muserisc_muldiv.sv rtl/core/muserisc_muldiv_mc.sv
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

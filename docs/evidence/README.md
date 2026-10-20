@@ -1536,3 +1536,19 @@ stages 4c/5:
     div/sqrt recurrence.
   - With `FPU_DS_BITS = 1` (div/sqrt 30/59 cycles):
     43,325 µm², 3.73 ns (268 MHz).
+
+## Multi-cycle M unit (2026-10-16, #32)
+
+- `muserisc_muldiv_mc` replaces the combinational M unit in EX on
+  the generic multi-cycle protocol of #41 (`docs/CORE.md`, "M unit").
+  Gates on the upstream stack:
+  [`muldiv-multicycle-upstream-2026-10-16.log`](muldiv-multicycle-upstream-2026-10-16.log):
+  lint, test, core-test (new `md_directed`, `md_irq_directed` at 72
+  IRQ offsets, `md_kill_directed` late kills, `core-mdcomb`),
+  riscv-tests 123/123, ACT 2,577/2,578 regenerated in-tree
+  ([`act-core-muldiv-multicycle-upstream-2026-10-16.csv`](act-core-muldiv-multicycle-upstream-2026-10-16.csv),
+  only the known `PMPSm_cfg_A_tor_zero-00` waiver), Verilator 5.020,
+  `socrtl` + OpenSBI on `soc_rtl_tb`. Block synthesis: 28.6k µm²,
+  4.69 ns reg→reg, against 49.8k µm² and 115.8 ns combinational for
+  the old unit. Not run on this base: SoC `read_slang` and the Linux
+  boot (combinational vector unit too slow; see the log).

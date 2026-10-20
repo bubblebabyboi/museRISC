@@ -28,3 +28,10 @@ multi-cycle units"). Its arithmetic lives in
 scalar and vector FP share one definition. Build with
 `-I rtl/core` (the Makefiles do). Synthesis check:
 `scripts/synth_fpu.sh` (sv2v + Yosys + OpenSTA, Nangate45).
+
+M unit (muldiv-multicycle): `muserisc_muldiv_mc.sv` is the
+multi-cycle RV64M unit on the same handshake (2-cycle pipelined
+multiplier, radix-4 early-terminating divider). The
+combinational `muserisc_muldiv.sv` stays as its `COMB=1` mode and
+as the simulation cross-check reference. Block synthesis:
+`scripts/synth_unit_nangate45.sh`.

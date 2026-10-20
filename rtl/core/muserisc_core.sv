@@ -100,6 +100,15 @@ module muserisc_core import muserisc_pkg::*; (
   logic [1:0]  walk_acc;
   logic        mem_stall;     // data translation miss: hold all regs
   logic        fpu_req, fpu_done;
+  logic        muldiv_req, muldiv_done;
+  // M unit mode: multi-cycle (default) or, with
+  // +define+MUSERISC_MULDIV_COMB, the legacy single-cycle unit
+  // behind the same handshake (done in the issue cycle).
+`ifdef MUSERISC_MULDIV_COMB
+  localparam int unsigned MuldivComb = 1;
+`else
+  localparam int unsigned MuldivComb = 0;
+`endif
   logic        ex_mc_busy;    // a multi-cycle EX unit is still working
   logic        ex_hold;       // EX holds (multi-cycle unit / vector WB)
   logic        ex_advance;    // EX contents move to EX/MEM this cycle
@@ -471,7 +480,12 @@ module muserisc_core import muserisc_pkg::*; (
   // ex_mc_busy and uses the same ack/kill.
   assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
                    !ex_illegal;
-  assign ex_mc_busy = fpu_req && !fpu_done;
+  // M unit (muserisc_muldiv_mc): MUL* 3 EX cycles, DIV*/REM*
+  // 2 (x/0, overflow) or 3..35 (operand-dependent).
+  assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q &&
+                      !ex_illegal;
+  assign ex_mc_busy = (fpu_req && !fpu_done) ||
+                      (muldiv_req && !muldiv_done);
   // EX holds for a busy multi-cycle unit or a vector op waiting
   // on a vector-load VRF write.
   assign ex_hold = vec_wb_stall || ex_mc_busy;
@@ -871,13 +885,43 @@ module muserisc_core import muserisc_pkg::*; (
       .result_o  (bext_result)
   );
 
-  muserisc_muldiv u_muldiv (
+  // Multi-cycle M unit on the generic EX handshake (see
+  // ex_mc_busy above); operands are sampled when it accepts.
+  muserisc_muldiv_mc #(.COMB(MuldivComb)) u_muldiv (
+      .clk_i     (clk_i),
+      .rst_ni    (rst_ni),
+      .req_i     (muldiv_req),
+      .ack_i     (ex_advance),
+      .kill_i    (trap_take),
       .funct3_i  (idex_ctrl_q.funct3),
       .word_op_i (idex_ctrl_q.word_op),
       .a_i       (ex_rs1),
       .b_i       (ex_rs2),
+      .done_o    (muldiv_done),
       .result_o  (muldiv_result)
   );
+`ifndef SYNTHESIS
+  // The FPU and the M unit are never in flight together: each
+  // serves only the instruction in EX (fp_op and muldiv decodes
+  // are disjoint, and neither is a vector op) and returns to idle
+  // when that instruction leaves EX or is killed.
+  always_ff @(posedge clk_i) begin
+    if (muldiv_req && (fpu_req || (idex_valid_q && idex_ctrl_q.vec)))
+      $error("muserisc_core: M-unit op in EX together with an FP/vector op");
+    if ((u_fpu.state_q != u_fpu.S_IDLE) && muldiv_req)
+      $error("muserisc_core: FPU in flight with an M-unit request");
+  end
+  // The multi-cycle M unit's state exists only with COMB = 0. S_IDLE
+  // is encoding 0 (not referenced by name: Verilator 5.020 fails on
+  // a hierarchical enum-item reference inside a generate block).
+  if (MuldivComb == 0) begin : g_md_inflight_chk
+    always_ff @(posedge clk_i) begin
+      if ((|u_muldiv.g_mc.state_q) &&
+          (fpu_req || (u_fpu.state_q != u_fpu.S_IDLE)))
+        $error("muserisc_core: M unit in flight with the FPU");
+    end
+  end
+`endif
 
   // CSR execution in EX.
   assign csr_addr = idex_imm_q[11:0];

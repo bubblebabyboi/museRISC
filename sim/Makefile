@@ -31,6 +31,7 @@ SWFLAGS       := -march=rv64imafdc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zkn
 CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_fpregfile.sv $(RTL)/muserisc_alu.sv \
             $(RTL)/muserisc_muldiv.sv \
+            $(RTL)/muserisc_muldiv_mc.sv \
             $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
             $(RTL)/muserisc_bext_pkg.sv $(RTL)/muserisc_bext.sv \
             $(RTL)/muserisc_vregfile.sv \
@@ -39,15 +40,15 @@ CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
             $(RTL)/muserisc_decoder.sv \
             $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
             $(RTL)/muserisc_core.sv
-TESTS    := rv64i_directed rv64m_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
+TESTS := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr irq_seip_rmw irq_mip_rmw_variants \
             trap_pa_fetch trap_pa_load
 
-.PHONY: all alu muldiv decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec core core-ds1 sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop
-all: alu muldiv decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec core core-ds1 coverage
+.PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec core core-ds1 sw coverage clean riscv-tests \
+        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec core core-ds1 core-mdcomb coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 riscv-tests: $(BUILD)/core_tb
@@ -66,13 +67,32 @@ alu: $(BUILD)/alu_tb
 	cd $(BUILD) && COV_FILE=cov_alu.dat ./alu_tb
 
 ## ---- Muldiv unit test ---------------------------------------------------
-$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
+$(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h \
+                    $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv --top-module muserisc_muldiv \
 	  -o $(abspath $(BUILD)/muldiv_tb) $(RTL)/muserisc_muldiv.sv \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_tb.cpp)
 
 muldiv: $(BUILD)/muldiv_tb
 	cd $(BUILD) && COV_FILE=cov_muldiv.dat ./muldiv_tb
+
+## ---- Multi-cycle muldiv unit test (COMB=0 and the COMB=1 legacy mode) ----
+MULDIV_MC_SRC := $(RTL)/muserisc_muldiv.sv $(RTL)/muserisc_muldiv_mc.sv
+MULDIV_MC_DEP := $(ROOT)/tb/cpp/muldiv_mc_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h $(MULDIV_MC_SRC)
+$(BUILD)/muldiv_mc_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc --top-module muserisc_muldiv_mc \
+	  -o $(abspath $(BUILD)/muldiv_mc_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+$(BUILD)/muldiv_mc_comb_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc_comb --top-module muserisc_muldiv_mc \
+	  -GCOMB=1 -CFLAGS -DMDU_COMB \
+	  -o $(abspath $(BUILD)/muldiv_mc_comb_tb) $(MULDIV_MC_SRC) \
+	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
+
+muldiv_mc: $(BUILD)/muldiv_mc_tb $(BUILD)/muldiv_mc_comb_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc.dat ./muldiv_mc_tb
+	cd $(BUILD) && COV_FILE=cov_muldiv_mc_comb.dat ./muldiv_mc_comb_tb 100000
 
 ## ---- Decoder unit test -------------------------------------------------
 $(BUILD)/decoder_tb: $(ROOT)/tb/cpp/decoder_tb.cpp $(PKG) $(RTL)/muserisc_decoder.sv | $(BUILD) $(OBJ)
@@ -299,6 +319,16 @@ $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUIL
 core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_rv64i.dat ./core_tb rv64i_directed.bin
 	cd $(BUILD) && COV_FILE=cov_rv64m.dat ./core_tb rv64m_directed.bin
+	cd $(BUILD) && COV_FILE=cov_md.dat ./core_tb md_directed.bin
+	cd $(BUILD) && COV_FILE=cov_mdkill.dat ./core_tb md_kill_directed.bin
+	@# Timer IRQ at every offset across a window wider than the
+	@# longest M op (64-bit divide: 35 cycles in EX), plus a
+	@# misaligned-load exception killing an in-flight divide.
+	cd $(BUILD) && for o in $$(seq 100 171); do \
+	  COV_FILE=cov_mdirq_$$o.dat ./core_tb md_irq_directed.bin --irq-timer-after $$o \
+	    > md_irq_$$o.log 2>&1 || { cat md_irq_$$o.log; exit 1; }; \
+	done; echo "CORE TB PASS md_irq_directed.bin (72/72 IRQ offsets 100..171)"
+	cd $(BUILD) && verilator_coverage --write cov_mdirq.dat cov_mdirq_*.dat
 	cd $(BUILD) && COV_FILE=cov_amo.dat ./core_tb amo_directed.bin
 	cd $(BUILD) && COV_FILE=cov_fp.dat ./core_tb fp_directed.bin
 	cd $(BUILD) && COV_FILE=cov_fpstall.dat ./core_tb fp_stall_directed.bin
@@ -338,6 +368,36 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 	cd $(BUILD) && COV_FILE=cov_trap_pa_fetch.dat ./core_tb trap_pa_fetch.bin 100000 --expect-trap 1
 	cd $(BUILD) && COV_FILE=cov_trap_pa_load.dat ./core_tb trap_pa_load.bin 100000 --expect-trap 5
 
+## ---- M unit in COMB=1 (legacy single-cycle) mode: whole directed suite --
+# Proves the core still elaborates and runs with the combinational M
+# unit behind the handshake (+define+MUSERISC_MULDIV_COMB). No coverage
+# is written (the main `core` run owns the cov_*.dat files).
+MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_directed.bin \
+  amo_directed.bin fp_directed.bin fp_stall_directed.bin bext_directed.bin \
+  rvc_directed.bin pipeline_directed.bin "priv_directed.bin --irq-timer-after 2000" "irq_exc_race_directed.bin --irq-timer-after 40" \
+  vm_directed.bin "trap_illegal.bin 100000 --expect-trap 2" \
+  "trap_misalign.bin 100000 --expect-trap 4" "trap_ecall.bin 100000 --expect-trap 11" \
+  "trap_ebreak.bin 100000 --expect-trap 3" "trap_store_misalign.bin 100000 --expect-trap 6" \
+  "trap_younger_store.bin 100000 --expect-trap 4" trap_younger_csr.bin \
+  counter_time_directed.bin hyp_directed.bin vec_directed.bin \
+  fpvec_directed.bin \
+  "trap_pa_fetch.bin 100000 --expect-trap 1" "trap_pa_load.bin 100000 --expect-trap 5"
+$(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module muserisc_core \
+	  +define+MUSERISC_MULDIV_COMB \
+	  -o $(abspath $(BUILD)/core_tb_mdcomb) $(CORE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+core-mdcomb: $(BUILD)/core_tb_mdcomb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+	cd $(BUILD) && for r in $(MDCOMB_RUNS); do \
+	  ./core_tb_mdcomb $$r > mdcomb.log 2>&1 || { cat mdcomb.log; exit 1; }; \
+	  tail -1 mdcomb.log | sed 's/^CORE TB PASS/CORE TB PASS [M COMB=1]/'; \
+	done
+	cd $(BUILD) && for o in $$(seq 100 7 171); do \
+	  ./core_tb_mdcomb md_irq_directed.bin --irq-timer-after $$o > mdcomb.log 2>&1 \
+	    || { cat mdcomb.log; exit 1; }; \
+	done; echo "CORE TB PASS [M COMB=1] md_irq_directed.bin (11 IRQ offsets 100..170)"
+
 ## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
 $(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(CORE_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module muserisc_core \
@@ -365,10 +425,12 @@ COV_INPUTS := $(wildcard $(BUILD)/cov_rvtest.dat) \
               $(wildcard $(BUILD)/cov_ecfield.dat) \
               $(wildcard $(BUILD)/cov_cryptotop.dat) \
               $(BUILD)/cov_alu.dat $(BUILD)/cov_muldiv.dat \
+              $(BUILD)/cov_muldiv_mc.dat $(BUILD)/cov_muldiv_mc_comb.dat \
               $(BUILD)/cov_decoder.dat $(BUILD)/cov_regfile.dat \
               $(BUILD)/cov_csr.dat $(BUILD)/cov_mmu.dat \
               $(BUILD)/cov_fpu.dat $(BUILD)/cov_fpu_ds1.dat \
               $(BUILD)/cov_rv64i.dat $(BUILD)/cov_rv64m.dat \
+              $(BUILD)/cov_md.dat $(BUILD)/cov_mdirq.dat $(BUILD)/cov_mdkill.dat \
               $(BUILD)/cov_amo.dat $(BUILD)/cov_fp.dat \
               $(BUILD)/cov_fpstall.dat $(BUILD)/cov_fpirq.dat \
               $(BUILD)/cov_bext.dat $(BUILD)/cov_bextsw.dat \
