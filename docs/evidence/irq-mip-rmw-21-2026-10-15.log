@@ -1,0 +1,77 @@
+mip CSRRS/CSRRC must not latch the SEIP/STIP pins (#21)
+Branch up-irq-mip-rmw on upstream main 4c5a51a, RTL commit cc2cfed.
+Host: shared 48-core Linux box at load ~150-220. Wall times are
+from that box and are inflated by the load.
+
+Root cause
+----------
+CSRRS/CSRRC computed the new mip value as (rdata | src) or
+(rdata & ~src). rdata for mip ORs irq_s_ext_i into SEIP and
+irq_s_timer_i into STIP. If either pin was high during a mip RMW,
+the RMW wrote 1 into the software-writable bit. OpenSBI does
+csr_set/csr_clear(mip, MIP_STIP) on every timer event. Once
+Linux's interrupt-driven UART tty was active (/init's first write),
+the PLIC S-context line was often high at that moment. mip.SEIP then
+stuck at 1, every PLIC claim returned 0, and Linux re-entered
+the S-external handler forever (soc_tb boot livelock after
+/init's uname line). Priv spec (mip): the RMW uses the software
+SEIP bit only, and reads see pin | software bit.
+
+Fix: muserisc_csr exports rmw_rdata_o. It equals rdata_o, except
+that for mip, SEIP and STIP are the software bits. The core uses
+it as the CSRRS(I)/CSRRC(I) base.
+The RTL SoC (muserisc_soc_top) drives irq_s_ext_i from the PLIC
+S context, so the bug and the fix apply to it as well as to soc_tb.
+
+Regression tests and old-RTL check
+----------------------------------
+core_tb: stores to IRQ_CTL (0x10000008) drive the interrupt pins
+(mip bit positions 3/5/7/9/11).
+sw/core-tests/irq_seip_rmw.S and irq_mip_rmw_variants.S were built
+against upstream 4c5a51a muserisc_csr.sv + muserisc_core.sv, with
+everything else from this branch:
+  CORE TB FAIL irq_seip_rmw.bin test 4 (57 cycles)
+  CORE TB FAIL irq_mip_rmw_variants.bin test 3 (55 cycles)
+With the fix:
+  CORE TB PASS irq_seip_rmw.bin (167 cycles)
+  CORE TB PASS irq_mip_rmw_variants.bin (179 cycles)
+csr_tb: CSR TB PASS (214 checks), including rmw_rdata_o for mip
+(pins high, software bits) and for a non-mip CSR.
+
+Gates, Verilator 5.048 (deps/), GCC 15 toolchain
+------------------------------------------------
+make lint                 clean                                  19 s
+make test                 ALL PHASE-0 KATs PASS                  42 s
+make core-test            10 unit TBs PASS; 24/24 directed       390 s
+                          CORE TB PASS (22 existing + 2 new)
+make riscv-tests          rv64ui+um+ua+uf+ud+uc+mi+si 123/123    78 s
+ACT on the core           2577/2578 PASS                         2174 s
+  (2578 ELFs from scripts/build_act4_core.sh, run with
+  sim/run_act_core.sh's core_tb invocation, 8 in parallel)
+  only FAIL: PMPSm_cfg_A_tor_zero-00 (known PA-0 waiver)
+  CSV: act-core-irq-mip-rmw-2026-10-15.csv
+soc_rtl_tb crypto_soc_test
+  SOC CRYPTO PASS, SOC RTL TB PASS (exit string at
+  11097819 cycles; same count as soc-rtl-4-2026-10-15.log)  2873 s
+soc_rtl_tb OpenSBI v1.9 + s_hello (boot ROM 0x1000, fw_jump at
+  0x80000000, DTB at 0x83000000, s_hello at 0x80200000)
+  aclint-mswi, aclint-mtimer @ 10000000Hz, uart8250;
+  HELLO FROM S-MODE
+  SOC RTL TB PASS (exit string at 6059345 cycles)           754 s
+
+Note: `make -C sim socrtl` as written on 4c5a51a stops with
+"cannot load ../build/soc-tests/crypto_soc_test.bin": the recipe
+cd's into build/sim, so the firmware path is resolved relative
+to the wrong directory. The two soc_rtl_tb runs above use the
+same commands with absolute firmware paths. That target is not
+changed in this PR.
+
+Verilator 5.020 (docker ubuntu:24.04, apt verilator 5.020-1 +
+gcc-riscv64-unknown-elf; same packages as upstream CI)
+-------------------------------------------------------------
+make lint                                   clean, 0 warnings  8 s
+make -C sim alu muldiv decoder regfile csr mmu fpu bext rvc vec crypto
+                                            all TB PASS        176 s
+make -C sim core                            24/24 CORE TB PASS 530 s
+build soc_rtl_tb                            OK                 79 s
+build soc_tb                                OK                 339 s

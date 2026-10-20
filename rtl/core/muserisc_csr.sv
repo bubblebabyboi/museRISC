@@ -18,6 +18,11 @@ module muserisc_csr (
     // CSR read/write port (EX)
     input  wire [11:0] addr_i,
     output logic [63:0] rdata_o,
+    // Old value for CSRRS/CSRRC read-modify-write. Equals rdata_o
+    // except for mip, where SEIP/STIP are the software-writable
+    // bits only: the external pins must not be latched into them
+    // (priv spec, mip: RMW uses the software SEIP bit).
+    output logic [63:0] rmw_rdata_o,
     output logic       illegal_o,     // access faults as illegal-instr
     input  wire        wr_en_i,       // commit wdata_i at the next edge
     input  wire [63:0] wdata_i,
@@ -478,6 +483,10 @@ module muserisc_csr (
                       virt_q && h_vtvm_q) ||
                      (csr_write_attempt && (addr_i[11:10] == 2'b11));
   assign rdata_o = csr_rdata;
+  assign rmw_rdata_o = (addr_i == 12'h344)
+      ? {csr_rdata[63:10], mip_seip_q, csr_rdata[8:6], mip_stip_q,
+         csr_rdata[4:0]}
+      : csr_rdata;
 
   // xRET/WFI/SFENCE legality by mode; sys_virt_inst marks the
   // denials that are virtual-instruction (cause 22) in a VM.

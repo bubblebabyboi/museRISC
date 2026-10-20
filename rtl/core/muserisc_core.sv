@@ -77,7 +77,7 @@ module muserisc_core import muserisc_pkg::*; (
                              ? csr_mstatus[12:11] : priv;
 
   logic [11:0] csr_addr;
-  logic [63:0] csr_rdata, csr_wdata, csr_src;
+  logic [63:0] csr_rdata, csr_rmw_rdata, csr_wdata, csr_src;
   logic        csr_illegal, csr_we;
   logic        sys_illegal;
   logic [2:0]  sys_op;
@@ -857,8 +857,8 @@ module muserisc_core import muserisc_pkg::*; (
   always_comb begin
     unique case (idex_ctrl_q.funct3[1:0])
       2'b01:   csr_wdata = csr_src;                       // CSRRW(I)
-      2'b10:   csr_wdata = csr_rdata | csr_src;           // CSRRS(I)
-      default: csr_wdata = csr_rdata & ~csr_src;          // CSRRC(I)
+      2'b10:   csr_wdata = csr_rmw_rdata | csr_src;       // CSRRS(I)
+      default: csr_wdata = csr_rmw_rdata & ~csr_src;      // CSRRC(I)
     endcase
   end
   // !mem_stall: a CSR write must not commit while an older
@@ -1454,6 +1454,7 @@ module muserisc_core import muserisc_pkg::*; (
       .rst_ni        (rst_ni),
       .addr_i        (csr_addr),
       .rdata_o       (csr_rdata),
+      .rmw_rdata_o   (csr_rmw_rdata),
       .illegal_o     (csr_illegal),
       .wr_en_i       (csr_we),  // module itself suppresses illegal writes
       .frm_o         (csr_frm),
