@@ -1,0 +1,164 @@
+museRISC SoC synthesis with all large arrays on SRAM macros (branch soc-sram-synth, 2026-10-16)
+=================================================================================================
+
+Recorded on the development tree CantelopePeel/museRISC (fork PR #17 and
+its review rounds; PR numbers in this log are the fork's). Base: fork
+main b634ffc = this upstream stack plus the CSR VLMAX shift / PLIC tree
+(upstream #45), the PLIC spec fixes (#48) and the AES S-box (#35).
+Round-3 state of fork PR #17. The branch is rebased onto main edf395e (#26/#27);
+every RTL change in b634ffc..edf395e is inside `ifndef SYNTHESIS or a
+comment (checked line by line), so the synthesized netlist is unchanged
+and synthesis was not re-run; the simulation gates below ran on the
+edf395e-based tree.
+
+RTL changes in this branch:
+  - muserisc_vrf_bank (VRF) and muserisc_sram_sp (L1 data/tag ways)
+    instantiate SRAM macros under MUSERISC_SRAM_FAKERAM45 /
+    MUSERISC_SRAM_SKY130 (set only by the ORFS configs), each with a
+    read-capture register (macros do not hold read data); simulation
+    default unchanged.
+  - VRF same-row read+write never reaches a replica (round-3 B2):
+    muserisc_vec S3 write combining makes element writes full-word when
+    the whole word is known; muserisc_vregfile serves a read colliding
+    with a full-word write from the write data (full-word write-first
+    bypass, replica not read); a read that would collide with a partial
+    write is retried a cycle later by the vector unit (asserted never to
+    reach the VRF).
+  - core: reset PC without an async-load flop.
+ORFS configs read the RTL with -DSYNTHESIS (ORFS also passes -D SYNTHESIS).
+
+Image: openroad/orfs:latest (Yosys 0.68+post, read_slang), run as
+--user 3001:3000 through a copy of scripts/openroad_docker.sh with
+FLOW_VARIANT for the hierarchical runs.
+
+== SRAM macros (15 per SoC) ==
+array                  count  nangate45                              sky130hd
+VRF bank 256x64 1R1W   3      fakeram45_256x64_1r1w (generated)      sky130_sram_1rw1r_64x256_8
+                              12,824.392 um2 each                    419,462.707 um2 each
+L1 data way 512x64     6      fakeram45_512x64 (stock)               sky130_sram_1rw1r_128x256_8 as 256x128
+                              17,301.438 um2 each                    722,109.357 um2 each
+L1 tag way 64x44       6      fakeram45_64x44 (generated, 1RW)       sky130_sram_1rw1r_44x64_8
+                              2,628.08 um2 each                      105,706.655 um2 each
+
+== Runs (make synth; wall / peak RSS of the whole make) ==
+nangate45 flat (base)        1:22:52  2.68 GB   OK   abc 4,084 s, extract_fa 335 s
+sky130hd flat (base)         1:07:42  2.71 GB   OK   abc 3,179 s, extract_fa 326 s
+nangate45 hier               0:28:01  2.21 GB   OK   abc 945 s, extract_fa 309 s
+sky130hd hier                0:27:31  2.22 GB   OK   abc 917 s, extract_fa 303 s
+All four with ORFS's default SYNTH_MEMORY_MAX_BITS=4096 (no override).
+Yosys read_slang of the whole SoC with each define
+(soc-sram-synth-slang-memguard-2026-10-16.log): 15 macro instances per
+platform, 22 inferred memories, largest 2048 bits.
+
+== Area (synth_stat.txt, flat) ==
+                          nangate45            sky130hd
+std-cell area             504,350 um2          2,364,368 um2
+macros                    158,051 um2          6,225,284 um2
+chip area                 662,400.914 um2      8,589,651.805 um2
+cells (incl. 15 macros)   296,459              260,033
+flops                     DFFR 12,999 + DFFS 22 + DFF 13,426 = 26,447
+                                               dfrtp 12,999 + dfstp 22 + dfxtp 876
+                                               + edfxtp 12,556 = 26,453
+std-cell ratio sky130/nangate45: 4.69
+Hierarchical totals: nangate45 689,218.236 um2 (26,652 flops); sky130hd
+8,712,017.914 um2 (26,690 flops). Per-module tables: docs/SOC_AREA.md.
+
+== Timing (OpenSTA on 1_synth.odb, wire-load model, no repair) ==
+flow/designs/nangate45/muserisc_soc/sta_synth.tcl; full reports in
+soc-sram-synth-{n45,sky130}-sta-2026-10-16.log (flat netlists). Fmax by
+bisection of the clock period.
+                                   nangate45 (SDC 10 ns)   sky130hd (SDC 25 ns)
+min period / fmax, all paths       6.19 ns / 161.7 MHz     81.37 ns / 12.29 MHz
+  limiting path                    vls_started_q ->        VRF u_ram dout1 (fall) ->
+                                   u_vec.cnt_ok_q          u_fpu.prod_op[0] DE:
+                                                           clk->q 0.379 + logic 38.382
+                                                           + setup 1.421 + unc 0.5 = P/2
+  largest stage on it              -                       a2111oi_0, fanout 145, 22.379 ns
+                                                           (unbuffered, unrepaired netlist)
+VRF-launched paths excluded        6.19 ns / 161.7 MHz     54.29 ns / 18.42 MHz
+(= VRF outputs registered)                                 D$ tag-way dout0 (fall) -> same DE:
+                                                           0.319 + 24.901 + 1.421 + 0.5 = P/2
+rising-edge launches only          6.19 ns / 161.7 MHz     43.52 ns / 22.98 MHz
+(= all 15 macro outputs registered)                        vls_started_q -> u_fpu.prod_op DE
+worst block slack at the 10 ns SDC (nangate45): u_vec 3.842 ns
+Per-block req_depth_ns (= SDC period - 0.5 - slack; includes setup and,
+for falling-edge launches, the half period): see the STA logs.
+(hierarchical netlists: nangate45 6.25 ns; sky130 62.74 ns all paths,
+34.49 ns without VRF launches, 32.26 ns rising only.)
+
+== VRF collision handling (vector TB, scratch counters, not committed) ==
+same-row read+write cycles: 136,168 (port A 20,584, B 20,671, C 94,913),
+  all with a full-word write -> served by the bypass, replica not read
+retry (stall) cycles: 12
+element writes: 378,358, of which full-word 375,165, partial 3,193
+vector TB cycles: 13,232,168 (round-2 RTL: 13,232,156)
+With write combining disabled (retry only): 13,373,624 cycles (+1.07%);
+  trial-weighted op cycles +9.8%, single-cycle integer ops up to +49%.
+
+== Collision-mode models (permanent in srammacro; demos below run on b634ffc) ==
+sky130 OpenRAM and fakeram45 1R1W models return whole-word garbage for a
+same-address read and write.
+  round-2 RTL (fd55986) on these models:  VEC TB FAIL (566 fakeram45, 565 sky130)
+  round-3 RTL:                            VEC TB PASS on both; srammacro PASS
+Mutations of round-3 RTL (vector TB, sky130 models):
+  colliding reads sent to the macro (no bypass)     FAIL (568 failures)
+  no write combining (retry only)                   PASS, 13,373,624 cycles
+  no retry                                          partial-collision assertion fires
+  old-vd validity flag ignored (w_cw_hit = row match only)
+                                                    FAIL (7 failures)
+  write-invalidation clauses only removed           PASS (unreachable: S3 write
+                                                    rows never decrease within
+                                                    an instruction; asserted in
+                                                    simulation since the follow-up)
+Earlier mutations (wrapper RTL unchanged since): VRF capture register
+removed -> FAIL on both families; sky130 L1 half select stuck -> cache
+tests FAIL; L1 capture register removed -> still PASS (kept by design).
+
+== Simulation gates (Verilator 5.048 deps/, this branch on edf395e) ==
+make lint (incl. SoC under both SRAM defines)          PASS        12 s
+Docker ubuntu:24.04 Verilator 5.020, non-root, ro mount:
+  make lint PASS; vec_tb, vec_tb_fakeram45, vec_tb_sky130 PASS
+  (13,232,168 cycles); core_tb_fakeram45 / core_tb_sky130 build
+make test                                              ALL PHASE-0 KATs PASS
+make core-test                                         EXIT 0, 19 min 45 s (incl. srammacro, core-xinit)
+  core-xinit (random initial state, seeds 1/3) and vec-xinit PASS
+  srammacro (fakeram45 and sky130 models, collision garbage on):
+    VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles)
+    run_directed.sh on core_tb_<m>: 36 PASS lines, 0 FAIL
+    soc_rtl_tb_<m> crypto firmware: PASS at 18,851,904 cycles (= behavioural)
+  no "muserisc_vregfile: ... partial write" assertion in any run
+make riscv-tests                                       123/123 PASS   37 s
+make -C sim socrtl (cached)                            PASS at 18,851,904 cycles
+soc_rtl_tb --no-cache, crypto                          PASS at 34,486,744 cycles
+OpenSBI fw_jump + DTB + s_hello, cached / --no-cache   HELLO FROM S-MODE at 11,495,124 / 24,192,161
+  on soc_rtl_tb_fakeram45 / soc_rtl_tb_sky130          11,495,124 / 11,495,124
+ACT I,M regenerated                                    64/64
+ACT full (2,578 ELFs, read-only set, JOBS=12)          2577/2578, only PMPSm_cfg_A_tor_zero-00  7 min 48 s
+  CSV: act-core-soc-sram-synth-2026-10-16.csv
+flow/designs/sky130hd/muserisc_soc/sram/vendor_model_check.sh
+  (vendor OpenRAM .v; $display stripped; posedge dout X non-blocking):
+  VEC TB PASS on X seeds 1/2/3; run_directed 36 PASS lines      1 min 21 s
+  --as-shipped (blocking posedge dout X, races the capture flop):
+  VEC TB FAIL (3329 / 3326 / 3322 failures); run_directed exit 1
+
+== Follow-up to fork PR #17 round 3 (fork PR #28, branch soc-sram-followup, fork main fdb0d48) ==
+- muserisc_vec: simulation-only check that S3 write rows never decrease
+  within an instruction (the invariant that makes the old-vd
+  write-invalidation clauses unreachable). Silent in every gate run.
+  Mutations (vector TB, sky130 collision-garbage models): validity flag
+  ignored (w_cw_hit = row match) FAIL (7); only the four
+  write-invalidation clauses removed PASS (13,232,168 cycles).
+- sta_synth.tcl: the summary no longer prints a period-minus-WNS fmax
+  (the sky130 header showed 18.80 MHz from the rst_ni recovery path);
+  it prints WNS/TNS at the SDC period, the worst core_clock setup path,
+  and an "fmax summary" of the three bisected minimum periods. The STA
+  logs above were regenerated from the same 1_synth.odb files:
+  nangate45 6.19 ns (161.67 MHz); sky130hd 81.37 / 54.29 / 43.52 ns
+  (12.29 / 18.42 / 22.98 MHz).
+- vendor_model_check.sh: docker runs as the invoking user; only the
+  vendor's per-access Reading/Writing displays are stripped; its
+  same-address WARNING is kept and counted (fails if non-zero):
+  0 warnings, VEC TB PASS x3, 36/36 directed. With colliding reads sent
+  to the macro (mutation A) the vendor model prints 136,168 warnings
+  but the vector TB still passes, because it returns the new data on a
+  collision; the srammacro garbage models are what catch it by value.

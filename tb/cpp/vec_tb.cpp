@@ -411,6 +411,10 @@ struct Dut {
     for (int w = 0; w < 256; ++w) {
       d->tb_raddr_i = w;
       Tick();
+      // Sample the sync-read data where a flop would: before the
+      // next rising edge. The sky130 OpenRAM macro drives its read
+      // data only after the falling edge.
+      d->clk_i = 0; d->eval();
       const uint64_t v = d->tb_rdata_o;
       std::memcpy(&f.b[w >> 3][(w & 7) * 8], &v, 8);
     }

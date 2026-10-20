@@ -4,7 +4,9 @@
 # once per configuration; each run writes its own coverage file
 # cov_<test>_<TAG>.dat.
 #
-# Usage: [CORE_TB=./core_tb] run_directed.sh TAG [core_tb options...]
+# Usage: [CORE_TB=./core_tb] [COV_PREFIX=cov] run_directed.sh TAG [core_tb options...]
+# (the SRAM-macro and vendor-model runs use a COV_PREFIX the coverage
+# merge skips)
 #   e.g. run_directed.sh rand --mem-lat 1:6 --mem-gap 2 --mem-ready 70
 #        run_directed.sh nocache --no-cache
 #        CORE_TB=./core_tb_xinit run_directed.sh xinit1 +verilator+rand+reset+2 +verilator+seed+1
@@ -13,11 +15,12 @@ TAG=$1; shift
 EXTRA=("$@")
 cd "$(dirname "$0")/../build/sim"
 TB=${CORE_TB:-./core_tb}
+COV_PREFIX=${COV_PREFIX:-cov}
 seed=1
 run() {
   local cov=$1; shift
   echo "[$TAG] core_tb $* ${EXTRA[*]} --mem-seed $seed"
-  COV_FILE="cov_${cov}_${TAG}.dat" "$TB" "$@" "${EXTRA[@]}" --mem-seed "$seed"
+  COV_FILE="${COV_PREFIX}_${cov}_${TAG}.dat" "$TB" "$@" "${EXTRA[@]}" --mem-seed "$seed"
   seed=$((seed + 1))
 }
 run rv64i rv64i_directed.bin
@@ -28,7 +31,7 @@ run mdkill md_kill_directed.bin
 # longest M op (64-bit divide), as the pre-cache core target.
 for o in $(seq 100 171); do
   echo "[$TAG] core_tb md_irq_directed.bin --irq-timer-after $o ${EXTRA[*]} --mem-seed $seed"
-  COV_FILE="cov_mdirq_${o}_${TAG}.dat" "$TB" md_irq_directed.bin \
+  COV_FILE="${COV_PREFIX}_mdirq_${o}_${TAG}.dat" "$TB" md_irq_directed.bin \
     --irq-timer-after "$o" "${EXTRA[@]}" --mem-seed "$seed" > "md_irq_${o}_${TAG}.log" 2>&1 ||
     { cat "md_irq_${o}_${TAG}.log"; exit 1; }
 done
@@ -41,7 +44,7 @@ run fpstall fp_stall_directed.bin
 # longest multi-cycle FP op (as the pre-cache core target).
 for o in $(seq 100 147); do
   echo "[$TAG] core_tb fp_irq_directed.bin --irq-timer-after $o ${EXTRA[*]} --mem-seed $seed"
-  COV_FILE="cov_fpirq_${o}_${TAG}.dat" "$TB" fp_irq_directed.bin \
+  COV_FILE="${COV_PREFIX}_fpirq_${o}_${TAG}.dat" "$TB" fp_irq_directed.bin \
     --irq-timer-after "$o" "${EXTRA[@]}" --mem-seed "$seed" > "fp_irq_${o}_${TAG}.log" 2>&1 ||
     { cat "fp_irq_${o}_${TAG}.log"; exit 1; }
 done

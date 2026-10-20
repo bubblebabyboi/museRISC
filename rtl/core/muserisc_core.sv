@@ -42,7 +42,9 @@
 module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
     input  wire        clk_i,
     input  wire        rst_ni,
-    input  wire [63:0] boot_pc_i,     // reset PC (0 for directed TBs)
+    input  wire [63:0] boot_pc_i,     // reset PC strap (0 for directed TBs); read
+                                      // until the first PC update after reset,
+                                      // so it must stay stable until then
     // Instruction fetch port: PA of an aligned 32-bit word.
     output logic       ireq_valid_o,
     input  wire        ireq_ready_i,
@@ -138,6 +140,15 @@ module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
   // IF stage
   // ------------------------------------------------------------
   logic [63:0] pc_q, pc_d;
+  // Reset PC without an async-load flop: pc_r resets to 0 and
+  // boot_q (async-set, cleared by the first PC update after
+  // reset) selects boot_pc_i until then. With boot_pc_i stable
+  // until that update (a strap), pc_q reads exactly as an async
+  // load of boot_pc_i would, but maps to plain set/reset flops
+  // (ASIC libraries have no async-load D flop).
+  logic [63:0] pc_r;
+  logic        boot_q;
+  assign pc_q = boot_q ? boot_pc_i : pc_r;
   logic        stall;
   logic        flush;
   logic [63:0] redirect_pc;
@@ -1976,7 +1987,8 @@ module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-      pc_q <= boot_pc_i;
+      pc_r <= 64'd0;
+      boot_q <= 1'b1;
       ifid_valid_q <= 1'b0;
       idex_valid_q <= 1'b0;
       exmem_valid_q <= 1'b0;
@@ -2028,7 +2040,8 @@ module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
     end else if (trap_take) begin
       // Precise trap entry: redirect and empty the pipeline,
       // including any half-fetched straddled instruction.
-      pc_q <= trap_target;
+      boot_q <= 1'b0;
+      pc_r <= trap_target;
       straddle_q <= 1'b0;
       ifid_valid_q <= 1'b0;
       idex_valid_q <= 1'b0;
@@ -2038,7 +2051,8 @@ module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
     end else if (!freeze && !mem_stall) begin
       // (mem_stall holds every pipeline register; the parked
       // MEM access retries once its translation resolves.)
-      pc_q <= pc_d;
+      boot_q <= 1'b0;
+      pc_r <= pc_d;
 
       memwb_valid_q <= exmem_valid_q;
       memwb_pc_q <= exmem_pc_q;

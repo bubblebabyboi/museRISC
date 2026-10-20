@@ -321,13 +321,35 @@ module muserisc_vec
   logic [7:0]  w_addr_q;
   logic [2:0]  w_w_q, w_off_q;
   logic [63:0] w_d_q;
+  // Write combining. The port-C read of each element is the whole old
+  // vd word; it travels with the element (row, "still current" flag
+  // cleared by any write to that row while the element is in S1/S2).
+  // comb_* is the last word S3 wrote, when that write was full-word.
+  logic [7:0]  s1_crow_q, s2_crow_q, w_crow_q;
+  logic        s1_cok_q, s2_cok_q, w_cok_q;
+  logic [63:0] w_cw_q;
+  logic        comb_v_q;
+  logic [7:0]  comb_addr_q;
+  logic [63:0] comb_q;
 
-  logic s2_free, s1_ready, s1_adv, s1_free, s0_issue;
+  logic s2_free, s1_ready, s1_adv, s1_free, s0_issue, s0_want;
+  logic vrf_coll;  // a read this cycle would hit a partial S3 write
   assign s2_free = !s2_v_q || s2_done;
   assign s1_ready = !(is_gvv && (s1_kind_q == K_ELEM) && !s1_ph_q);
   assign s1_adv = s1_v_q && s1_ready && s2_free;
   assign s1_free = !s1_v_q || s1_adv;
-  assign s0_issue = run_q && (s0_ph_q != PH_END) && s1_free;
+  assign s0_want = run_q && (s0_ph_q != PH_END) && s1_free;
+  // VRF read/write row collisions. SRAM macros (e.g. the sky130
+  // OpenRAM 1rw1r) leave a read of the row written in the same cycle
+  // undefined, so the VRF never relies on the array for it:
+  //  * S3 turns element writes into full-word writes whenever it
+  //    knows the whole word (write combining, below); a read that
+  //    collides with a full-word write is served entirely from the
+  //    write data by muserisc_vregfile, without reading the array;
+  //  * a read that would collide with a partial write is not issued
+  //    and retried the next cycle. The write is older and always
+  //    proceeds, so the retry cannot deadlock (S3 drains).
+  assign s0_issue = s0_want && !vrf_coll;
 
   // ---- Element operands in S2 ----
   logic [63:0] a, b, a_s, b_s, old_el, ones_s, ones_v;
@@ -933,41 +955,55 @@ module muserisc_vec
                  ? ext_el(rdata_b_i, s1_i_q, 3'd1)
                  : ext_el(rdata_b_i, s1_i_q, sew_q);
   assign g_ok = g_idx < {54'd0, vlmax10_q};
-  logic s1_gissue;
-  assign s1_gissue = s1_v_q && is_gvv && (s1_kind_q == K_ELEM) && !s1_ph_q;
+  logic s1_gissue, s1_gwant;
+  assign s1_gwant = s1_v_q && is_gvv && (s1_kind_q == K_ELEM) && !s1_ph_q;
+  assign s1_gissue = s1_gwant && !vrf_coll;
 
+  // Candidate reads (what S1 gather / S0 would read this cycle); they
+  // are driven to the VRF only when issued, i.e. without a collision.
+  logic       c_re_a, c_re_b, c_re_c;
+  logic [7:0] c_ra_a, c_ra_b, c_ra_c;
   always_comb begin
-    re_a_o = 1'b0;
-    re_b_o = 1'b0;
-    re_c_o = 1'b0;
-    raddr_a_o = 8'd0;
-    raddr_b_o = 8'd0;
-    raddr_c_o = 8'd0;
-    if (s1_gissue) begin
-      re_a_o = 1'b1;
-      raddr_a_o = el_addr(vs2_q, g_idx[9:0], sew_q);
-    end else if (s0_issue) begin
+    c_re_a = 1'b0;
+    c_re_b = 1'b0;
+    c_re_c = 1'b0;
+    c_ra_a = 8'd0;
+    c_ra_b = 8'd0;
+    c_ra_c = 8'd0;
+    if (s1_gwant) begin
+      c_re_a = 1'b1;
+      c_ra_a = el_addr(vs2_q, g_idx[9:0], sew_q);
+    end else if (s0_want) begin
       if (s0_kind == K_SEED) begin
-        re_b_o = 1'b1;
-        raddr_b_o = {vs1_q, 3'b000};
+        c_re_b = 1'b1;
+        c_ra_b = {vs1_q, 3'b000};
       end else if (s0_kind == K_ELEM) begin
-        re_a_o = !is_gvv;
-        re_b_o = 1'b1;
-        re_c_o = 1'b1;
-        if (is_mvr) raddr_a_o = {vs2_q, 3'b000} + 8'(i0_q);
-        else if (is_mask_src) raddr_a_o = bit_addr(vs2_q, i0_q);
-        else raddr_a_o = el_addr(vs2_q, s0_ai, aw_q);
+        c_re_a = !is_gvv;
+        c_re_b = 1'b1;
+        c_re_c = 1'b1;
+        if (is_mvr) c_ra_a = {vs2_q, 3'b000} + 8'(i0_q);
+        else if (is_mask_src) c_ra_a = bit_addr(vs2_q, i0_q);
+        else c_ra_a = el_addr(vs2_q, s0_ai, aw_q);
         if ((op_q == VOP_COMPRESS) || (op_q == VOP_MLOG))
-          raddr_b_o = bit_addr(vs1_q, i0_q);
+          c_ra_b = bit_addr(vs1_q, i0_q);
         else if (op_q == VOP_GATHEREI16)
-          raddr_b_o = el_addr(vs1_q, i0_q, 3'd1);
+          c_ra_b = el_addr(vs1_q, i0_q, 3'd1);
         else
-          raddr_b_o = el_addr(vs1_q, i0_q, sew_q);
-        raddr_c_o = is_mask_dest ? bit_addr(vd_q, i0_q)
+          c_ra_b = el_addr(vs1_q, i0_q, sew_q);
+        c_ra_c = is_mask_dest ? bit_addr(vd_q, i0_q)
                                  : el_addr(vd_q, i0_q, dw_q);
       end
     end
   end
+  assign vrf_coll = w_v_q && (wbe_o != 8'hff) &&
+      ((c_re_a && (c_ra_a == w_addr_q)) || (c_re_b && (c_ra_b == w_addr_q)) ||
+       (c_re_c && (c_ra_c == w_addr_q)));
+  assign re_a_o = c_re_a && !vrf_coll;
+  assign re_b_o = c_re_b && !vrf_coll;
+  assign re_c_o = c_re_c && !vrf_coll;
+  assign raddr_a_o = c_ra_a;
+  assign raddr_b_o = c_ra_b;
+  assign raddr_c_o = c_ra_c;
 
   // S1 operand extraction.
   logic [63:0] x_a, x_b, x_old, x_seed;
@@ -988,16 +1024,103 @@ module muserisc_vec
                   !w_v_q;
   assign we_o = w_v_q;
   assign waddr_o = w_addr_q;
-  assign wbe_o = w_full_q ? w_fbe_q : (be_w(w_w_q) << w_off_q);
-  assign wdata_o = w_full_q ? w_d_q
-                            : ((w_d_q & ones_w(w_w_q)) << {w_off_q, 3'b000});
+  logic [7:0]  w_pbe;    // element byte enables
+  logic [63:0] w_pdata, w_pmask, w_base;
+  logic        w_comb_hit, w_cw_hit;
+  assign w_pbe = be_w(w_w_q) << w_off_q;
+  assign w_pdata = (w_d_q & ones_w(w_w_q)) << {w_off_q, 3'b000};
+  for (genvar wb = 0; wb < 8; wb++) begin : g_wmask
+    assign w_pmask[wb*8 +: 8] = {8{w_pbe[wb]}};
+  end
+  // The whole current word is known if the previous S3 write was a
+  // full-word write of this row, or if the element's own old-vd read
+  // was of this row and no write touched the row since.
+  assign w_comb_hit = comb_v_q && (comb_addr_q == w_addr_q);
+  assign w_cw_hit = w_cok_q && (w_crow_q == w_addr_q);
+  assign w_base = w_comb_hit ? comb_q : w_cw_q;
+  always_comb begin
+    if (w_full_q) begin
+      wbe_o = w_fbe_q;
+      wdata_o = w_d_q;
+    end else if (w_comb_hit || w_cw_hit) begin
+      wbe_o = 8'hff;
+      wdata_o = (w_base & ~w_pmask) | w_pdata;
+    end else begin
+      wbe_o = w_pbe;
+      wdata_o = w_pdata;
+    end
+  end
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       w_v_q <= 1'b0;
+      comb_v_q <= 1'b0;
     end else begin
       w_v_q <= s2_we && !kill_i;
+      // Only vector-unit writes reach the VRF while it runs; anything
+      // else (vector loads) happens between instructions.
+      if (start_i && !run_q) comb_v_q <= 1'b0;
+      else if (w_v_q) comb_v_q <= (wbe_o == 8'hff);
     end
   end
+  always_ff @(posedge clk_i) begin
+    if (w_v_q) begin
+      comb_addr_q <= w_addr_q;
+      comb_q <= wdata_o;
+    end
+  end
+  // Old-vd word currency: cleared by any write to its row while the
+  // element sits in S1 or S2 (a write in the read's own cycle is
+  // either full-word, which the VRF forwards, or stalls the read).
+  logic s1_crow_hit, s2_crow_hit;
+  assign s1_crow_hit = w_v_q && (w_addr_q == s1_crow_q);
+  assign s2_crow_hit = w_v_q && (w_addr_q == s2_crow_q);
+  always_ff @(posedge clk_i) begin
+    if (s0_issue) begin
+      s1_crow_q <= c_ra_c;
+      s1_cok_q <= c_re_c;
+    end else if (s1_crow_hit) begin
+      s1_cok_q <= 1'b0;
+    end
+    if (s1_adv) begin
+      s2_crow_q <= s1_crow_q;
+      s2_cok_q <= s1_cok_q && !s1_crow_hit;
+    end else if (s2_crow_hit) begin
+      s2_cok_q <= 1'b0;
+    end
+    if (s2_we) begin
+      w_crow_q <= s2_crow_q;
+      w_cok_q <= s2_cok_q && !s2_crow_hit;
+      w_cw_q <= s2_cw_q;
+    end
+  end
+`ifndef SYNTHESIS
+  // Invariant (simulation check): within one instruction the S3 write
+  // rows never decrease (elementwise ops, compress's cnt, whole-register
+  // word moves, one mask word per 64 elements, the reduction's single
+  // final write). Consequently a write that lands on an element's old-vd
+  // row after its port-C read is always the immediately preceding S3
+  // write (a full-word comb hit, which takes priority) or a partial
+  // write followed by a row change, so the write-invalidation clauses
+  // above (s1/s2_crow_hit) never decide anything today. They are kept
+  // as protection for a future non-monotonic writer; if this check
+  // fires, review that the clauses (and their tests) still cover it.
+  logic       chk_wv_q;
+  logic [7:0] chk_wrow_q;
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      chk_wv_q <= 1'b0;
+    end else begin
+      if (start_i && !run_q) chk_wv_q <= 1'b0;
+      else if (w_v_q) begin
+        if (chk_wv_q && (w_addr_q < chk_wrow_q))
+          $error("muserisc_vec: S3 write row %0d after row %0d in one instruction (op %0d): old-vd write invalidation is now live",
+                 w_addr_q, chk_wrow_q, op_q);
+        chk_wv_q <= 1'b1;
+        chk_wrow_q <= w_addr_q;
+      end
+    end
+  end
+`endif
   always_ff @(posedge clk_i) begin
     if (s2_we) begin
       w_addr_q <= s2_waddr;

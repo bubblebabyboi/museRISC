@@ -429,9 +429,15 @@ read (address sampled when `re` is high, output held while
 low), one per read port: A (vs2 / index), B (vs1), C (old vd
 / store data); every write goes to all three. Each replica
 maps to one SDP BRAM (or LUTRAM) on FPGA or a 1R1W
-byte-masked SRAM macro on ASIC. A one-cycle write bypass
-gives write-first behavior so the RAM collision mode never
-matters. v0 is mirrored in a 512-bit shadow register so any
+byte-masked SRAM macro on ASIC. A replica never sees a read
+of the word written in the same cycle (SRAM macros leave it
+undefined): a read that collides with a full-word write is
+served from the write data (one-cycle write-first bypass), and
+a read that would collide with a partial write is illegal
+(asserted in simulation). The vector unit's S3 write combining
+makes almost every element write full-word, and S0/gather
+retry a read that would hit a partial write one cycle later
+(see docs/SOC_AREA.md). v0 is mirrored in a 512-bit shadow register so any
 element's mask bit is available without a read port. The
 port mux gives the MEM vector load/store sequencer the ports
 while a vector memory op is in MEM, the vector unit

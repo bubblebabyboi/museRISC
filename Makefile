@@ -32,6 +32,12 @@ test: ## Python golden self-check + Verilator C++ crypto KATs (needs python3, ve
 	$(MAKE) -C sim crypto
 	@echo "ALL PHASE-0 KATs PASS"
 
+# Behavioural models of the ORFS SRAM macros (VRF + L1 arrays).
+SRAM_MODELS_FAKERAM45 := $(addprefix flow/designs/nangate45/muserisc_soc/sram/,\
+  fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
+SRAM_MODELS_SKY130 := $(addprefix flow/designs/sky130hd/muserisc_soc/sram/,\
+  sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
+
 lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module muserisc_soc_top $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module keccak_f1600 rtl/crypto/keccak_f1600.sv
@@ -40,6 +46,8 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module muserisc_muldiv_mc rtl/core/muserisc_muldiv.sv rtl/core/muserisc_muldiv_mc.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module muserisc_muldiv_mc -GCOMB=1 rtl/core/muserisc_muldiv.sv rtl/core/muserisc_muldiv_mc.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module muserisc_cpu $(CORE_RTL) $(CACHE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module muserisc_soc_top +define+MUSERISC_SRAM_FAKERAM45 $(SRAM_MODELS_FAKERAM45) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module muserisc_soc_top +define+MUSERISC_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

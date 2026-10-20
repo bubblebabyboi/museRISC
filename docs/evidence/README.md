@@ -1734,3 +1734,41 @@ stages 4c/5:
   (`MUSERISC_LINUX_BOOT_OK`, 508,685,709 cycles) once the
   separate `mip` CSRRS/CSRRC pin-latching fix is applied; that
   fix is upstreamed in its own PR.
+
+## SoC synthesis with all large arrays on SRAM macros (2026-10-16, branch `soc-sram-synth`)
+
+- ORFS synthesis of the whole `muserisc_soc_top`, measured on the
+  development tree CantelopePeel/museRISC at b634ffc (this stack plus
+  #45, #48 and #35). All
+  15 large arrays are macros: 3 VRF banks, 6 L1 data ways and 6 L1 tag
+  ways.
+  - On Nangate45 the macros are fakeram45, partly generated.
+  - On sky130hd they are the OpenRAM macros prebuilt in ORFS.
+- Flat results:
+  - Nangate45: 504,350 µm² std cells + 158,051 µm² macros, 26,447
+    flops.
+  - sky130hd: 2,364,368 µm² + 6,225,284 µm², 26,453 flops.
+- Unrepaired fmax (period bisection in OpenSTA):
+  - Nangate45: 162 MHz.
+  - sky130hd: 12.3 MHz. It is set by the OpenRAM half-cycle reads: 18.4
+    MHz with the VRF outputs registered, 23.0 MHz with all 15
+    registered.
+- The rough sky130 placed core size is 11.8–13.5 mm².
+- The VRF never presents a same-address read and write to a macro:
+  S3 write combining, a full-word bypass, and a retry for partial
+  writes. The `srammacro` models return whole-word garbage for that
+  mode, permanently.
+- Summary: [`../SOC_AREA.md`](../SOC_AREA.md). Runs, timing, collision
+  statistics, mutations, gates and the vendor-model check:
+  [`soc-sram-synth-2026-10-16.log`](soc-sram-synth-2026-10-16.log),
+  with stat and STA reports in `soc-sram-synth-*-2026-10-16.*`.
+- Gates:
+  - lint (5.048, and Docker 5.020 run non-root);
+  - test;
+  - core-test, including `srammacro`;
+  - riscv-tests 123/123;
+  - `socrtl` and OpenSBI hello, cached and uncached;
+  - vendor OpenRAM model run;
+  - ACT 2,577/2,578
+    ([`act-core-soc-sram-synth-2026-10-16.csv`](act-core-soc-sram-synth-2026-10-16.csv)),
+    with only the `PMPSm_cfg_A_tor_zero-00` waiver failing.

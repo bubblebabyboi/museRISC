@@ -61,8 +61,8 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit coverage
+        crypto sha256 sha512 keccak ecfield cryptotop core-mdcomb srammacro directed-bins
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 # Caches on, seeded random bus latency/gaps/backpressure.
@@ -454,6 +454,70 @@ core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TEST
 	for s in 1 3; do \
 	  CORE_TB=./core_tb_xinit bash $(ROOT)/sim/run_directed.sh xinit$$s $(CORE_RAND_ARGS) \
 	    +verilator+rand+reset+2 +verilator+seed+$$s || exit 1; \
+	done
+
+## ---- SRAM-macro builds (ORFS flows) ---------------------------------
+# Under MUSERISC_SRAM_FAKERAM45 (nangate45) / MUSERISC_SRAM_SKY130
+# (sky130hd) the VRF banks and the L1 data/tag ways instantiate SRAM
+# macros. Rebuild the vector unit TB, the core TB (muserisc_cpu with
+# the real cache geometry) and the RTL SoC on each macro family's
+# behavioural models (which, like the real macros, do not hold read
+# data) and rerun the vector TB, every directed core test (random bus
+# latency) and the SoC crypto firmware, so the wrappers (masks,
+# selects, half select, read capture) are checked bit-exactly.
+SRAM_DEF_fakeram45 := +define+MUSERISC_SRAM_FAKERAM45
+SRAM_DEF_sky130    := +define+MUSERISC_SRAM_SKY130
+SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/muserisc_soc/sram/,\
+  fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
+SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/muserisc_soc/sram/,\
+  sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
+SRAM_MACROS := fakeram45 sky130
+.SECONDEXPANSION:
+$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/muserisc_vec_pkg.sv \
+                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+                 $(ROOT)/tb/sv/muserisc_vec_harness.sv $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec_$* --top-module muserisc_vec_harness \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) -o $(abspath $@) $(PKG) \
+	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
+	  $(RTL)/muserisc_fpu.sv \
+	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
+	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
+
+$(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
+                  $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module muserisc_cpu \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CPU_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
+
+$(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
+                     $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module muserisc_soc_top \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(SOC_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
+
+# All directed-test binaries (used by vendor_model_check.sh).
+directed-bins: $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
+
+srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/core_tb_,$(SRAM_MACROS)) \
+           $(addprefix $(BUILD)/soc_rtl_tb_,$(SRAM_MACROS)) \
+           $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS))) $(SOCFW)/crypto_soc_test.bin
+	cd $(BUILD) && for m in $(SRAM_MACROS); do \
+	  ./vec_tb_$$m > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [SRAM macro $$m]/"; \
+	  CORE_TB=./core_tb_$$m COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh $$m $(CORE_RAND_ARGS) \
+	    > srammacro_core_$$m.log 2>&1 || { tail -40 srammacro_core_$$m.log; exit 1; }; \
+	  echo "CORE TB PASS: $$(grep -c 'CORE TB PASS' srammacro_core_$$m.log) directed runs, 0 FAIL [SRAM macro $$m]"; \
+	  ./soc_rtl_tb_$$m 400000000 $(CORE_RAND_ARGS) \
+	    --load 0x80000000=$(abspath $(SOCFW))/crypto_soc_test.bin \
+	    --exit-string "SOC CRYPTO PASS" > srammacro.log 2>&1 || { tail -20 srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [SRAM macro $$m]/"; \
 	done
 
 ## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
