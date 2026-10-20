@@ -1,0 +1,39 @@
+Full-SoC ORFS synthesis (synth target), #11, 2026-10-20
+Tree: merged PR stack #33-#50 (8c3013e, pre-rename: top = muserisc_soc_top)
+Host: AWS vivado_rnd r7i.4xlarge (16 vCPU, 123 GiB), Ubuntu 24.04
+Image: openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663
+Config: flow/designs/<platform>/muserisc_soc/config.mk (15 SRAM macros); both platforms run in parallel
+
+==================== nangate45
+platform=nangate45 rc=0 start=2026-10-20T22:49:49Z wall=3008s
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 50:08.73
+	Maximum resident set size (kbytes): 29504
+-- ORFS step logs (Elapsed / peak memory)
+Elapsed time: 0:03.51[h:]min:sec. CPU time: user 3.28 sys 0.28 (101%). Peak memory: 282760KB.
+Elapsed time: 49:28.19[h:]min:sec. CPU time: user 3029.48 sys 6.30 (102%). Peak memory: 2604552KB.
+Elapsed time: 0:06.41[h:]min:sec. CPU time: user 6.02 sys 0.38 (99%). Peak memory: 811180KB.
+-- synth_check.txt
+Found and reported 0 problems.
+-- synth_stat.txt (top-level summary)
+   296459 6.62E+05   296459 6.62E+05 cells
+        3 3.85E+04        3 3.85E+04   fakeram45_256x64_1r1w
+        6 1.04E+05        6 1.04E+05   fakeram45_512x64
+        6 1.58E+04        6 1.58E+04   fakeram45_64x44
+   Chip area for module '\muserisc_soc_top': 662400.914000
+
+==================== sky130hd
+platform=sky130hd rc=0 start=2026-10-20T22:49:49Z wall=2586s
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 43:05.90
+	Maximum resident set size (kbytes): 29736
+-- ORFS step logs (Elapsed / peak memory)
+Elapsed time: 0:03.52[h:]min:sec. CPU time: user 3.29 sys 0.28 (101%). Peak memory: 294456KB.
+Elapsed time: 42:14.10[h:]min:sec. CPU time: user 2594.43 sys 5.92 (102%). Peak memory: 2549940KB.
+Elapsed time: 0:09.32[h:]min:sec. CPU time: user 8.19 sys 0.55 (93%). Peak memory: 1089720KB.
+-- synth_check.txt
+Found and reported 0 problems.
+-- synth_stat.txt (top-level summary)
+   260033 8.59E+06   260033 8.59E+06 cells
+        6 4.33E+06        6 4.33E+06   sky130_sram_1rw1r_128x256_8
+        6 6.34E+05        6 6.34E+05   sky130_sram_1rw1r_44x64_8
+        3 1.26E+06        3 1.26E+06   sky130_sram_1rw1r_64x256_8
+   Chip area for module '\muserisc_soc_top': 8589651.805402

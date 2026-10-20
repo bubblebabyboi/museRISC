@@ -1885,3 +1885,29 @@ now waits for AWREADY/ARREADY).
 - Functional proof only: the firmware is variable-time, not
   constant-time (W2/W4). Full log:
   [`soc-rtl-ed25519-4-2026-10-20.log`](soc-rtl-ed25519-4-2026-10-20.log).
+
+## #11: full-SoC ORFS synthesis completes on both platforms (2026-10-20)
+
+Full log:
+[`soc-synth-full-11-2026-10-20.log`](soc-synth-full-11-2026-10-20.log).
+The ORFS `synth` target for the whole SoC (15 SRAM macros), run on
+the merged PR stack (pre-rename tree `8c3013e`) with the pinned
+`openroad/orfs` image on an r7i.4xlarge:
+
+| | nangate45 | sky130hd |
+|---|---:|---:|
+| Wall time | 50 min | 43 min |
+| Peak memory (Yosys step) | 2.6 GB | 2.5 GB |
+| Synthesized area | 0.662 mm² (662,401 µm²) | 8.590 mm² (8,589,652 µm²) |
+| Cells (incl. macros) | 296,459 | 260,033 |
+| `synth_check` | 0 problems | 0 problems |
+
+Area and cell counts are identical to the #50 figures in
+`docs/SOC_AREA.md`, so they hold on the full merged stack (including
+the #36 mip, #45 CSR/PLIC timing and #48 PLIC changes). For contrast,
+the 2026-10-15 attempt on the pre-refactor tree
+([`soc-openroad-synth-11-2026-10-15.log`](soc-openroad-synth-11-2026-10-15.log))
+died in slang canonicalize at the 7.65 GiB Docker limit, and on #38's
+test host at 201 GB. This is synthesis only: no floorplan, placement,
+routing, timing signoff or GDS for the SoC follows from it (#11 stays
+open for P&R).
