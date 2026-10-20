@@ -7,6 +7,14 @@
 // completing with re_i claims (side effect at the clock
 // edge), a store completes. Level sources re-pend after
 // completion while still asserted.
+// Per the RISC-V PLIC spec: priorities and thresholds are WARL
+// with PRIO_BITS implemented bits (upper bits read 0; a write
+// keeps only the low PRIO_BITS bits, i.e. truncates rather than
+// clamps: writing 8 stores 0; priority 0 = never interrupt); the
+// threshold only gates the EIP
+// notification, not what a claim returns (the highest-priority
+// pending enabled source with priority > 0); a completion for a
+// source not enabled for that context is ignored.
 `default_nettype none
 module muserisc_plic (
     input  wire        clk_i,
@@ -21,27 +29,31 @@ module muserisc_plic (
     input  wire [31:0] irq_sources_i,
     output wire [1:0]  eip_o
 );
-  logic [31:0] prio_q [0:31];
-  logic [31:0] enable_q [0:1];
-  logic [31:0] threshold_q [0:1];
+  localparam int PRIO_BITS = 3;   // priorities 0..7
+  logic [PRIO_BITS-1:0] prio_q [0:31];
+  logic [31:0]          enable_q [0:1];
+  logic [PRIO_BITS-1:0] threshold_q [0:1];
   logic [31:0] claimed_q;
 
   logic [31:0] pending;
   assign pending = irq_sources_i & ~claimed_q;
 
-  // Sources eligible per context: pending, enabled, and above
-  // the threshold (source 0 does not exist).
-  logic [1:0][31:0] elig;
+  // Claimable per context: pending, enabled and priority > 0
+  // (source 0 does not exist). EIP also needs priority above
+  // the context's threshold; claims ignore the threshold.
+  logic [1:0][31:0] elig, above;
   always_comb begin
     for (int c = 0; c < 2; c++) begin
       elig[c][0] = 1'b0;
+      above[c][0] = 1'b0;
       for (int s = 1; s < 32; s++) begin
         elig[c][s] = pending[s] && enable_q[c][s] &&
-                     (prio_q[s] > threshold_q[c]);
+                     (prio_q[s] != '0);
+        above[c][s] = prio_q[s] > threshold_q[c];
       end
     end
   end
-  assign eip_o = {|elig[1], |elig[0]};
+  assign eip_o = {|(elig[1] & above[1]), |(elig[0] & above[0])};
 
   // Highest-priority claimable source per context (ties: lowest
   // id, matching the C++ model; 0 = none), as a 5-level
@@ -52,7 +64,7 @@ module muserisc_plic (
   logic [1:0][4:0] best_id;
   always_comb begin
     logic [31:0]       tv;
-    logic [31:0][31:0] tp;
+    logic [31:0][PRIO_BITS-1:0] tp;
     logic [31:0][4:0]  tid;
     logic              r;
     for (int c = 0; c < 2; c++) begin
@@ -85,12 +97,12 @@ module muserisc_plic (
   function automatic logic [31:0] plic_word(input logic [25:0] off);
     logic [31:0] r;
     r = 32'd0;
-    if (off < 26'h80) r = prio_q[off[6:2]];
+    if (off < 26'h80) r = 32'(prio_q[off[6:2]]);
     else if (off == 26'h1000) r = pending;
     else if (off == 26'h2000) r = enable_q[0];
     else if (off == 26'h2080) r = enable_q[1];
-    else if (off == 26'h20_0000) r = threshold_q[0];
-    else if (off == 26'h20_1000) r = threshold_q[1];
+    else if (off == 26'h20_0000) r = 32'(threshold_q[0]);
+    else if (off == 26'h20_1000) r = 32'(threshold_q[1]);
     else if (off == 26'h20_0004) r = re_i ? best_source(0) : 32'd0;
     else if (off == 26'h20_1004) r = re_i ? best_source(1) : 32'd0;
     return r;
@@ -126,11 +138,11 @@ module muserisc_plic (
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-      for (int s = 0; s < 32; s++) prio_q[s] <= 32'd0;
+      for (int s = 0; s < 32; s++) prio_q[s] <= '0;
       enable_q[0] <= 32'd0;
       enable_q[1] <= 32'd0;
-      threshold_q[0] <= 32'd0;
-      threshold_q[1] <= 32'd0;
+      threshold_q[0] <= '0;
+      threshold_q[1] <= '0;
       claimed_q <= 32'd0;
     end else begin
       if (re_i && is_claim && claim_val != 32'd0) begin
@@ -138,11 +150,14 @@ module muserisc_plic (
       end
       if (be_i != 8'd0) begin
         if (is_claim) begin
-          if (store_word < 32'd32) claimed_q[store_word[4:0]] <= 1'b0;
+          // Ignored unless the source is enabled for the context.
+          if ((store_word < 32'd32) &&
+              enable_q[is_claim1][store_word[4:0]])
+            claimed_q[store_word[4:0]] <= 1'b0;
         end else if (word_off < 26'h80) begin
-          prio_q[word_off[6:2]] <=
-              merge_word(prio_q[word_off[6:2]], wdata_i, be_i,
-                         addr_i[2]);
+          prio_q[word_off[6:2]] <= PRIO_BITS'(
+              merge_word(32'(prio_q[word_off[6:2]]), wdata_i, be_i,
+                         addr_i[2]));
         end else if (word_off == 26'h2000) begin
           enable_q[0] <= merge_word(enable_q[0], wdata_i, be_i,
                                      addr_i[2]);
@@ -150,11 +165,11 @@ module muserisc_plic (
           enable_q[1] <= merge_word(enable_q[1], wdata_i, be_i,
                                      addr_i[2]);
         end else if (word_off == 26'h20_0000) begin
-          threshold_q[0] <= merge_word(threshold_q[0], wdata_i,
-                                        be_i, addr_i[2]);
+          threshold_q[0] <= PRIO_BITS'(merge_word(32'(threshold_q[0]),
+                                        wdata_i, be_i, addr_i[2]));
         end else if (word_off == 26'h20_1000) begin
-          threshold_q[1] <= merge_word(threshold_q[1], wdata_i,
-                                        be_i, addr_i[2]);
+          threshold_q[1] <= PRIO_BITS'(merge_word(32'(threshold_q[1]),
+                                        wdata_i, be_i, addr_i[2]));
         end
       end
     end

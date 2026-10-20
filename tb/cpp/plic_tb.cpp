@@ -1,8 +1,10 @@
 // Unit test for the RTL PLIC (rtl/soc/muserisc_plic.sv): register
-// access over the 64-bit bus, priority/threshold eligibility, the
-// claim arbitration (highest priority, ties to the lowest id,
-// 0 = none), the claim side effect, completion and level
-// re-pending, and both contexts' EIP outputs. A cycle-level
+// access over the 64-bit bus, WARL 3-bit priorities/thresholds,
+// the claim arbitration (highest priority > 0 among pending
+// enabled sources regardless of threshold, ties to the lowest id,
+// 0 = none), the claim side effect, completion (ignored for a
+// source not enabled for the context) and level re-pending, and
+// both contexts' EIP outputs (priority above the threshold). A cycle-level
 // reference model of the documented behaviour (module header) is
 // compared against the DUT on every cycle of directed sequences
 // and of a long random stream with heavy priority ties.
@@ -43,9 +45,10 @@ struct Model {
   uint32_t src = 0;
 
   uint32_t Pending() const { return src & ~claimed; }
-  bool Elig(int c, int s) const {
+  static constexpr uint32_t kPrioMask = 7;   // 3 implemented bits
+  bool Elig(int c, int s) const {             // claimable
     return s >= 1 && (Pending() >> s & 1u) && (en[c] >> s & 1u) &&
-           prio[s] > thr[c];
+           prio[s] != 0;
   }
   uint32_t Best(int c) const {  // first strictly-greater wins
     uint32_t best = 0, bp = 0;
@@ -54,7 +57,7 @@ struct Model {
     return best;
   }
   bool Eip(int c) const {
-    for (int s = 1; s < 32; ++s) if (Elig(c, s)) return true;
+    for (int s = 1; s < 32; ++s) if (Elig(c, s) && prio[s] > thr[c]) return true;
     return false;
   }
   uint32_t Word(uint32_t off, bool re) const {
@@ -93,17 +96,19 @@ struct Model {
     if (be != 0) {
       const uint32_t sw = uint32_t(hi ? wdata >> 32 : wdata);
       if (is_claim) {
-        if (sw < 32) nclaimed &= ~(1u << sw);   // later write wins
+        const int c = woff == kClaim1 ? 1 : 0;
+        // Only for a source enabled for the context; later write wins.
+        if (sw < 32 && (en[c] >> sw & 1u)) nclaimed &= ~(1u << sw);
       } else if (woff < 0x80) {
-        prio[(woff >> 2) & 31] = Merge(prio[(woff >> 2) & 31], wdata, be, hi);
+        prio[(woff >> 2) & 31] = Merge(prio[(woff >> 2) & 31], wdata, be, hi) & kPrioMask;
       } else if (woff == 0x2000) {
         en[0] = Merge(en[0], wdata, be, hi);
       } else if (woff == 0x2080) {
         en[1] = Merge(en[1], wdata, be, hi);
       } else if (woff == 0x200000) {
-        thr[0] = Merge(thr[0], wdata, be, hi);
+        thr[0] = Merge(thr[0], wdata, be, hi) & kPrioMask;
       } else if (woff == 0x201000) {
-        thr[1] = Merge(thr[1], wdata, be, hi);
+        thr[1] = Merge(thr[1], wdata, be, hi) & kPrioMask;
       }
     }
     claimed = nclaimed;
@@ -181,17 +186,18 @@ int main(int argc, char** argv) {
   b.Idle();
   CHECK(b.Claim(0) == 20);
   b.Complete(0, 20);
-  // Threshold masks priority <= threshold (EIP and claim).
+  // Threshold gates EIP only (priority <= threshold); a claim
+  // still returns the best pending enabled source.
   b.W32(0x200000, 5);
   b.Idle();
   CHECK(dut->eip_o == 1);                  // 20 (6) is above
   b.m.src &= ~(1u << 20);
   b.Idle();
   CHECK(dut->eip_o == 0);
-  CHECK(b.Claim(0) == 0);
-  b.W32(0x200000, 4);
-  CHECK(b.Claim(0) == 7);
+  CHECK(b.Claim(0) == 7);                  // 5 <= threshold, still claimed
   b.Complete(0, 7);
+  b.W32(0x200000, 4);
+  CHECK(dut->eip_o == 1);
   // Context 1 is independent: own enables and threshold.
   b.W32(0x2080, 1u << 9);
   b.W32(0x201000, 0);
@@ -200,13 +206,23 @@ int main(int argc, char** argv) {
   CHECK(b.Claim(1) == 9);
   CHECK((dut->eip_o & 2) == 0);            // claimed source drops out
   CHECK(b.Claim(0) == 7);                  // context 0 skips 9 too
+  // A completion for a source not enabled for the context is
+  // ignored (7 is enabled only for context 0).
+  b.Complete(1, 7);
+  CHECK(b.R32(0x1000) == (b.m.src & ~((1u << 7) | (1u << 9))));
   b.Complete(1, 9); b.Complete(0, 7);
+  CHECK(b.R32(0x1000) == b.m.src);
   // A read without re_i has no side effect and returns 0.
   CHECK(b.R32(kClaim0, false) == 0);
   CHECK(b.R32(0x1000) == b.m.Pending());
-  // Byte-enable merge into a priority register (upper bus half).
-  b.Cycle(5 * 4, false, 0x20, uint64_t(0xab) << 40);
-  CHECK(b.R32(5 * 4) == 0xab00);
+  // Byte-enable merge into a priority register (upper bus half),
+  // and WARL: only 3 bits are implemented.
+  b.Cycle(5 * 4, false, 0x10, uint64_t(0xfd) << 32);
+  CHECK(b.R32(5 * 4) == 5);
+  b.W32(6 * 4, 0xffffffffu);
+  CHECK(b.R32(6 * 4) == 7);
+  b.W32(0x201000, 0x12345678u);
+  CHECK(b.R32(0x201000) == 0);
   // Out-of-range completion id is ignored.
   b.Complete(0, 40);
 
