@@ -6,3 +6,4 @@ third_party/
 obj_dir/
 __pycache__/
 /deps
+.claude/
