@@ -15,12 +15,16 @@ BUILD  := $(ROOT)/build/sim
 OBJ    := $(BUILD)/obj
 
 VERILATOR ?= verilator
-VFLAGS    := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME \
+# Verilator build/verilation jobs; 0 = all cores. CI sets VJOBS=1: Ubuntu's
+# Verilator 5.020 intermittently aborts with "attempted to destroy locked
+# Thread Pool" when verilating multi-threaded.
+VJOBS     ?= 0
+VFLAGS    := --cc --exe --build -j $(VJOBS) -Wall -Wno-DECLFILENAME \
              --coverage-line --coverage-toggle --assert -I$(RTL) \
              -CFLAGS "-std=c++17 -O2" --Mdir
 # The platform harness writes no coverage; build it without the
 # (expensive) coverage instrumentation for long OS boots.
-VFLAGS_FAST := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert -O3 -I$(RTL) \
+VFLAGS_FAST := --cc --exe --build -j $(VJOBS) -Wall -Wno-DECLFILENAME --assert -O3 -I$(RTL) \
                -CFLAGS "-std=c++17 -O2" --Mdir
 PKG       := $(RTL)/sigil_pkg.sv
 # `included by sigil_fpu_pkg.sv and sigil_fpu.sv (dependency only)
@@ -238,7 +242,7 @@ $(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
                  $(RTL)/sigil_fpu.sv \
                  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
                  $(ROOT)/tb/sv/sigil_vec_harness.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert --coverage-line \
+	$(VERILATOR) --cc --exe --build -j $(VJOBS) -Wall -Wno-DECLFILENAME --assert --coverage-line \
 	  --x-initial unique -I$(RTL) -CFLAGS "-std=c++17 -O2" \
 	  --Mdir $(OBJ)/vec_xinit --top-module sigil_vec_harness \
 	  -o $(abspath $(BUILD)/vec_tb_xinit) $(PKG) \

@@ -11,6 +11,12 @@ name: RTL regression
 permissions:
   contents: read
 
+# Single-threaded Verilator builds (sim/Makefile VJOBS): apt Verilator
+# 5.020 intermittently aborts with "attempted to destroy locked Thread
+# Pool" when verilating with -j 0.
+env:
+  VJOBS: "1"
+
 concurrency:
   group: rtl-regression-${{ github.ref }}
   cancel-in-progress: true
