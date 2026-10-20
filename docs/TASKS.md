@@ -11,7 +11,7 @@ W0–W8). An issue closes only with a link to committed evidence under
 - [x] [#1](https://github.com/bubblebabyboi/museRISC/issues/1) **[B1] Host smoke** — CVA6 Verilator model passes `rv64ui-p-add` / `rv64ui-p-simple` *(historical CVA6 baseline)*
 - [x] [#2](https://github.com/bubblebabyboi/museRISC/issues/2) **[B2] Host regression** — Spike solo + CVA6 solo 174/174, tandem 173/174 + 1 waived divergence, ACT4 I/M 64/64 *(historical CVA6 baseline; `docs/evidence/b2-combined-matrix-2026-10-12.csv`)*
 - [x] [#3](https://github.com/bubblebabyboi/museRISC/issues/3) **[B3] OpenROAD closure** — `muse_crypto` nangate45: DRC/antenna/liberty-electrical 0, setup +4.52 ns / hold +0.039 ns @ 10 ns; GDS in release `b3-nangate45-2026-10-13`
-- [ ] [#4](https://github.com/bubblebabyboi/museRISC/issues/4) **[B4] SoC integration** — host is the in-house core (#18), not CVA6. Synthesizable SoC + on-core secp256k1 ECDSA verify done (`docs/evidence/soc-rtl-4-2026-10-15.log`); Ed25519 verify remaining → plan W1
+- [x] [#4](https://github.com/bubblebabyboi/museRISC/issues/4) **[B4] SoC integration** — host is the in-house core (#18), not CVA6. Synthesizable SoC + on-core secp256k1 ECDSA verify (`docs/evidence/soc-rtl-4-2026-10-15.log`) and Ed25519 RFC 8032 verify, both with tamper rejects, cached and uncached (`docs/evidence/soc-rtl-ed25519-4-2026-10-20.log`; plan W1)
 
 ## In-house core ([epic #18](https://github.com/bubblebabyboi/museRISC/issues/18))
 

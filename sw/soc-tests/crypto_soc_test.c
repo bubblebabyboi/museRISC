@@ -9,104 +9,14 @@
  *   3  2*G (Jacobian, field ops on accelerator) vs known
  *   4  secp256k1 ECDSA verify of the sw/ec_ops.py frozen
  *      vector (privkey 1, msg "museRISC"); z is hashed
- *      by the accelerator; tampered z must reject
+ *      by the accelerator
+ *   5  the same verify with tampered z (bit 0 flipped)
+ *      must reject
  * Reference (non-constant-time) code; vectors mirror
- * sw/ec_ops.py and tb/cpp/crypto_top_tb.cpp. */
-#include <stdint.h>
-
-#include "../muse_crypto.h"
-
-#define UART ((volatile uint8_t *)0x10000000UL)
-#define CRYPTO ((volatile uint32_t *)MUSE_CRYPTO_BASE)
-
-static void putc(char c) {
-  while ((UART[5] & 0x20) == 0) {
-  }
-  UART[0] = (uint8_t)c;
-}
-static void puts(const char *s) {
-  while (*s) putc(*s++);
-}
-static void fail(int stage) {
-  puts("SOC CRYPTO FAIL stage ");
-  putc((char)('0' + stage));
-  puts("\r\n");
-  for (;;) __asm__ volatile("wfi");
-}
-
-/* ---- 256-bit values, 4x64 little-endian limbs ---- */
-typedef struct {
-  uint64_t v[4];
-} fe_t;
-
-static int fe_eq(const fe_t *a, const fe_t *b) {
-  uint64_t d = 0;
-  for (int i = 0; i < 4; i++) d |= a->v[i] ^ b->v[i];
-  return d == 0;
-}
-static int fe_is_zero(const fe_t *a) {
-  return (a->v[0] | a->v[1] | a->v[2] | a->v[3]) == 0;
-}
-static void fe_set_u64(fe_t *r, uint64_t x) {
-  r->v[0] = x;
-  r->v[1] = r->v[2] = r->v[3] = 0;
-}
-static int bn_bit(const fe_t *a, int i) {
-  return (int)((a->v[i >> 6] >> (i & 63)) & 1);
-}
-
-/* ---- accelerator field op (MODSEL set once per curve) ---- */
-static void crypto_wait_done(void) {
-  while ((CRYPTO[0x04 / 4] & 0x2u) == 0) {
-  }
-}
-static void crypto_write_fe(uint32_t word_off, const fe_t *a) {
-  for (int i = 0; i < 8; i++) {
-    CRYPTO[(word_off + 4u * (uint32_t)i) / 4u] =
-        (uint32_t)(a->v[i >> 1] >> (32 * (i & 1)));
-  }
-}
-static void crypto_read_fe(fe_t *r) {
-  for (int i = 0; i < 8; i++) {
-    uint32_t w = CRYPTO[(0x48u + 4u * (uint32_t)i) / 4u];
-    if ((i & 1) == 0) {
-      r->v[i >> 1] = w;
-    } else {
-      r->v[i >> 1] |= (uint64_t)w << 32;
-    }
-  }
-}
-static void fe_op(uint32_t op, const fe_t *a, const fe_t *b, fe_t *r) {
-  crypto_write_fe(0x08, a);
-  crypto_write_fe(0x28, b);
-  CRYPTO[0] = 1u | (MUSE_ENG_FIELD << 4) | (op << 6);
-  crypto_wait_done();
-  crypto_read_fe(r);
-}
-static void fe_add(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_ADD, a, b, r);
-}
-static void fe_sub(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_SUB, a, b, r);
-}
-static void fe_mul(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_MUL, a, b, r);
-}
-static void fe_sqr(const fe_t *a, fe_t *r) { fe_mul(a, a, r); }
-static void fe_mul_small(const fe_t *a, uint64_t k, fe_t *r) {
-  fe_t kk;
-  fe_set_u64(&kk, k);
-  fe_mul(a, &kk, r);
-}
-static void fe_pow(const fe_t *a, const fe_t *e, fe_t *r) {
-  fe_t result, base = *a;
-  fe_set_u64(&result, 1);
-  for (int i = 255; i >= 0; i--) {
-    fe_sqr(&result, &result);
-    if (bn_bit(e, i)) fe_mul(&result, &base, &result);
-  }
-  *r = result;
-}
+ * sw/ec_ops.py and tb/cpp/crypto_top_tb.cpp. Ed25519
+ * verify is the sibling test ed25519_soc_test.c; both
+ * share the driver in soc_crypto_drv.h. */
+#include "soc_crypto_drv.h"
 
 /* ---- SHA-256 single block via accelerator (len < 56) ---- */
 static void sha256(const uint8_t *msg, uint32_t len, fe_t *digest) {
@@ -359,20 +269,25 @@ int main(void) {
   pt_to_affine(&acc, &ax, &ay);
   if (bn_cmp(&ax, &kN) >= 0) bn_sub(&ax, &kN, &ax);
   if (!fe_eq(&ax, &kSigR)) fail(4);
+  puts("stage4 ECDSA verify ok\r\n");
+
+  /* Stage 5: tampered z (low bit flipped) must reject.
+   * Only u1 depends on z, so u2*Q from stage 4 is reused;
+   * MOD regs still hold n. */
+  fe_t zt = z;
+  zt.v[0] ^= 1;
+  CRYPTO[0x68 / 4] = 2;
+  fe_mul(&zt, &w, &u1);
+  CRYPTO[0x68 / 4] = 0;
+  pt_mul(&u1, &g, &p1);
+  pt_add(&p1, &p2, &acc);
+  if (!fe_is_zero(&acc.z)) {
+    pt_to_affine(&acc, &ax, &ay);
+    if (bn_cmp(&ax, &kN) >= 0) bn_sub(&ax, &kN, &ax);
+    if (fe_eq(&ax, &kSigR)) fail(5);
+  }
+  puts("stage5 ECDSA tamper rejected\r\n");
   puts("SOC CRYPTO PASS\r\n");
   for (;;) __asm__ volatile("wfi");
   return 0;
-}
-
-/* Compiler runtime stubs (no libc). */
-void *memset(void *dst, int c, unsigned long n) {
-  uint8_t *d = (uint8_t *)dst;
-  for (unsigned long i = 0; i < n; i++) d[i] = (uint8_t)c;
-  return dst;
-}
-void *memcpy(void *dst, const void *src, unsigned long n) {
-  uint8_t *d = (uint8_t *)dst;
-  const uint8_t *s = (const uint8_t *)src;
-  for (unsigned long i = 0; i < n; i++) d[i] = s[i];
-  return dst;
 }

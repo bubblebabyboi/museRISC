@@ -13,8 +13,9 @@ Issue status: [TASKS.md](TASKS.md).
 ## Baseline gates ✅ except B4
 - [x] **B1/B2** CVA6 host smoke + regression (historical reference host)
 - [x] **B3** `muse_crypto` OpenROAD closure, nangate45 GDS (#3)
-- [ ] **B4** SoC integration on the in-house core (#4): synthesizable SoC
-      and on-core secp256k1 verify done; Ed25519 verify remaining (W1)
+- [x] **B4** SoC integration on the in-house core (#4): synthesizable SoC
+      and on-core secp256k1 + Ed25519 verify with tamper rejects (W1,
+      `docs/evidence/soc-rtl-ed25519-4-2026-10-20.log`)
 
 ## Phase 1 — In-house RV64GCV core (replaces CVA6/Ara) ✅
 - [x] Stages 1–9 in `docs/CORE.md`: scalar IMABC, F/D, B/Zicond/scalar

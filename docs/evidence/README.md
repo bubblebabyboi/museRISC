@@ -1844,3 +1844,44 @@ now waits for AWREADY/ARREADY).
   side-channel claim (see SPEC security note). Full standalone
   `make -C sim socrtl` (EC firmware, ~25 min) not rerun separately;
   the same firmware passed inside `srammacro` above.
+
+## On-core Ed25519 + secp256k1 verify on the RTL SoC (2026-10-20, #4, branch `4-ed25519-soc`)
+
+- New firmware `sw/soc-tests/ed25519_soc_test.c`. It runs on the
+  in-house core in `muserisc_soc_top` and verifies the RFC 8032
+  sec. 7.1 TEST 1 and TEST 2 signatures, the same frozen vectors as
+  `sw/ec_ops.py`. Every Curve25519 field add/sub/mul goes to the
+  accelerator at `0x2000_0000` with `MODSEL=1`.
+- Hash step: SHA-512 is not on the accelerator yet. It runs in
+  software on the core, KAT-checked against SHA-512("abc") before
+  use. `k = SHA-512(R||A||M) mod L` is also computed in software.
+  No precomputed digests are used.
+- Reject cases:
+  - Flipping bit 0 of S rejects at the final point compare, after
+    the full verify computation.
+  - S + L (non-canonical S) rejects at the range check.
+- `crypto_soc_test.c` gains stage 5, a tampered-z ECDSA reject. Its
+  header already claimed this check, but `main()` never ran it.
+- Both images share the `soc_crypto_drv.h` driver.
+  `make -C sim socrtl` runs both; `SOCRTL_ARGS=--no-cache` runs them
+  uncached.
+- Results, with random bus latency in both configurations
+  (cycle = the `SOC CRYPTO PASS` exit cycle):
+
+  | Image | Cached | Uncached |
+  |---|---:|---:|
+  | `crypto_soc_test` (ECDSA + tamper) | 27,689,496 | 84,253,072 |
+  | `ed25519_soc_test` | 28,615,074 | 87,676,446 |
+
+  Wall time for both images: 115 s cached, 331 s uncached, on an
+  Apple M3 with Verilator 5.044.
+- Negative control: a scratch copy with one byte of TEST 1's R
+  flipped prints `SOC CRYPTO FAIL stage 3` and times out (rc=2).
+- Gates: `make lint` (4 s), `make test` (14 s) and `make core-test`
+  (1,565 s) pass. `core-test` includes `srammacro`, which runs the
+  changed `crypto_soc_test` on both SRAM-macro builds (27,689,496
+  cycles each). Not run: the Docker Verilator 5.020 lint. This change
+  touches no RTL or testbench.
+- Functional proof only: the firmware is variable-time, not
+  constant-time (W2/W4). Full log:
+  [`soc-rtl-ed25519-4-2026-10-20.log`](soc-rtl-ed25519-4-2026-10-20.log).

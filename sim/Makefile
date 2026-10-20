@@ -396,20 +396,30 @@ $(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $
 	  -o $(abspath $(BUILD)/soc_rtl_tb) $(SOC_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
 
-$(SOCFW)/crypto_soc_test.bin: $(ROOT)/sw/soc-tests/crypto_soc_test.c \
-		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld \
-		$(ROOT)/sw/muse_crypto.h
+SOCFW_DEPS := $(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld \
+  $(ROOT)/sw/soc-tests/soc_crypto_drv.h $(ROOT)/sw/muse_crypto.h
+
+# crypto_soc_test: SHA-256 + secp256k1 ECDSA verify (+ tamper).
+# ed25519_soc_test: Ed25519 verify of the RFC 8032 vectors (+ tamper),
+# SHA-512 in software on the core. Both: field ops on the accelerator.
+$(SOCFW)/%.bin: $(ROOT)/sw/soc-tests/%.c $(SOCFW_DEPS)
 	mkdir -p $(SOCFW)
 	$(RISCV_GCC) -march=rv64imafdc -mabi=lp64 -mcmodel=medany \
 	  -nostdlib -ffreestanding -fno-builtin -O1 \
 	  -T $(ROOT)/sw/soc-tests/link.ld \
-	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/crypto_soc_test.elf
-	$(RISCV_OBJCOPY) -O binary $(SOCFW)/crypto_soc_test.elf $@
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/$*.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/$*.elf $@
 
-socrtl: $(BUILD)/soc_rtl_tb $(SOCFW)/crypto_soc_test.bin
-	cd $(BUILD) && ./soc_rtl_tb 400000000 $(CORE_RAND_ARGS) \
-	  --load 0x80000000=$(abspath $(SOCFW))/crypto_soc_test.bin \
-	  --exit-string "SOC CRYPTO PASS"
+# Both firmware images on the RTL SoC. SOCRTL_ARGS=--no-cache runs
+# them with the L1 caches off.
+SOCRTL_ARGS ?=
+SOC_CRYPTO_FW := crypto_soc_test ed25519_soc_test
+socrtl: $(BUILD)/soc_rtl_tb $(addprefix $(SOCFW)/,$(addsuffix .bin,$(SOC_CRYPTO_FW)))
+	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
+	  ./soc_rtl_tb 400000000 $(CORE_RAND_ARGS) $(SOCRTL_ARGS) \
+	    --load 0x80000000=$(abspath $(SOCFW))/$$fw.bin \
+	    --exit-string "SOC CRYPTO PASS" || exit 1; \
+	done
 
 # Streaming hash engine on the RTL SoC (issue #6); shares the
 # soc-tests startup code and link script.

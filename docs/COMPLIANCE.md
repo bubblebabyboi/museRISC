@@ -13,6 +13,7 @@ Last updated: 2026-10-14 (in-house core stages 1–8: RV64 IMABC FD SU + Sv39/PM
 | EC field unit | Python mod-arith cross-check, edge cases | PASS (`make test`) |
 | Ed25519 (ref model) | RFC 8032 TEST 1+2 sign/verify (`sw/ec_ops.py`) | PASS (algorithm only; HW sequencer pending) |
 | secp256k1 (ref model) | `cryptography` ECDSA oracle vector | PASS (algorithm only) |
+| On-core crypto on the RTL SoC (B4, #4) | `sw/soc-tests/crypto_soc_test.c` (SHA-256, secp256k1 ECDSA verify + tampered-z reject) and `ed25519_soc_test.c` (RFC 8032 TEST 1+2 verify, tampered-S and S+L reject; SHA-512 in software on the core) on `soc_rtl_tb`, field ops on the accelerator | PASS cached and uncached (`make -C sim socrtl`); functional only, not constant-time; see `docs/evidence/soc-rtl-ed25519-4-2026-10-20.log` |
 | ACT4 harness | riscv-arch-test ACT4, RV64I, DUT = Sail | 51/51 PASS on Sail — harness validation, **not** a hardware claim |
 | CVA6 host smoke (B1) | riscv-tests `rv64ui-p-add`, `rv64ui-p-simple` on Verilator model | PASS — `*** SUCCESS *** (tohost = 0)`; see `docs/evidence/` (smoke only) |
 | Spike solo (B2.1) | All 174 B2 directed-list ELFs on standalone tandem Spike, profile `matched` (config frozen in `docs/SPIKE_CONFIG.md`, B2.0) | 174/174 PASS exit 0 — validates ELFs + oracle only, **not** a CVA6 result; see `docs/evidence/` |

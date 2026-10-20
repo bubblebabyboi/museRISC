@@ -1,0 +1,138 @@
+On-core Ed25519 + secp256k1 verify on the RTL SoC (#4, W1), 2026-10-20
+Branch 4-ed25519-soc (based on integrate-prs @ 48f4c13, the #33-#50 stack).
+Top: muserisc_soc_top (in-house core + L1 I$/D$ + fabric + boot ROM +
+CLINT + PLIC + 16550 UART + crypto AXI-Lite bridge @0x2000_0000),
+external RAM modelled by tb/cpp/soc_rtl_tb.cpp.
+Host: Apple M3 (arm64, macOS), Homebrew Verilator 5.044,
+riscv64-elf-gcc 16.2.0 (-march=rv64imafdc -O1, as sim/Makefile).
+
+Firmware (sw/soc-tests/, shared driver soc_crypto_drv.h):
+- crypto_soc_test.c: SHA-256 (accelerator), secp256k1 field mul KAT,
+  Jacobian 2*G, ECDSA verify of the sw/ec_ops.py frozen vector, and
+  NEW stage 5: the same verify with z bit 0 flipped must reject (the
+  file header claimed this check but main() never ran it).
+- ed25519_soc_test.c (NEW): Ed25519 verify of RFC 8032 sec. 7.1 TEST 1
+  and TEST 2 (the vectors in sw/ec_ops.py). Every Curve25519 field
+  add/sub/mul runs on the accelerator with MODSEL=1 (p = 2^255-19).
+  Hash step: SHA-512 is computed IN SOFTWARE ON THE CORE (FIPS 180-4
+  code in the firmware, checked against the SHA-512("abc") KAT in
+  stage 1); k = SHA-512(R||A||M) mod L in software. No precomputed
+  digests. Verify = cofactorless RFC 8032 5.1.7 / ref10 form:
+  decode A, check encode([S]B + [k](-A)) == R; extended Edwards
+  coordinates, one joint double-and-add ladder.
+  Stages: 1 SHA-512 KAT; 2 field KATs sqrt(-1)^2 = -1 and
+  d*121666 = -121665; 3 TEST 1 accept; 4 TEST 2 accept; 5 TEST 2
+  with S bit 0 flipped rejects at the point compare (full verify
+  math runs); 6 TEST 2 with S+L (non-canonical) rejects.
+Reference code: variable-time, NOT constant-time (W2/W4).
+
+1) Cached, random bus latency (--mem-lat 1:6 --mem-gap 2 --mem-ready 70)
+   $ make -C sim socrtl        (runs both images; wall 115 s total)
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/4-ed25519-soc/build/soc-tests/crypto_soc_test.bin
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 27689496 cycles)
+loaded 5977 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/4-ed25519-soc/build/soc-tests/ed25519_soc_test.bin
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+........
+stage3 ed25519 RFC8032 TEST1 verify ok
+........
+stage4 ed25519 RFC8032 TEST2 verify ok
+........
+stage5 ed25519 tampered S rejected
+stage6 ed25519 non-canonical S rejected
+ED25519 VERIFY OK
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 28615074 cycles)
+
+2) Uncached (L1 caches off) + the same random bus latency
+   $ make -C sim socrtl SOCRTL_ARGS=--no-cache   (wall 331 s total)
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/4-ed25519-soc/build/soc-tests/crypto_soc_test.bin
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 84253072 cycles)
+loaded 5977 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/4-ed25519-soc/build/soc-tests/ed25519_soc_test.bin
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+........
+stage3 ed25519 RFC8032 TEST1 verify ok
+........
+stage4 ed25519 RFC8032 TEST2 verify ok
+........
+stage5 ed25519 tampered S rejected
+stage6 ed25519 non-canonical S rejected
+ED25519 VERIFY OK
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 87676446 cycles)
+
+Cycle summary (exit-string cycle, soc_rtl_tb):
+  image              cached+rand-lat   uncached+rand-lat
+  crypto_soc_test       27,689,496        84,253,072
+  ed25519_soc_test      28,615,074        87,676,446
+(crypto_soc_test was 18,851,904 cached before this change; the
++8.8M is the new stage-5 tamper verify, one extra u1*G.)
+Ed25519 work per image (host op-count model of the same C code):
+24,603 accelerator field ops for 3 full verifies + 1 early reject,
+i.e. ~1,160 SoC cycles per field op cached incl. MMIO and the
+interleaved software (SHA-512, mod-L reduction, ladder control).
+
+3) Negative control: TEST 1 R byte 0 flipped (0xe5 -> 0xe4) in a
+   scratch copy of ed25519_soc_test.c (not committed), same flags,
+   cached + random latency, 30M-cycle budget:
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+........
+SOC CRYPTO FAIL stage 3
+
+SOC RTL TB TIMEOUT after 30000000 cycles
+rc=2 wall=49s
+   (soc_rtl_tb only matches the exit string; a FAIL line parks the
+   core in wfi, so a failing image shows as TIMEOUT, rc=2.)
+
+4) Host pre-check (not a hardware claim): the same ed25519_soc_test.c
+   compiled natively against a software mod-p model of fe_op passed
+   all six stages before the RTL runs; the model also asserted every
+   accelerator operand was < p.
+
+5) Gates in this worktree (Homebrew Verilator 5.044):
+   make lint        PASS, rc=0, wall 4 s
+   make test        PASS (ALL PHASE-0 KATs PASS; EC_OPS PASS), rc=0, wall 14 s
+   make core-test   PASS, rc=0, wall 1565 s (26 min, Verilator --build
+                    capped at -j4). Includes srammacro, which runs the
+                    changed crypto_soc_test.bin (with the new stage 5)
+                    on both SRAM-macro SoC builds:
+     SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro fakeram45]
+     SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro sky130]
+     CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro fakeram45 / sky130]
+     Total coverage (3676/6521) 56.00%
+   Not run: Docker Verilator 5.020 lint (no Docker daemon on this
+   host; this change touches no RTL or testbench, only firmware,
+   sim/Makefile and docs). ed25519_soc_test is not part of
+   srammacro/core-test (it would add ~29M cycles per macro build);
+   it runs in `make -C sim socrtl`.
