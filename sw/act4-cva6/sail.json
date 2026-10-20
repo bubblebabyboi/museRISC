@@ -1,11 +1,11 @@
-// Sail reference-model configuration for museRISC's CVA6 host.
+// Sail reference-model configuration for Sigil's CVA6 host.
 // CVA6 @ 81245a47fad8fe1a5d562d953ef2662e099def76, target cv64a6_imafdc_sv39
 // in corev_apu ariane_testharness (scalar only, no Ara). Adapted from the
 // upstream riscv-arch-test cv64a6_imafdcv_sv39 (CVA6+Ara) sail.json at
 // riscv-arch-test 6af53584; Ara-specific values (vector, PMP override,
 // UART/CTRL windows, misaligned behaviour) are replaced below. Inherited
 // "measured" citations reference the Ara build; re-measure before claiming
-// suites beyond I,M (museRISC B2.4 scope).
+// suites beyond I,M (Sigil B2.4 scope).
 {
   "$schema": "https://github.com/riscv/sail-riscv/releases/download/0.15/sail_riscv_config_schema.json",
   "base": {
@@ -410,7 +410,7 @@
           },
           // Atomics are modeled as CVA6 performs them; the testharness DRAM
           // path includes axi_riscv_atomics_wrap and the rv64ua directed lists
-          // pass on this DUT (museRISC B2.2/B2.3).
+          // pass on this DUT (Sigil B2.2/B2.3).
           "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,

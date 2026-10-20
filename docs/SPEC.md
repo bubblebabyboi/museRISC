@@ -1,4 +1,4 @@
-# museRISC Specification (v0.1, Phase 0)
+# Sigil Specification (v0.1, Phase 0)
 
 ## 1. Goal
 
@@ -14,10 +14,10 @@ claimed per-extension after the matrix in COMPLIANCE.md passes.
 Floating point must pass TestFloat vectors; vector must pass the RVV
 arch tests with a fixed VLEN (default 512 via Ara, configurable).
 
-## 3. Crypto accelerator (`muse_crypto`, original RTL)
+## 3. Crypto accelerator (`sigil_crypto`, original RTL)
 
 Memory-mapped AXI-Lite slave (base `0x2000_0000` in SoC map, RTL in
-`rtl/crypto/muse_crypto_top.sv`, integration KATs in
+`rtl/crypto/sigil_crypto_top.sv`, integration KATs in
 `tb/cpp/crypto_top_tb.cpp` and `tb/cpp/hash_stream_tb.cpp` via
 `make test`). Register map (32-bit regs):
 
@@ -41,7 +41,7 @@ Engines in this repo today:
 - **SHA-256** (FIPS 180-4): one 512-bit block per start from the
   IV (no chaining), standard padding done by driver/SW; KATs in
   `tb/cpp/`.
-- **Streaming hash** (`rtl/crypto/muse_hash_stream.sv`, issue #6):
+- **Streaming hash** (`rtl/crypto/sigil_hash_stream.sv`, issue #6):
   arbitrary-length SHA-512 (FIPS 180-4) and Keccak sponge at rate
   1088 / capacity 512 (FIPS 202): SHA3-256 (domain `0x06`),
   Keccak-256 (original Keccak padding `0x01`, as used by Ethereum)
@@ -93,7 +93,7 @@ padding, no DMA.** One MMIO store per 4 message bytes (plus AXI
 backpressure) removes the one-block-per-burst limit without giving
 the accelerator a bus-master port. A DMA engine would need a second
 master on the SoC memory bus (arbitration with the CPU's L1 refill
-path in `muserisc_soc_fabric`), coherence with the write-back L1
+path in `sigil_soc_fabric`), coherence with the write-back L1
 D$ (flushes or a snooping path before every hash), address
 translation/PMP rules for a device master, and a bigger
 verification surface; none of it is needed for correctness, and
@@ -112,15 +112,15 @@ constant-time + fault review in ROADMAP Phase 2 is complete.
 
 ## 4. Memory map (SoC)
 
-Implemented by `rtl/soc/muserisc_soc_top.sv` (issue #4) and
+Implemented by `rtl/soc/sigil_soc_top.sv` (issue #4) and
 shared by the RTL SoC, the `soc_tb` C++ platform, and
-`sw/linux/muserisc.dts`:
+`sw/linux/sigil.dts`:
 
 `0x0000_1000` boot ROM (4 KiB) · `0x0200_0000` CLINT ·
 `0x0C00_0000` PLIC · `0x1000_0000` 16550 UART ·
 `0x2000_0000` crypto · `0x8000_0000` external RAM window.
-The SoC instantiates `muserisc_cpu` (core + L1 I$/D$);
-`muserisc_soc_fabric` routes its memory bus: the RAM window to
+The SoC instantiates `sigil_cpu` (core + L1 I$/D$);
+`sigil_soc_fabric` routes its memory bus: the RAM window to
 the external `mem_req_*`/`mem_rsp_*` memory-bus port
 (valid/ready requests, line bursts, any latency; AXI4-mappable,
 see `docs/CORE.md`), everything else to the on-chip devices as
@@ -138,7 +138,7 @@ effects happen exactly once.
 
 ## 5. Physical targets (v1, non-binding)
 
-Nangate45 @ 100 MHz for `muse_crypto` macro closure in ORFS;
+Nangate45 @ 100 MHz for `sigil_crypto` macro closure in ORFS;
 Sky130HD config provided for the same macro. Full-SoC Sky130 closure
 is expected to be area-dominated (RV64GCV + crypto ≫ TinyTapeout tile,
 tight even in Caravel user area) — hierarchy/macro hardening required.

@@ -1,8 +1,8 @@
 // Platform harness for booting firmware/OS payloads on the
-// museRISC CPU (muserisc_cpu: core + L1 I$/D$; issue #21). This
+// Sigil CPU (sigil_cpu: core + L1 I$/D$; issue #21). This
 // models a minimal machine behind the CPU's memory-bus master
 // port (tb/cpp/mbus_model.h, latency/backpressure options as in
-// core_tb). Only DRAM is cacheable (muserisc_cpu default PMA);
+// core_tb). Only DRAM is cacheable (sigil_cpu default PMA);
 // ROM, CLINT, PLIC and UART are reached by uncached single-beat
 // accesses, so device side effects happen once per load/store:
 //
@@ -23,7 +23,7 @@
 // Exit status: 0 exit string seen, 2 timeout/usage/load error.
 // (--dump shows the bus-side RAM image, which can lag dirty
 // D$ lines.)
-#include "Vmuserisc_cpu.h"
+#include "Vsigil_cpu.h"
 #include "verilated.h"
 #include "mbus_model.h"
 
@@ -278,7 +278,7 @@ struct Platform {
       *r = (*r & ~(0xFFu << (8 * byte))) | (uint32_t(v) << (8 * byte));
     };
     // Priorities and thresholds are WARL with 3 implemented bits,
-    // as in rtl/soc/muserisc_plic.sv.
+    // as in rtl/soc/sigil_plic.sv.
     if (o < 0x80) {
       merge(&prio[o / 4], int(o & 3), b);
       prio[o / 4] &= 7u;
@@ -423,7 +423,7 @@ int main(int argc, char** argv) {
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_cpu> dut{new Vmuserisc_cpu{&context}};
+  const std::unique_ptr<Vsigil_cpu> dut{new Vsigil_cpu{&context}};
   // Bus slave: instruction fetches and line refills are
   // side-effect free; single-beat data reads/writes reach the
   // devices exactly once.

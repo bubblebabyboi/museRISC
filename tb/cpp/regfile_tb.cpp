@@ -1,8 +1,8 @@
-// Unit test for muserisc_regfile: every register written and read
+// Unit test for sigil_regfile: every register written and read
 // back on both ports, x0 hardwired, and synchronous-write semantics
 // (a read in the write cycle returns the old value; the core has no
 // same-cycle bypass in stage 1 by construction).
-#include "Vmuserisc_regfile.h"
+#include "Vsigil_regfile.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -15,7 +15,7 @@
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_regfile> dut{new Vmuserisc_regfile{&context}};
+  const std::unique_ptr<Vsigil_regfile> dut{new Vsigil_regfile{&context}};
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0;
   uint64_t model[32] = {0};

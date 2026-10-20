@@ -3,13 +3,13 @@
 # initramfs carrying sw/linux/init.c) for the soc_tb boot gate
 # (issue #21). Output: build/linux/Image. Kernel source is
 # fetched once into build/linux/linux-6.6 (not committed).
-# MUSERISC_INIT_SRC / MUSERISC_IMAGE_OUT select an alternate
+# SIGIL_INIT_SRC / SIGIL_IMAGE_OUT select an alternate
 # /init and output path (used by the KVM smoke, issue #22).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/linux
-INIT_SRC=${MUSERISC_INIT_SRC:-sw/linux/init.c}
-IMAGE_OUT=${MUSERISC_IMAGE_OUT:-build/linux/Image}
+INIT_SRC=${SIGIL_INIT_SRC:-sw/linux/init.c}
+IMAGE_OUT=${SIGIL_IMAGE_OUT:-build/linux/Image}
 SRC=build/linux/linux-6.6
 if [ ! -d "$SRC/kernel" ]; then
   if [ ! -f build/linux/linux-6.6.tar.xz ]; then

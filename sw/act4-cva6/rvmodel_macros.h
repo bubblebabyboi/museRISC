@@ -1,5 +1,5 @@
 # rvmodel_macros.h
-# RVMODEL macro definitions for museRISC CVA6 host (cv64a6_imafdc_sv39 in
+# RVMODEL macro definitions for Sigil CVA6 host (cv64a6_imafdc_sv39 in
 # corev_apu ariane_testharness, HTIF tohost). Adapted from the upstream
 # riscv-arch-test CVA6 (cv32a65x) macros at riscv-arch-test 6af53584,
 # whose HTIF halt and 0x1000_0000 console conventions match this

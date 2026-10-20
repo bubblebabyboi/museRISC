@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Fetch pinned CVA6 sources
@@ -53,12 +53,12 @@ jobs:
           retention-days: 30
 
   openroad-b3:
-    name: B3 - OpenROAD muse_crypto route
+    name: B3 - OpenROAD sigil_crypto route
     if: github.event_name != 'workflow_dispatch' || inputs.target == 'openroad' || inputs.target == 'both'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Run OpenROAD flow

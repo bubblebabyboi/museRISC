@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# museRISC environment setup. Reports missing host tools, then fetches
+# Sigil environment setup. Reports missing host tools, then fetches
 # the pinned third-party sources (not committed) on request.
 #   ./scripts/setup.sh             # report only
 #   ./scripts/setup.sh --fetch     # clone all third_party/ sources

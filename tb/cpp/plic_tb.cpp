@@ -1,4 +1,4 @@
-// Unit test for the RTL PLIC (rtl/soc/muserisc_plic.sv): register
+// Unit test for the RTL PLIC (rtl/soc/sigil_plic.sv): register
 // access over the 64-bit bus, WARL 3-bit priorities/thresholds,
 // the claim arbitration (highest priority > 0 among pending
 // enabled sources regardless of threshold, ties to the lowest id,
@@ -10,7 +10,7 @@
 // and of a long random stream with heavy priority ties.
 //
 // Usage: plic_tb [cycles] [seed]   (defaults 2,000,000, 0x91c)
-#include "Vmuserisc_plic.h"
+#include "Vsigil_plic.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -116,7 +116,7 @@ struct Model {
 };
 
 struct Bench {
-  Vmuserisc_plic* d;
+  Vsigil_plic* d;
   Model m;
   void Drive(uint32_t addr, bool re, uint8_t be, uint64_t wdata) {
     d->addr_i = addr; d->re_i = re; d->be_i = be; d->wdata_i = wdata;
@@ -149,7 +149,7 @@ struct Bench {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_plic> dut{new Vmuserisc_plic{&context}};
+  const std::unique_ptr<Vsigil_plic> dut{new Vsigil_plic{&context}};
   const long cycles = argc > 1 ? std::strtol(argv[1], nullptr, 0) : 2000000;
   const uint64_t seed = argc > 2 ? std::strtoull(argv[2], nullptr, 0) : 0x91c;
   Bench b{dut.get(), {}};

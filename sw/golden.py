@@ -1,4 +1,4 @@
-"""Golden models / known-answer vectors for museRISC crypto RTL.
+"""Golden models / known-answer vectors for Sigil crypto RTL.
 
 Run directly (`python3 sw/golden.py`) to self-check against hashlib,
 or import `keccak_f1600` to generate testbench vectors.

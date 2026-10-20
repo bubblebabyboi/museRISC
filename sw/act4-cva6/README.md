@@ -1,4 +1,4 @@
-# ACT4 DUT configuration for the museRISC CVA6 host
+# ACT4 DUT configuration for the Sigil CVA6 host
 
 Device under test: CVA6 `cv64a6_imafdc_sv39` at openhwgroup/cva6
 `81245a47` running in `corev_apu` `ariane_testharness` under
@@ -9,7 +9,7 @@ Scalar only; no Ara vector unit is attached in this build.
 
 Adapted from the upstream riscv-arch-test `6af53584` CVA6 configs:
 
-- `muserisc-cv64a6.yaml` (UDB) and `sail.json` derive from
+- `sigil-cv64a6.yaml` (UDB) and `sail.json` derive from
   `config/cores/cva6/cv64a6_imafdcv_sv39/` (CVA6+Ara). Ara-specific
   values (vector extensions and parameters, PMP override to zero,
   mock-UART/control-register windows, misaligned-access behavior)
@@ -39,11 +39,11 @@ walker never writes A/D back.
 
 ```sh
 ./scripts/build_act4_cva6.sh          # generate I,M ELFs (Sail-checked)
-# ELFs land in third_party/riscv-arch-test/work/muserisc-cv64a6/elfs/
+# ELFs land in third_party/riscv-arch-test/work/sigil-cv64a6/elfs/
 # Run on the CVA6 model via scripts/cva6_docker.sh ACT mode (B2.4).
 ```
 
 This directory is the canonical committed copy. The build script
 syncs it into the uncommitted `third_party/riscv-arch-test` tree
-at `config/cores/muserisc-cv64a6/` on every run; edit files here,
+at `config/cores/sigil-cv64a6/` on every run; edit files here,
 never only in the synced copy.

@@ -20,7 +20,7 @@ int main(void) {
     acc += (double)(i & 7) * 0.5;
   }
 
-  printf("MUSERISC_QEMU_USER_OK x=%08x sum=%llu acc=%.1f\n", x,
+  printf("SIGIL_QEMU_USER_OK x=%08x sum=%llu acc=%.1f\n", x,
          (unsigned long long)sum, acc);
   return 0;
 }

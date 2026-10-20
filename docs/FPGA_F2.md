@@ -1,16 +1,16 @@
 # AWS EC2 F2 FPGA bring-up plan
 
-Goal: run real code on the in-house `muserisc_core` on an
+Goal: run real code on the in-house `sigil_core` on an
 AWS EC2 F2 FPGA at a core clock of **100 MHz or higher**,
 with evidence captured from the host runtime (not just a
 synthesis timing report). End state: baremetal tests, then
-OpenSBI + Linux to `MUSERISC_LINUX_BOOT_OK`, using the same
+OpenSBI + Linux to `SIGIL_LINUX_BOOT_OK`, using the same
 payloads already proven in `soc_tb` / QEMU (`docs/QEMU.md`).
 
 This plan starts only after the #31 OpenROAD rerun closes
 timing/liberty on the crypto macro (done 2026-10-14:
 setup WS 4.34 ns, TNS 0 at the 100 MHz constraint; that
-result is for `muse_crypto_top` on nangate45 and says
+result is for `sigil_crypto_top` on nangate45 and says
 nothing about core Fmax on FPGA — see below).
 
 ## Platform facts (verified 2026-10-14)
@@ -41,30 +41,30 @@ nothing about core Fmax on FPGA — see below).
 
 ## Readiness gaps in the current RTL (must close first)
 
-1. **No synthesizable SoC.** `rtl/soc/muserisc_soc_top.sv`
+1. **No synthesizable SoC.** `rtl/soc/sigil_soc_top.sv`
    instantiates only the crypto macro; the machine that
    boots Linux (boot ROM 0x1000, CLINT 0x0200_0000,
    PLIC 0x0C00_0000, 16550 at 0x1000_0000, 128 MiB RAM at
    0x8000_0000) exists only as the C++ model in
    `tb/cpp/soc_tb.cpp` (issue #4, deferred). FPGA work
    un-defers the synthesizable subset of #4, keeping the
-   exact memory map / DTS (`sw/linux/muserisc.dts`) so
+   exact memory map / DTS (`sw/linux/sigil.dts`) so
    the proven OpenSBI/Linux payloads are reused.
 2. **Combinational Harvard memory ports.** The core
    expects same-cycle `imem_rdata_i` (32b) and
-   `dmem_rdata_i` (64b) (`rtl/core/muserisc_core.sv`).
+   `dmem_rdata_i` (64b) (`rtl/core/sigil_core.sv`).
    FPGA BRAM reads are synchronous (1 cycle) and DDR/HBM
    via the Shell AXI is tens of cycles. Needs an
    I/D cache or BRAM adapter plus a real stall/ready
    handshake; a first milestone can use LUTRAM/registered
    BRAM with an IF-stage fetch-latency fix.
 3. **Single-cycle FP and whole-vector datapaths will not
-   close 10 ns as-is.** The scalar `muserisc_fpu` is now
+   close 10 ns as-is.** The scalar `sigil_fpu` is now
    multi-cycle behind a generic EX stall handshake (Nangate45
    synth 5.34 ns register-to-register, unplaced, see
    `docs/evidence/fpu-multicycle-upstream-2026-10-15.log`),
    but the vector FP path still calls the combinational
-   `fp_eval` per element, and `muserisc_vec`
+   `fp_eval` per element, and `sigil_vec`
    evaluates up to `512/SEW` elements combinationally
    fed by three 4096-bit register-group read ports from a
    flop-array VRF (32×512). Closing ≥100 MHz needs:
@@ -84,13 +84,13 @@ nothing about core Fmax on FPGA — see below).
 
 - **F0 — Vivado out-of-context baseline (no F2 spend).**
   Developer AMI on a compute instance; synthesize
-  `muserisc_core` and `muse_crypto_top` for the VU47P
+  `sigil_core` and `sigil_crypto_top` for the VU47P
   part/speed grade named by the pinned HDK shell at a
   100 MHz constraint. File LUT/FF/DSP/BRAM/WNS and the
   top critical paths under `docs/evidence/`. Gate:
   elaborates; we have real numbers, not guesses.
 - **F1 — Synthesizable FPGA SoC.** New
-  `rtl/soc/muserisc_fpga_soc.sv`: core + boot ROM +
+  `rtl/soc/sigil_fpga_soc.sv`: core + boot ROM +
   CLINT + PLIC subset + 16550-compatible UART RTL +
   BRAM RAM (size what fits; DDR in F3) at the `soc_tb`
   addresses, timer/external IRQs wired. Extend the
@@ -127,7 +127,7 @@ nothing about core Fmax on FPGA — see below).
   directed tests + a CoreMark/Dhrystone-class benchmark
   with cycle counts; (2) crypto KATs through the
   accelerator once it is on the SoC fabric; (3)
-  OpenSBI + Linux to `MUSERISC_LINUX_BOOT_OK` (Verilator
+  OpenSBI + Linux to `SIGIL_LINUX_BOOT_OK` (Verilator
   needed ~509M cycles, so expect single-digit seconds
   at 100 MHz before DDR stalls); (4) a static user
   binary printing its marker. Each with a dated log

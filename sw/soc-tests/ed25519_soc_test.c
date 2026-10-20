@@ -1,12 +1,12 @@
 /* On-core Ed25519 verify proof (issue #4): runs on the in-house
- * core inside muserisc_soc_top, drives every Curve25519 field op
- * (add/sub/mul mod p = 2^255-19, MODSEL=1) through the muse_crypto
+ * core inside sigil_soc_top, drives every Curve25519 field op
+ * (add/sub/mul mod p = 2^255-19, MODSEL=1) through the sigil_crypto
  * accelerator over MMIO at 0x2000_0000, and reports over the RTL
  * 16550 UART at 0x1000_0000. Sibling of crypto_soc_test.c
  * (SHA-256 + secp256k1 ECDSA); both share soc_crypto_drv.h.
  *
  * Hash step: SHA-512 is NOT on the accelerator yet (its block is
- * standalone RTL, not wired into muse_crypto_top). It is computed
+ * standalone RTL, not wired into sigil_crypto_top). It is computed
  * here IN SOFTWARE ON THE CORE (FIPS 180-4, below), checked
  * against the SHA-512("abc") KAT first, and h = SHA-512(R||A||M)
  * is reduced mod L in software. No precomputed digests are used.

@@ -6,13 +6,13 @@ Issue status: [TASKS.md](TASKS.md).
 ## Phase 0 — Foundation (2026-10-12) ✅
 - [x] Repo scaffold, spec, locked decisions (RV64GCV / dual-curve / sim+OpenROAD)
 - [x] SHA-256 + SHA-512 block cores, Keccak-f1600, EC field unit + KATs
-- [x] AXI-Lite `muse_crypto` top, Verilator lint clean
+- [x] AXI-Lite `sigil_crypto` top, Verilator lint clean
 - [x] Ed25519 (RFC 8032) + secp256k1 (ECDSA) reference ops over field primitives
 - [x] Toolchain, ACT4 harness, CVA6/Ara/arch-test at pinned commits
 
 ## Baseline gates ✅ except B4
 - [x] **B1/B2** CVA6 host smoke + regression (historical reference host)
-- [x] **B3** `muse_crypto` OpenROAD closure, nangate45 GDS (#3)
+- [x] **B3** `sigil_crypto` OpenROAD closure, nangate45 GDS (#3)
 - [x] **B4** SoC integration on the in-house core (#4): synthesizable SoC
       and on-core secp256k1 + Ed25519 verify with tamper rejects (W1,
       `docs/evidence/soc-rtl-ed25519-4-2026-10-20.log`)

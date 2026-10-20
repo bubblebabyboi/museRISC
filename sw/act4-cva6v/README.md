@@ -1,4 +1,4 @@
-# ACT4 DUT configuration for the museRISC CVA6+Ara host
+# ACT4 DUT configuration for the Sigil CVA6+Ara host
 
 Device under test: CVA6 `cv64a6_imafdcv_sv39` at pulp-platform/cva6
 `99eac9a6` (the pin Bender checks out for Ara `34bd3bc1`) with the Ara
@@ -14,7 +14,7 @@ Copied from the upstream riscv-arch-test `6af53584` configuration
 `config/cores/cva6/cv64a6_imafdcv_sv39/`, which was written and probed
 against exactly these Ara/CVA6 pins at VLEN 512:
 
-- `muserisc-cv64a6v.yaml` (UDB), `sail.json`, `link.ld`, and
+- `sigil-cv64a6v.yaml` (UDB), `sail.json`, `link.ld`, and
   `rvmodel_macros.h` are byte-identical to upstream except the UDB
   `name:`/`description:` fields. Upstream probed at 4 lanes; this DUT
   is 2 lanes. Lane count is not architecturally visible at fixed VLEN
@@ -42,7 +42,7 @@ against exactly these Ara/CVA6 pins at VLEN 512:
 
 This directory is the canonical committed copy. The build script
 syncs it into the uncommitted `third_party/riscv-arch-test` tree at
-`config/cores/muserisc-cv64a6v/` on every run; edit files here, never
+`config/cores/sigil-cv64a6v/` on every run; edit files here, never
 only in the synced copy.
 
 Vector compliance is claimed only to the extent of stored green

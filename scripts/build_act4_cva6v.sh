@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Generate ACT4 (riscv-arch-test) self-checking ELFs for the museRISC
+# Generate ACT4 (riscv-arch-test) self-checking ELFs for the Sigil
 # CVA6+Ara DUT config in sw/act4-cva6v/ (issue #9). Generation only:
-# ELFs land in third_party/riscv-arch-test/work/muserisc-cv64a6v/elfs/
+# ELFs land in third_party/riscv-arch-test/work/sigil-cv64a6v/elfs/
 # and are staged flat into third_party/ara/act-elfs/ for the chunked
 # runner sw/act4-cva6v/run_actv.sh inside scripts/ara_docker.sh. The
 # Sail reference model supplies expected results at generation time;
@@ -43,9 +43,9 @@ fi
 # Canonical config lives in sw/act4-cva6v/ (committed); the framework
 # discovers configs under config/, so sync a copy into the
 # (uncommitted) third_party tree on every run.
-DST="$ACT/config/cores/muserisc-cv64a6v"
+DST="$ACT/config/cores/sigil-cv64a6v"
 mkdir -p "$DST"
-cp sw/act4-cva6v/muserisc-cv64a6v.yaml sw/act4-cva6v/sail.json \
+cp sw/act4-cva6v/sigil-cv64a6v.yaml sw/act4-cva6v/sail.json \
    sw/act4-cva6v/link.ld sw/act4-cva6v/rvmodel_macros.h \
    sw/act4-cva6v/test_config.yaml sw/act4-cva6v/run_cmd.txt "$DST/"
 echo "Synced DUT config to $DST"
@@ -59,7 +59,7 @@ mise trust >/dev/null 2>&1 || true
 # unpriv vector suites expand by SEW in testgen's testplans reader:
 # Vx/Vls -> 8,16,32,64 and Vf -> 16,32,64 (there is no plain "V").
 # Vf16 requires Zvfhmin, which this DUT does not implement (see
-# muserisc-cv64a6v.yaml); generating it is harmless because ELF
+# sigil-cv64a6v.yaml); generating it is harmless because ELF
 # selection filters by the DUT's declared extensions.
 VEXT="${EXTENSIONS:-Vx8,Vx16,Vx32,Vx64,Vls8,Vls16,Vls32,Vls64,Vf16,Vf32,Vf64}"
 rm -f work/stamps/testgen.stamp work/stamps/vector-testgen-unpriv.stamp
@@ -76,23 +76,23 @@ PATH="$PWD/../../build/riscv-alias/bin:$PATH" \
 act_rc=0
 PATH="$PWD/../../build/riscv-alias/bin:$PATH" \
   mise exec -- uv run act \
-  config/cores/muserisc-cv64a6v/test_config.yaml \
+  config/cores/sigil-cv64a6v/test_config.yaml \
   --workdir work --test-dir tests --jobs 0 \
   --extensions "$VEXT" --exclude SdtrigSm,SdtrigS,SdtrigU \
   --fast --keep-going || act_rc=$?
 echo "act exit code: $act_rc (nonzero is expected while the upstream test defect above persists)"
-echo "ELFs: $ACT/work/muserisc-cv64a6v/elfs/"
+echo "ELFs: $ACT/work/sigil-cv64a6v/elfs/"
 cd - >/dev/null
 
 # Stage flat copies where the Ara Docker runner can see them through
 # its /repo mount: third_party/ara/act-elfs/.
 mkdir -p third_party/ara/act-elfs
 src_count=0
-find "$ACT/work/muserisc-cv64a6v/elfs" -type f -name '*.elf' | sort | while read -r f; do
+find "$ACT/work/sigil-cv64a6v/elfs" -type f -name '*.elf' | sort | while read -r f; do
   b="$(basename "$f" .elf)"
   cp "$f" "third_party/ara/act-elfs/$b"
 done
-src_count="$(find "$ACT/work/muserisc-cv64a6v/elfs" -type f -name '*.elf' | wc -l | tr -d ' ')"
+src_count="$(find "$ACT/work/sigil-cv64a6v/elfs" -type f -name '*.elf' | wc -l | tr -d ' ')"
 staged_count="$(ls third_party/ara/act-elfs | wc -l | tr -d ' ')"
 echo "Staged: $staged_count ELFs in third_party/ara/act-elfs/ (source: $src_count)"
 [ "$staged_count" -gt 0 ] || { echo "no ELFs staged" >&2; exit 1; }

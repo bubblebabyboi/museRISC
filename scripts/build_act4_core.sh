@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Generate ACT4 (riscv-arch-test) self-checking ELFs for the
-# museRISC in-house core DUT config in sw/act4-core/ (stage 3d).
+# Sigil in-house core DUT config in sw/act4-core/ (stage 3d).
 # Generation only: ELFs land in
-# third_party/riscv-arch-test/work/muserisc-core/elfs/ and are
+# third_party/riscv-arch-test/work/sigil-core/elfs/ and are
 # then run on the core by sim/run_act_core.sh. The Sail
 # reference supplies expected results at generation time; each
 # ELF is self-checking and reports via the HTIF tohost halt.
@@ -39,9 +39,9 @@ fi
 
 # Canonical config lives in sw/act4-core/ (committed); sync a
 # copy into the (uncommitted) third_party tree on every run.
-DST="$ACT/config/cores/muserisc-core"
+DST="$ACT/config/cores/sigil-core"
 mkdir -p "$DST"
-cp sw/act4-core/muserisc-core.yaml sw/act4-core/sail.json \
+cp sw/act4-core/sigil-core.yaml sw/act4-core/sail.json \
    sw/act4-core/link.ld sw/act4-core/rvmodel_macros.h \
    sw/act4-core/test_config.yaml sw/act4-core/run_cmd.txt "$DST/"
 echo "Synced DUT config to $DST"
@@ -50,6 +50,6 @@ cd "$ACT"
 mise trust >/dev/null 2>&1 || true
 PATH="$PWD/../../build/riscv-alias/bin:$PATH" \
   mise exec -- make elfs \
-  CONFIG_FILES=config/cores/muserisc-core/test_config.yaml \
+  CONFIG_FILES=config/cores/sigil-core/test_config.yaml \
   EXTENSIONS="${EXTENSIONS:-I,M}" FAST=1
-echo "ELFs: $ACT/work/muserisc-core/elfs/"
+echo "ELFs: $ACT/work/sigil-core/elfs/"

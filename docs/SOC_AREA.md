@@ -1,6 +1,6 @@
 # SoC area and timing estimate (synthesis, 2026-10-16)
 
-This is ORFS synthesis of the whole `muserisc_soc_top`: the core with
+This is ORFS synthesis of the whole `sigil_soc_top`: the core with
 the element-serial vector unit (FP on the shared multi-cycle FPU,
 #47), the multi-cycle M unit, the L1 I$/D$ with bus arbiter (#44), the
 SoC fabric, CLINT/PLIC/UART/boot ROM and crypto.
@@ -88,54 +88,54 @@ hierarchical runs took ~28 min each at 2.2 GB.
 
 "Own" is the module's area excluding kept children. The sky130 run
 keeps more modules. On Nangate45 the regfiles, ALU, decoder and RVC
-are flattened into `muserisc_core`, SHA-256 into `muse_crypto_top`,
+are flattened into `sigil_core`, SHA-256 into `sigil_crypto_top`,
 the L1 tag wrappers into the caches, and CLINT, UART, fabric and
 arbiter into the top.
 
 | Module | Nangate45 own (µm²) | sky130hd own (µm²) | Own flops (sky130 run) | Notes |
 |---|---:|---:|---:|---|
-| L1 data ways (6 × `muserisc_sram_sp`) | 6 × 17,735 | 6 × 724,923 | 6 × 66 | macro + read capture + half select |
-| L1 tag ways (6 × `muserisc_sram_sp`) | ² | 6 × 107,366 | 6 × 45 | macro + read capture |
-| VRF banks (3 × `muserisc_vrf_bank`) | 3 × 13,252 | 3 × 421,852 | 3 × 65 | macro + read capture |
-| `muserisc_vec` | 62,231 | 287,563 | 1,645 | element-serial vector unit; FP on the shared FPU; VRF write combining |
-| `muserisc_csr` | 57,009 | 268,990 | 3,063 | |
-| `muserisc_mmu` | 65,119 | 304,394 | 4,557 | TLBs + walker |
-| `muserisc_fpu` | 51,448 | 244,190 | 1,391 | multi-cycle FPU, shared by scalar and vector |
-| `muserisc_core` pipeline | 95,212 ³ | 203,206 | 2,730 | |
-| `muserisc_fpregfile` / `regfile` | ³ | 106,162 / 96,927 | 2,048 / 2,048 | 32×64 flops each |
-| `muserisc_alu`, `decoder`, `rvc` | ³ | 31,051 | 0 | |
-| `muserisc_muldiv_mc` | 39,147 | 183,755 | 276 | multi-cycle M unit |
-| `muserisc_bext` | 27,565 | 139,955 | 0 | bit-manip / scalar crypto |
-| `muserisc_vregfile` logic | 5,177 | 27,850 | 707 | v0 shadow + full-word collision bypass |
-| `muserisc_dcache` logic | 26,805 ² | 69,953 | 1,299 | |
-| `muserisc_icache` logic | 9,221 ² | 16,638 | 270 | |
+| L1 data ways (6 × `sigil_sram_sp`) | 6 × 17,735 | 6 × 724,923 | 6 × 66 | macro + read capture + half select |
+| L1 tag ways (6 × `sigil_sram_sp`) | ² | 6 × 107,366 | 6 × 45 | macro + read capture |
+| VRF banks (3 × `sigil_vrf_bank`) | 3 × 13,252 | 3 × 421,852 | 3 × 65 | macro + read capture |
+| `sigil_vec` | 62,231 | 287,563 | 1,645 | element-serial vector unit; FP on the shared FPU; VRF write combining |
+| `sigil_csr` | 57,009 | 268,990 | 3,063 | |
+| `sigil_mmu` | 65,119 | 304,394 | 4,557 | TLBs + walker |
+| `sigil_fpu` | 51,448 | 244,190 | 1,391 | multi-cycle FPU, shared by scalar and vector |
+| `sigil_core` pipeline | 95,212 ³ | 203,206 | 2,730 | |
+| `sigil_fpregfile` / `regfile` | ³ | 106,162 / 96,927 | 2,048 / 2,048 | 32×64 flops each |
+| `sigil_alu`, `decoder`, `rvc` | ³ | 31,051 | 0 | |
+| `sigil_muldiv_mc` | 39,147 | 183,755 | 276 | multi-cycle M unit |
+| `sigil_bext` | 27,565 | 139,955 | 0 | bit-manip / scalar crypto |
+| `sigil_vregfile` logic | 5,177 | 27,850 | 707 | v0 shadow + full-word collision bypass |
+| `sigil_dcache` logic | 26,805 ² | 69,953 | 1,299 | |
+| `sigil_icache` logic | 9,221 ² | 16,638 | 270 | |
 | `ec_field` | 43,708 | 197,387 | 1,291 | crypto field unit |
 | `sha256_block` | ⁴ | 159,156 | 2,569 | |
-| `muse_crypto_top` + bridge | 45,895 ⁴ | 49,926 | 1,098 | |
-| `muserisc_plic` | 5,181 | 23,930 | 198 | 32 sources, tournament tree, 3-bit priorities |
+| `sigil_crypto_top` + bridge | 45,895 ⁴ | 49,926 | 1,098 | |
+| `sigil_plic` | 5,181 | 23,930 | 198 | 32 sources, tournament tree, 3-bit priorities |
 | fabric, arbiter, CLINT, UART, boot ROM, top | 9,334 | 41,690 | 639 | |
 | **Total** | **689,218** | **8,712,018** | **26,690** | |
 
 ² The Nangate45 D$ / I$ rows include their 4 / 2 tag ways
 (macros 4 / 2 × 2,628 µm²). ³ The Nangate45 "pipeline" row includes
 the regfiles, ALU, decoder and RVC. ⁴ The Nangate45
-`muse_crypto_top` row includes SHA-256.
+`sigil_crypto_top` row includes SHA-256.
 
 ## SRAM mapping
 
-`muserisc_vrf_bank` (one 256×64 replica per VRF read port, every write
-to all three) and `muserisc_sram_sp` (L1 data and tag ways) keep their
+`sigil_vrf_bank` (one 256×64 replica per VRF read port, every write
+to all three) and `sigil_sram_sp` (L1 data and tag ways) keep their
 behavioural models by default. Two defines, set only by the ORFS
-configs, select macro instances: `MUSERISC_SRAM_FAKERAM45` for
-nangate45 and `MUSERISC_SRAM_SKY130` for sky130hd. `muserisc_sram_sp`
+configs, select macro instances: `SIGIL_SRAM_FAKERAM45` for
+nangate45 and `SIGIL_SRAM_SKY130` for sky130hd. `sigil_sram_sp`
 maps only the two L1 geometries, 512×64 with 8 lanes and 64×44 with
 1 lane; any other geometry, such as the small cache unit-test
 configurations, stays behavioural. Both ORFS configs read the same
-RTL list, `rtl/muserisc_soc_files.mk`.
+RTL list, `rtl/sigil_soc_files.mk`.
 
 **Nangate45.** ORFS ships only single-port (1RW) fakeram45 views.
 - **VRF banks:** ORFS has no 1R1W view and no 256×64 size, so
-  `flow/designs/nangate45/muserisc_soc/sram/gen_fakeram45_1r1w.py`
+  `flow/designs/nangate45/sigil_soc/sram/gen_fakeram45_1r1w.py`
   generates LEF/Liberty/Verilog views of a 256×64 1R1W macro in the
   fakeram45 style.
   - Footprint 134.71 × 95.20 µm = 12,824 µm². A 256×64 1RW macro
@@ -168,7 +168,7 @@ RTL list, `rtl/muserisc_soc_files.mk`.
 - fakeram returns X after a non-read edge.
 
 The RTL contracts expect held data: the VRF holds while `re` is low,
-and `muserisc_sram_sp` holds until the next read. So every macro
+and `sigil_sram_sp` holds until the next read. So every macro
 wrapper has a capture register: `rd_q` marks a read in the previous
 cycle, `hold_q` takes the macro output in the cycle after a read, and
 `rdata = rd_q ? macro_out : hold_q`. Latency is unchanged.
@@ -177,9 +177,9 @@ The vector unit depends on the hold: without it, both macro families
 fail the vector TB.
 
 The caches do not depend on it today. Every reader of
-`muserisc_sram_sp` data samples it exactly one cycle after the read,
+`sigil_sram_sp` data samples it exactly one cycle after the read,
 and the full directed suite passes without the register. It is kept
-anyway, so that `muserisc_sram_sp` has the same documented hold
+anyway, so that `sigil_sram_sp` has the same documented hold
 contract in every build, and a later cache change cannot break only
 on silicon. The cost:
 - 666 flops: 6 × 66 + 6 × 45, counting `rd_q` and the half select.
@@ -210,7 +210,7 @@ prints a warning. So the design never issues one to a macro.
   previous element into that word, which used to be a partial
   (byte-masked) write. Two changes, both in the RTL every build
   simulates:
-  1. **Write combining** in `muserisc_vec`. Element writes become
+  1. **Write combining** in `sigil_vec`. Element writes become
      full-word writes (`wbe = FF`) whenever S3 knows the whole current
      word. That is the case when the previous S3 write was a full-word
      write of the same row, or when the element's own port-C read was
@@ -218,14 +218,14 @@ prints a warning. So the design never issues one to a macro.
      tracked through S1/S2 and invalidated by any write to the row
      (defensive today; see the mutations below).
      A read that collides with a full-word write is not sent to the
-     replica. `muserisc_vregfile` returns the write data instead (a
+     replica. `sigil_vregfile` returns the write data instead (a
      full-word, write-first bypass) and holds it like a read.
   2. **Retry.** A read that would collide with a partial write is not
      issued; S0 or the gather issue retries it the next cycle. The
      write is older, so S3 drains and the retry cannot deadlock.
 
   The core's vector load/store sequencer never reads and writes in the
-  same cycle. `muserisc_vregfile` asserts (in simulation, every build)
+  same cycle. `sigil_vregfile` asserts (in simulation, every build)
   that no read ever collides with a partial write.
 
   In the vector TB:
@@ -236,7 +236,7 @@ prints a warning. So the design never issues one to a macro.
 
   With combining disabled (retry only) it is +1.07 % overall, and
   ~+48 % on single-cycle integer ops. The added hardware is 164 flops
-  in `muserisc_vec`, while `muserisc_vregfile` loses 24 bypass flops.
+  in `sigil_vec`, while `sigil_vregfile` loses 24 bypass flops.
 - **L1 arrays:** single-port use (OpenRAM port 1 tied off, fakeram45
   1RW), so a read and a write can never coincide.
 - **fakeram45 1R1W (Nangate45 VRF):** same RTL, so the same guarantee
@@ -255,7 +255,7 @@ prints a warning. So the design never issues one to a macro.
   signoff.
 - In zero-delay RTL simulation the vendor model's blocking posedge
   `dout = 'bx` races the capture flop.
-  `flow/designs/sky130hd/muserisc_soc/sram/vendor_model_check.sh`
+  `flow/designs/sky130hd/sigil_soc/sram/vendor_model_check.sh`
   reproduces both cases:
   - with `dout <= 'bx` (the assumption): PASS;
   - `--as-shipped`: FAIL.
@@ -263,13 +263,13 @@ prints a warning. So the design never issues one to a macro.
 **Simulation.** `make -C sim srammacro` (part of `make core-test`)
 builds each macro family's behavioural models and runs:
 - the vector unit TB;
-- every directed core test on `muserisc_cpu`, with the real cache
+- every directed core test on `sigil_cpu`, with the real cache
   geometry and random bus latency (36 runs);
 - the RTL SoC crypto firmware.
 
 The models are
-`flow/designs/nangate45/muserisc_soc/sram/*.v` (generated) and
-`flow/designs/sky130hd/muserisc_soc/sram/gen_openram_models.py`. They
+`flow/designs/nangate45/sigil_soc/sram/*.v` (generated) and
+`flow/designs/sky130hd/sigil_soc/sram/gen_openram_models.py`. They
 follow the vendor read behaviour:
 - undefined data after a non-read edge (pseudo-random garbage, because
   2-state Verilator would turn X into 0);
@@ -303,7 +303,7 @@ Separate checks:
     today: within an instruction the S3 write rows never decrease, so
     a write landing on an element's old-vd row after its read is
     either the previous S3 write (a full-word comb hit, which has
-    priority) or partial. A simulation-only check in `muserisc_vec`
+    priority) or partial. A simulation-only check in `sigil_vec`
     asserts that invariant. The clauses are kept as protection for a
     future non-monotonic writer.
 - The vendor OpenRAM `.v` files themselves pass the vector TB (3
@@ -341,7 +341,7 @@ rather than sampled at reset, so it must be stable through that cycle
 (see the SoC SDCs).
 
 Follow-up: like every async-reset flop in the SoC, `boot_q` needs a
-synchronized reset release, and `muserisc_soc_top` has no reset
+synchronized reset release, and `sigil_soc_top` has no reset
 synchronizer yet.
 
 ## Timing findings
@@ -406,22 +406,22 @@ synthesized and reaches 162 MHz before repair.
 ## Reproduce
 
 ```sh
-DESIGN=muserisc_soc ./scripts/openroad_docker.sh synth                    # nangate45, flat
-DESIGN=muserisc_soc PLATFORM=sky130hd ./scripts/openroad_docker.sh synth  # sky130hd, flat
-DESIGN=muserisc_soc ./scripts/openroad_docker.sh "FLOW_VARIANT=hier SYNTH_HIERARCHICAL=1 synth"
+DESIGN=sigil_soc ./scripts/openroad_docker.sh synth                    # nangate45, flat
+DESIGN=sigil_soc PLATFORM=sky130hd ./scripts/openroad_docker.sh synth  # sky130hd, flat
+DESIGN=sigil_soc ./scripts/openroad_docker.sh "FLOW_VARIANT=hier SYNTH_HIERARCHICAL=1 synth"
 # post-synthesis STA (inside the image, ORFS env loaded):
-#   STA_LIBS="<std-cell lib> <macro libs>" STA_ODB=results/<plat>/muserisc_soc_top/base/1_synth.odb \
-#   STA_SDC=results/<plat>/muserisc_soc_top/base/1_synth.sdc STA_PREFIXES="u_cpu/u_core/u_vec ..." \
-#   openroad -exit -no_init designs/nangate45/muserisc_soc/sta_synth.tcl
+#   STA_LIBS="<std-cell lib> <macro libs>" STA_ODB=results/<plat>/sigil_soc_top/base/1_synth.odb \
+#   STA_SDC=results/<plat>/sigil_soc_top/base/1_synth.sdc STA_PREFIXES="u_cpu/u_core/u_vec ..." \
+#   openroad -exit -no_init designs/nangate45/sigil_soc/sta_synth.tcl
 # regenerate the generated macro views / models:
-python3 flow/designs/nangate45/muserisc_soc/sram/gen_fakeram45_1r1w.py flow/designs/nangate45/muserisc_soc/sram
-python3 flow/designs/nangate45/muserisc_soc/sram/gen_fakeram45_1r1w.py --ports 1rw --depth 64 --width 44 \
-  --w 46.93 --h 56.0 --tcq 0.21 flow/designs/nangate45/muserisc_soc/sram
-python3 flow/designs/nangate45/muserisc_soc/sram/gen_fakeram45_1r1w.py --ports 1rw --model-only \
-  --depth 512 --width 64 flow/designs/nangate45/muserisc_soc/sram
-python3 flow/designs/sky130hd/muserisc_soc/sram/gen_openram_models.py flow/designs/sky130hd/muserisc_soc/sram
+python3 flow/designs/nangate45/sigil_soc/sram/gen_fakeram45_1r1w.py flow/designs/nangate45/sigil_soc/sram
+python3 flow/designs/nangate45/sigil_soc/sram/gen_fakeram45_1r1w.py --ports 1rw --depth 64 --width 44 \
+  --w 46.93 --h 56.0 --tcq 0.21 flow/designs/nangate45/sigil_soc/sram
+python3 flow/designs/nangate45/sigil_soc/sram/gen_fakeram45_1r1w.py --ports 1rw --model-only \
+  --depth 512 --width 64 flow/designs/nangate45/sigil_soc/sram
+python3 flow/designs/sky130hd/sigil_soc/sram/gen_openram_models.py flow/designs/sky130hd/sigil_soc/sram
 # vendor OpenRAM models (needs docker + the ORFS image):
-flow/designs/sky130hd/muserisc_soc/sram/vendor_model_check.sh [--as-shipped]
+flow/designs/sky130hd/sigil_soc/sram/vendor_model_check.sh [--as-shipped]
 ```
 
 Each flat synthesis takes ~1 h on a loaded host, mostly in ABC.

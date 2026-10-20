@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -40,7 +40,7 @@ jobs:
         run: |
           bash -n scripts/*.sh
           python3 -m py_compile sw/golden.py sw/ec_ops.py
-          xmllint --noout docs/assets/muserisc-logo.svg docs/assets/muserisc-mark.svg
+          xmllint --noout docs/assets/sigil-logo.svg docs/assets/sigil-mark.svg
 
       - name: Run known-answer regression
         shell: bash
@@ -48,7 +48,7 @@ jobs:
           set -o pipefail
           make test 2>&1 | tee build-ci-test.log
           {
-            echo "## museRISC RTL regression"
+            echo "## Sigil RTL regression"
             echo
             grep -E "PASS|EC_OPS|ALL PHASE-0" build-ci-test.log || true
           } >> "$GITHUB_STEP_SUMMARY"
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          yosys -Q -p "read_verilog -sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/muse_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/muse_crypto_top.sv; hierarchy -check -top muse_crypto_top; proc; opt; stat" 2>&1 | tee build-ci-yosys.log
+          yosys -Q -p "read_verilog -sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv; hierarchy -check -top sigil_crypto_top; proc; opt; stat" 2>&1 | tee build-ci-yosys.log
 
       - name: Upload regression logs
         if: always()

@@ -1,17 +1,17 @@
 /* Shared bare-metal driver for the SoC crypto tests (issue #4):
- * RTL 16550 UART at 0x1000_0000 for output, and the muse_crypto
- * accelerator at MUSE_CRYPTO_BASE (register map: docs/SPEC.md,
- * constants: sw/muse_crypto.h). Include from exactly one .c file
+ * RTL 16550 UART at 0x1000_0000 for output, and the sigil_crypto
+ * accelerator at SIGIL_CRYPTO_BASE (register map: docs/SPEC.md,
+ * constants: sw/sigil_crypto.h). Include from exactly one .c file
  * per firmware image (it also defines memset/memcpy for the
  * freestanding build). Reference code, NOT constant-time. */
 #ifndef SOC_CRYPTO_DRV_H
 #define SOC_CRYPTO_DRV_H
 #include <stdint.h>
 
-#include "../muse_crypto.h"
+#include "../sigil_crypto.h"
 
 #define UART ((volatile uint8_t *)0x10000000UL)
-#define CRYPTO ((volatile uint32_t *)MUSE_CRYPTO_BASE)
+#define CRYPTO ((volatile uint32_t *)SIGIL_CRYPTO_BASE)
 
 static void putc(char c) {
   while ((UART[5] & 0x20) == 0) {
@@ -75,18 +75,18 @@ static void crypto_set_modsel(uint32_t sel) { CRYPTO[0x68 / 4] = sel; }
 static void fe_op(uint32_t op, const fe_t *a, const fe_t *b, fe_t *r) {
   crypto_write_fe(0x08, a);
   crypto_write_fe(0x28, b);
-  CRYPTO[0] = 1u | (MUSE_ENG_FIELD << 4) | (op << 6);
+  CRYPTO[0] = 1u | (SIGIL_ENG_FIELD << 4) | (op << 6);
   crypto_wait_done();
   crypto_read_fe(r);
 }
 static void fe_add(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_ADD, a, b, r);
+  fe_op(SIGIL_FLD_ADD, a, b, r);
 }
 static void fe_sub(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_SUB, a, b, r);
+  fe_op(SIGIL_FLD_SUB, a, b, r);
 }
 static void fe_mul(const fe_t *a, const fe_t *b, fe_t *r) {
-  fe_op(MUSE_FLD_MUL, a, b, r);
+  fe_op(SIGIL_FLD_MUL, a, b, r);
 }
 static void fe_sqr(const fe_t *a, fe_t *r) { fe_mul(a, a, r); }
 static void fe_mul_small(const fe_t *a, uint64_t k, fe_t *r) {

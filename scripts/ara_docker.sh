@@ -16,7 +16,7 @@ docker info >/dev/null 2>&1 || { echo "docker daemon not running"; exit 1; }
 mkdir -p third_party/ara/install
 docker run --rm \
   -v "$PWD:/repo" \
-  -v muserisc-apt-cache:/var/cache/apt \
+  -v sigil-apt-cache:/var/cache/apt \
   -w /repo/third_party/ara \
   ubuntu:24.04 bash -lc '
     set -e

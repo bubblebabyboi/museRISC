@@ -1,8 +1,8 @@
-// Unit test for muserisc_csr: CSR read/write semantics and masks,
+// Unit test for sigil_csr: CSR read/write semantics and masks,
 // trap entry/return state updates, delegation, interrupt priority
 // and steering, counters, and the PMP match matrix — all against
 // spec-derived expectations, driving the module's own ports.
-#include "Vmuserisc_csr.h"
+#include "Vsigil_csr.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -27,7 +27,7 @@ static bool g_fail = false;
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_csr> d{new Vmuserisc_csr{&context}};
+  const std::unique_ptr<Vsigil_csr> d{new Vsigil_csr{&context}};
   const char* cov_path = std::getenv("COV_FILE");
 
   auto tick = [&]() {
@@ -418,7 +418,7 @@ int main(int argc, char** argv) {
   wr(0x7A1, ~0ull);
   CHECK(rd(0x7A1) == 0);              // tdata1 type = none
   CHECK(rd(0x7A4) == 0);              // tinfo
-  CHECK(rd(0xF12) == 0x4D555345ULL);  // marchid "MUSE"
+  CHECK(rd(0xF12) == 0x5349474CULL);  // marchid "SIGL"
   CHECK(rd(0xF13) == 0x30000ULL);     // mimpid
   CHECK(rd(0xF15) == 0);              // mconfigptr
   CHECK(rd(0xC01) != rd(0xC00));      // independent time/cycle counters

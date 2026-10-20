@@ -1,5 +1,5 @@
 # rvmodel_macros.h
-# RVMODEL macro definitions for the museRISC in-house RV64 core
+# RVMODEL macro definitions for the Sigil in-house RV64 core
 # (rtl/core/) running in the C++ Verilator harness
 # (tb/cpp/core_tb.cpp ELF mode). Halt is the HTIF tohost write
 # the harness watches (1 = pass); console stores to 0x1000_0000

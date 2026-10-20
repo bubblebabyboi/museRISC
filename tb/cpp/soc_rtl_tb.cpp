@@ -1,5 +1,5 @@
 // RTL SoC harness (issue #4): unlike soc_tb (C++ platform
-// around muserisc_core), this drives muserisc_soc_top --
+// around sigil_core), this drives sigil_soc_top --
 // core, fabric, boot ROM, CLINT, PLIC, UART and crypto are
 // all RTL. The harness only provides external RAM behind
 // the SoC's mem_* memory-bus port (128 MiB at 0x8000_0000,
@@ -17,7 +17,7 @@
 // Exit status: 0 exit string seen, 2 timeout/usage error.
 // With no --exit-string, success is a trap-free run to
 // max_cycles is NOT assumed: timeout (2) is returned.
-#include "Vmuserisc_soc_top.h"
+#include "Vsigil_soc_top.h"
 #include "verilated.h"
 #include "mbus_model.h"
 
@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_soc_top> dut{
-      new Vmuserisc_soc_top{&context}};
+  const std::unique_ptr<Vsigil_soc_top> dut{
+      new Vsigil_soc_top{&context}};
   dut->clk_i = 0;
   dut->rst_ni = 0;
   dut->boot_pc_i = boot_pc;

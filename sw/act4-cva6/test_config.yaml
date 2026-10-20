@@ -1,8 +1,8 @@
-name: muserisc-cv64a6
+name: sigil-cv64a6
 compiler_exe: riscv64-unknown-elf-gcc # executable name on $PATH or full path to executable
 objdump_exe: riscv64-unknown-elf-objdump # executable name on $PATH or full path to executable, optional
 ref_model_exe: sail_riscv_sim # executable name on $PATH or full path to executable
-udb_config: muserisc-cv64a6.yaml
+udb_config: sigil-cv64a6.yaml
 linker_script: link.ld
 dut_include_dir: . # Directory containing DUT specific rvmodel_macros.h header
 include_priv_tests: True

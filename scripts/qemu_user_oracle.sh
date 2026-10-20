@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-OUT_DIR=${MUSERISC_QEMU_USER_OUT:-build/qemu}
+OUT_DIR=${SIGIL_QEMU_USER_OUT:-build/qemu}
 mkdir -p "$OUT_DIR"
 
 docker run --rm -v "$PWD:/work" -w /work ubuntu:24.04 \
@@ -25,7 +25,7 @@ docker run --rm -v "$PWD:/work" -w /work ubuntu:24.04 \
     cat "'"$OUT_DIR"'/user_oracle.out"
   '
 
-if grep -aq '^MUSERISC_QEMU_USER_OK ' "$OUT_DIR/user_oracle.out"; then
+if grep -aq '^SIGIL_QEMU_USER_OK ' "$OUT_DIR/user_oracle.out"; then
   echo "QEMU USER ORACLE PASS: $OUT_DIR/user_oracle.out"
 else
   echo "FAIL: qemu-riscv64 user oracle did not print the OK marker" >&2

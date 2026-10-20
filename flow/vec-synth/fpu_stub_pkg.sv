@@ -1,4 +1,4 @@
-// Synthesis-only stub of muserisc_fpu_pkg for the vector-unit
+// Synthesis-only stub of sigil_fpu_pkg for the vector-unit
 // area/depth comparison (scripts/synth_vec.sh): fp_eval and
 // fp_estimate are black-boxed as a trivial XOR of their operands
 // so the scalar FP datapath (being reworked separately into a
@@ -7,7 +7,7 @@
 // count of fp_eval call sites is reported separately. Since the
 // vector unit runs its FP sub-steps on the shared scalar FPU,
 // synthesis sees only the (stubbed) estimate stages.
-package muserisc_fpu_pkg;
+package sigil_fpu_pkg;
   localparam logic [4:0] FPU_ADD   = 5'd0;
   localparam logic [4:0] FPU_SUB   = 5'd1;
   localparam logic [4:0] FPU_MUL   = 5'd2;

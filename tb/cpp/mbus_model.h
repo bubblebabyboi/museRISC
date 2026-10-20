@@ -1,5 +1,5 @@
-// Memory-bus slave model for the museRISC "mbus" master port
-// (protocol: rtl/core/muserisc_cpu.sv header). Used by core_tb,
+// Memory-bus slave model for the Sigil "mbus" master port
+// (protocol: rtl/core/sigil_cpu.sv header). Used by core_tb,
 // soc_tb and the cache unit testbenches.
 //
 // Timing knobs (randomized from a seed, so runs reproduce):
@@ -14,8 +14,8 @@
 // and device side effects. A read's data is fetched when the
 // request is accepted (one transaction at a time on this bus,
 // so this is indistinguishable from fetching it later).
-#ifndef MUSERISC_MBUS_MODEL_H_
-#define MUSERISC_MBUS_MODEL_H_
+#ifndef SIGIL_MBUS_MODEL_H_
+#define SIGIL_MBUS_MODEL_H_
 
 #include <cstdint>
 #include <cstdio>
@@ -216,7 +216,7 @@ struct HasInst<T, std::void_t<decltype(std::declval<T&>().bus_req_inst_o)>>
     : std::true_type {};
 }  // namespace mbus_detail
 
-// Wires an MbusModel to a Verilated top with the muserisc_cpu
+// Wires an MbusModel to a Verilated top with the sigil_cpu
 // bus port names: MbusDrive() before the clock-low eval,
 // MbusSample() after it (before the rising edge), then
 // MbusModel::Edge() with the sample after the rising-edge eval.
@@ -252,4 +252,4 @@ MbusModel::Req MbusSample(Top* dut) {
   return r;
 }
 
-#endif  // MUSERISC_MBUS_MODEL_H_
+#endif  // SIGIL_MBUS_MODEL_H_

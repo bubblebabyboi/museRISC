@@ -14,10 +14,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE=${MUSERISC_KERNEL_IMAGE:-build/linux/Image}
-OUT=${MUSERISC_QEMU_LOG:-build/linux/qemu-virt-boot.log}
-RTL_LOG=${MUSERISC_RTL_LOG:-docs/evidence/core-stage6-linux-boot-2026-10-14.log}
-TIMEOUT=${MUSERISC_QEMU_TIMEOUT:-90}
+IMAGE=${SIGIL_KERNEL_IMAGE:-build/linux/Image}
+OUT=${SIGIL_QEMU_LOG:-build/linux/qemu-virt-boot.log}
+RTL_LOG=${SIGIL_RTL_LOG:-docs/evidence/core-stage6-linux-boot-2026-10-14.log}
+TIMEOUT=${SIGIL_QEMU_TIMEOUT:-90}
 
 if [ ! -f "$IMAGE" ]; then
   echo "error: $IMAGE not found -- run: bash scripts/build_linux_kernel.sh" >&2
@@ -47,15 +47,15 @@ docker run --rm -v "$PWD:/work" -w /work ubuntu:24.04 \
       > "'"$OUT"'" 2>&1 || true
   '
 
-if ! grep -aq 'MUSERISC_LINUX_BOOT_OK' "$OUT"; then
-  echo "FAIL: QEMU boot did not reach MUSERISC_LINUX_BOOT_OK ($OUT)" >&2
+if ! grep -aq 'SIGIL_LINUX_BOOT_OK' "$OUT"; then
+  echo "FAIL: QEMU boot did not reach SIGIL_LINUX_BOOT_OK ($OUT)" >&2
   tail -20 "$OUT" >&2 || true
   exit 1
 fi
 
 # Compare platform-independent markers (timestamps and CRs stripped).
 markers() {
-  grep -a -E 'Linux version 6\.6\.0|muserisc init: userspace alive|uname: Linux|/proc/version:|MUSERISC_LINUX_BOOT_OK' "$1" \
+  grep -a -E 'Linux version 6\.6\.0|sigil init: userspace alive|uname: Linux|/proc/version:|SIGIL_LINUX_BOOT_OK' "$1" \
     | sed -E 's/\r//g; s/^\[[^]]*\] //'
 }
 qemu_markers=$(markers "$OUT")

@@ -4,7 +4,7 @@
 Points are merged across instances (a line or toggle point counts
 as covered if any instance hit it). Usage:
   cov_report.py build/sim/cov_merged.dat [file-substring ...]
-  cov_report.py --uncovered FILE.dat muserisc_dcache.sv
+  cov_report.py --uncovered FILE.dat sigil_dcache.sv
 """
 import collections
 import sys

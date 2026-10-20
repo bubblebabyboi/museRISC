@@ -1,8 +1,8 @@
-// Unit test for muserisc_muldiv: RV64M golden model in C++ using
+// Unit test for sigil_muldiv: RV64M golden model in C++ using
 // __int128 arithmetic, formulated directly from the spec rules
 // (truncation toward zero, dividend-signed remainder, divide-by-
 // zero and signed-overflow results), directed edges plus randoms.
-#include "Vmuserisc_muldiv.h"
+#include "Vsigil_muldiv.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 #include "muldiv_golden.h"
@@ -16,7 +16,7 @@
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_muldiv> dut{new Vmuserisc_muldiv{&context}};
+  const std::unique_ptr<Vsigil_muldiv> dut{new Vsigil_muldiv{&context}};
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0;
 

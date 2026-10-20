@@ -1,4 +1,4 @@
-// Sail reference-model configuration for the museRISC
+// Sail reference-model configuration for the Sigil
 // in-house RV64 core (rtl/core/). Derived from
 // sw/act4-cva6/sail.json by /tmp-plumbing (the override
 // list is recorded in sw/act4-core/README.md); every

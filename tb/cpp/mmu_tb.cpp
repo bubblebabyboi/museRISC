@@ -1,8 +1,8 @@
-// Unit test for muserisc_mmu: Sv39 walks, superpages, Svnapot,
+// Unit test for sigil_mmu: Sv39 walks, superpages, Svnapot,
 // permission matrix (U/SUM/MXR), hardware A/D updates, TLB
 // ASID/global/flush semantics, and the fault taxonomy — against
 // a byte memory in the TB holding hand-built page tables.
-#include "Vmuserisc_mmu.h"
+#include "Vsigil_mmu.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -45,7 +45,7 @@ uint64_t SatpRoot(uint64_t root_pa, uint16_t asid) {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_mmu> d{new Vmuserisc_mmu{&context}};
+  const std::unique_ptr<Vsigil_mmu> d{new Vsigil_mmu{&context}};
   const char* cov_path = std::getenv("COV_FILE");
 
   std::vector<uint8_t> mem(1u << 20, 0);

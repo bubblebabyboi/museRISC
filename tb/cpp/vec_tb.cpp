@@ -1,7 +1,7 @@
 // Vector unit testbench (issue #23, element-serial rework).
 //
-// DUT: tb/sv/muserisc_vec_harness.sv = muserisc_vec + the banked
-// muserisc_vregfile, driven like the core drives them. The whole
+// DUT: tb/sv/sigil_vec_harness.sv = sigil_vec + the banked
+// sigil_vregfile, driven like the core drives them. The whole
 // 32x512-bit VRF is loaded through a backdoor before every
 // operation and dumped and compared after it, so stray writes,
 // tail/prestart/mask-undisturbed behavior and register-group
@@ -26,7 +26,7 @@
 #include <random>
 #include <vector>
 
-#include "Vmuserisc_vec_harness.h"
+#include "Vsigil_vec_harness.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -45,7 +45,7 @@ static long failures = 0;
 
 namespace {
 
-// VOP_* codes (rtl/core/muserisc_pkg.sv).
+// VOP_* codes (rtl/core/sigil_pkg.sv).
 enum Op {
   ADD = 0, SUB, RSUB, AND, OR, XOR, SLL, SRL, SRA, MV, MVSX, MVXS,
   MIN, MINU, MAX, MAXU, MUL, MULH, MULHU, MULHSU, MACC, MADD, NMSAC,
@@ -387,7 +387,7 @@ Out Golden(const Cfg& c, const VRF& in) {
 
 // ---- DUT driver ----
 struct Dut {
-  Vmuserisc_vec_harness* d;
+  Vsigil_vec_harness* d;
   uint64_t cycles = 0;
   void Tick() {
     d->clk_i = 0; d->eval();
@@ -604,7 +604,7 @@ bool Configure(Cfg& c, std::mt19937_64& rng) {
 int main(int argc, char** argv) {
   Verilated::commandArgs(argc, argv);
   Dut dut;
-  dut.d = new Vmuserisc_vec_harness;
+  dut.d = new Vsigil_vec_harness;
   auto* d = dut.d;
   // Seed: VEC_TB_SEED env (decimal or 0x hex), default 0x5eed8a.
   const uint64_t seed = getenv("VEC_TB_SEED")

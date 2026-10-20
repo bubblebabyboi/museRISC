@@ -1,10 +1,10 @@
-// Integration KAT for muse_crypto_top (issue #19), migrated from
-// tb/tb_muse_crypto_top.v. It drives the AXI4-Lite register
+// Integration KAT for sigil_crypto_top (issue #19), migrated from
+// tb/tb_sigil_crypto_top.v. It drives the AXI4-Lite register
 // interface end to end (docs/SPEC.md): DIN/DOUT word ordering,
 // CTRL engine/op select, STATUS busy/done, MODSEL, and custom
 // modulus registers. Leaf engines have their own KATs; vectors are
 // reused so failures localise to the register/AXI layer.
-#include "Vmuse_crypto_top.h"
+#include "Vsigil_crypto_top.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -80,8 +80,8 @@ void SetWord(Field* value, int index, uint32_t word) {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuse_crypto_top> dut{
-      new Vmuse_crypto_top{&context}};
+  const std::unique_ptr<Vsigil_crypto_top> dut{
+      new Vsigil_crypto_top{&context}};
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0;
 
@@ -352,7 +352,7 @@ int main(int argc, char** argv) {
 
   dut->final();
   if (cov_path != nullptr) context.coveragep()->write(cov_path);
-  std::printf("TB_MUSE_CRYPTO_TOP PASS (%llu checks)\n",
+  std::printf("TB_SIGIL_CRYPTO_TOP PASS (%llu checks)\n",
               static_cast<unsigned long long>(checks));
   return 0;
 }

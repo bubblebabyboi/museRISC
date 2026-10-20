@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stage 3d gate (issue #18): run ACT4 self-checking ELFs
-# generated for the museRISC in-house core (see
+# generated for the Sigil in-house core (see
 # scripts/build_act4_core.sh) on the core itself via the C++
 # harness. Each ELF reports pass/fail by its HTIF tohost halt.
 #
@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 
 CORE_TB=${CORE_TB:-build/sim/core_tb}
 CORE_TB_ARGS=${CORE_TB_ARGS:-}
-ELF_DIR=${2:-third_party/riscv-arch-test/work/muserisc-core/elfs}
+ELF_DIR=${2:-third_party/riscv-arch-test/work/sigil-core/elfs}
 [ -d "$ELF_DIR" ] || { echo "no ELFs in $ELF_DIR; run ./scripts/build_act4_core.sh first"; exit 1; }
 
 pass=0 fail=0 total=0
@@ -33,5 +33,5 @@ while IFS= read -r elf; do
   echo "$res $name ($cycles cycles)"
   [ $# -ge 1 ] && echo "$name,$res,$cycles" >> "$1"
 done < <(find "$ELF_DIR" -type f -name '*.elf' | sort)
-echo "ACT (muserisc-core): $pass/$total PASS, $fail FAIL"
+echo "ACT (sigil-core): $pass/$total PASS, $fail FAIL"
 [ "$fail" -eq 0 ]

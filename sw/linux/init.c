@@ -1,8 +1,8 @@
-/* Embedded-initramfs /init for the museRISC Linux boot gate
+/* Embedded-initramfs /init for the Sigil Linux boot gate
  * (issue #21): proves the kernel reached userspace on the
  * in-house core. Prints a banner plus uname(2) and the first
  * bytes of /proc/version, then idles; soc_tb ends the run when
- * it sees MUSERISC_LINUX_BOOT_OK on the UART. */
+ * it sees SIGIL_LINUX_BOOT_OK on the UART. */
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/mount.h>
@@ -16,7 +16,7 @@ int main(void) {
   ssize_t n;
 
   mount("proc", "/proc", "proc", 0, "");
-  printf("muserisc init: userspace alive\n");
+  printf("sigil init: userspace alive\n");
   if (uname(&u) == 0) {
     printf("uname: %s %s %s %s\n", u.sysname, u.release, u.version,
            u.machine);
@@ -30,7 +30,7 @@ int main(void) {
     }
     close(fd);
   }
-  printf("MUSERISC_LINUX_BOOT_OK\n");
+  printf("SIGIL_LINUX_BOOT_OK\n");
   fflush(stdout);
   for (;;) pause();
 }

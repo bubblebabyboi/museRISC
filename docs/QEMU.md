@@ -30,15 +30,15 @@ system-mode log from the spike run is
 `qemu-system-riscv64 -machine virt -bios default` (QEMU's
 bundled OpenSBI), with the same kernel command line minus
 `initcall_debug`, and compares the platform-independent
-markers (kernel version banner, `muserisc init:
+markers (kernel version banner, `sigil init:
 userspace alive`, `uname:` line, `/proc/version:` line,
-`MUSERISC_LINUX_BOOT_OK`) against the RTL evidence log.
+`SIGIL_LINUX_BOOT_OK`) against the RTL evidence log.
 The markers match verbatim: `QEMU REFERENCE BOOT PASS`.
 
 `scripts/qemu_user_oracle.sh` builds `sw/qemu/user_oracle.c`
 as a static RISC-V Linux binary and runs it under
 `qemu-riscv64` user mode, producing
-`MUSERISC_QEMU_USER_OK x=655d5f49 sum=325770522 acc=17500.0`.
+`SIGIL_QEMU_USER_OK x=655d5f49 sum=325770522 acc=17500.0`.
 The kernel `/init` itself is not a user-mode test (it
 assumes PID 1, mounts proc, and idles forever), hence the
 separate tiny payload.
@@ -46,9 +46,9 @@ separate tiny payload.
 ## Platform differences (not core differences)
 
 - Platform/DT identity: `riscv-virtio,qemu` vs
-  `museRISC in-house RV64GC core (Verilator)`; QEMU
+  `Sigil in-house RV64GC core (Verilator)`; QEMU
   supplies its own virt device tree, RTL uses
-  `sw/linux/muserisc.dts`.
+  `sw/linux/sigil.dts`.
 - Firmware: QEMU-bundled OpenSBI v1.3 vs the locally
   built OpenSBI v1.9 `fw_jump.bin` on RTL. QEMU virt also
   exposes a `sifive_test` reboot/shutdown device; the
@@ -59,7 +59,7 @@ separate tiny payload.
 - Interrupt controller: both expose a PLIC at
   `0xc000000` and the 16550 UART at `0x10000000` on
   IRQ 12, but QEMU maps 95 interrupts vs 32 in the
-  museRISC DT, and reports `base_baud = 230400` vs 115200.
+  Sigil DT, and reports `base_baud = 230400` vs 115200.
 - Verbosity/timing: the RTL log uses `initcall_debug`
   and ends with the harness line `SOC TB PASS (exit
   string at 508905040 cycles)`; QEMU has no cycle count

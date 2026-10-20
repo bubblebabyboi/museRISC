@@ -1,4 +1,4 @@
-// Core-level harness for the museRISC CPU (muserisc_cpu: core +
+// Core-level harness for the Sigil CPU (sigil_cpu: core +
 // L1 I$/D$) over a paged memory behind the mbus slave model
 // (tb/cpp/mbus_model.h) with configurable, seeded random
 // latency and backpressure. Two program modes:
@@ -29,7 +29,7 @@
 //          [--irq-timer-after N] [--no-cache] [--mem-lat A:B]
 //          [--mem-gap N] [--mem-ready PCT] [--mem-seed S] [--trace]
 // Exit status: 0 pass, 1 test failure, 2 timeout, 3 unexpected trap.
-#include "Vmuserisc_cpu.h"
+#include "Vsigil_cpu.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 #include "mbus_model.h"
@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_cpu> dut{new Vmuserisc_cpu{&context}};
+  const std::unique_ptr<Vsigil_cpu> dut{new Vsigil_cpu{&context}};
   const char* cov_path = std::getenv("COV_FILE");
 
   auto finish = [&](int rc) {

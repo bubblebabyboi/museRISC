@@ -1,14 +1,14 @@
-# ACT4 DUT config: museRISC in-house core
+# ACT4 DUT config: Sigil in-house core
 
 DUT configuration for running riscv-arch-test (ACT4) against
 the in-house RV64 core in `rtl/core/` (issue #18 stage 3d).
 The canonical copies live here; `scripts/build_act4_core.sh`
 syncs them into `third_party/riscv-arch-test/config/cores/
-muserisc-core/` before generating ELFs, and
+sigil-core/` before generating ELFs, and
 `sim/run_act_core.sh` executes them on the core through
 `tb/cpp/core_tb.cpp` (ELF/HTIF mode).
 
-- `muserisc-core.yaml` — UDB configuration. Every value was
+- `sigil-core.yaml` — UDB configuration. Every value was
   read out of the RTL (citations inline). Declared scope:
   RV64IM + Zicsr/Zifencei/Zicntr, M/S/U, Sv39+Svbare+Svnapot+
   Svadu, PMP16, IALIGN=32.
@@ -19,7 +19,7 @@ muserisc-core/` before generating ELFs, and
   width 64, mtvec/stvec vectored base alignment 2²,
   medeleg delegatable bits 0xB35D, mstatus FS legal = Off,
   PMP {grain 0, count 16, usable 16, NA4 on}, platform
-  vendorid 0 / archid 0x4D555345 / impid 0x30000,
+  vendorid 0 / archid 0x5349474C / impid 0x30000,
   `wfi_is_nop` and `wfi_available_to_user_mode` true, and
   extensions flipped off (A, F, D, B, Zaamo, Zalrsc,
   Zicond, Zihpm, Zca/Zcb/Zcd, Zba/Zbb/Zbs/Zbc, Zbkb/Zbkc,
@@ -57,11 +57,11 @@ Generation (as run for the evidence in
 5. `bash sim/run_act_core.sh <out.csv>`
 
 Warning: the ACT make does not track DUT config files as
-dependencies. After changing `muserisc-core.yaml`/`sail.json`
+dependencies. After changing `sigil-core.yaml`/`sail.json`
 in a way that alters architectural parameters (e.g. adding
 C changes IALIGN 32→16 and every trap-signature
 expectation), delete the affected suites under
-`third_party/riscv-arch-test/work/muserisc-core/{build,elfs}/`
+`third_party/riscv-arch-test/work/sigil-core/{build,elfs}/`
 and regenerate, or stale ELFs will silently test the old
 configuration. This bit stage 5: `ExceptionsSv` appeared to
 fail against pre-C signatures until `build/priv` and

@@ -5,7 +5,7 @@ Usage: testfloat_gen ... <op> | testfloat_fpu_vectors.py <op> <rmode>
 
 Output line: "op d rm aux a b c result flags" (op/d/rm/aux decimal,
 operands/result 64-bit hex as presented to / produced by
-muserisc_fpu: binary32 NaN-boxed, 32-bit integer results
+sigil_fpu: binary32 NaN-boxed, 32-bit integer results
 sign-extended, flags in RISC-V fflags order, which matches
 SoftFloat's flag bits).
 """

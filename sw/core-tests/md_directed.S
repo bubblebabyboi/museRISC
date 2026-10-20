@@ -1,4 +1,4 @@
-// Directed M-unit pipeline tests for the multi-cycle muserisc_muldiv_mc
+// Directed M-unit pipeline tests for the multi-cycle sigil_muldiv_mc
 // (muldiv-multicycle): back-to-back dependent mul/div at every forwarding
 // distance, load-use into a divide, divide results feeding stores,
 // branches and jalr, every divide-by-zero / overflow form, WAW and

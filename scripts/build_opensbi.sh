@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Build OpenSBI (generic, fw_jump to 0x8020_0000) and the museRISC
+# Build OpenSBI (generic, fw_jump to 0x8020_0000) and the Sigil
 # DTB for the soc_tb Linux-boot harness (issue #21). Runs in Docker:
 # the host bare-metal linker cannot create the PIEs OpenSBI needs
 # (docs/evidence/core-stage3d-linux-attempt-2026-10-13.log).
-# Outputs: build/linux/fw_jump.bin, build/linux/muserisc.dtb.
+# Outputs: build/linux/fw_jump.bin, build/linux/sigil.dtb.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/linux
@@ -20,7 +20,7 @@ docker run --rm -v "$PWD:/work" -v "$SRC:/src/opensbi:ro" -w /work \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
       --no-install-recommends gcc-riscv64-linux-gnu \
       device-tree-compiler make git ca-certificates python3 >/dev/null
-    dtc -I dts -O dtb -o build/linux/muserisc.dtb sw/linux/muserisc.dts
+    dtc -I dts -O dtb -o build/linux/sigil.dtb sw/linux/sigil.dts
     cp -r /src/opensbi /tmp/opensbi-build
     make -C /tmp/opensbi-build PLATFORM=generic \
       CROSS_COMPILE=riscv64-linux-gnu- \
@@ -30,4 +30,4 @@ docker run --rm -v "$PWD:/work" -v "$SRC:/src/opensbi:ro" -w /work \
     cp /tmp/opensbi-build/build/platform/generic/firmware/fw_jump.elf \
        build/linux/fw_jump.elf
   '
-echo "built build/linux/fw_jump.bin and build/linux/muserisc.dtb (OpenSBI $REV)"
+echo "built build/linux/fw_jump.bin and build/linux/sigil.dtb (OpenSBI $REV)"

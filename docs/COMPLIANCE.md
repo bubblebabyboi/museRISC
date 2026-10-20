@@ -26,7 +26,7 @@ Last updated: 2026-10-14 (in-house core stages 1–8: RV64 IMABC FD SU + Sv39/PM
 | RVV 1.0 (CVA6+Ara, superseded) | ACT4 vector suite (fixed VLEN) | Not claimed on the third-party stack; see in-house row below |
 | In-house core integer V (stage 8, #23) | Own vec TB (1,014,476 checks) + directed asm; ACT Vx8/16/32/64 + Vls8/16/32/64 self-checking ELFs (Zve32x/Zve64x, VLEN 512) on the core | PASS (integer subset) — 1872/1872 generated ELFs; 34 ordered-indexed tests not generatable (Sail trap-signature overflow) and 9 Vx64 tests deselected (require full V), listed in `docs/evidence/act-vector-core-genfail-2026-10-14.csv`; FP vector (Zve32f/Zve64f/Zve64d) **not implemented / not claimed**; see stage-8 section of `docs/evidence/README.md` |
 | Privileged/Sv39 (sweep, #7) | ACT privileged suites for this config (134: Sv/Svbare/Svade/Svnapot/SvSm/SvPMP, PMP S/U/Sm/F/Za, ExceptionsSv*) on model | 126/134 PASS solo — `docs/evidence/act-priv-cva6-2026-10-13.csv`; 8 waived (6 LR cause-class, 1 PMP G=1 readback, 1 PA0 data); Misalign/Svadu/Svinval/Svpbmt/Zicbo suites deselected (not implemented); Linux boot not yet claimed |
-| OpenROAD macro (B3, #3) | ORFS nangate45, `muse_crypto_top` @ 100 MHz | PASS — detail-route DRC 0, antenna 0, liberty max-cap/slew/fanout 0 (signoff script in repo), setup WS +4.52 ns / hold WS +0.039 ns @ 10 ns, TNS 0; 61,590 cells, 95,431 µm², 20.16 mW; GDS in GitHub release `b3-nangate45-2026-10-13`; see `docs/evidence/b3-openroad-nangate45-2026-10-13.log`. Local Docker (emulated amd64) run, not a foundry signoff |
+| OpenROAD macro (B3, #3) | ORFS nangate45, `sigil_crypto_top` @ 100 MHz | PASS — detail-route DRC 0, antenna 0, liberty max-cap/slew/fanout 0 (signoff script in repo), setup WS +4.52 ns / hold WS +0.039 ns @ 10 ns, TNS 0; 61,590 cells, 95,431 µm², 20.16 mW; GDS in GitHub release `b3-nangate45-2026-10-13`; see `docs/evidence/b3-openroad-nangate45-2026-10-13.log`. Local Docker (emulated amd64) run, not a foundry signoff |
 | In-house core scalar+priv (stages 1–6, #18/#21) | Own C++ Verilator TBs + directed asm (`make core-test`), riscv-tests, ACT, OpenSBI/Linux boot in `soc_tb` | PASS — riscv-tests 123/123, ACT 543/544 (1 PA0 waiver), Linux 6.6 to `/init` at 508,905,040 cycles; see stage-6 section of `docs/evidence/README.md` |
 | In-house core H hypervisor (stage 7, #22) | Own CSR/MMU/decoder TBs + `hyp_directed.S`; Linux KVM ioctl/entry/exit smoke in `soc_tb`. No ACT H suite exists in the pinned ACT tree | PASS (smoke scope) — KVM reports Sv39x4/VMID14, a 4-instruction VS guest exits via `KVM_EXIT_MMIO` with the expected data, `SOC TB PASS` at 502,972,620 cycles; ACT H **not yet claimed** (no suite to run); see stage-7 section of `docs/evidence/README.md` |
 
@@ -42,7 +42,7 @@ TEST_LISTS=asm,amo,mul RUN_NAME=solo-full ./scripts/cva6_docker.sh regression   
 SPIKE_TANDEM=1 TEST_LISTS=asm,amo,mul RUN_NAME=tandem ./scripts/cva6_docker.sh regression  # B2.3 (long)
 ./scripts/build_act4_cva6.sh  # B2.4 ACT ELFs; then run via cva6_docker.sh ELF_SUBDIR=act-elfs
 ./scripts/build_testfloat.sh  # sweep TestFloat checkers; then run via cva6_docker.sh ELF_SUBDIR=testfloat-elfs TEST_LISTS=testfloat
-make openroad             # ORFS on muse_crypto (B3, long)
+make openroad             # ORFS on sigil_crypto (B3, long)
 ```
 
 Pinned sources: CVA6 `81245a47`, Ara `34bd3bc1`,

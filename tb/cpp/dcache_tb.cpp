@@ -1,4 +1,4 @@
-// Unit testbench for muserisc_dcache (L1 D$, write-back +
+// Unit testbench for sigil_dcache (L1 D$, write-back +
 // write-allocate) against a golden flat memory.
 //
 // Build geometry (sim/Makefile -G): 4 sets x 2 ways x 32-byte
@@ -23,7 +23,7 @@
 //   - after every CLEAN the bus-side memory equals the golden
 //     memory for every cacheable address (no lost write-back),
 //     and the cache_en strap = 0 phase makes everything I/O.
-#include "Vmuserisc_dcache.h"
+#include "Vsigil_dcache.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 #include "mbus_model.h"
@@ -88,7 +88,7 @@ int g_errors = 0;
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_dcache> dut{new Vmuserisc_dcache{&context}};
+  const std::unique_ptr<Vsigil_dcache> dut{new Vsigil_dcache{&context}};
   std::mt19937_64 rng(12345);
   auto rnd = [&](uint64_t n) { return rng() % n; };
 

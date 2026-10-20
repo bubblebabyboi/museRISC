@@ -1,12 +1,12 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/muserisc-logo-dark.svg">
-    <img src="docs/assets/muserisc-logo.svg" alt="museRISC — RV64GCV crypto accelerator SoC" width="760">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/sigil-logo-dark.svg">
+    <img src="docs/assets/sigil-logo.svg" alt="Sigil — RV64GCV crypto accelerator SoC" width="760">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/bubblebabyboi/museRISC/actions/workflows/regression.yml"><img alt="RTL regression" src="https://github.com/bubblebabyboi/museRISC/actions/workflows/regression.yml/badge.svg"></a>
+  <a href="https://github.com/bubblebabyboi/sigil/actions/workflows/regression.yml"><img alt="RTL regression" src="https://github.com/bubblebabyboi/sigil/actions/workflows/regression.yml/badge.svg"></a>
   <img alt="In-house core riscv-tests: 123/123" src="https://img.shields.io/badge/in--house%20core%20riscv--tests-123%2F123-brightgreen">
   <img alt="In-house core ACT: 543/544, one waiver" src="https://img.shields.io/badge/in--house%20core%20ACT-543%2F544%20(1%20waiver)-yellowgreen">
   <img alt="Linux 6.6 boot: pass" src="https://img.shields.io/badge/Linux%206.6%20boot-PASS-brightgreen">
@@ -14,9 +14,14 @@
   <a href="LICENSE"><img alt="Licence: GPLv3" src="https://img.shields.io/badge/licence-GPLv3-57D0B8"></a>
 </p>
 
-# museRISC
+# Sigil
 
-museRISC is an open RISC-V project building a Linux-capable
+> **Formerly museRISC.** Renamed 2026-10-20: the core and SoC are
+> in-house RTL, built for hashing and signature verification in
+> hardware, so the project is named for what it does. A sigil is a
+> seal that authenticates. Old GitHub links redirect.
+
+Sigil is an open RISC-V project building a Linux-capable
 processor and crypto accelerator in the open, one verified stage
 at a time. The processor is now a clean-slate, in-house
 SystemVerilog core: a 5-stage in-order RV64 design with
@@ -28,7 +33,7 @@ OpenSBI and Linux 6.6 in a Verilator platform model, and
 Linux KVM on the core creates a VM and runs a tiny guest to
 an MMIO exit. The companion crypto RTL
 covers SHA-256, SHA-512, Keccak-f1600, and elliptic-curve
-field arithmetic; the `muse_crypto` macro has a published
+field arithmetic; the `sigil_crypto` macro has a published
 OpenROAD-generated GDS, but it is not attached to the core yet
 and no chip has been taped out.
 
@@ -40,7 +45,7 @@ core: current CPU claims refer to the in-house core under
 ## Architecture
 
 ```text
-                         museRISC in-house core
+                         Sigil in-house core
   +----------------------------------------------------------------+
   |  5-stage in-order pipeline  IF -> ID -> EX -> MEM -> WB       |
   |  RV64 IMABC + F/D + B/Zicond/scalar crypto + H                 |
@@ -57,7 +62,7 @@ core: current CPU claims refer to the in-house core under
                                             +----------------------+
 
   +----------------------------------------------------------------+
-  | muse_crypto macro (currently separate)                         |
+  | sigil_crypto macro (currently separate)                         |
   | SHA-256 | SHA-512 | Keccak-f1600 | EC field arithmetic         |
   | KAT-verified RTL; OpenROAD place-and-route complete; GDS made  |
   +----------------------------------------------------------------+
@@ -65,10 +70,10 @@ core: current CPU claims refer to the in-house core under
 ```
 
 Key implementation files are
-[`rtl/core/muserisc_core.sv`](rtl/core/muserisc_core.sv),
-[`muserisc_csr.sv`](rtl/core/muserisc_csr.sv),
-[`muserisc_mmu.sv`](rtl/core/muserisc_mmu.sv), and
-[`muserisc_decoder.sv`](rtl/core/muserisc_decoder.sv). See
+[`rtl/core/sigil_core.sv`](rtl/core/sigil_core.sv),
+[`sigil_csr.sv`](rtl/core/sigil_csr.sv),
+[`sigil_mmu.sv`](rtl/core/sigil_mmu.sv), and
+[`sigil_decoder.sv`](rtl/core/sigil_decoder.sv). See
 [`docs/CORE.md`](docs/CORE.md) for the staged design record.
 
 ## Current status
@@ -78,7 +83,7 @@ Key implementation files are
   (H hypervisor) are merged.
 - **Linux:** OpenSBI v1.9 and Linux 6.6 boot on one hart to
   an embedded initramfs `/init`; the run reaches
-  `MUSERISC_LINUX_BOOT_OK` and `SOC TB PASS` at 508,905,040
+  `SIGIL_LINUX_BOOT_OK` and `SOC TB PASS` at 508,905,040
   cycles.
 - **KVM smoke:** Linux KVM on the core reports the
   hypervisor extension with Sv39x4, creates a VM/vCPU, and
@@ -88,28 +93,28 @@ Key implementation files are
 - **Integer V vector:** RVV 1.0 integer subset
   (Zve32x/Zve64x, VLEN 512) passes the ACT Vx/Vls vector
   suites, 1872/1872 generated self-checking ELFs
-  ([#23](https://github.com/bubblebabyboi/museRISC/issues/23));
+  ([#23](https://github.com/bubblebabyboi/sigil/issues/23));
   43 tests were not generated/selected (documented in
   the evidence index).
 - **Floating-point V vector:** Zve32f/Zve64f/Zve64d
   executes per element on the core's multi-cycle scalar
-  FPU (`muserisc_fpu`, shared with the vector unit; the
+  FPU (`sigil_fpu`, shared with the vector unit; the
   `vfrec7`/`vfrsqrt7` estimates run in the vector unit),
   including widening/narrowing
   forms, FMA, conversions (incl. `vfncvt.rod`),
   reductions, and the `vfrec7`/`vfrsqrt7` estimates. It
   passes the ACT Vf32+Vf64 suites, 162/162 generated
   self-checking ELFs
-  ([#29](https://github.com/bubblebabyboi/museRISC/issues/29)).
+  ([#29](https://github.com/bubblebabyboi/sigil/issues/29)).
   Full V and FP16 (Zvfh/Vf16) are not claimed.
 - **L1 caches:** the core's memory ports are request/response
   with blocking L1 I$/D$ (SRAM-macro/BRAM-friendly arrays) in
-  `muserisc_cpu` behind one AXI4-mappable memory bus; the core
+  `sigil_cpu` behind one AXI4-mappable memory bus; the core
   gates re-run with caches on and random bus latency, and with
   caches off ([evidence](docs/evidence/README.md), `docs/CORE.md`).
 - **Crypto:** KATs pass and the standalone macro is
   place-and-route complete with GDS generated. On the RTL SoC
-  (B4, [#4](https://github.com/bubblebabyboi/museRISC/issues/4)),
+  (B4, [#4](https://github.com/bubblebabyboi/sigil/issues/4)),
   C firmware on the in-house core verifies secp256k1 ECDSA and
   Ed25519 (RFC 8032 TEST 1/2) with every field op on the
   accelerator, and rejects tampered signatures. SHA-512 for
@@ -138,12 +143,12 @@ RV64GCV, built in stages; unchecked items are not claims.
 - [x] **Sv39** — virtual memory, page faults, SFENCE.VMA
 - [x] **H hypervisor** — HS/VS/VU modes, hypervisor CSRs,
       HLV/HSV/HLVX, HFENCE, and two-stage Sv39x4 (GEILEN=0)
-      ([#22](https://github.com/bubblebabyboi/museRISC/issues/22))
+      ([#22](https://github.com/bubblebabyboi/sigil/issues/22))
 - [x] **V vector (integer)** — RVV 1.0 Zve32x/Zve64x,
       VLEN 512/ELEN 64
-      ([#23](https://github.com/bubblebabyboi/museRISC/issues/23))
+      ([#23](https://github.com/bubblebabyboi/sigil/issues/23))
 - [x] **V vector (floating point)** — Zve32f/Zve64f/Zve64d
-      ([#29](https://github.com/bubblebabyboi/museRISC/issues/29));
+      ([#29](https://github.com/bubblebabyboi/sigil/issues/29));
       full V and FP16 not claimed
 
 ### Tests and platform gates
@@ -160,29 +165,29 @@ RV64GCV, built in stages; unchecked items are not claims.
 - [x] OpenSBI boot smoke in `soc_tb`
 - [x] **Linux boot smoke** — Linux 6.6 to embedded
       initramfs `/init`,
-      [`MUSERISC_LINUX_BOOT_OK`](docs/evidence/core-stage6-linux-boot-2026-10-14.log)
+      [`SIGIL_LINUX_BOOT_OK`](docs/evidence/core-stage6-linux-boot-2026-10-14.log)
 - [x] Crypto RTL KATs — `make test`
       (`ALL PHASE-0 KATs PASS`)
 - [x] Verilator lint — `make lint`
-- [x] Standalone `muse_crypto` OpenROAD closure and GDS
+- [x] Standalone `sigil_crypto` OpenROAD closure and GDS
       (GDS generated / place-and-route complete; not taped out)
 - [x] H/KVM guest smoke — VM/vCPU creation and a tiny
       guest's MMIO exit under Linux KVM
-      ([#22](https://github.com/bubblebabyboi/museRISC/issues/22));
+      ([#22](https://github.com/bubblebabyboi/sigil/issues/22));
       no ACT H suite exists in the pinned ACT tree yet
 - [x] ACT vector suite — **1872/1872** generated
       self-checking ELFs (Vx8/16/32/64 + Vls8/16/32/64);
       43 ordered-indexed / full-V-required tests not
       generated by Sail/ACT selection, listed in
       [`docs/evidence/`](docs/evidence/act-vector-core-genfail-2026-10-14.csv)
-      ([#23](https://github.com/bubblebabyboi/museRISC/issues/23))
+      ([#23](https://github.com/bubblebabyboi/sigil/issues/23))
 - [x] Core-attached crypto end-to-end test (B4,
-      [#4](https://github.com/bubblebabyboi/museRISC/issues/4)):
+      [#4](https://github.com/bubblebabyboi/sigil/issues/4)):
       secp256k1 ECDSA + Ed25519 verify and tamper rejects on the
       RTL SoC, `make -C sim socrtl`
       ([log](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log))
 - [ ] Random-instruction riscv-dv regression in CI
-      ([#8](https://github.com/bubblebabyboi/museRISC/issues/8))
+      ([#8](https://github.com/bubblebabyboi/sigil/issues/8))
 
 ### Current evidence snapshot
 
@@ -211,8 +216,8 @@ toolchain (`riscv64-elf-gcc` or compatible), and Python 3.
 The setup script checks tools and fetches pinned third-party sources.
 
 ```sh
-git clone https://github.com/bubblebabyboi/museRISC.git
-cd museRISC
+git clone https://github.com/bubblebabyboi/sigil.git
+cd Sigil
 ./scripts/setup.sh
 
 make core-test   # in-house core: C++ TBs + directed asm + coverage
@@ -240,10 +245,10 @@ merged to `main` only with its gates and evidence.
 
 | Epic | Ordered work | Status |
 |---|---|---|
-| [#18 Core + software](https://github.com/bubblebabyboi/museRISC/issues/18) | [#21 Linux](https://github.com/bubblebabyboi/museRISC/issues/21) → [#22 H hypervisor](https://github.com/bubblebabyboi/museRISC/issues/22) → [#23 V vector](https://github.com/bubblebabyboi/museRISC/issues/23) | Linux + H + integer V done |
-| [#24 Verification + CI](https://github.com/bubblebabyboi/museRISC/issues/24) | [#20 ISA follow-ups](https://github.com/bubblebabyboi/museRISC/issues/20) · [#8 riscv-dv/CI](https://github.com/bubblebabyboi/museRISC/issues/8) · [#19 SV/cocotb](https://github.com/bubblebabyboi/museRISC/issues/19) | Supports #18 |
-| [#25 Crypto + security](https://github.com/bubblebabyboi/museRISC/issues/25) | [#6 streaming](https://github.com/bubblebabyboi/museRISC/issues/6) · [#5 scalar-mul](https://github.com/bubblebabyboi/museRISC/issues/5) · [#12 security review](https://github.com/bubblebabyboi/museRISC/issues/12) · [#10 benchmark](https://github.com/bubblebabyboi/museRISC/issues/10) | Security review gates key use |
-| [#26 SoC + physical](https://github.com/bubblebabyboi/museRISC/issues/26) | [#4 B4 SoC attach](https://github.com/bubblebabyboi/museRISC/issues/4) → [#11 OpenROAD](https://github.com/bubblebabyboi/museRISC/issues/11) → [#13 MPW](https://github.com/bubblebabyboi/museRISC/issues/13) | Deferred |
+| [#18 Core + software](https://github.com/bubblebabyboi/sigil/issues/18) | [#21 Linux](https://github.com/bubblebabyboi/sigil/issues/21) → [#22 H hypervisor](https://github.com/bubblebabyboi/sigil/issues/22) → [#23 V vector](https://github.com/bubblebabyboi/sigil/issues/23) | Linux + H + integer V done |
+| [#24 Verification + CI](https://github.com/bubblebabyboi/sigil/issues/24) | [#20 ISA follow-ups](https://github.com/bubblebabyboi/sigil/issues/20) · [#8 riscv-dv/CI](https://github.com/bubblebabyboi/sigil/issues/8) · [#19 SV/cocotb](https://github.com/bubblebabyboi/sigil/issues/19) | Supports #18 |
+| [#25 Crypto + security](https://github.com/bubblebabyboi/sigil/issues/25) | [#6 streaming](https://github.com/bubblebabyboi/sigil/issues/6) · [#5 scalar-mul](https://github.com/bubblebabyboi/sigil/issues/5) · [#12 security review](https://github.com/bubblebabyboi/sigil/issues/12) · [#10 benchmark](https://github.com/bubblebabyboi/sigil/issues/10) | Security review gates key use |
+| [#26 SoC + physical](https://github.com/bubblebabyboi/sigil/issues/26) | [#4 B4 SoC attach](https://github.com/bubblebabyboi/sigil/issues/4) → [#11 OpenROAD](https://github.com/bubblebabyboi/sigil/issues/11) → [#13 MPW](https://github.com/bubblebabyboi/sigil/issues/13) | Deferred |
 
 More detail: [`docs/ROADMAP.md`](docs/ROADMAP.md) ·
 [`docs/SPEC.md`](docs/SPEC.md) ·
@@ -284,11 +289,11 @@ third_party/  Pinned external sources (fetched, not the product core)
 
 ## Licence
 
-Original museRISC code and documentation are licensed under
+Original Sigil code and documentation are licensed under
 the **GNU General Public License v3.0** — see
 [LICENSE](LICENSE). External cores and tools under
 `third_party/` keep their own licences.
 
-The museRISC logo is an original project mark, not an
-official Muse or RISC-V logo. “RISC-V” is used descriptively
+The Sigil logo is an original project mark, not an
+official RISC-V logo. “RISC-V” is used descriptively
 for the instruction-set target.

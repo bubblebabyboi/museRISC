@@ -1,5 +1,5 @@
-// museRISC SHA-512 block core (FIPS 180-4). One 1024-bit block per
-// start pulse; padding by driver (or muse_hash_stream). Iterative
+// Sigil SHA-512 block core (FIPS 180-4). One 1024-bit block per
+// start pulse; padding by driver (or sigil_hash_stream). Iterative
 // 1 round/cycle x80. `cont`=0 starts from the FIPS IV; `cont`=1
 // chains from the previous block's result (multi-block messages).
 // The chaining value after reset is undefined: the first block of

@@ -8,8 +8,8 @@
 # not a closure result.
 #
 # Usage: scripts/synth_unit_nangate45.sh <top> <file.sv>... [-- PARAM=VAL...]
-#   e.g. scripts/synth_unit_nangate45.sh muserisc_muldiv_mc \
-#          rtl/core/muserisc_muldiv.sv rtl/core/muserisc_muldiv_mc.sv
+#   e.g. scripts/synth_unit_nangate45.sh sigil_muldiv_mc \
+#          rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
 # Output: build/synth/<top>[_PARAMS]/{stat.txt,sta.log,net.v,yosys.log}
 set -euo pipefail
 cd "$(dirname "$0")/.."

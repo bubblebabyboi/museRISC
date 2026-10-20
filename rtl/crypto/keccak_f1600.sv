@@ -1,4 +1,4 @@
-// museRISC Keccak-f1600 permutation (FIPS 202). 24 rounds, 1 round/cycle.
+// Sigil Keccak-f1600 permutation (FIPS 202). 24 rounds, 1 round/cycle.
 // State lane (x,y) is state[64*(5*y+x) +: 64], little-endian lanes as in
 // the Keccak reference. Sponge (rate/padding) is handled by the driver.
 `default_nettype none

@@ -1,7 +1,7 @@
-# museRISC — Remaining Work Plan (agent handoff)
+# Sigil — Remaining Work Plan (agent handoff)
 
 - Date: 2026-10-20
-- Repo: `bubblebabyboi/museRISC` (local checkout: `museRISC/`)
+- Repo: `bubblebabyboi/sigil` (local checkout: `Sigil/`)
 - State at writing: local branch `integrate-prs`, 61 commits ahead of
   `origin/main`, working tree clean. 18 stacked PRs (#33–#50) are open
   upstream and merged locally in that order on `integrate-prs`.
@@ -47,7 +47,7 @@
   documented waiver, `PMPSm_cfg_A_tor_zero-00`, a harness/platform
   mismatch at PA 0 — see `docs/evidence/README.md`); ACT integer
   vector 1872/1872; ACT FP vector 162/162; OpenSBI v1.9 + Linux 6.6
-  boot to initramfs `/init` (`MUSERISC_LINUX_BOOT_OK`, ~509M cycles);
+  boot to initramfs `/init` (`SIGIL_LINUX_BOOT_OK`, ~509M cycles);
   Linux KVM smoke (VM/vCPU + 4-instruction guest MMIO exit — not a
   guest-OS boot); crypto KATs pass (`make test`).
 - Synthesizable SoC exists (`rtl/soc/`): core + L1 I$/D$ behind one
@@ -59,7 +59,7 @@
   arrays on SRAM macros. Nangate45: 0.66 mm², 162 MHz unrepaired.
   Sky130hd: 8.59 mm² synthesized, ~11.8–13.5 mm² placed estimate,
   12.3 MHz unrepaired (OpenRAM half-cycle reads dominate). Detail:
-  `docs/SOC_AREA.md`. Standalone `muse_crypto` macro has an older
+  `docs/SOC_AREA.md`. Standalone `sigil_crypto` macro has an older
   full OpenROAD P&R + GDS (nangate45, issue #3, closed).
 - Stale docs warning: `docs/TASKS.md` and `docs/ROADMAP.md` predate
   the in-house core. They still show B3/B4 pending and Ara-era
@@ -152,7 +152,7 @@ Ed25519 verify on-core is missing; issue #4 requires both curves.
    Ed25519 verify of the RFC 8032 vectors already used by
    `sw/ec_ops.py`, driving field ops through the accelerator at
    `0x2000_0000` (Curve25519 `p`, `MODSEL=1`; register map in
-   `docs/SPEC.md`, driver constants in `sw/muse_crypto.h`).
+   `docs/SPEC.md`, driver constants in `sw/sigil_crypto.h`).
    Include a tampered-signature reject case, mirroring the
    existing secp256k1 tamper check. Note: Ed25519 needs SHA-512;
    until W3 lands, compute the hash in software on-core or use
@@ -188,8 +188,8 @@ firmware sequences into a constant-time hardware sequencer over
    secret-indexed tables, fixed memory-access pattern, constant
    cycle count for every scalar.
 2. RTL in `rtl/crypto/` + engine hookup in
-   `rtl/crypto/muse_crypto_top.sv` (new engine select / registers;
-   update `docs/SPEC.md` register map + `sw/muse_crypto.h` in
+   `rtl/crypto/sigil_crypto_top.sv` (new engine select / registers;
+   update `docs/SPEC.md` register map + `sw/sigil_crypto.h` in
    the same change).
 3. Testbenches in `tb/cpp/`: RFC 8032 vectors + Wycheproof-style
    ECDSA vectors (same frozen vectors as `sw/ec_ops.py`); a
@@ -207,7 +207,7 @@ issue #5 closed with evidence. Still no production keys (W4).
 Depends on: W0. Independent of W2. Unblocks: full on-core
 Ed25519 hashing without the W1 workaround; W6 completeness.
 
-Current gap: `rtl/crypto/muse_crypto_top.sv` exposes only
+Current gap: `rtl/crypto/sigil_crypto_top.sv` exposes only
 SHA-256 (one 512-bit block) + field ops. `sha512_block.sv` and
 `keccak_f1600.sv` are verified standalone only; engine select 1
 is reserved. Software cannot hash arbitrary-length messages
@@ -223,7 +223,7 @@ through the accelerator.
    backward-compatible for existing SHA-256/field users.
 4. Multi-block KATs vs `hashlib` (SHA-512, SHA3-256, Keccak-256)
    in `tb/cpp/`, plus boundary lengths (0, rate-1, rate, rate+1,
-   multi-rate). Update `sw/muse_crypto.h` + `docs/SPEC.md`.
+   multi-rate). Update `sw/sigil_crypto.h` + `docs/SPEC.md`.
 5. Re-run W1 SoC test; optionally switch its Ed25519 step to
    accelerator SHA-512 and note the change in evidence.
 
@@ -307,16 +307,16 @@ blockers, in order:
    15) to break OpenRAM half-cycle paths — costs +1 cycle on
    VRF reads and cache hits; re-run full gates + `srammacro`
    (`make core-test` includes it) and re-measure fmax. Add the
-   missing reset synchronizer in `muserisc_soc_top` (flagged in
+   missing reset synchronizer in `sigil_soc_top` (flagged in
    `docs/SOC_AREA.md`). Confirm the OpenRAM hold-time signoff
    assumption with macro characterization or timed gate-level
    sim (`vendor_model_check.sh` documents the gap).
 2. Apply the owner's cache/config decision for sky130
-   (parameters on `muserisc_cpu`: `IC_SETS/WAYS`, `DC_SETS/WAYS`
+   (parameters on `sigil_cpu`: `IC_SETS/WAYS`, `DC_SETS/WAYS`
    — see `docs/CORE.md`). Re-run synthesis for the chosen
    config before P&R.
-3. Hierarchical ORFS flow: hardened `muse_crypto` macro + core
-   subsystem (`flow/designs/sky130hd/muserisc_soc/`,
+3. Hierarchical ORFS flow: hardened `sigil_crypto` macro + core
+   subsystem (`flow/designs/sky130hd/sigil_soc/`,
    `scripts/openroad_docker.sh`). Clock/reset strategy, IO
    plan. Iterate floorplan → place → CTS → route to timing /
    DRC / antenna clean. Record die area honestly at each step.
@@ -366,7 +366,7 @@ Execute `docs/FPGA_F2.md` stages in order; do not skip:
 6. F5 evidence, in order, each a dated log: bare-metal hello +
    directed tests + benchmark cycle counts; crypto KATs via
    the SoC accelerator; OpenSBI + Linux to
-   `MUSERISC_LINUX_BOOT_OK`; static user binary marker.
+   `SIGIL_LINUX_BOOT_OK`; static user binary marker.
 
 Acceptance: issue #32 closes with AFI id, HDK/shell versions,
 Vivado timing summary, measured (not inferred) ≥ 100 MHz
@@ -402,7 +402,7 @@ commands: background + log under `build/` (see How to use).
 | riscv-tests | `make riscv-tests` (or `bash sim/run_riscv_tests.sh`) | 123/123 |
 | ACT (core) | `bash scripts/build_act4_core.sh` then `bash sim/run_act_core_par.sh` | 2577/2578, only the PA0 waiver |
 | RTL SoC crypto | `make -C sim socrtl` | `SOC CRYPTO PASS`, `SOC RTL TB PASS` |
-| Linux boot (long, not per-commit) | commands in `sw/linux/README.md` | `MUSERISC_LINUX_BOOT_OK`, ~509M cycles |
+| Linux boot (long, not per-commit) | commands in `sw/linux/README.md` | `SIGIL_LINUX_BOOT_OK`, ~509M cycles |
 
 Package-specific gates are stated inside W2–W8. The
 highest-risk validation step in this plan is the ACT re-run
@@ -440,7 +440,7 @@ Open questions (owner must answer; defaults assumed above):
 
 Copy-paste, filling in the package:
 
-> You are working in the museRISC repo. Read
+> You are working in the Sigil repo. Read
 > `docs/REMAINING-WORK-PLAN.md` first, then `AGENTS.md`, then
 > the GitHub issue for work package W__ (§___). Confirm W0 is
 > done (`main` includes PR #50) or stop and report. Work in

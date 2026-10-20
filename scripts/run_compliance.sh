@@ -6,7 +6,7 @@
 # Today this validates the harness end-to-end (DUT = Sail itself) for
 # RV64I:  `RESULT: All 51 tests passed.`  That is NOT a hardware
 # compliance claim. Running the same ELFs on the CVA6 Verilator model
-# needs a museRISC DUT config (rvmodel_macros.h + link.ld for the
+# needs a Sigil DUT config (rvmodel_macros.h + link.ld for the
 # Ariane testharness) -- see docs/COMPLIANCE.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -1,4 +1,4 @@
-// Streaming hash KATs through the muse_crypto_top AXI4-Lite registers
+// Streaming hash KATs through the sigil_crypto_top AXI4-Lite registers
 // (issue #6, docs/SPEC.md section 3): SHA-512, SHA3-256 and SHAKE256
 // against Python hashlib, Keccak-256 against the in-repo sponge
 // (sw/hash_kat.py, checked against published vectors). Lengths cover
@@ -8,7 +8,7 @@
 // auto-increment and HOPTR random access, multi-block SHAKE squeeze,
 // aborting a message with INIT while a block is in flight, error
 // flags, and independence from the legacy SHA-256/field registers.
-#include "Vmuse_crypto_top.h"
+#include "Vsigil_crypto_top.h"
 #include "hash_stream_kats.h"
 #include "verilated.h"
 #include "verilated_cov.h"
@@ -42,8 +42,8 @@ void PrintHex(const char* tag, const std::vector<uint8_t>& v) {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuse_crypto_top> dut{
-      new Vmuse_crypto_top{&context}};
+  const std::unique_ptr<Vsigil_crypto_top> dut{
+      new Vsigil_crypto_top{&context}};
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0, stall_cycles = 0, cycles = 0;
 

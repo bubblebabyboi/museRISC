@@ -22,9 +22,9 @@ VFLAGS    := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME \
 # (expensive) coverage instrumentation for long OS boots.
 VFLAGS_FAST := --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert -O3 -I$(RTL) \
                -CFLAGS "-std=c++17 -O2" --Mdir
-PKG       := $(RTL)/muserisc_pkg.sv
-# `included by muserisc_fpu_pkg.sv and muserisc_fpu.sv (dependency only)
-FPU_INC   := $(RTL)/muserisc_fpu_ops.svh
+PKG       := $(RTL)/sigil_pkg.sv
+# `included by sigil_fpu_pkg.sv and sigil_fpu.sv (dependency only)
+FPU_INC   := $(RTL)/sigil_fpu_ops.svh
 # Harness bus timing for the randomized-latency runs (core_tb).
 CORE_RAND_ARGS := --mem-lat 1:6 --mem-gap 2 --mem-ready 70
 
@@ -34,24 +34,24 @@ RISCV_GCC     := $(RISCV_PREFIX)gcc
 RISCV_OBJCOPY := $(RISCV_PREFIX)objcopy
 SWFLAGS       := -march=rv64imafdc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh_zicsr_zifencei -mabi=lp64 -nostdlib -T $(ROOT)/sw/core-tests/link.ld
 
-CORE_RTL := $(PKG) $(RTL)/muserisc_regfile.sv \
-            $(RTL)/muserisc_fpregfile.sv $(RTL)/muserisc_alu.sv \
-            $(RTL)/muserisc_muldiv.sv \
-            $(RTL)/muserisc_muldiv_mc.sv \
-            $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
-            $(RTL)/muserisc_bext_pkg.sv $(RTL)/muserisc_bext.sv \
-            $(RTL)/muserisc_vregfile.sv \
-            $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_vec.sv \
-            $(RTL)/muserisc_rvc.sv \
-            $(RTL)/muserisc_decoder.sv \
-            $(RTL)/muserisc_csr.sv $(RTL)/muserisc_mmu.sv \
-            $(RTL)/muserisc_cache_pkg.sv $(RTL)/muserisc_core.sv
-# L1 caches + CPU wrapper (muserisc_cpu is the harness top).
-CACHE_RTL := $(RTL)/muserisc_cache_pkg.sv $(RTL)/muserisc_sram_sp.sv \
-             $(RTL)/muserisc_icache.sv $(RTL)/muserisc_dcache.sv \
-             $(RTL)/muserisc_bus_arb.sv
-CPU_RTL  := $(CORE_RTL) $(filter-out $(RTL)/muserisc_cache_pkg.sv,$(CACHE_RTL)) \
-            $(RTL)/muserisc_cpu.sv
+CORE_RTL := $(PKG) $(RTL)/sigil_regfile.sv \
+            $(RTL)/sigil_fpregfile.sv $(RTL)/sigil_alu.sv \
+            $(RTL)/sigil_muldiv.sv \
+            $(RTL)/sigil_muldiv_mc.sv \
+            $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
+            $(RTL)/sigil_bext_pkg.sv $(RTL)/sigil_bext.sv \
+            $(RTL)/sigil_vregfile.sv \
+            $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_vec.sv \
+            $(RTL)/sigil_rvc.sv \
+            $(RTL)/sigil_decoder.sv \
+            $(RTL)/sigil_csr.sv $(RTL)/sigil_mmu.sv \
+            $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_core.sv
+# L1 caches + CPU wrapper (sigil_cpu is the harness top).
+CACHE_RTL := $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_sram_sp.sv \
+             $(RTL)/sigil_icache.sv $(RTL)/sigil_dcache.sv \
+             $(RTL)/sigil_bus_arb.sv
+CPU_RTL  := $(CORE_RTL) $(filter-out $(RTL)/sigil_cache_pkg.sv,$(CACHE_RTL)) \
+            $(RTL)/sigil_cpu.sv
 TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed vec_trap_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
@@ -73,9 +73,9 @@ $(BUILD) $(OBJ):
 	mkdir -p $@
 
 ## ---- ALU unit test ----------------------------------------------------
-$(BUILD)/alu_tb: $(ROOT)/tb/cpp/alu_tb.cpp $(PKG) $(RTL)/muserisc_alu.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/alu --top-module muserisc_alu \
-	  -o $(abspath $(BUILD)/alu_tb) $(PKG) $(RTL)/muserisc_alu.sv \
+$(BUILD)/alu_tb: $(ROOT)/tb/cpp/alu_tb.cpp $(PKG) $(RTL)/sigil_alu.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/alu --top-module sigil_alu \
+	  -o $(abspath $(BUILD)/alu_tb) $(PKG) $(RTL)/sigil_alu.sv \
 	  $(abspath $(ROOT)/tb/cpp/alu_tb.cpp)
 
 alu: $(BUILD)/alu_tb
@@ -83,24 +83,24 @@ alu: $(BUILD)/alu_tb
 
 ## ---- Muldiv unit test ---------------------------------------------------
 $(BUILD)/muldiv_tb: $(ROOT)/tb/cpp/muldiv_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h \
-                    $(RTL)/muserisc_muldiv.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv --top-module muserisc_muldiv \
-	  -o $(abspath $(BUILD)/muldiv_tb) $(RTL)/muserisc_muldiv.sv \
+                    $(RTL)/sigil_muldiv.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv --top-module sigil_muldiv \
+	  -o $(abspath $(BUILD)/muldiv_tb) $(RTL)/sigil_muldiv.sv \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_tb.cpp)
 
 muldiv: $(BUILD)/muldiv_tb
 	cd $(BUILD) && COV_FILE=cov_muldiv.dat ./muldiv_tb
 
 ## ---- Multi-cycle muldiv unit test (COMB=0 and the COMB=1 legacy mode) ----
-MULDIV_MC_SRC := $(RTL)/muserisc_muldiv.sv $(RTL)/muserisc_muldiv_mc.sv
+MULDIV_MC_SRC := $(RTL)/sigil_muldiv.sv $(RTL)/sigil_muldiv_mc.sv
 MULDIV_MC_DEP := $(ROOT)/tb/cpp/muldiv_mc_tb.cpp $(ROOT)/tb/cpp/muldiv_golden.h $(MULDIV_MC_SRC)
 $(BUILD)/muldiv_mc_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc --top-module muserisc_muldiv_mc \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc --top-module sigil_muldiv_mc \
 	  -o $(abspath $(BUILD)/muldiv_mc_tb) $(MULDIV_MC_SRC) \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
 
 $(BUILD)/muldiv_mc_comb_tb: $(MULDIV_MC_DEP) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc_comb --top-module muserisc_muldiv_mc \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/muldiv_mc_comb --top-module sigil_muldiv_mc \
 	  -GCOMB=1 -CFLAGS -DMDU_COMB \
 	  -o $(abspath $(BUILD)/muldiv_mc_comb_tb) $(MULDIV_MC_SRC) \
 	  $(abspath $(ROOT)/tb/cpp/muldiv_mc_tb.cpp)
@@ -110,45 +110,45 @@ muldiv_mc: $(BUILD)/muldiv_mc_tb $(BUILD)/muldiv_mc_comb_tb
 	cd $(BUILD) && COV_FILE=cov_muldiv_mc_comb.dat ./muldiv_mc_comb_tb 100000
 
 ## ---- Decoder unit test -------------------------------------------------
-$(BUILD)/decoder_tb: $(ROOT)/tb/cpp/decoder_tb.cpp $(PKG) $(RTL)/muserisc_decoder.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/decoder --top-module muserisc_decoder \
-	  -o $(abspath $(BUILD)/decoder_tb) $(PKG) $(RTL)/muserisc_decoder.sv \
+$(BUILD)/decoder_tb: $(ROOT)/tb/cpp/decoder_tb.cpp $(PKG) $(RTL)/sigil_decoder.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/decoder --top-module sigil_decoder \
+	  -o $(abspath $(BUILD)/decoder_tb) $(PKG) $(RTL)/sigil_decoder.sv \
 	  $(abspath $(ROOT)/tb/cpp/decoder_tb.cpp)
 
 decoder: $(BUILD)/decoder_tb
 	cd $(BUILD) && COV_FILE=cov_decoder.dat ./decoder_tb
 
 ## ---- Register file unit test --------------------------------------------
-$(BUILD)/regfile_tb: $(ROOT)/tb/cpp/regfile_tb.cpp $(RTL)/muserisc_regfile.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/regfile --top-module muserisc_regfile \
-	  -o $(abspath $(BUILD)/regfile_tb) $(RTL)/muserisc_regfile.sv \
+$(BUILD)/regfile_tb: $(ROOT)/tb/cpp/regfile_tb.cpp $(RTL)/sigil_regfile.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/regfile --top-module sigil_regfile \
+	  -o $(abspath $(BUILD)/regfile_tb) $(RTL)/sigil_regfile.sv \
 	  $(abspath $(ROOT)/tb/cpp/regfile_tb.cpp)
 
 regfile: $(BUILD)/regfile_tb
 	cd $(BUILD) && COV_FILE=cov_regfile.dat ./regfile_tb
 
 ## ---- CSR / privileged unit test ------------------------------------------
-$(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/muserisc_csr.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/csr --top-module muserisc_csr \
-	  -o $(abspath $(BUILD)/csr_tb) $(RTL)/muserisc_csr.sv \
+$(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/csr --top-module sigil_csr \
+	  -o $(abspath $(BUILD)/csr_tb) $(RTL)/sigil_csr.sv \
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
 csr: $(BUILD)/csr_tb
 	cd $(BUILD) && COV_FILE=cov_csr.dat ./csr_tb
 
 ## ---- RTL PLIC unit test (claim arbitration vs a reference model) ----
-$(BUILD)/plic_tb: $(ROOT)/tb/cpp/plic_tb.cpp $(ROOT)/rtl/soc/muserisc_plic.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/plic --top-module muserisc_plic \
-	  -o $(abspath $(BUILD)/plic_tb) $(ROOT)/rtl/soc/muserisc_plic.sv \
+$(BUILD)/plic_tb: $(ROOT)/tb/cpp/plic_tb.cpp $(ROOT)/rtl/soc/sigil_plic.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/plic --top-module sigil_plic \
+	  -o $(abspath $(BUILD)/plic_tb) $(ROOT)/rtl/soc/sigil_plic.sv \
 	  $(abspath $(ROOT)/tb/cpp/plic_tb.cpp)
 
 plic: $(BUILD)/plic_tb
 	cd $(BUILD) && COV_FILE=cov_plic.dat ./plic_tb
 
 ## ---- MMU unit test -------------------------------------------------------
-$(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/muserisc_mmu.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu --top-module muserisc_mmu \
-	  -o $(abspath $(BUILD)/mmu_tb) $(RTL)/muserisc_mmu.sv \
+$(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu --top-module sigil_mmu \
+	  -o $(abspath $(BUILD)/mmu_tb) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
 
 mmu: $(BUILD)/mmu_tb
@@ -162,13 +162,13 @@ $(SF_HOST)/softfloat.a: softfloat-host/Makefile softfloat-host/platform.h
 	cp softfloat-host/Makefile softfloat-host/platform.h $(SF_HOST)/
 	cd $(SF_HOST) && sed -i.bak 's|../../source|../../third_party/berkeley-softfloat-3/source|' Makefile && $(MAKE) -j8
 $(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
-                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
                  $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu --top-module muserisc_fpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu --top-module sigil_fpu \
 	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
 	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
-	  -o $(abspath $(BUILD)/fpu_tb) $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_fpu.sv \
+	  -o $(abspath $(BUILD)/fpu_tb) $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
 	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
 
 fpu: $(BUILD)/fpu_tb
@@ -177,14 +177,14 @@ fpu: $(BUILD)/fpu_tb
 # Same TB on the FPU_DS_BITS=1 configuration (one div/sqrt step
 # per cycle: the shorter-critical-path alternative).
 $(BUILD)/fpu_tb_ds1: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
-                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
+                 $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
                  $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu_ds1 --top-module muserisc_fpu \
-	  +define+MUSERISC_FPU_DS_BITS=1 -CFLAGS -DFPU_DS_BITS=1 \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/fpu_ds1 --top-module sigil_fpu \
+	  +define+SIGIL_FPU_DS_BITS=1 -CFLAGS -DFPU_DS_BITS=1 \
 	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
 	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
-	  -o $(abspath $(BUILD)/fpu_tb_ds1) $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_fpu.sv \
+	  -o $(abspath $(BUILD)/fpu_tb_ds1) $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
 	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
 
 fpu-ds1: $(BUILD)/fpu_tb_ds1
@@ -192,38 +192,38 @@ fpu-ds1: $(BUILD)/fpu_tb_ds1
 
 ## ---- B/crypto unit test ---------------------------------------------------
 $(BUILD)/bext_tb: $(ROOT)/tb/cpp/bext_tb.cpp \
-                  $(RTL)/muserisc_bext_pkg.sv $(RTL)/muserisc_bext.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/bext --top-module muserisc_bext \
-	  -o $(abspath $(BUILD)/bext_tb) $(RTL)/muserisc_bext_pkg.sv \
-	  $(RTL)/muserisc_bext.sv \
-            $(RTL)/muserisc_rvc.sv \
+                  $(RTL)/sigil_bext_pkg.sv $(RTL)/sigil_bext.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/bext --top-module sigil_bext \
+	  -o $(abspath $(BUILD)/bext_tb) $(RTL)/sigil_bext_pkg.sv \
+	  $(RTL)/sigil_bext.sv \
+            $(RTL)/sigil_rvc.sv \
 	  $(abspath $(ROOT)/tb/cpp/bext_tb.cpp)
 
 bext: $(BUILD)/bext_tb
 	cd $(BUILD) && COV_FILE=cov_bext.dat ./bext_tb
 
 ## ---- RVC decompressor unit test --------------------------------------------
-$(BUILD)/rvc_tb: $(ROOT)/tb/cpp/rvc_tb.cpp $(RTL)/muserisc_rvc.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/rvc --top-module muserisc_rvc \
-	  -o $(abspath $(BUILD)/rvc_tb) $(RTL)/muserisc_rvc.sv \
+$(BUILD)/rvc_tb: $(ROOT)/tb/cpp/rvc_tb.cpp $(RTL)/sigil_rvc.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/rvc --top-module sigil_rvc \
+	  -o $(abspath $(BUILD)/rvc_tb) $(RTL)/sigil_rvc.sv \
 	  $(abspath $(ROOT)/tb/cpp/rvc_tb.cpp)
 
 rvc: $(BUILD)/rvc_tb
 	cd $(BUILD) && COV_FILE=cov_rvc.dat ./rvc_tb
 
 ## ---- Vector unit test ------------------------------------------------------
-# Harness = muserisc_vec + banked muserisc_vregfile + TB backdoor.
+# Harness = sigil_vec + banked sigil_vregfile + TB backdoor.
 $(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
-                 $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-                 $(RTL)/muserisc_fpu.sv \
-                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-                 $(ROOT)/tb/sv/muserisc_vec_harness.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module muserisc_vec_harness \
+                 $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
+                 $(RTL)/sigil_fpu.sv \
+                 $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+                 $(ROOT)/tb/sv/sigil_vec_harness.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module sigil_vec_harness \
 	  -o $(abspath $(BUILD)/vec_tb) $(PKG) \
-	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_fpu.sv \
-	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
+	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+	  $(ROOT)/tb/sv/sigil_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
 vec: $(BUILD)/vec_tb
@@ -234,18 +234,18 @@ vec: $(BUILD)/vec_tb
 # quiet until reset. Short runs; seeds 1, 2 and 4 each fired a
 # cross-check at time 0 before the reset gating. No coverage.
 $(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
-                 $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-                 $(RTL)/muserisc_fpu.sv \
-                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-                 $(ROOT)/tb/sv/muserisc_vec_harness.sv | $(BUILD) $(OBJ)
+                 $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
+                 $(RTL)/sigil_fpu.sv \
+                 $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+                 $(ROOT)/tb/sv/sigil_vec_harness.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --assert --coverage-line \
 	  --x-initial unique -I$(RTL) -CFLAGS "-std=c++17 -O2" \
-	  --Mdir $(OBJ)/vec_xinit --top-module muserisc_vec_harness \
+	  --Mdir $(OBJ)/vec_xinit --top-module sigil_vec_harness \
 	  -o $(abspath $(BUILD)/vec_tb_xinit) $(PKG) \
-	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_fpu.sv \
-	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
+	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+	  $(ROOT)/tb/sv/sigil_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
 vec-xinit: $(BUILD)/vec_tb_xinit
@@ -263,7 +263,7 @@ CACHE_TB_G := -GSETS=4 -GWAYS=2 -GLINE_BYTES=32 \
               "-GC0_BASE=64'h1000" "-GC0_SIZE=64'h2000" \
               "-GC1_BASE=64'h0080000000000000" "-GC1_SIZE=64'h0080000000000000"
 $(BUILD)/dcache_tb: $(ROOT)/tb/cpp/dcache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/dcache --top-module muserisc_dcache $(CACHE_TB_G) \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/dcache --top-module sigil_dcache $(CACHE_TB_G) \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/dcache_tb) $(CACHE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/dcache_tb.cpp)
@@ -272,7 +272,7 @@ dcache: $(BUILD)/dcache_tb
 	cd $(BUILD) && COV_FILE=cov_dcache.dat ./dcache_tb
 
 $(BUILD)/icache_tb: $(ROOT)/tb/cpp/icache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/icache --top-module muserisc_icache $(CACHE_TB_G) \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/icache --top-module sigil_icache $(CACHE_TB_G) \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/icache_tb) $(CACHE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/icache_tb.cpp)
@@ -314,11 +314,11 @@ ecfield: $(BUILD)/ec_field_tb
 	cd $(BUILD) && COV_FILE=cov_ecfield.dat ./ec_field_tb
 
 CRYPTO_TOP_RTL := $(CRYPTO)/sha256_block.sv $(CRYPTO)/sha512_block.sv \
-                  $(CRYPTO)/keccak_f1600.sv $(CRYPTO)/muse_hash_stream.sv \
-                  $(CRYPTO)/ec_field.sv $(CRYPTO)/muse_crypto_top.sv
+                  $(CRYPTO)/keccak_f1600.sv $(CRYPTO)/sigil_hash_stream.sv \
+                  $(CRYPTO)/ec_field.sv $(CRYPTO)/sigil_crypto_top.sv
 $(BUILD)/crypto_top_tb: $(ROOT)/tb/cpp/crypto_top_tb.cpp \
                      $(CRYPTO_TOP_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/cryptotop --top-module muse_crypto_top \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/cryptotop --top-module sigil_crypto_top \
 	  -o $(abspath $(BUILD)/crypto_top_tb) $(CRYPTO_TOP_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/crypto_top_tb.cpp)
 
@@ -334,7 +334,7 @@ $(BUILD)/hash_stream_kats.h: $(ROOT)/sw/hash_kat.py $(ROOT)/sw/golden.py | $(BUI
 $(BUILD)/hash_stream_tb: $(ROOT)/tb/cpp/hash_stream_tb.cpp \
                      $(BUILD)/hash_stream_kats.h \
                      $(CRYPTO_TOP_RTL) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/hashstream --top-module muse_crypto_top \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/hashstream --top-module sigil_crypto_top \
 	  -CFLAGS -I$(abspath $(BUILD)) \
 	  -o $(abspath $(BUILD)/hash_stream_tb) $(CRYPTO_TOP_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/hash_stream_tb.cpp)
@@ -348,7 +348,7 @@ crypto: sha256 sha512 keccak ecfield cryptotop hashstream
 # core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
 # plus the default DRAM window at 0x8000_0000 (ELF tests).
 $(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module muserisc_cpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/core_tb) $(CPU_RTL) \
@@ -357,7 +357,7 @@ $(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_R
 ## ---- SoC platform harness (Linux/OpenSBI boot, issue #21) --------------
 # Default cacheability: DRAM 0x8000_0000.. only; ROM/CLINT/PLIC/UART are I/O.
 $(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/soc --top-module muserisc_cpu \
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/soc --top-module sigil_cpu \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/soc_tb) $(CPU_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_tb.cpp)
@@ -377,27 +377,27 @@ soc: $(BUILD)/soc_tb $(ROOT)/build/linux/boot_stub.bin $(ROOT)/build/linux/s_hel
 ## ---- RTL SoC harness (synthesizable SoC, issue #4) ---------------------
 SOCDIR    := $(ROOT)/rtl/soc
 HASH_RTL  := $(CRYPTO)/sha512_block.sv $(CRYPTO)/keccak_f1600.sv \
-             $(CRYPTO)/muse_hash_stream.sv
+             $(CRYPTO)/sigil_hash_stream.sv
 SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
-             $(CRYPTO)/ec_field.sv $(CRYPTO)/muse_crypto_top.sv \
-             $(SOCDIR)/muserisc_clint.sv $(SOCDIR)/muserisc_plic.sv \
-             $(SOCDIR)/muserisc_uart16550.sv \
-             $(SOCDIR)/muserisc_bootrom.sv \
-             $(SOCDIR)/muserisc_crypto_bridge.sv \
-             $(SOCDIR)/muserisc_soc_fabric.sv \
-             $(SOCDIR)/muserisc_soc_top.sv
+             $(CRYPTO)/ec_field.sv $(CRYPTO)/sigil_crypto_top.sv \
+             $(SOCDIR)/sigil_clint.sv $(SOCDIR)/sigil_plic.sv \
+             $(SOCDIR)/sigil_uart16550.sv \
+             $(SOCDIR)/sigil_bootrom.sv \
+             $(SOCDIR)/sigil_crypto_bridge.sv \
+             $(SOCDIR)/sigil_soc_fabric.sv \
+             $(SOCDIR)/sigil_soc_top.sv
 # Absolute: recipes below cd into $(BUILD), where ROOT-relative paths break.
 SOCFW     := $(abspath $(ROOT)/build/soc-tests)
 
 # Long firmware runs: no coverage instrumentation (as soc_tb).
 $(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl --top-module muserisc_soc_top \
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl --top-module sigil_soc_top \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/soc_rtl_tb) $(SOC_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
 
 SOCFW_DEPS := $(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld \
-  $(ROOT)/sw/soc-tests/soc_crypto_drv.h $(ROOT)/sw/muse_crypto.h
+  $(ROOT)/sw/soc-tests/soc_crypto_drv.h $(ROOT)/sw/sigil_crypto.h
 
 # crypto_soc_test: SHA-256 + secp256k1 ECDSA verify (+ tamper).
 # ed25519_soc_test: Ed25519 verify of the RFC 8032 vectors (+ tamper),
@@ -425,7 +425,7 @@ socrtl: $(BUILD)/soc_rtl_tb $(addprefix $(SOCFW)/,$(addsuffix .bin,$(SOC_CRYPTO_
 # soc-tests startup code and link script.
 $(SOCFW)/hash_soc_test.bin: $(ROOT)/sw/hash-tests/hash_soc_test.c \
 		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld \
-		$(ROOT)/sw/muse_crypto.h
+		$(ROOT)/sw/sigil_crypto.h
 	mkdir -p $(SOCFW)
 	$(RISCV_GCC) -march=rv64imafdc -mabi=lp64 -mcmodel=medany \
 	  -nostdlib -ffreestanding -fno-builtin -O1 \
@@ -451,7 +451,7 @@ core: $(BUILD)/core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 
 ## ---- M unit in COMB=1 (legacy single-cycle) mode: whole directed suite --
 # Proves the core still elaborates and runs with the combinational M
-# unit behind the handshake (+define+MUSERISC_MULDIV_COMB). No coverage
+# unit behind the handshake (+define+SIGIL_MULDIV_COMB). No coverage
 # is written (the main `core` run owns the cov_*.dat files).
 MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_directed.bin \
   amo_directed.bin fp_directed.bin fp_stall_directed.bin bext_directed.bin \
@@ -465,8 +465,8 @@ MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_dir
   fpvec_directed.bin "vec_trap_directed.bin --irq-timer-after 2000" \
   "trap_pa_fetch.bin 100000 --expect-trap 1" "trap_pa_load.bin 100000 --expect-trap 5"
 $(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module muserisc_cpu \
-	  +define+MUSERISC_MULDIV_COMB \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module sigil_cpu \
+	  +define+SIGIL_MULDIV_COMB \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/core_tb_mdcomb) $(CPU_RTL) \
@@ -489,7 +489,7 @@ core-mdcomb: $(BUILD)/core_tb_mdcomb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TE
 # core and the test programs must not depend on initial register
 # contents (e.g. a test using sp without setting it).
 $(BUILD)/core_tb_xinit: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core_xinit --top-module muserisc_cpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_xinit --top-module sigil_cpu \
 	  --x-initial unique \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
@@ -503,37 +503,37 @@ core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TEST
 	done
 
 ## ---- SRAM-macro builds (ORFS flows) ---------------------------------
-# Under MUSERISC_SRAM_FAKERAM45 (nangate45) / MUSERISC_SRAM_SKY130
+# Under SIGIL_SRAM_FAKERAM45 (nangate45) / SIGIL_SRAM_SKY130
 # (sky130hd) the VRF banks and the L1 data/tag ways instantiate SRAM
-# macros. Rebuild the vector unit TB, the core TB (muserisc_cpu with
+# macros. Rebuild the vector unit TB, the core TB (sigil_cpu with
 # the real cache geometry) and the RTL SoC on each macro family's
 # behavioural models (which, like the real macros, do not hold read
 # data) and rerun the vector TB, every directed core test (random bus
 # latency) and the SoC crypto firmware, so the wrappers (masks,
 # selects, half select, read capture) are checked bit-exactly.
-SRAM_DEF_fakeram45 := +define+MUSERISC_SRAM_FAKERAM45
-SRAM_DEF_sky130    := +define+MUSERISC_SRAM_SKY130
-SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/muserisc_soc/sram/,\
+SRAM_DEF_fakeram45 := +define+SIGIL_SRAM_FAKERAM45
+SRAM_DEF_sky130    := +define+SIGIL_SRAM_SKY130
+SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/sigil_soc/sram/,\
   fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
-SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/muserisc_soc/sram/,\
+SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/sigil_soc/sram/,\
   sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
 SRAM_MACROS := fakeram45 sky130
 .SECONDEXPANSION:
-$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/muserisc_vec_pkg.sv \
-                 $(RTL)/muserisc_fpu_pkg.sv $(RTL)/muserisc_fpu.sv \
-                 $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-                 $(ROOT)/tb/sv/muserisc_vec_harness.sv $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/vec_$* --top-module muserisc_vec_harness \
+$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/sigil_vec_pkg.sv \
+                 $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
+                 $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+                 $(ROOT)/tb/sv/sigil_vec_harness.sv $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/vec_$* --top-module sigil_vec_harness \
 	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) -o $(abspath $@) $(PKG) \
-	  $(RTL)/muserisc_vec_pkg.sv $(RTL)/muserisc_fpu_pkg.sv \
-	  $(RTL)/muserisc_fpu.sv \
-	  $(RTL)/muserisc_vregfile.sv $(RTL)/muserisc_vec.sv \
-	  $(ROOT)/tb/sv/muserisc_vec_harness.sv \
+	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
+	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
+	  $(ROOT)/tb/sv/sigil_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
 $(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
                   $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module muserisc_cpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module sigil_cpu \
 	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
@@ -542,7 +542,7 @@ $(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU
 
 $(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
                      $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module muserisc_soc_top \
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module sigil_soc_top \
 	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(SOC_RTL) \
@@ -568,8 +568,8 @@ srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/cor
 
 ## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
 $(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module muserisc_cpu \
-	  +define+MUSERISC_FPU_DS_BITS=1 \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module sigil_cpu \
+	  +define+SIGIL_FPU_DS_BITS=1 \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/core_tb_ds1) $(CPU_RTL) \

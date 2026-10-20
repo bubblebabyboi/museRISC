@@ -13,7 +13,7 @@
 #               of another revision for a before/after comparison);
 #               a relative path is taken from the caller's directory
 #   <file>...   sources relative to <src-root>, packages first
-#   e.g. scripts/synth_block_orfs.sh plic . muserisc_plic rtl/soc/muserisc_plic.sv
+#   e.g. scripts/synth_block_orfs.sh plic . sigil_plic rtl/soc/sigil_plic.sv
 # Output: build/orfs-blk/<tag>/ in this repo (reports/sta_unrepaired.txt,
 #   reports/nangate45/<tag>/base/synth_stat.txt, logs/).
 # Image: openroad/orfs pinned by digest (ORFS_IMAGE overrides).

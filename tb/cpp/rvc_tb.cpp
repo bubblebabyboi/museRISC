@@ -1,4 +1,4 @@
-// museRISC in-house core: RVC decompressor unit testbench.
+// Sigil in-house core: RVC decompressor unit testbench.
 // Exhaustive: all 65536 parcels compared against a golden
 // expander written directly from the C-extension manual
 // tables (Zca + Zcb + Zcd on RV64), structured differently
@@ -10,9 +10,9 @@
 
 #include "verilated.h"
 #include "verilated_cov.h"
-#include "Vmuserisc_rvc.h"
+#include "Vsigil_rvc.h"
 
-static Vmuserisc_rvc* dut;
+static Vsigil_rvc* dut;
 static long checks = 0, fails = 0;
 
 namespace gold {
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
   const char* cov_path = std::getenv("COV_FILE");
-  dut = new Vmuserisc_rvc{&context};
+  dut = new Vsigil_rvc{&context};
 
   for (uint32_t c = 0; c < 65536; c++) {
     if ((c & 3) == 3) continue;  // not a 16-bit parcel

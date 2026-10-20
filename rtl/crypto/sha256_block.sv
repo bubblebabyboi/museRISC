@@ -1,4 +1,4 @@
-// museRISC SHA-256 single-block core (FIPS 180-4).
+// Sigil SHA-256 single-block core (FIPS 180-4).
 // One 512-bit block per start pulse; message padding is done by the
 // driver. Iterative: 1 round/cycle, 64 cycles per block. Synthesizable.
 `default_nettype none

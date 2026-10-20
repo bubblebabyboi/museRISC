@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Liberty-limit electrical signoff check for a finished ORFS run.
 # The flow optimizes against a guardbanded SDC set_max_capacitance
-# (repair target in flow/designs/nangate45/muse_crypto/constraint.sdc),
+# (repair target in flow/designs/nangate45/sigil_crypto/constraint.sdc),
 # so the flow's own 6_finish.rpt counts pins over that guardband.
 # This script re-checks the final routed database against liberty
 # limits only (max cap / slew / fanout) plus timing, which is the
 # signoff criterion used for the B3 evidence in docs/evidence/.
-# Usage: [DESIGN=muse_crypto|muserisc_soc] \
+# Usage: [DESIGN=sigil_crypto|sigil_soc] \
 #          ./scripts/orfs_liberty_check.sh [results-base-dir]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DESIGN="${DESIGN:-muse_crypto}"
-BASE="${1:-build/orfs-results/nangate45/muse_crypto_top/base}"
+DESIGN="${DESIGN:-sigil_crypto}"
+BASE="${1:-build/orfs-results/nangate45/sigil_crypto_top/base}"
 [ -f "$BASE/6_1_fill.odb" ] || { echo "no routed DB in $BASE (run make openroad first)"; exit 1; }
 docker info >/dev/null 2>&1 || { echo "docker daemon not running"; exit 1; }
 

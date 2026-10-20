@@ -1,6 +1,6 @@
 /* Set these to match the DUT memory map and hart count.
  *
- * museRISC DUT: CVA6 cv64a6_imafdc_sv39 in corev_apu ariane_testharness.
+ * Sigil DUT: CVA6 cv64a6_imafdc_sv39 in corev_apu ariane_testharness.
  * RAM_ORIGIN / TEST_BASE = 0x8000_0000 is ariane_soc DRAMBase; the boot ROM
  * at 0x1_0000 jumps to the DRAM base, exactly as for riscv-tests ELFs, so
  * an ACT ELF linked here needs no extra boot stub.

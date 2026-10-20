@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Fetch pinned Berkeley SoftFloat (FPU TB oracle)
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Fetch pinned riscv-tests
@@ -128,7 +128,7 @@ jobs:
       RISCV_TOOLCHAIN_TAG: "2026.08.27"
       RISCV_TOOLCHAIN_ASSET: riscv64-elf-ubuntu-24.04-gcc.tar.xz
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Install host tools

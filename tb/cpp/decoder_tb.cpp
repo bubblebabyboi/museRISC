@@ -1,9 +1,9 @@
-// Unit test for muserisc_decoder: sweeps opcode x funct3 x funct7
+// Unit test for sigil_decoder: sweeps opcode x funct3 x funct7
 // space (plus immediate-pattern corners) against a golden model
 // formulated directly as the RV64I encoding whitelist from the ISA
 // manual, independent of the RTL's case structure. Checks the full
 // control struct and the selected immediate. Exits 0 on pass.
-#include "Vmuserisc_decoder.h"
+#include "Vsigil_decoder.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -630,7 +630,7 @@ Ctrl Golden(uint32_t insn) {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_decoder> dut{new Vmuserisc_decoder{&context}};
+  const std::unique_ptr<Vsigil_decoder> dut{new Vsigil_decoder{&context}};
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0;
 
@@ -639,7 +639,7 @@ int main(int argc, char** argv) {
     dut->eval();
     ++checks;
     const Ctrl g = Golden(insn);
-    // ctrl_t bit layout must match muserisc_pkg.sv declaration order.
+    // ctrl_t bit layout must match sigil_pkg.sv declaration order.
     const uint64_t c = dut->ctrl_o;
     auto bit = [&](int i) { return ((c >> i) & 1u) != 0; };
     // funct3 occupies the low 3 bits (last struct member), then the

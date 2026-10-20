@@ -9,7 +9,7 @@
 set -u
 TB=$(readlink -f "$1"); OUT=$(readlink -f "$2")
 cd "$(dirname "$0")/.."
-ELF_DIR=${3:-third_party/riscv-arch-test/work/muserisc-core/elfs}
+ELF_DIR=${3:-third_party/riscv-arch-test/work/sigil-core/elfs}
 JOBS=${4:-24}
 [ -x "$TB" ] || { echo "no core_tb at $TB"; exit 1; }
 [ -d "$ELF_DIR" ] || { echo "no ELFs in $ELF_DIR; run ./scripts/build_act4_core.sh first"; exit 1; }
@@ -35,7 +35,7 @@ rows=$(( $(wc -l < "$OUT") - 1 ))
 uniq_names=$(tail -n +2 "$OUT" | cut -d, -f1 | sort -u | wc -l)
 pass=$(grep -c ',PASS,' "$OUT")
 fail=$(grep -c ',FAIL,' "$OUT")
-echo "ACT (muserisc-core): $pass/$nelf PASS, $fail FAIL; rows=$rows unique=$uniq_names elfs=$nelf; wall $(( $(date +%s) - start ))s"
+echo "ACT (sigil-core): $pass/$nelf PASS, $fail FAIL; rows=$rows unique=$uniq_names elfs=$nelf; wall $(( $(date +%s) - start ))s"
 grep ',FAIL,' "$OUT" | sed 's/^/FAIL: /'
 if [ "$rows" -ne "$nelf" ] || [ "$uniq_names" -ne "$nelf" ]; then
   echo "row-count mismatch (rows=$rows unique=$uniq_names elfs=$nelf)"

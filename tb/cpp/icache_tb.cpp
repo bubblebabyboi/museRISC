@@ -1,4 +1,4 @@
-// Unit testbench for muserisc_icache (L1 I$, read-only).
+// Unit testbench for sigil_icache (L1 I$, read-only).
 //
 // Build geometry (sim/Makefile -G): 4 sets x 2 ways x 32-byte
 // lines; cacheable C0 = [0x1000, 0x3000), C1 = [2^55,
@@ -18,7 +18,7 @@
 //   - one response per request, never in the accept cycle;
 //   - I/O fetches are single beats with the exact address and
 //     lanes, line refills are aligned full-line bursts.
-#include "Vmuserisc_icache.h"
+#include "Vsigil_icache.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 #include "mbus_model.h"
@@ -56,7 +56,7 @@ int g_errors = 0;
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_icache> dut{new Vmuserisc_icache{&context}};
+  const std::unique_ptr<Vsigil_icache> dut{new Vsigil_icache{&context}};
   std::mt19937_64 rng(777);
   auto rnd = [&](uint64_t n) { return rng() % n; };
 

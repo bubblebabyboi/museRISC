@@ -1,4 +1,4 @@
-// Unit test for muserisc_muldiv_mc (multi-cycle RV64M unit) against
+// Unit test for sigil_muldiv_mc (multi-cycle RV64M unit) against
 // the C++ golden model in muldiv_golden.h, through the generic EX
 // handshake (req/ack/kill/done):
 //   - exhaustive edge-operand cross product for every op and W form,
@@ -16,7 +16,7 @@
 // latency 0, no kill/scramble tests (the unit has no state).
 //
 // Usage: muldiv_mc_tb [random_ops]   (default 1,000,000)
-#include "Vmuserisc_muldiv_mc.h"
+#include "Vsigil_muldiv_mc.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 #include "muldiv_golden.h"
@@ -67,7 +67,7 @@ struct Opts {
 
 class Harness {
  public:
-  explicit Harness(VerilatedContext* ctx) : dut_(new Vmuserisc_muldiv_mc{ctx}), rng_(0x6d756c64ULL) {
+  explicit Harness(VerilatedContext* ctx) : dut_(new Vsigil_muldiv_mc{ctx}), rng_(0x6d756c64ULL) {
     dut_->clk_i = 0;
     dut_->rst_ni = 0;
     dut_->req_i = 0;
@@ -189,7 +189,7 @@ class Harness {
   uint64_t Rand() { return rng_(); }
   uint64_t checks_ = 0, kills_ = 0, cycles_ = 0;
   uint64_t hist_[2][40] = {};
-  std::unique_ptr<Vmuserisc_muldiv_mc> dut_;
+  std::unique_ptr<Vsigil_muldiv_mc> dut_;
 
  private:
   std::mt19937_64 rng_;

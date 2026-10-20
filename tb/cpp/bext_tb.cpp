@@ -1,4 +1,4 @@
-// museRISC in-house core: B/Zicond/crypto unit testbench.
+// Sigil in-house core: B/Zicond/crypto unit testbench.
 // Golden model written independently from the extension
 // manuals (bit operations), FIPS-197 (AES), and FIPS-180-4
 // (SHA rotate/shift sets). The AES S-box here is a literal
@@ -14,9 +14,9 @@
 
 #include "verilated.h"
 #include "verilated_cov.h"
-#include "Vmuserisc_bext.h"
+#include "Vsigil_bext.h"
 
-static Vmuserisc_bext* dut;
+static Vsigil_bext* dut;
 static long checks = 0, fails = 0;
 
 static uint64_t run(uint8_t op, uint64_t a, uint64_t b) {
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
   const char* cov_path = std::getenv("COV_FILE");
-  dut = new Vmuserisc_bext{&context};
+  dut = new Vsigil_bext{&context};
 
   std::mt19937_64 rng(0xB17B00B5ULL);
   const uint64_t edges[] = {0, 1, ~0ULL, 0x8000000000000000ULL,

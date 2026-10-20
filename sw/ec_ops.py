@@ -1,4 +1,4 @@
-"""Curve point operations for museRISC, built ONLY from the field
+"""Curve point operations for Sigil, built ONLY from the field
 primitives the RTL unit provides (add/sub/mul mod p in `ec_field.v`;
 inversion = square-and-multiply chain over mul). This is the golden
 sequence the Phase-1/2 firmware and hardware sequencer must reproduce:

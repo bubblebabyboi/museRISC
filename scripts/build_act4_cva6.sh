@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Generate ACT4 (riscv-arch-test) self-checking ELFs for the museRISC
+# Generate ACT4 (riscv-arch-test) self-checking ELFs for the Sigil
 # CVA6 DUT config in sw/act4-cva6/ (B2.4). Generation only: ELFs land
-# in third_party/riscv-arch-test/work/muserisc-cv64a6/elfs/ and are
+# in third_party/riscv-arch-test/work/sigil-cv64a6/elfs/ and are
 # then run on the CVA6 Verilator model by the batch runner in
 # scripts/cva6_docker.sh (ACT directory mode). The Sail reference
 # model supplies expected results at generation time; each ELF is
@@ -43,9 +43,9 @@ fi
 # Canonical config lives in sw/act4-cva6/ (committed); the framework
 # discovers configs under config/, so sync a copy into the
 # (uncommitted) third_party tree on every run.
-DST="$ACT/config/cores/muserisc-cv64a6"
+DST="$ACT/config/cores/sigil-cv64a6"
 mkdir -p "$DST"
-cp sw/act4-cva6/muserisc-cv64a6.yaml sw/act4-cva6/sail.json \
+cp sw/act4-cva6/sigil-cv64a6.yaml sw/act4-cva6/sail.json \
    sw/act4-cva6/link.ld sw/act4-cva6/rvmodel_macros.h \
    sw/act4-cva6/test_config.yaml sw/act4-cva6/run_cmd.txt "$DST/"
 echo "Synced DUT config to $DST"
@@ -54,9 +54,9 @@ cd "$ACT"
 mise trust >/dev/null 2>&1 || true
 PATH="$PWD/../../build/riscv-alias/bin:$PATH" \
   mise exec -- make elfs \
-  CONFIG_FILES=config/cores/muserisc-cv64a6/test_config.yaml \
+  CONFIG_FILES=config/cores/sigil-cv64a6/test_config.yaml \
   EXTENSIONS="${EXTENSIONS:-I,M}" FAST=1
-echo "ELFs: $ACT/work/muserisc-cv64a6/elfs/"
+echo "ELFs: $ACT/work/sigil-cv64a6/elfs/"
 cd - >/dev/null
 
 # Stage flat copies (suffix stripped) where the Docker batch runner
@@ -64,7 +64,7 @@ cd - >/dev/null
 # Run with: ELF_SUBDIR=act-elfs TEST_LISTS=act-im TESTS="..." \
 #   RUN_NAME=act-<n> ./scripts/cva6_docker.sh regression
 mkdir -p third_party/cva6/act-elfs
-find "$ACT/work/muserisc-cv64a6/elfs" -type f -name '*.elf' | sort | while read -r f; do
+find "$ACT/work/sigil-cv64a6/elfs" -type f -name '*.elf' | sort | while read -r f; do
   b="$(basename "$f" .elf)"
   cp "$f" "third_party/cva6/act-elfs/$b"
 done

@@ -1,6 +1,6 @@
 /* Set these to match the DUT memory map and hart count.
  *
- * museRISC DUT: the in-house RV64 core (rtl/core/) in the C++
+ * Sigil DUT: the in-house RV64 core (rtl/core/) in the C++
  * Verilator harness (tb/cpp/core_tb.cpp ELF mode), whose paged
  * memory accepts any physical address. RAM at 0x8000_0000
  * (boot_pc_i = ELF entry) matches the riscv-tests convention

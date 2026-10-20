@@ -1,8 +1,8 @@
-// Unit test for muserisc_alu: directed edge cases plus randomized
+// Unit test for sigil_alu: directed edge cases plus randomized
 // comparison against an independent C++ golden model written from
 // the RV64I spec rules (W variants compute at 32-bit width and
 // sign-extend the result). Exits 0 on pass, 1 on first mismatch.
-#include "Vmuserisc_alu.h"
+#include "Vsigil_alu.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -13,7 +13,7 @@
 #include <random>
 
 namespace {
-// Must match alu_op_e declaration order in muserisc_pkg.sv. If the
+// Must match alu_op_e declaration order in sigil_pkg.sv. If the
 // order ever diverges these tests fail loudly (directed cases
 // cover every operation), and the end-to-end asm tests catch it too.
 enum AluOp { ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND, COPY_B, N_OPS };
@@ -61,7 +61,7 @@ uint64_t Golden(int op, bool word, uint64_t a, uint64_t b) {
 int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_alu> dut{new Vmuserisc_alu{&context}};
+  const std::unique_ptr<Vsigil_alu> dut{new Vsigil_alu{&context}};
 
   const char* cov_path = std::getenv("COV_FILE");
   uint64_t checks = 0;

@@ -24,16 +24,16 @@ if [ ! -d "$TF_DIR" ]; then
   git clone -q https://github.com/ucb-bar/berkeley-testfloat-3.git "$TF_DIR"
   git -C "$TF_DIR" checkout -q a9c849f1
 fi
-GEN="$TF_DIR/build/HostMuse/testfloat_gen"
+GEN="$TF_DIR/build/HostSigil/testfloat_gen"
 if [ ! -x "$GEN" ]; then
-  B="$TF_DIR/build/HostMuse"
+  B="$TF_DIR/build/HostSigil"
   mkdir -p "$B"
   cp "$TF_DIR/build/template/Makefile" "$B/"
   cp "$TF_DIR/build/Linux-x86_64-GCC/platform.h" "$B/"
   sed -i -e 's/^==> *//' \
     -e "s|^SOFTFLOAT_DIR ?= .*|SOFTFLOAT_DIR ?= $SF_DIR|" \
     -e "s|^SOFTFLOAT_LIB = .*|SOFTFLOAT_LIB = $SF_LIB|" \
-    -e 's|^PLATFORM ?= .*|PLATFORM ?= HostMuse|' \
+    -e 's|^PLATFORM ?= .*|PLATFORM ?= HostSigil|' \
     -e 's|-DFLOAT16 -DBFLOAT16 -DFLOAT64 -DEXTFLOAT80 -DFLOAT128 -DFLOAT_ROUND_ODD.*|-DFLOAT64 -DFLOAT_ROUND_ODD|' \
     -e 's|^ *-DLONG_DOUBLE_IS_EXTFLOAT80||' \
     -e 's|^LINK = ld -o \$@|LINK = cc -o $@|' \

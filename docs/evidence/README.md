@@ -450,7 +450,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
   f32_sub/f64_sub rounding is covered at RNE and shares
   the adder rounding path; not separately run per mode.
 
-## B3 — OpenROAD closure, muse_crypto nangate45 (2026-10-13, branch `b3-openroad`, issue #3)
+## B3 — OpenROAD closure, sigil_crypto nangate45 (2026-10-13, branch `b3-openroad`, issue #3)
 
 - Artifact: [`b3-openroad-nangate45-2026-10-13.log`](b3-openroad-nangate45-2026-10-13.log)
   (metrics + liberty signoff extract); GDS published as
@@ -458,7 +458,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
   (`6_final.gds`, 61 MB, not in git).
 - Commands: `./scripts/openroad_docker.sh` then
   `./scripts/orfs_liberty_check.sh` (both Dockerized;
-  config in `flow/designs/nangate45/muse_crypto/`).
+  config in `flow/designs/nangate45/sigil_crypto/`).
 - Baseline (pre-fix run): detail-route DRC 0, antenna 0,
   setup/hold TNS 0 (+5.13/+0.038 ns @ 10 ns), GDS
   written, but 51 post-route max-capacitance violations
@@ -484,7 +484,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
   report counts 2,979 pins over the 21 fF guardband by
   design). Hold margin (+39 ps) is positive but thin —
   recorded, not waived. sky130hd deltas live in
-  `flow/designs/sky130hd/muse_crypto/README.md`; no
+  `flow/designs/sky130hd/sigil_crypto/README.md`; no
   sky130hd run is claimed.
 
 ## Ara RVV integration — model build + vector smoke (2026-10-13, branch `9-ara-rvv`, issue #9)
@@ -631,7 +631,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 - Bugs found by this loop and fixed before commit: ADDI
   with a negative immediate decoded as SUB, and illegal
   encodings leaking side-effecting control fields (both
-  in `muserisc_decoder`); harness read-data settle and
+  in `sigil_decoder`); harness read-data settle and
   golden-model slips in two TBs.
 - Caveat: this is stage 1 of the plan in
   `docs/CORE.md` — single-cycle RV64I only. No
@@ -643,7 +643,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 - Artifact: [`core-stage2-2026-10-13.log`](core-stage2-2026-10-13.log)
   (clean `make core-test` extract); plan in
   [`docs/CORE.md`](../CORE.md).
-- Stage 2a (commit `1f280ec`): `muserisc_muldiv` (RV64M incl.
+- Stage 2a (commit `1f280ec`): `sigil_muldiv` (RV64M incl.
   divide-by-zero and signed-overflow rules, W variants) with a
   C++ unit TB (165,877 checks, `__int128` golden model,
   divisor-biased randoms) and `sw/core-tests/rv64m_directed.S`
@@ -675,7 +675,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 - Artifact: [`core-stage3a-2026-10-13.log`](core-stage3a-2026-10-13.log)
   (`make core-test` extract); plan in
   [`docs/CORE.md`](../CORE.md).
-- New `muserisc_csr` (505 lines): M/S/U CSR file with spec write
+- New `sigil_csr` (505 lines): M/S/U CSR file with spec write
   masks, `sstatus`/`sie`/`sip` masked views, counters,
   trap entry/return with delegation (`medeleg`/`mideleg`),
   direct+vectored trap targets, interrupt priority
@@ -714,7 +714,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 - Artifact: [`core-stage3b-2026-10-13.log`](core-stage3b-2026-10-13.log)
   (`make core-test` extract); plan in
   [`docs/CORE.md`](../CORE.md).
-- New `muserisc_mmu` (408 lines): unified 32-entry
+- New `sigil_mmu` (408 lines): unified 32-entry
   fully-associative TLB with fetch and data lookup ports,
   one walker sharing the core data port (data misses
   preempt fetch walks), Sv39 4K/2M/1G, Svnapot 64K,
@@ -864,7 +864,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 
 ## In-house core stage 4b — F/D floating point (2026-10-13, #18)
 
-- New `rtl/core/muserisc_fpu.sv`: combinational IEEE-754
+- New `rtl/core/sigil_fpu.sv`: combinational IEEE-754
   binary32/64 (add/sub/mul/div/sqrt/FMA×4, sign-inject,
   min/max, compares, class, all conversions, FMV), one
   shared round-and-pack stage, canonical-NaN results,
@@ -884,7 +884,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
   [`act-core-impriv-2026-10-13.csv`](act-core-impriv-2026-10-13.csv)
   now **414/415** (adds full ACT F and D suites; same
   `tor_zero` waiver). Line coverage: everything except the
-  FPU at 100%; `muserisc_fpu.sv` 482/493 merged with ACT
+  FPU at 100%; `sigil_fpu.sv` 482/493 merged with ACT
   runs (remainder: defensive default arms for op/rm codes
   the decoder never emits).
 - Two real bugs found by ACT (both now regression-tested):
@@ -897,7 +897,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 
 ## In-house core stage 4c — B, Zicond, scalar crypto (2026-10-13, #18)
 
-- New `rtl/core/muserisc_bext.sv`: Zba/Zbb/Zbc/Zbs, Zicond,
+- New `rtl/core/sigil_bext.sv`: Zba/Zbb/Zbc/Zbs, Zicond,
   Zbkb/Zbkc(clmul)/Zbkx, Zkne/Zknd (aes64es/esm/ds/dsm/im/
   ks1i/ks2), Zknh (SHA-256/512 sigma/sum). AES S-boxes are
   derived at elaboration from the GF(2^8) inverse; the C++
@@ -915,7 +915,7 @@ with the B2.4 DUT config (`sw/act4-cva6/`).
 
 ## In-house core stage 5 — C extension (Zca/Zcb/Zcd) (2026-10-13, #18)
 
-- New `rtl/core/muserisc_rvc.sv`: combinational decompressor
+- New `rtl/core/sigil_rvc.sv`: combinational decompressor
   expanding every Zca/Zcb/Zcd 16-bit form (incl. RV64-only
   `c.addiw`/`c.addw`/`c.subw`/`c.ld`/`c.sd` and Zcb
   byte/halfword loads/stores) to its canonical 32-bit
@@ -965,17 +965,17 @@ Inventory of the repo's two distinct crypto layers after
 stages 4c/5:
 
 - **In-core scalar crypto** (Zbkb/Zbkc/Zbkx, Zkne/Zknd/Zknh
-  in `muserisc_bext.sv`): integrated in the pipeline and
+  in `sigil_bext.sv`): integrated in the pipeline and
   covered by the ACT gate above plus `bext_directed.S`
   (full AES-128 FIPS-197 KAT from scalar instructions,
   SHA-256/512 sigma/sum ops).
 - **Standalone accelerators** (`rtl/crypto/`):
   `sha256_block`, `sha512_block`, `keccak_f1600` and the
   256-bit `ec_field` unit behind the AXI4-Lite slave
-  `muse_crypto_top` (SHA-256 block + EC field exposed;
+  `sigil_crypto_top` (SHA-256 block + EC field exposed;
   Keccak engine select reserved pending a streaming
   interface; SHA-512 verified standalone, not yet behind
-  the AXI top). `muserisc_soc_top` exposes the AXI-Lite
+  the AXI top). `sigil_soc_top` exposes the AXI-Lite
   port at `0x2000_0000`, but no core/bus drives it yet —
   attaching the in-house core (Harvard SRAM ports today)
   needs a bus bridge + MMIO window + driver, which is B4
@@ -983,13 +983,13 @@ stages 4c/5:
   integration is claimed.
 - Gap found and closed by this check: the leaf engines had
   KATs but the AXI4-Lite register layer had never been
-  simulated. New `tb/tb_muse_crypto_top.v` (wired into
+  simulated. New `tb/tb_sigil_crypto_top.v` (wired into
   `make test`) drives the documented register map end to
   end reusing leaf-KAT vectors: SHA-256("abc") and
   SHA-256("") digests, EC field mul/sub under secp256k1
   and Curve25519 MODSEL, custom-modulus regs, STATUS
   done-clearing on CTRL write, and reserved engine 1
-  leaving STATUS idle. `TB_MUSE_CRYPTO_TOP PASS`; full
+  leaving STATUS idle. `TB_SIGIL_CRYPTO_TOP PASS`; full
   `make test` remains `ALL PHASE-0 KATs PASS`.
 
 ### Linux/OpenSBI boot attempt — blocked on A (stage 4)
@@ -1014,7 +1014,7 @@ stages 4c/5:
   `a1=DTB`, CLINT at `0x0200_0000`, PLIC at `0x0C00_0000`,
   byte-wide 16550 UART at `0x1000_0000`, and 128 MiB RAM at
   `0x8000_0000`. The machine is described by
-  [`sw/linux/muserisc.dts`](../../sw/linux/muserisc.dts).
+  [`sw/linux/sigil.dts`](../../sw/linux/sigil.dts).
 - [`scripts/build_opensbi.sh`](../../scripts/build_opensbi.sh)
   builds generic OpenSBI `fw_jump` (`0x8020_0000`) and the
   DTB in Docker. OpenSBI v1.9 boots and enters an S-mode
@@ -1032,9 +1032,9 @@ stages 4c/5:
   [`core-stage6-linux-boot-2026-10-14.log`](core-stage6-linux-boot-2026-10-14.log).
   `SOC TB PASS` at **508,905,040 cycles**. The kernel
   reaches `Run /init as init process`, `/init` prints
-  `muserisc init: userspace alive`, reports
+  `sigil init: userspace alive`, reports
   `uname: Linux 6.6.0 ... riscv64`, reads `/proc/version`,
-  and prints `MUSERISC_LINUX_BOOT_OK`.
+  and prints `SIGIL_LINUX_BOOT_OK`.
 - Two real core bugs were found by this boot and are now
   regression-covered. (1) CSR writes commit in EX while
   traps commit at WB, so OpenSBI's younger `mtvec` restore
@@ -1058,7 +1058,7 @@ stages 4c/5:
 - Claim boundary: this is a single-hart Verilator platform
   boot to a small embedded initramfs `/init`, not a distro,
   shell, block/network-device, SMP, H/KVM or V claim, and
-  it does not integrate `muse_crypto_top` with the core
+  it does not integrate `sigil_crypto_top` with the core
   (B4/#4 remains deferred).
 
 ## In-house core stage 7 — H hypervisor and KVM smoke (2026-10-14, #22)
@@ -1067,7 +1067,7 @@ stages 4c/5:
   with S↔VS substitution, two-level trap delegation
   (M → HS → VS), virtual-instruction exceptions, and
   `misa.H`. Stage 7b adds two-stage Sv39 + Sv39x4 address
-  translation in `muserisc_mmu.sv`, including G-stage
+  translation in `sigil_mmu.sv`, including G-stage
   translation of VS page-table accesses, combined 4 KiB TLB
   fills tagged by ASID/VMID, and guest-page faults
   (causes 20/21/23) with `htval`/`mtval2`. Stage 7c adds
@@ -1098,14 +1098,14 @@ stages 4c/5:
   `using Sv39x4 G-stage page table format`, and `VMID 14
   bits available`. The embedded `/init`
   ([`sw/linux/kvm_smoke.c`](../../sw/linux/kvm_smoke.c),
-  built with `MUSERISC_INIT_SRC=sw/linux/kvm_smoke.c
-  MUSERISC_IMAGE_OUT=build/linux/Image-kvm
+  built with `SIGIL_INIT_SRC=sw/linux/kvm_smoke.c
+  SIGIL_IMAGE_OUT=build/linux/Image-kvm
   scripts/build_linux_kernel.sh`) opens `/dev/kvm`,
   creates a VM and one vCPU with a 4 KiB RAM slot at GPA
   `0x1000`, and runs a four-instruction VS-mode guest. The
   guest's store of 42 to MMIO GPA `0x2000` exits with
   `KVM_EXIT_MMIO` (`addr=0x2000 len=4 write=1 data=42`),
-  `/init` prints `MUSERISC_KVM_OK`, and the harness reports
+  `/init` prints `SIGIL_KVM_OK`, and the harness reports
   `SOC TB PASS` at **502,972,620 cycles**.
 - Claim boundary: this is a one-vCPU KVM entry/exit smoke
   with a four-instruction bare-metal guest on the Verilator
@@ -1117,9 +1117,9 @@ stages 4c/5:
 ## In-house core stage 8 — integer V vector (2026-10-14, #23)
 
 - Scope: integer RVV 1.0 (Zve32x/Zve64x, Zvl512b) with
-  VLEN=512, ELEN=64 in `muserisc_vec.sv` /
-  `muserisc_vregfile.sv` plus the MEM-stage element
-  sequencer in `muserisc_core.sv`. Floating-point vector
+  VLEN=512, ELEN=64 in `sigil_vec.sv` /
+  `sigil_vregfile.sv` plus the MEM-stage element
+  sequencer in `sigil_core.sv`. Floating-point vector
   (Zve32f/Zve64f/Zve64d, i.e. full V) is **not**
   implemented; `misa.V` is set on the strength of the
   integer subset, so the claim for stage 8 is the integer
@@ -1154,11 +1154,11 @@ stages 4c/5:
 ## In-house core stage 9 — floating-point V vector (2026-10-14, #29)
 
 - Scope: FP vector classes (Zve32f/Zve64f/Zve64d) in
-  `muserisc_decoder.sv` (OP-V funct3 001/101 carve-out),
-  `muserisc_vec.sv` (per-element execution through the
+  `sigil_decoder.sv` (OP-V funct3 001/101 carve-out),
+  `sigil_vec.sv` (per-element execution through the
   shared scalar `fp_eval`/`fp_estimate` in
-  `muserisc_fpu_pkg.sv`, extracted in stage 9a), and
-  `muserisc_core.sv` (FP scalar operand from the FP
+  `sigil_fpu_pkg.sv`, extracted in stage 9a), and
+  `sigil_core.sv` (FP scalar operand from the FP
   regfile, accrued `fflags`, FS/SEW/frm legality).
   Covers binary/widening arithmetic, FMA (incl. the
   `vfwmacc` family), compares, sqrt/class,
@@ -1200,7 +1200,7 @@ stages 4c/5:
 
 ## Crypto/SoC RTL SystemVerilog port (2026-10-14, #19)
 
-- `rtl/crypto/*.v` and `rtl/soc/muserisc_soc_top.v`
+- `rtl/crypto/*.v` and `rtl/soc/sigil_soc_top.v`
   ported to `.sv` (behavior-identical: `logic`,
   `always_ff`/`always_comb`, typed `automatic`
   functions). Function bodies keep assignment-to-name
@@ -1208,14 +1208,14 @@ stages 4c/5:
   `return` statements.
 - Gates after the port: `make test` → `TB_SHA256 PASS`,
   `TB_KECCAK PASS`, `TB_SHA512 PASS`, `TB_EC_FIELD
-  PASS`, `TB_MUSE_CRYPTO_TOP PASS`,
+  PASS`, `TB_SIGIL_CRYPTO_TOP PASS`,
   `ALL PHASE-0 KATs PASS` (iverilog `-g2012` against
   the unchanged `tb/*.v` benches); `make lint` and
   `make core-test` green.
 - Synthesis: local Yosys `read_verilog -sv` clean, and
   the ORFS synth stage re-ran on the `.sv` sources via
   `scripts/openroad_docker.sh
-  results/nangate45/muse_crypto_top/base/1_2_yosys.v`
+  results/nangate45/sigil_crypto_top/base/1_2_yosys.v`
   (exit 0, no synth-log errors). The full P&R flow was
   **not** re-run for the `.sv` sources; the b3 GDS
   evidence above remains the P&R record for this
@@ -1227,7 +1227,7 @@ stages 4c/5:
 
 - The five Icarus benches (`tb/tb_sha256.v`,
   `tb/tb_sha512.v`, `tb/tb_keccak.v`, `tb/tb_ec_field.v`,
-  `tb/tb_muse_crypto_top.v`) are replaced by C++
+  `tb/tb_sigil_crypto_top.v`) are replaced by C++
   Verilator benches in `tb/cpp/` with the same KAT
   vectors and pass markers: `sha256_tb.cpp`,
   `sha512_tb.cpp`, `keccak_tb.cpp`, `ec_field_tb.cpp`,
@@ -1251,8 +1251,8 @@ stages 4c/5:
   under `qemu-system-riscv64 -machine virt` (Docker,
   QEMU 8.2.2, bundled OpenSBI v1.3) and diffs the
   platform-independent markers (kernel banner,
-  `muserisc init`, `uname`, `/proc/version`,
-  `MUSERISC_LINUX_BOOT_OK`) against
+  `sigil init`, `uname`, `/proc/version`,
+  `SIGIL_LINUX_BOOT_OK`) against
   `core-stage6-linux-boot-2026-10-14.log`: **match**
   (`QEMU REFERENCE BOOT PASS`). Captured log:
   [`qemu-virt-reference-boot-2026-10-14.log`](qemu-virt-reference-boot-2026-10-14.log)
@@ -1263,7 +1263,7 @@ stages 4c/5:
 - User mode: `scripts/qemu_user_oracle.sh` builds
   `sw/qemu/user_oracle.c` as a static RISC-V binary
   and runs it under `qemu-riscv64`, producing
-  `MUSERISC_QEMU_USER_OK x=655d5f49 sum=325770522
+  `SIGIL_QEMU_USER_OK x=655d5f49 sum=325770522
   acc=17500.0`.
 - Decision: boot-log marker diffing plus the user-mode
   smoke are sufficient. A lockstep trace-compare
@@ -1274,7 +1274,7 @@ stages 4c/5:
 
 ## OpenROAD P&R rerun on current .sv sources (2026-10-14, #31)
 
-- Full ORFS rerun of the nangate45 `muse_crypto_top`
+- Full ORFS rerun of the nangate45 `sigil_crypto_top`
   macro on the current `.sv` sources. This supersedes
   the #19 note above ("full P&R was not re-run"): it
   has now been re-run. Scope is the crypto macro
@@ -1287,7 +1287,7 @@ stages 4c/5:
   signoff (`scripts/orfs_liberty_check.sh`) found 3
   new max-capacitance violators, all AOI221_X1
   (13.81 fF limit) or OAI221_X1 (22.16 fF).
-  `flow/designs/nangate45/muse_crypto/config.mk`
+  `flow/designs/nangate45/sigil_crypto/config.mk`
   now also bans those two cells.
 - Rerun 2 (released): setup WS 4.34 ns, hold WS
   0.039 ns, setup/hold TNS 0 at the 10 ns
@@ -1300,7 +1300,7 @@ stages 4c/5:
 
 ## Synthesizable RTL SoC: core + fabric + crypto (2026-10-15, #4)
 
-- `rtl/soc/muserisc_soc_top.sv` now integrates the
+- `rtl/soc/sigil_soc_top.sv` now integrates the
   in-house core with a synthesizable fabric, boot ROM
   (0x1000), CLINT, PLIC (32 sources, UART=10), 16550
   UART, and the crypto accelerator at `0x2000_0000`
@@ -1326,7 +1326,7 @@ stages 4c/5:
   remains the `soc_tb` C++ platform above; ASIC
   timing is #11, FPGA hardware is #32.
 
-## Shallow AES S-box in muserisc_bext (2026-10-15, branch `aes-sbox-shallow`)
+## Shallow AES S-box in sigil_bext (2026-10-15, branch `aes-sbox-shallow`)
 
 - The scalar-crypto S-box (aes64es/esm/ds/dsm/ks1i) computed
   the GF(2^8) inverse as x^254 — 8 chained variable GF(2^8)
@@ -1341,7 +1341,7 @@ stages 4c/5:
   by exhaustive search for minimum matrix weight — unique
   minimum 110, next 112; reproduced and checked against the
   RTL by `scripts/gen_aes_tower.py --check`).
-  `muserisc_bext` now has eight S-box lanes, each shared by
+  `sigil_bext` now has eight S-box lanes, each shared by
   SubBytes/InvSubBytes and also serving aes64ks1i (lanes
   0-3), instead of 16 (+4 ks1i) S-box instances. Still
   single-cycle, combinational.
@@ -1358,7 +1358,7 @@ stages 4c/5:
   Baseline = original RTL with the while loop hand-unrolled
   (the original itself does not synthesize):
 
-  | muserisc_bext | cells | area um2 | ltp levels | STA (buffered) | Yosys wall |
+  | sigil_bext | cells | area um2 | ltp levels | STA (buffered) | Yosys wall |
   |---|---|---|---|---|---|
   | original | — | — | — | Yosys error | — |
   | original, unrolled | 45,293 | 55,156 | 89 | 6.961 ns (87 cells) | 15:53 |
@@ -1377,7 +1377,7 @@ stages 4c/5:
   definition; op loop extended to the unassigned encodings
   59-63 (must return 0). **60,866 checks PASS**; a single
   flipped matrix bit fails 128/256 sweep inputs (mutation
-  check). Coverage of `muserisc_bext.sv` from the unit TB:
+  check). Coverage of `sigil_bext.sv` from the unit TB:
   **line 100% (70/70), toggle 100% (974/974)**. Verilator
   does not instrument inlined package-function bodies, so
   the S-box internals are covered by the exhaustive sweep
@@ -1406,7 +1406,7 @@ stages 4c/5:
   a `core_tb` built from origin/main give an identical CSV
   (review round 1); the cause is the vector-register prologue
   (`vsetvli` + `vmv.v.x v0..v31`) that ACT emits since
-  Zve*/Zvl* entered `sw/act4-core/muserisc-core.yaml` in
+  Zve*/Zvl* entered `sw/act4-core/sigil-core.yaml` in
   stages 8c/9. ELFs:
   `EXTENSIONS=Zba,Zbb,Zbc,Zbs,Zbkb,Zbkc,Zbkx,Zicond,Zkne,Zknd,Zknh`
   then `EXTENSIONS=Zcb` via `scripts/build_act4_core.sh`
@@ -1425,10 +1425,10 @@ stages 4c/5:
   therefore latched a high PLIC S-context line into the
   software SEIP bit. The privileged spec says the RMW uses
   only the software bit.
-- Fix: `muserisc_csr` exports `rmw_rdata_o`. It equals
+- Fix: `sigil_csr` exports `rmw_rdata_o`. It equals
   `rdata_o`, except that for `mip`, SEIP and STIP are the
   software bits. The core uses it for CSRRS(I)/CSRRC(I), and
-  reads still return pin | software bit. `muserisc_soc_top`
+  reads still return pin | software bit. `sigil_soc_top`
   drives `irq_s_ext_i` from the PLIC, so the RTL SoC had the
   same bug.
 - Regression: a new `core_tb` IRQ_CTL store (0x10000008) lets
@@ -1450,13 +1450,13 @@ stages 4c/5:
 
 ## Multi-cycle synthesizable FPU + EX-stage stall protocol (2026-10-15, #32)
 
-- `rtl/core/muserisc_fpu.sv` is a multi-cycle F/D unit. An FSM
+- `rtl/core/sigil_fpu.sv` is a multi-cycle F/D unit. An FSM
   runs over registered stages; div/sqrt is a radix-2 restoring
   recurrence at `FPU_DS_BITS` (2) steps per cycle;
   normalisation uses log-depth leading-zero shifters; rounding
   is a separate stage; there are no data-dependent loops. The
-  arithmetic lives in `rtl/core/muserisc_fpu_ops.svh`, which is
-  `include`d both by the module and by `muserisc_fpu_pkg.sv`,
+  arithmetic lives in `rtl/core/sigil_fpu_ops.svh`, which is
+  `include`d both by the module and by `sigil_fpu_pkg.sv`,
   whose `fp_eval` chains the same functions combinationally
   for the (still combinational) vector FP path. Per-op latency
   and the generic EX-stage req/done/ack/kill handshake are in
@@ -1474,10 +1474,10 @@ stages 4c/5:
   berkeley-testfloat-3 a9c849f1, level 1, seed 42, 36 F/D ops
   × 5 rounding modes): **64,648,560/64,648,560 PASS**
   (1,163 s).
-- Coverage (merged `make core-test`): `muserisc_fpu.sv` line
+- Coverage (merged `make core-test`): `sigil_fpu.sv` line
   39/39, branch 22/22, toggle 3,682/3,698; the untoggled
   points are flag bits that are constant by construction.
-  `muserisc_fpu_ops.svh` line 123/123, branch 156/156.
+  `sigil_fpu_ops.svh` line 123/123, branch 156/156.
   Verilator collects no line coverage inside package
   functions; the module-local `include` makes the arithmetic
   visible. `fpu_tb` now writes its coverage before freeing the
@@ -1524,7 +1524,7 @@ stages 4c/5:
   compared with upstream `main`. They are cycle-identical over
   the first 30M boot cycles (710 trap events each). With the
   mip fix and the element-serial vector unit, the same FPU
-  boots Linux to `MUSERISC_LINUX_BOOT_OK` at 502,782,909
+  boots Linux to `SIGIL_LINUX_BOOT_OK` at 502,782,909
   cycles.
 - Synthesis (`scripts/synth_fpu.sh`):
   - Flow: sv2v v0.0.13 → Yosys → OpenROAD
@@ -1539,7 +1539,7 @@ stages 4c/5:
 
 ## Multi-cycle M unit (2026-10-16, #32)
 
-- `muserisc_muldiv_mc` replaces the combinational M unit in EX on
+- `sigil_muldiv_mc` replaces the combinational M unit in EX on
   the generic multi-cycle protocol of #41 (`docs/CORE.md`, "M unit").
   Gates on the upstream stack:
   [`muldiv-multicycle-upstream-2026-10-16.log`](muldiv-multicycle-upstream-2026-10-16.log):
@@ -1555,11 +1555,11 @@ stages 4c/5:
 
 ## L1 I$/D$ + latency-tolerant core memory interface (2026-10-16, #32)
 
-- `muserisc_cpu` = `muserisc_core` + `muserisc_icache` (8 KiB 2-way)
-  + `muserisc_dcache` (16 KiB 4-way write-back) + `muserisc_bus_arb`
+- `sigil_cpu` = `sigil_core` + `sigil_icache` (8 KiB 2-way)
+  + `sigil_dcache` (16 KiB 4-way write-back) + `sigil_bus_arb`
   behind one valid/ready memory bus (`docs/CORE.md`, "Memory
-  interface and L1 caches"); `muserisc_soc_top` instantiates it via
-  `muserisc_soc_fabric`. Gates on the upstream stack (on top of
+  interface and L1 caches"); `sigil_soc_top` instantiates it via
+  `sigil_soc_fabric`. Gates on the upstream stack (on top of
   #43), all with the harness bus model's every-cycle request
   stability check:
   [`l1cache-upstream-2026-10-16.log`](l1cache-upstream-2026-10-16.log).
@@ -1569,8 +1569,8 @@ stages 4c/5:
   `mmio_bypass`, `vm_sfence_cache`, `fp_hold_cache`, `ptw_drop`)
   runs with caches + random bus latency and with caches off,
   including the `md_irq` (72), `fp_irq` (48) and `irq_exc_race`
-  (101) IRQ-offset sweeps. Coverage (merged): `muserisc_icache`,
-  `muserisc_dcache`, `muserisc_bus_arb`, `muserisc_sram_sp` 100 %
+  (101) IRQ-offset sweeps. Coverage (merged): `sigil_icache`,
+  `sigil_dcache`, `sigil_bus_arb`, `sigil_sram_sp` 100 %
   line and branch.
 - riscv-tests 123/123 with caches + random latency
   ([csv](riscv-tests-core-l1cache-upstream-2026-10-16.csv)) and
@@ -1608,15 +1608,15 @@ stages 4c/5:
 
 ## Element-serial vector unit + banked VRF (2026-10-15, #32)
 
-- Change: `muserisc_vec.sv` goes from whole-group combinational
+- Change: `sigil_vec.sv` goes from whole-group combinational
   evaluation to a 4-stage element-serial engine on a 64-bit
   datapath. It has an iterative multiplier and divider and one
   shared `fp_eval`/`fp_estimate` call.
-  `muserisc_vregfile.sv` goes from a 32x512 flop array with
+  `sigil_vregfile.sv` goes from a 32x512 flop array with
   three 4096-bit group read ports to three 1R1W 256x64
   byte-write RAM replicas with synchronous read, which can map
   to SRAM or BRAM.
-  The MEM vector load/store sequencer in `muserisc_core.sv` now
+  The MEM vector load/store sequencer in `sigil_core.sv` now
   reads and writes VRF elements directly. It no longer has
   4096-bit EX/MEM, MEM/WB or capture registers, or an address
   multiplier.
@@ -1633,7 +1633,7 @@ stages 4c/5:
     trims `vl` for a fault on any later element;
   - `vmv<nr>r.v` and whole-register loads/stores honor `vstart`.
 - Unit TB (`tb/cpp/vec_tb.cpp` on
-  `tb/sv/muserisc_vec_harness.sv`, which is the unit plus the
+  `tb/sv/sigil_vec_harness.sv`, which is the unit plus the
   VRF):
   - randomized against an independent C++ RVV golden model for
     all 88 integer VOP classes;
@@ -1664,10 +1664,10 @@ stages 4c/5:
   - `vstart>0` and the fault-to-`vstart` rescale on
     whole-register loads/stores and `vmv1r.v`.
 - Coverage (merged `make core-test`, Verilator line+toggle):
-  - `muserisc_vec.sv`: every line hit. Every toggle point hit
+  - `sigil_vec.sv`: every line hit. Every toggle point hit
     except some bits of `fl_q`, the flags of exact widening FP
     conversions, which can never raise OF/UF/DZ/NX.
-  - `muserisc_vregfile.sv`: 100%.
+  - `sigil_vregfile.sv`: 100%.
 - Gates on this branch (Verilator 5.048; wall-clock in
   parentheses):
   - `make lint`: clean (6 s). Also clean with Ubuntu 24.04
@@ -1684,7 +1684,7 @@ stages 4c/5:
     `sim/`. That bug is pre-existing and was worked around by
     running the binary by hand.
   - Yosys `read_slang` elaboration of the full SoC file list
-    from `flow/designs/nangate45/muserisc_soc/config.mk`:
+    from `flow/designs/nangate45/sigil_soc/config.mk`:
     clean in 13 s.
 - ACT, full core set (I/M, priv, A/F/D/B/K/Zicond, C, Vx8-64,
   Vls8-64, Vf32/Vf64; 2,578 ELFs):
@@ -1718,8 +1718,8 @@ stages 4c/5:
 
   | Block | Before | After |
   |---|---|---|
-  | `muserisc_vec` | Yosys did not finish elaboration (killed at 141 GiB after ~4 h; 512-way unrolled loops with 22 `*`/`/`/`%` and 15 `fp_eval`/`fp_estimate` sites per element) | **52,735 um^2**, 1,371 flops, depth **76** generic gates, worst path **3.29 ns** (inputs at 0 delay) |
-  | `muserisc_vregfile` | **603,640 um^2** (16,384 flops + 3x4096-bit muxes), depth 18 | **5,254 um^2** logic + 3x 256x64 1R1W SRAM (fakeram45_512x64 is 17,302 um^2, an upper bound for each), depth 6 |
+  | `sigil_vec` | Yosys did not finish elaboration (killed at 141 GiB after ~4 h; 512-way unrolled loops with 22 `*`/`/`/`%` and 15 `fp_eval`/`fp_estimate` sites per element) | **52,735 um^2**, 1,371 flops, depth **76** generic gates, worst path **3.29 ns** (inputs at 0 delay) |
+  | `sigil_vregfile` | **603,640 um^2** (16,384 flops + 3x4096-bit muxes), depth 18 | **5,254 um^2** logic + 3x 256x64 1R1W SRAM (fakeram45_512x64 is 17,302 um^2, an upper bound for each), depth 6 |
 
   In the ORFS SoC flow, which has no SRAM macros configured,
   the three RAM replicas synthesize as flops (49,152 bits,
@@ -1731,13 +1731,13 @@ stages 4c/5:
   in S-external interrupts after `/init`'s `uname`, and the
   pre-change RTL livelocks the same way, cycle for cycle. It
   passes
-  (`MUSERISC_LINUX_BOOT_OK`, 508,685,709 cycles) once the
+  (`SIGIL_LINUX_BOOT_OK`, 508,685,709 cycles) once the
   separate `mip` CSRRS/CSRRC pin-latching fix is applied; that
   fix is upstreamed in its own PR.
 
 ## SoC synthesis with all large arrays on SRAM macros (2026-10-16, branch `soc-sram-synth`)
 
-- ORFS synthesis of the whole `muserisc_soc_top`, measured on the
+- ORFS synthesis of the whole `sigil_soc_top`, measured on the
   development tree CantelopePeel/museRISC at b634ffc (this stack plus
   #45, #48 and #35). All
   15 large arrays are macros: 3 VRF banks, 6 L1 data ways and 6 L1 tag
@@ -1803,9 +1803,9 @@ and `tb/cpp/core_tb.cpp` where #36's IRQ_CTL test register met
 Branch `6-sha512-keccak-stream` (based on `integrate-prs`, i.e. the
 #33–#50 stack). Design and register map: `docs/SPEC.md` 3/3.1
 (register FIFO streaming with hardware padding; no DMA, rationale
-there). RTL `rtl/crypto/muse_hash_stream.sv`, `sha512_block.sv`
-(`cont` chaining input), `muse_crypto_top.sv` (0x8C..0xA3, AXI write
-backpressure), `rtl/soc/muserisc_crypto_bridge.sv` (address phase
+there). RTL `rtl/crypto/sigil_hash_stream.sv`, `sha512_block.sv`
+(`cont` chaining input), `sigil_crypto_top.sv` (0x8C..0xA3, AXI write
+backpressure), `rtl/soc/sigil_crypto_bridge.sv` (address phase
 now waits for AWREADY/ARREADY).
 
 - KATs: [`hash-stream-make-test-2026-10-20.log`](hash-stream-make-test-2026-10-20.log)
@@ -1848,7 +1848,7 @@ now waits for AWREADY/ARREADY).
 ## On-core Ed25519 + secp256k1 verify on the RTL SoC (2026-10-20, #4, branch `4-ed25519-soc`)
 
 - New firmware `sw/soc-tests/ed25519_soc_test.c`. It runs on the
-  in-house core in `muserisc_soc_top` and verifies the RFC 8032
+  in-house core in `sigil_soc_top` and verifies the RFC 8032
   sec. 7.1 TEST 1 and TEST 2 signatures, the same frozen vectors as
   `sw/ec_ops.py`. Every Curve25519 field add/sub/mul goes to the
   accelerator at `0x2000_0000` with `MODSEL=1`.

@@ -5,7 +5,7 @@
 #
 #   SV2V=/path/to/sv2v ./scripts/synth_fpu.sh [top] [period_ns]
 #
-# top defaults to muserisc_fpu, period to 2.0 ns. sv2v (v0.0.13)
+# top defaults to sigil_fpu, period to 2.0 ns. sv2v (v0.0.13)
 # converts the SystemVerilog (packages, packed structs, `include)
 # to Verilog-2005 with SYNTHESIS defined (drops the simulation
 # cross-check); Yosys maps to the Nangate45 typical liberty with
@@ -15,7 +15,7 @@
 # parasitics, inputs/outputs unconstrained). Outputs land in build/synth/<top>/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-TOP="${1:-muserisc_fpu}"
+TOP="${1:-sigil_fpu}"
 PERIOD="${2:-2.0}"
 SV2V="${SV2V:-sv2v}"
 # ADDER=ripple (default, Yosys carry chains: conservative and fast)
@@ -29,16 +29,16 @@ mkdir -p "$OUT"
 
 RTL="${RTL_DIR:-rtl/core}"
 case "$TOP" in
-  muserisc_fpu) SRCS="$RTL/muserisc_fpu_pkg.sv $RTL/muserisc_fpu.sv" ;;
-  *) SRCS="$RTL/muserisc_pkg.sv $RTL/muserisc_regfile.sv \
-       $RTL/muserisc_fpregfile.sv $RTL/muserisc_alu.sv $RTL/muserisc_muldiv.sv $RTL/muserisc_muldiv_mc.sv \
-       $RTL/muserisc_fpu_pkg.sv $RTL/muserisc_fpu.sv $RTL/muserisc_bext_pkg.sv \
-       $RTL/muserisc_bext.sv $RTL/muserisc_vregfile.sv $RTL/muserisc_vec_pkg.sv \
-       $RTL/muserisc_vec.sv $RTL/muserisc_rvc.sv $RTL/muserisc_decoder.sv \
-       $RTL/muserisc_csr.sv $RTL/muserisc_mmu.sv $RTL/muserisc_core.sv" ;;
+  sigil_fpu) SRCS="$RTL/sigil_fpu_pkg.sv $RTL/sigil_fpu.sv" ;;
+  *) SRCS="$RTL/sigil_pkg.sv $RTL/sigil_regfile.sv \
+       $RTL/sigil_fpregfile.sv $RTL/sigil_alu.sv $RTL/sigil_muldiv.sv $RTL/sigil_muldiv_mc.sv \
+       $RTL/sigil_fpu_pkg.sv $RTL/sigil_fpu.sv $RTL/sigil_bext_pkg.sv \
+       $RTL/sigil_bext.sv $RTL/sigil_vregfile.sv $RTL/sigil_vec_pkg.sv \
+       $RTL/sigil_vec.sv $RTL/sigil_rvc.sv $RTL/sigil_decoder.sv \
+       $RTL/sigil_csr.sv $RTL/sigil_mmu.sv $RTL/sigil_core.sv" ;;
 esac
 # SKIP_SYNTH=1 re-runs only the STA on the existing netlist;
-# SV2V_FLAGS passes extra defines (e.g. -DMUSERISC_FPU_DS_BITS=1).
+# SV2V_FLAGS passes extra defines (e.g. -DSIGIL_FPU_DS_BITS=1).
 # shellcheck disable=SC2086
 [ -n "${SKIP_SYNTH:-}" ] || "$SV2V" ${SV2V_FLAGS:-} -DSYNTHESIS -I"$RTL" --top="$TOP" $SRCS -w "$OUT/$TOP.v"
 # sv2v turns elaboration-time $error (e.g. the FPU's div/sqrt

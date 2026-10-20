@@ -1,6 +1,6 @@
 /* On-core SoC + crypto proof (issue #4): runs on the
- * in-house core inside muserisc_soc_top, drives the
- * muse_crypto accelerator over MMIO at 0x2000_0000, and
+ * in-house core inside sigil_soc_top, drives the
+ * sigil_crypto accelerator over MMIO at 0x2000_0000, and
  * reports over the RTL 16550 UART at 0x1000_0000.
  *
  * Checks, in order (stage number in FAIL lines):
@@ -29,7 +29,7 @@ static void sha256(const uint8_t *msg, uint32_t len, fe_t *digest) {
   for (int i = 0; i < 16; i++) {
     CRYPTO[(0x08u + 4u * (uint32_t)i) / 4u] = block[i];
   }
-  CRYPTO[0] = 1u | (MUSE_ENG_SHA256 << 4);
+  CRYPTO[0] = 1u | (SIGIL_ENG_SHA256 << 4);
   crypto_wait_done();
   crypto_read_fe(digest);
 }

@@ -19,7 +19,7 @@ take far longer — are stage gates, not per-commit checks.
   style: nonzero exit = failing test number) runs on the core harness
   for end-to-end ISA semantics per stage.
 - **Upstream suites as stage gates**: riscv-tests and ACT4 with a
-  museRISC DUT config (reusing the flow proven on CVA6), Spike tandem
+  Sigil DUT config (reusing the flow proven on CVA6), Spike tandem
   once the core retires instructions observably.
 
 ## Stages
@@ -31,9 +31,9 @@ take far longer — are stage gates, not per-commit checks.
 | 3 | Privileged M/S/U, CSRs, traps/interrupts, Sv39+Svnapot MMU, PMP | riscv-tests `rv64ui/um` (needs CSR/trap state), ACT I/M + priv suites, Linux boot attempt | Done (riscv-tests 64/64, ACT 180/181 with 1 waiver; OpenSBI/Linux attempt blocked on A — needs stage 4, see evidence log) |
 | 4 | A, F/D (IEEE-754, all rounding modes), Zba/Zbb/Zbc/Zbs, Zcb, Zicond, Zkn | ACT suites per extension, TestFloat vectors (flow exists) | **Done**: A + F/D + B/Zicond/Zkn (ACT 494/495). Zcb needs C (stage 5) |
 | 5 | C (Zca/Zcb/Zcd) — fetch realignment | ACT C suites, misaligned-fetch probes | **Done**: decompressor + fetch realignment/page-straddle, IALIGN=16 (riscv-tests 123/123, ACT 543/544 with the same 1 waiver) |
-| 6 | Linux/OpenSBI boot bring-up — harness CLINT/PLIC/UART/DTB models, OpenSBI + kernel boot (no new CPU extension; S-mode/Sv39 already verified) [#21](https://github.com/bubblebabyboi/museRISC/issues/21) | Boot log to init/shell recorded in `docs/evidence/`; riscv-tests + ACT gates stay green | **Done**: OpenSBI v1.9 + Linux 6.6 to embedded `/init` (`SOC TB PASS`, 508,905,040 cycles); riscv-tests 123/123 and ACT 543/544 stay green |
-| 7 | H hypervisor — VS-mode, hypervisor CSRs, two-stage Sv39x4 translation (needed for KVM, **not** for single-level Linux) [#22](https://github.com/bubblebabyboi/museRISC/issues/22) | Own Verilator TBs + directed guest tests; KVM guest smoke (no ACT H suite exists in the pinned tree) | **Done**: 7a CSR/trap skeleton, 7b two-stage translation, 7c HLV/HSV/HLVX/HFENCE, 7d VS interrupts; Linux KVM creates a VM/vCPU and a 4-instruction guest exits via MMIO (`SOC TB PASS`, 502,972,620 cycles); riscv-tests 123/123 and ACT 543/544 stay green |
-| 8 | Integer V (RVV 1.0 Zve32x/Zve64x), VLEN 512, ELEN 64 [#23](https://github.com/bubblebabyboi/museRISC/issues/23) | ACT vector suites via `sw/act4-core` (`scripts/build_act4_core.sh`) | **Done** (integer subset): ACT Vx/Vls 1872/1872 self-checking ELFs pass (43 tests not generated/selected, documented in evidence); FP vector (Zve32f/64f/64d) added in stage 9 (#29, Vf32/Vf64 162/162). Reworked element-serial for synthesis/timing (#32, see "Vector unit" below) |
+| 6 | Linux/OpenSBI boot bring-up — harness CLINT/PLIC/UART/DTB models, OpenSBI + kernel boot (no new CPU extension; S-mode/Sv39 already verified) [#21](https://github.com/bubblebabyboi/sigil/issues/21) | Boot log to init/shell recorded in `docs/evidence/`; riscv-tests + ACT gates stay green | **Done**: OpenSBI v1.9 + Linux 6.6 to embedded `/init` (`SOC TB PASS`, 508,905,040 cycles); riscv-tests 123/123 and ACT 543/544 stay green |
+| 7 | H hypervisor — VS-mode, hypervisor CSRs, two-stage Sv39x4 translation (needed for KVM, **not** for single-level Linux) [#22](https://github.com/bubblebabyboi/sigil/issues/22) | Own Verilator TBs + directed guest tests; KVM guest smoke (no ACT H suite exists in the pinned tree) | **Done**: 7a CSR/trap skeleton, 7b two-stage translation, 7c HLV/HSV/HLVX/HFENCE, 7d VS interrupts; Linux KVM creates a VM/vCPU and a 4-instruction guest exits via MMIO (`SOC TB PASS`, 502,972,620 cycles); riscv-tests 123/123 and ACT 543/544 stay green |
+| 8 | Integer V (RVV 1.0 Zve32x/Zve64x), VLEN 512, ELEN 64 [#23](https://github.com/bubblebabyboi/sigil/issues/23) | ACT vector suites via `sw/act4-core` (`scripts/build_act4_core.sh`) | **Done** (integer subset): ACT Vx/Vls 1872/1872 self-checking ELFs pass (43 tests not generated/selected, documented in evidence); FP vector (Zve32f/64f/64d) added in stage 9 (#29, Vf32/Vf64 162/162). Reworked element-serial for synthesis/timing (#32, see "Vector unit" below) |
 
 Priority order set 2026-10-14: Linux boot first, then H,
 then V. Note on terminology: **V is the Vector (SIMD)
@@ -51,14 +51,14 @@ one load-use bubble, all control transfers resolved in EX
 (predict not-taken, two flushed slots), and exceptions carried to
 WB so a trapping instruction and everything younger perform no
 writes. The M-unit divider was combinational in stage 2 (a
-correctness vehicle); the multi-cycle `muserisc_muldiv_mc` with
+correctness vehicle); the multi-cycle `sigil_muldiv_mc` with
 an EX stall has since replaced it (see "M unit" below).
 Pipeline performance
 beyond correctness is not yet a goal at this stage.
 
 ## EX-stage multi-cycle units (fpu-multicycle)
 
-The scalar FPU (`rtl/core/muserisc_fpu.sv`) is a multi-cycle
+The scalar FPU (`rtl/core/sigil_fpu.sv`) is a multi-cycle
 unit: the FP instruction stays in EX until the unit completes.
 The handshake is generic so other EX units (the multi-cycle M
 unit, see "M unit" below) reuse it unchanged:
@@ -70,7 +70,7 @@ unit, see "M unit" below) reuse it unchanged:
 | `ack_i` | core | `ex_advance`: EX moves to EX/MEM this cycle (`!trap_take && !freeze && !mem_stall && !ex_hold`), consuming the result |
 | `kill_i` | core | `trap_take`; dropping `req_i` also squashes |
 
-Core side (`muserisc_core.sv`):
+Core side (`sigil_core.sv`):
 
 - `ex_mc_busy = OR over units of (req && !done)`; `ex_hold =
   vec_wb_stall || ex_mc_busy`. While `ex_hold`, PC, IF/ID and
@@ -99,9 +99,9 @@ Core side (`muserisc_core.sv`):
   gate any EX-committed side effect with its `done`.
 
 FPU structure: every operation is a chain of stage functions in
-`muserisc_fpu_ops.svh` (unpack, special cases, align, add,
+`sigil_fpu_ops.svh` (unpack, special cases, align, add,
 normalise, round; radix-2 restoring divide/sqrt steps; float/int
-conversions). `muserisc_fpu` puts a register after each stage
+conversions). `sigil_fpu` puts a register after each stage
 and runs `FPU_DS_BITS` (= 2) divide/sqrt steps per cycle. The
 vector unit runs its FP elements on the same FPU instance (see
 the vector unit below). `fp_eval` chains the very same
@@ -146,17 +146,17 @@ called done:
 The stage-1..9 core read memory combinationally (same-cycle
 `imem_rdata_i`/`dmem_rdata_i`). That contract is retired: the
 core now has two latency-tolerant request/response ports, and
-`rtl/core/muserisc_cpu.sv` wraps it with a blocking L1 I$, a
+`rtl/core/sigil_cpu.sv` wraps it with a blocking L1 I$, a
 blocking write-back L1 D$ and a two-master bus arbiter behind
 one memory-bus master port. Synchronous SRAM/BRAM and DDR can
 now sit behind the caches (#32 F2 gap 2, #11, #4).
 
 ```text
- muserisc_cpu
+ sigil_cpu
  +---------------------------------------------------------------+
- | muserisc_core                                                 |
- |   IF --ireq/irsp--> muserisc_icache --+                       |
- |   MEM/PTW --dreq/drsp--> muserisc_dcache --+-> muserisc_bus_arb --> mbus master
+ | sigil_core                                                 |
+ |   IF --ireq/irsp--> sigil_icache --+                       |
+ |   MEM/PTW --dreq/drsp--> sigil_dcache --+-> sigil_bus_arb --> mbus master
  |   FENCE.I --icache_inval--> I$        |                       |
  +---------------------------------------------------------------+
 ```
@@ -168,7 +168,7 @@ Instruction port: `ireq_valid_o`, `ireq_ready_i`, `ireq_addr_o`
 `irsp_rdata_i[31:0]`, plus `icache_inval_o` (FENCE.I pulse).
 Data port: `dreq_valid_o`, `dreq_ready_i`, `dreq_addr_o` (exact
 byte PA), `dreq_op_o` (`DOP_LOAD`/`DOP_STORE`/`DOP_CLEAN`,
-`muserisc_cache_pkg`), `dreq_wdata_o` (lane-replicated store
+`sigil_cache_pkg`), `dreq_wdata_o` (lane-replicated store
 data), `dreq_be_o` (accessed lanes, for loads too),
 `drsp_valid_i`, `drsp_rdata_i` (the aligned 64-bit word).
 
@@ -237,9 +237,9 @@ Pipeline behaviour:
 | Arrays (per way) | data 512 x 64 b, tag 64 x 44 b | data 512 x 64 b (8 byte lanes), tag 64 x 44 b |
 | Flops | valid bits | valid + dirty bits, 1-line write-back buffer |
 
-Parameters on `muserisc_cpu`: `IC_SETS`, `IC_WAYS`, `DC_SETS`,
+Parameters on `sigil_cpu`: `IC_SETS`, `IC_WAYS`, `DC_SETS`,
 `DC_WAYS`, `LINE_BYTES` (power of two, 16..2048), and the
-cacheable windows below. Arrays are `muserisc_sram_sp`
+cacheable windows below. Arrays are `sigil_sram_sp`
 instances: single-port, synchronous read (data the cycle after
 the address), per-lane write mask, no read-during-write
 forwarding needed — i.e. an SRAM macro or a BRAM in NO_CHANGE
@@ -291,8 +291,8 @@ yet (no bus-fault pin on the core, as before).
 
 ### SoC integration
 
-`rtl/soc/muserisc_soc_top.sv` instantiates `muserisc_cpu`.
-`muserisc_soc_fabric` sends RAM-window requests (PA >=
+`rtl/soc/sigil_soc_top.sv` instantiates `sigil_cpu`.
+`sigil_soc_fabric` sends RAM-window requests (PA >=
 `0x8000_0000`, the only cacheable window) unchanged to the
 SoC's external memory-bus port and turns every other request
 into one device access: the access is presented to the
@@ -318,7 +318,7 @@ refills. Recorded cycle counts are in `docs/evidence/`.
 
 ### Test harness
 
-`core_tb` and `soc_tb` instantiate `muserisc_cpu` and model the
+`core_tb` and `soc_tb` instantiate `sigil_cpu` and model the
 bus slave (`tb/cpp/mbus_model.h`) with seeded random latency,
 inter-beat gaps and request backpressure (`--mem-lat A:B`,
 `--mem-gap N`, `--mem-ready PCT`, `--mem-seed S`) and can turn
@@ -336,9 +336,9 @@ and `trap_halt_i` freezes on the first trap for the
 with a store to `0x1000_0000` (0 = pass, nonzero = failing
 test number).
 
-## M unit: `muserisc_muldiv_mc` (multi-cycle)
+## M unit: `sigil_muldiv_mc` (multi-cycle)
 
-`rtl/core/muserisc_muldiv_mc.sv` is the RV64M unit in EX
+`rtl/core/sigil_muldiv_mc.sv` is the RV64M unit in EX
 (`u_muldiv`), on the generic multi-cycle handshake above:
 `muldiv_req = idex_valid && muldiv && !idex_exc && !ex_illegal`,
 its `req && !done` term is ORed into `ex_mc_busy`, `ack =
@@ -350,7 +350,7 @@ registered in a done state, so a done result can never be seen
 by the next op (which always starts from IDLE). The M unit and
 the FPU are asserted (simulation) never to be in flight together,
 and an M op never shares EX with an FP or vector op. Vector
-integer mul/div (in `muserisc_vec`) are unaffected. An interrupt
+integer mul/div (in `sigil_vec`) are unaffected. An interrupt
 waits for a held M op like any EX hold
 (it is injected on a younger instruction). An older instruction's
 exception kills it (`kill = trap_take`) and it re-executes after
@@ -381,10 +381,10 @@ magnitudes (compare against d, 2d, 3d in parallel), normalized by
 leading-zero counts so only significant quotient digits iterate;
 FIX applies signs and the W sign extension. `COMB=1` keeps the legacy
 single-cycle behaviour behind the same handshake (`done_o = req_i`);
-the core selects it with `+define+MUSERISC_MULDIV_COMB`
+the core selects it with `+define+SIGIL_MULDIV_COMB`
 (`make -C sim core-mdcomb` runs the directed suite on that build).
 Simulation builds cross-check every completion against
-`muserisc_muldiv`.
+`sigil_muldiv`.
 
 Verification (`make -C sim muldiv_mc`, `tb/cpp/muldiv_mc_tb.cpp`,
 golden `tb/cpp/muldiv_golden.h`): edge-operand cross product and
@@ -394,7 +394,7 @@ without ack, operands scrambled while busy, ack noise, back-to-back
 issue, kill / req drop / asynchronous reset at every cycle of an
 operation including the done hold); exact latency is checked on
 every op. Verilator line and toggle coverage of
-`muserisc_muldiv_mc.sv` is 100% (COMB=0 and COMB=1 builds merged).
+`sigil_muldiv_mc.sv` is 100% (COMB=0 and COMB=1 builds merged).
 
 Block synthesis (`scripts/synth_unit_nangate45.sh`, Yosys `synth
 -booth` + ABC, OpenSTA at 10 ns, no placement/buffering; evidence in
@@ -402,8 +402,8 @@ Block synthesis (`scripts/synth_unit_nangate45.sh`, Yosys `synth
 
 | unit | cell area | flops | worst path |
 |------|-----------|-------|------------|
-| `muserisc_muldiv` (combinational) | 49,787 µm² | 0 | 115.8 ns in→out (1,758 cells) |
-| `muserisc_muldiv_mc` | 28,566 µm² | 274 | 4.69 ns reg→reg (MUL1 partial products, 70 cells); 4.25 ns reg→`result_o` (MUL2 sum); divider ITER step 3.3 ns |
+| `sigil_muldiv` (combinational) | 49,787 µm² | 0 | 115.8 ns in→out (1,758 cells) |
+| `sigil_muldiv_mc` | 28,566 µm² | 274 | 4.69 ns reg→reg (MUL1 partial products, 70 cells); 4.25 ns reg→`result_o` (MUL2 sum); divider ITER step 3.3 ns |
 
 Reset PC is the `boot_pc_i` input (`0x0000_0000` for the directed
 binaries, the ELF entry point in HTIF mode). Traps assert `trap_o` with
@@ -422,7 +422,7 @@ from a 32x512 flop VRF). It is now element-serial over a
 64-bit datapath, so its logic does not grow with VLEN and it
 can close timing.
 
-**VRF** (`muserisc_vregfile.sv`): 32 x 512 bits stored as 256
+**VRF** (`sigil_vregfile.sv`): 32 x 512 bits stored as 256
 64-bit words (`{reg, word}` addressing). Three identical 1R1W
 256x64 RAM replicas with byte-write enables and *synchronous*
 read (address sampled when `re` is high, output held while
@@ -443,7 +443,7 @@ port mux gives the MEM vector load/store sequencer the ports
 while a vector memory op is in MEM, the vector unit
 otherwise (they never overlap).
 
-**Vector unit pipeline** (`muserisc_vec.sv`), one element
+**Vector unit pipeline** (`sigil_vec.sv`), one element
 per cycle in steady state:
 
 | Stage | Work |
@@ -460,7 +460,7 @@ radix-2 restoring divider (prep, SEW iterations, sign/special
 cases), and FP elements as one or more FP sub-steps
 (widening forms: convert vs2, convert vs1, operate;
 `vfwred*`: convert, fold). Each sub-step is one operation on
-the core's scalar `muserisc_fpu` (the vector unit drives its
+the core's scalar `sigil_fpu` (the vector unit drives its
 ports while busy: no scalar FP op can be in EX then, so
 sharing costs a 2:1 operand mux instead of a second FPU), or
 for `vfrec7`/`vfrsqrt7` a two-cycle estimate in the vector
@@ -483,7 +483,7 @@ randomized TB exercises each allowed overlap. Prestart,
 tail and masked-off elements are never written (agnostic =
 undisturbed).
 
-**Core integration** (`muserisc_core.sv`): a vector
+**Core integration** (`sigil_core.sv`): a vector
 arithmetic op holds EX (IF/ID frozen, bubbles into EX/MEM)
 from the cycle it reaches EX until `done`. It *starts* only
 when no older instruction can still trap (`!trap_fire`,

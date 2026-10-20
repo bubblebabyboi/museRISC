@@ -28,7 +28,7 @@ jobs:
       RISCV_TOOLCHAIN_TAG: "2026.08.27"
       RISCV_TOOLCHAIN_ASSET: riscv64-elf-ubuntu-24.04-gcc.tar.xz
     steps:
-      - name: Check out museRISC
+      - name: Check out Sigil
         uses: actions/checkout@v4
 
       - name: Install host tools

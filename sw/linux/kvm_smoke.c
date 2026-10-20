@@ -1,12 +1,12 @@
-/* KVM smoke /init for the museRISC hypervisor gate (#22).
+/* KVM smoke /init for the Sigil hypervisor gate (#22).
  *
  * Creates one VM with one vCPU and a single 4 KiB RAM slot at
  * GPA 0x1000, loads a four-instruction guest, and runs it in
  * VS-mode. The guest stores the value 42 to MMIO GPA 0x2000;
  * the host passes only if KVM_RUN exits with KVM_EXIT_MMIO
  * carrying that address, length, direction, and data, then
- * prints MUSERISC_KVM_OK (the soc_tb exit string). Any failure
- * prints MUSERISC_KVM_FAIL with the step and errno instead.
+ * prints SIGIL_KVM_OK (the soc_tb exit string). Any failure
+ * prints SIGIL_KVM_FAIL with the step and errno instead.
  * This proves the KVM ioctl path plus one guest entry/exit on
  * the in-house core; it is not a guest-OS boot. */
 #define _GNU_SOURCE
@@ -24,7 +24,7 @@
 #include <asm/kvm.h>
 
 static void fail(const char *step) {
-  printf("MUSERISC_KVM_FAIL step=%s errno=%d (%s)\n", step, errno,
+  printf("SIGIL_KVM_FAIL step=%s errno=%d (%s)\n", step, errno,
          strerror(errno));
   fflush(stdout);
   for (;;) pause();
@@ -52,7 +52,7 @@ int main(void) {
 
   mount("proc", "/proc", "proc", 0, "");
   mount("devtmpfs", "/dev", "devtmpfs", 0, "");
-  printf("muserisc kvm smoke: starting\n");
+  printf("sigil kvm smoke: starting\n");
   fflush(stdout);
 
   kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
@@ -114,7 +114,7 @@ int main(void) {
              run->mmio.is_write, data);
       if (run->mmio.phys_addr == gpa_mmio && run->mmio.len == 4 &&
           run->mmio.is_write && data == 42) {
-        printf("MUSERISC_KVM_OK\n");
+        printf("SIGIL_KVM_OK\n");
         fflush(stdout);
         for (;;) pause();
       }

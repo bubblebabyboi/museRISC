@@ -1,6 +1,6 @@
-// museRISC in-house core: FPU unit testbench (C++/Verilator).
+// Sigil in-house core: FPU unit testbench (C++/Verilator).
 //
-// DUT: the multi-cycle muserisc_fpu behind its EX handshake
+// DUT: the multi-cycle sigil_fpu behind its EX handshake
 // (req/done/ack/kill). Golden model: Berkeley SoftFloat 3 (the
 // RISC-V reference), tininess after rounding, NaN results
 // canonicalized; binary32 operands go through the NaN-box check
@@ -37,13 +37,13 @@ extern "C" {
 #include "softfloat.h"
 }
 
-#include "Vmuserisc_fpu.h"
+#include "Vsigil_fpu.h"
 #include "verilated.h"
 #include "verilated_cov.h"
 
 namespace {
 
-Vmuserisc_fpu* dut;
+Vsigil_fpu* dut;
 long checks = 0, fails = 0;
 std::mt19937_64 rng(0xF00D);
 std::map<std::string, long> cat_fails, cat_checks;
@@ -289,7 +289,7 @@ Res golden(int op, bool d, int rm, uint64_t a, uint64_t b, uint64_t c,
 
 // Divide/sqrt latency: IDLE + EX1 + ITER x ceil-to-steps(p+2)/BITS
 // + DSFIN + ROUND. FPU_DS_BITS must match the RTL build
-// (+define+MUSERISC_FPU_DS_BITS; see `make -C sim fpu-ds1`).
+// (+define+SIGIL_FPU_DS_BITS; see `make -C sim fpu-ds1`).
 #ifndef FPU_DS_BITS
 #define FPU_DS_BITS 2
 #endif
@@ -673,7 +673,7 @@ int main(int argc, char** argv) {
   VerilatedContext context;
   context.commandArgs(argc, argv);
   const char* cov_path = std::getenv("COV_FILE");
-  dut = new Vmuserisc_fpu{&context};
+  dut = new Vsigil_fpu{&context};
   softfloat_detectTininess = softfloat_tininess_afterRounding;
 
   const char* tf_path = nullptr;

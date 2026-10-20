@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Derive the composite-field AES S-box constants in rtl/core/muserisc_bext_pkg.sv.
+"""Derive the composite-field AES S-box constants in rtl/core/sigil_bext_pkg.sv.
 
 Tower used by the RTL:
   GF(16)   = GF(2)[w]/(w^4 + w + 1), polynomial basis
@@ -28,7 +28,7 @@ import re
 import sys
 
 PKG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "rtl", "core",
-                   "muserisc_bext_pkg.sv")
+                   "sigil_bext_pkg.sv")
 
 
 def aes_mul(a, b):

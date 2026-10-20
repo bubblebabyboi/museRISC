@@ -1,4 +1,4 @@
-// museRISC 256-bit prime-field unit: add / sub / mul modulo `mod`.
+// Sigil 256-bit prime-field unit: add / sub / mul modulo `mod`.
 // Used with mod = secp256k1 p or Curve25519 p (or a custom modulus).
 // Multiplication is binary double-and-add, always 256 iterations
 // (fixed count; operands must be < mod). Phase-0 correctness-first
