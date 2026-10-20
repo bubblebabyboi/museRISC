@@ -55,6 +55,73 @@ correctness vehicle; an iterative divider with an EX stall
 replaces it before any synthesis target). Pipeline performance
 beyond correctness is not yet a goal at this stage.
 
+## EX-stage multi-cycle units (fpu-multicycle)
+
+The scalar FPU (`rtl/core/muserisc_fpu.sv`) is a multi-cycle
+unit: the FP instruction stays in EX until the unit completes.
+The handshake is generic so other EX units (an iterative
+`muldiv` next) reuse it unchanged:
+
+| Signal | Driver | Meaning |
+|---|---|---|
+| `req_i` | core | level: the instruction in EX uses this unit and is not already excepting (`idex_valid && uses_unit && !idex_exc && !ex_illegal`) |
+| `done_o` | unit | `result_o`/`flags_o` valid this cycle; may be in the issue cycle (fast ops) |
+| `ack_i` | core | `ex_advance`: EX moves to EX/MEM this cycle (`!trap_take && !freeze && !mem_stall && !ex_hold`), consuming the result |
+| `kill_i` | core | `trap_take`; dropping `req_i` also squashes |
+
+Core side (`muserisc_core.sv`):
+
+- `ex_mc_busy = OR over units of (req && !done)`; `ex_hold =
+  vec_wb_stall || ex_mc_busy`. While `ex_hold`, PC, IF/ID and
+  ID/EX keep their contents, a bubble enters EX/MEM, and the
+  older instructions in MEM/WB drain normally. `irq_inject` is
+  suppressed, so an interrupt is taken on the next instruction
+  boundary after the held op completes (precise, never mid-op).
+- Held-EX operand refresh: every held cycle copies the
+  forwarded `ex_rs1/rs2/frs1-3` back into ID/EX, because the
+  producers keep draining through MEM/WB and would otherwise
+  fall out of the forwarding window. (This also fixed a latent
+  stale-operand bug on the pre-existing `vec_wb_stall` hold:
+  `fp_stall_directed.S` test 4 fails on the previous core.)
+- Side effects of the EX instruction (fflags accrual, FS dirty)
+  commit only in its `done` cycle under the usual
+  `!trap_fire && !mem_exc && !mem_stall` gating, so a squashed
+  op leaves no architectural trace.
+- The unit samples its operands and the resolved rounding mode
+  when it accepts the op (idle and `req_i`), so later changes
+  of the forwarding network or of `frm` cannot affect it; a
+  `done` without `ack` (e.g. `mem_stall` from an older vector
+  load) parks the result in a HOLD state until EX advances.
+- Adding a unit: compute its `req`, OR `req && !done` into
+  `ex_mc_busy`, drive `ack_i` from `ex_advance` and `kill_i`
+  from `trap_take`, select its result into `ex_result`, and
+  gate any EX-committed side effect with its `done`.
+
+FPU structure: every operation is a chain of stage functions in
+`muserisc_fpu_ops.svh` (unpack, special cases, align, add,
+normalise, round; radix-2 restoring divide/sqrt steps; float/int
+conversions). `muserisc_fpu` puts a register after each stage
+and runs `FPU_DS_BITS` (= 2) divide/sqrt steps per cycle; the
+vector unit calls `fp_eval`, which chains the very same
+functions combinationally, so scalar and vector results are
+identical by construction (simulation additionally asserts
+every multi-cycle completion against `fp_eval`). Normalisation
+uses log-depth leading-zero shifters; there are no
+data-dependent loops. The vector FP path itself remains
+combinational (out of scope for this change).
+
+Latency (cycles the instruction occupies EX; 1 = no stall):
+
+| Operation | Cycles |
+|---|---|
+| `fsgnj*`, `fmv.x.*`, `fmv.*.x` | 1 |
+| `feq/flt/fle`, `fmin/fmax`, `fclass`, any special-operand shortcut (NaN/Inf, 0×Inf, x/0, 0/x, √±0, √−x) | 2 |
+| `fcvt.int.fp`, `fcvt.fp.int`, `fcvt.s.d`/`fcvt.d.s` | 3 |
+| `fadd`/`fsub`/`fmul` (S and D) | 5 |
+| `fmadd`/`fmsub`/`fnmsub`/`fnmadd` | 7 |
+| `fdiv.s`/`fsqrt.s` | 17 |
+| `fdiv.d`/`fsqrt.d` | 32 |
+
 ## Requirements carried from the CVA6+Ara characterization
 
 These are measured third-party deviations the in-house core must not

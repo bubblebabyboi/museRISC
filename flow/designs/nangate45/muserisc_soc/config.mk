@@ -36,6 +36,9 @@ export VERILOG_FILES = \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_bootrom.sv \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_crypto_bridge.sv \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_soc_top.sv
+# muserisc_fpu_ops.svh is `included by muserisc_fpu_pkg.sv and
+# muserisc_fpu.sv.
+export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/muserisc_soc/core
 export SDC_FILE      = $(DESIGN_HOME)/nangate45/muserisc_soc/constraint.sdc
 # First full-SoC closure attempt (issue #11 slice): start
 # sparse; the combinational FPU/vector datapaths, not

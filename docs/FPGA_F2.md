@@ -59,9 +59,12 @@ nothing about core Fmax on FPGA — see below).
    handshake; a first milestone can use LUTRAM/registered
    BRAM with an IF-stage fetch-latency fix.
 3. **Single-cycle FP and whole-vector datapaths will not
-   close 10 ns as-is.** `muserisc_fpu` is explicitly a
-   correctness-first combinational unit (256-bit window,
-   wide integer div/sqrt in EX), and `muserisc_vec`
+   close 10 ns as-is.** The scalar `muserisc_fpu` is now
+   multi-cycle behind a generic EX stall handshake (Nangate45
+   synth 5.34 ns register-to-register, unplaced, see
+   `docs/evidence/fpu-multicycle-upstream-2026-10-15.log`),
+   but the vector FP path still calls the combinational
+   `fp_eval` per element, and `muserisc_vec`
    evaluates up to `512/SEW` elements combinationally
    fed by three 4096-bit register-group read ports from a
    flop-array VRF (32×512). Closing ≥100 MHz needs:
@@ -71,9 +74,9 @@ nothing about core Fmax on FPGA — see below).
    semantics must not change: riscv-tests, ACT and the
    unit TBs re-run after every such refactor.
 4. **Synthesis portability is unproven for the core.**
-   The core has only been Verilated; local Yosys rejects
-   the unpacked struct in `muserisc_fpu_pkg.sv`
-   (`Only PACKED supported`). Vivado handles much more
+   The core has only been Verilated. The FPU uses packed
+   structs only and synthesizes (sv2v + Yosys,
+   `scripts/synth_fpu.sh`). Vivado handles much more
    SystemVerilog, but elaboration of the full core in
    Vivado is itself milestone F0, not an assumption.
 
