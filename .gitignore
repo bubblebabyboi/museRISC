@@ -5,3 +5,4 @@ third_party/
 *.vcd
 obj_dir/
 __pycache__/
+/deps
