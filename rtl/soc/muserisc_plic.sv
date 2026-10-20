@@ -29,32 +29,56 @@ module muserisc_plic (
   logic [31:0] pending;
   assign pending = irq_sources_i & ~claimed_q;
 
-  function automatic logic ctx_eip(input logic ctx);
-    logic r;
-    r = 1'b0;
-    for (int s = 1; s < 32; s++) begin
-      if (pending[s] && enable_q[ctx][s] &&
-          (prio_q[s] > threshold_q[ctx])) r = 1'b1;
-    end
-    return r;
-  endfunction
-  assign eip_o = {ctx_eip(1), ctx_eip(0)};
-
-  // Highest-priority claimable source (ties: lowest id,
-  // matching the C++ model). 0 = none.
-  function automatic logic [31:0] best_source(input logic ctx);
-    logic [31:0] best, best_prio;
-    best = 32'd0;
-    best_prio = 32'd0;
-    for (int s = 1; s < 32; s++) begin
-      if (pending[s] && enable_q[ctx][s] &&
-          (prio_q[s] > threshold_q[ctx]) &&
-          (best == 32'd0 || prio_q[s] > best_prio)) begin
-        best = s[31:0];
-        best_prio = prio_q[s];
+  // Sources eligible per context: pending, enabled, and above
+  // the threshold (source 0 does not exist).
+  logic [1:0][31:0] elig;
+  always_comb begin
+    for (int c = 0; c < 2; c++) begin
+      elig[c][0] = 1'b0;
+      for (int s = 1; s < 32; s++) begin
+        elig[c][s] = pending[s] && enable_q[c][s] &&
+                     (prio_q[s] > threshold_q[c]);
       end
     end
-    return best;
+  end
+  assign eip_o = {|elig[1], |elig[0]};
+
+  // Highest-priority claimable source per context (ties: lowest
+  // id, matching the C++ model; 0 = none), as a 5-level
+  // tournament tree: each node keeps its left (lower-id) child
+  // unless the right one is eligible and strictly higher, which
+  // is exactly the lowest-id maximum. Log depth, unlike the
+  // 31-deep compare chain of a sequential scan.
+  logic [1:0][4:0] best_id;
+  always_comb begin
+    logic [31:0]       tv;
+    logic [31:0][31:0] tp;
+    logic [31:0][4:0]  tid;
+    logic              r;
+    for (int c = 0; c < 2; c++) begin
+      for (int s = 0; s < 32; s++) begin
+        tv[s] = elig[c][s];
+        tp[s] = prio_q[s];
+        tid[s] = 5'(s);
+      end
+      // Level l reduces 32>>l nodes to 16>>l, in place
+      // (node n reads 2n and 2n+1, both at or above n).
+      for (int l = 0; l < 5; l++) begin
+        for (int n = 0; n < 16; n++) begin
+          if (n < (16 >> l)) begin
+            r = tv[2*n+1] && (!tv[2*n] || (tp[2*n+1] > tp[2*n]));
+            tv[n] = tv[2*n] || tv[2*n+1];
+            tp[n] = r ? tp[2*n+1] : tp[2*n];
+            tid[n] = r ? tid[2*n+1] : tid[2*n];
+          end
+        end
+      end
+      best_id[c] = tv[0] ? tid[0] : 5'd0;
+    end
+  end
+
+  function automatic logic [31:0] best_source(input logic ctx);
+    return {27'd0, best_id[ctx]};
   endfunction
 
   // One 32-bit PLIC register by word-aligned byte offset.
