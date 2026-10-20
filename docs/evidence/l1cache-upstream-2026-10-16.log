@@ -1,0 +1,235 @@
+# L1 I$/D$ + latency-tolerant memory interface on the upstream stack
+# Base: CantelopePeel:up-muldiv-multicycle 6097303 (upstream PR #43, stacked on #41)
+# Host: shared, heavily loaded (load average 150-200); wall times are inflated.
+# Verilator 5.048 (deps/), riscv64 GCC 15 unless noted.
+
+== make lint
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 4.116 MB sources in 25 modules, into 10.407 MB in 15 C++ files needing 0.000 MB
+- Verilator: Walltime 5.957 s (elab=0.409, cvt=4.499, bld=0.000); cpu 2.146 s on 1 threads; allocated 101.340 MB
+rc=0 wall=16s cmd=make lint
+
+== make test
+make[1]: Leaving directory '<tree>/sim'
+ALL PHASE-0 KATs PASS
+rc=0 wall=98s cmd=make test
+
+== make core-test (unit TBs + every directed test with caches + random bus latency [rand] and caches off [nocache])
+ALU TB PASS (205642 checks)
+MULDIV TB PASS (165877 checks)
+MULDIV_MC TB PASS (985873 checks, 125137 squashes, 6393441 cycles)
+MULDIV_MC (COMB=1) TB PASS (203248 checks, 0 squashes, 265043 cycles)
+DECODER TB PASS (12343 checks)
+REGFILE TB PASS (4194 checks)
+CSR TB PASS (207 checks)
+MMU TB PASS (74 checks)
+FPU TB PASS (476563 checks)
+FPU TB PASS (476563 checks)
+BEXT TB PASS (54980 checks)
+RVC TB PASS (49152 checks)
+VEC TB PASS (1014624 checks)
+icache_tb: 30000 checks, 30000 fetches, 2167 invals (1770 during a miss), 5263 I/O, 0 errors
+ICACHE TB PASS
+dcache_tb: 141535 checks, 16565 loads, 17951 stores, 1484 cleans, 6250 I/O, 0 errors
+DCACHE TB PASS
+CORE TB PASS rv64i_directed.bin (1267 cycles)
+CORE TB PASS rv64m_directed.bin (713 cycles)
+CORE TB PASS md_directed.bin (2050 cycles)
+CORE TB PASS md_kill_directed.bin (706 cycles)
+CORE TB PASS md_irq_directed.bin [rand] (72/72 IRQ offsets 100..171)
+CORE TB PASS amo_directed.bin (1185 cycles)
+CORE TB PASS fp_directed.bin (2022 cycles)
+CORE TB PASS fp_stall_directed.bin (2146 cycles)
+CORE TB PASS fp_irq_directed.bin [rand] (48/48 IRQ offsets 100..147)
+CORE TB PASS bext_directed.bin (1330 cycles)
+CORE TB PASS rvc_directed.bin (509 cycles)
+CORE TB PASS pipeline_directed.bin (1331 cycles)
+CORE TB PASS priv_directed.bin (1202632 cycles)
+CORE TB PASS irq_exc_race_directed.bin [rand] (101/101 IRQ offsets 20..120)
+CORE TB PASS vm_directed.bin (19883 cycles)
+CORE TB PASS trap_illegal.bin (expected trap cause 2 at pc 0x4, 27 cycles)
+CORE TB PASS trap_misalign.bin (expected trap cause 4 at pc 0x4, 30 cycles)
+CORE TB PASS trap_ecall.bin (expected trap cause 11 at pc 0x4, 29 cycles)
+CORE TB PASS trap_ebreak.bin (expected trap cause 3 at pc 0x4, 24 cycles)
+CORE TB PASS trap_store_misalign.bin (expected trap cause 6 at pc 0x8, 24 cycles)
+CORE TB PASS trap_younger_store.bin (expected trap cause 4 at pc 0x4, 27 cycles)
+CORE TB PASS trap_younger_csr.bin (217 cycles)
+CORE TB PASS counter_time_directed.bin (12681 cycles)
+CORE TB PASS hyp_directed.bin (3764 cycles)
+CORE TB PASS vec_directed.bin (2396 cycles)
+CORE TB PASS fpvec_directed.bin (914 cycles)
+CORE TB PASS trap_pa_fetch.bin (expected trap cause 1 at pc 0x100000000000000, 36 cycles)
+CORE TB PASS trap_pa_load.bin (expected trap cause 5 at pc 0x8, 30 cycles)
+CORE TB PASS smc_fencei_directed.bin (8562 cycles)
+CORE TB PASS amo_cache_directed.bin (3470 cycles)
+CORE TB PASS mmio_bypass_directed.bin (1725 cycles)
+CORE TB PASS vm_sfence_cache_directed.bin (23191 cycles)
+CORE TB PASS fp_hold_cache_directed.bin (2793 cycles)
+CORE TB PASS ptw_drop_directed.bin (37578 cycles)
+CORE TB PASS rv64i_directed.bin (1450 cycles)
+CORE TB PASS rv64m_directed.bin (763 cycles)
+CORE TB PASS md_directed.bin (2250 cycles)
+CORE TB PASS md_kill_directed.bin (755 cycles)
+CORE TB PASS md_irq_directed.bin [nocache] (72/72 IRQ offsets 100..171)
+CORE TB PASS amo_directed.bin (1727 cycles)
+CORE TB PASS fp_directed.bin (2273 cycles)
+CORE TB PASS fp_stall_directed.bin (2660 cycles)
+CORE TB PASS fp_irq_directed.bin [nocache] (48/48 IRQ offsets 100..147)
+CORE TB PASS bext_directed.bin (1599 cycles)
+CORE TB PASS rvc_directed.bin (711 cycles)
+CORE TB PASS pipeline_directed.bin (2170 cycles)
+CORE TB PASS priv_directed.bin (2404098 cycles)
+CORE TB PASS irq_exc_race_directed.bin [nocache] (101/101 IRQ offsets 20..120)
+CORE TB PASS vm_directed.bin (31800 cycles)
+CORE TB PASS trap_illegal.bin (expected trap cause 2 at pc 0x4, 11 cycles)
+CORE TB PASS trap_misalign.bin (expected trap cause 4 at pc 0x4, 11 cycles)
+CORE TB PASS trap_ecall.bin (expected trap cause 11 at pc 0x4, 11 cycles)
+CORE TB PASS trap_ebreak.bin (expected trap cause 3 at pc 0x4, 11 cycles)
+CORE TB PASS trap_store_misalign.bin (expected trap cause 6 at pc 0x8, 15 cycles)
+CORE TB PASS trap_younger_store.bin (expected trap cause 4 at pc 0x4, 11 cycles)
+CORE TB PASS trap_younger_csr.bin (223 cycles)
+CORE TB PASS counter_time_directed.bin (25287 cycles)
+CORE TB PASS hyp_directed.bin (3214 cycles)
+CORE TB PASS vec_directed.bin (3209 cycles)
+CORE TB PASS fpvec_directed.bin (1041 cycles)
+CORE TB PASS trap_pa_fetch.bin (expected trap cause 1 at pc 0x100000000000000, 18 cycles)
+CORE TB PASS trap_pa_load.bin (expected trap cause 5 at pc 0x8, 15 cycles)
+CORE TB PASS smc_fencei_directed.bin (7014 cycles)
+CORE TB PASS amo_cache_directed.bin (2493 cycles)
+CORE TB PASS mmio_bypass_directed.bin (1881 cycles)
+CORE TB PASS vm_sfence_cache_directed.bin (28947 cycles)
+CORE TB PASS fp_hold_cache_directed.bin (2597 cycles)
+CORE TB PASS ptw_drop_directed.bin (50994 cycles)
+CORE TB PASS fp_directed.bin (2400 cycles)
+CORE TB PASS fp_stall_directed.bin (2404 cycles)
+CORE TB PASS fpvec_directed.bin (927 cycles)
+CORE TB PASS fp_irq_directed.bin on FPU_DS_BITS=1 (25 IRQ offsets 100..172)
+CORE TB PASS [M COMB=1] rv64i_directed.bin (1267 cycles)
+CORE TB PASS [M COMB=1] rv64m_directed.bin (543 cycles)
+CORE TB PASS [M COMB=1] md_directed.bin (1523 cycles)
+CORE TB PASS [M COMB=1] md_kill_directed.bin (601 cycles)
+CORE TB PASS [M COMB=1] amo_directed.bin (1153 cycles)
+CORE TB PASS [M COMB=1] fp_directed.bin (1998 cycles)
+CORE TB PASS [M COMB=1] fp_stall_directed.bin (2125 cycles)
+CORE TB PASS [M COMB=1] bext_directed.bin (1307 cycles)
+CORE TB PASS [M COMB=1] rvc_directed.bin (491 cycles)
+CORE TB PASS [M COMB=1] pipeline_directed.bin (1293 cycles)
+CORE TB PASS [M COMB=1] priv_directed.bin (1202641 cycles)
+CORE TB PASS [M COMB=1] irq_exc_race_directed.bin (1619 cycles)
+CORE TB PASS [M COMB=1] vm_directed.bin (19877 cycles)
+CORE TB PASS [M COMB=1] trap_illegal.bin (expected trap cause 2 at pc 0x4, 24 cycles)
+CORE TB PASS [M COMB=1] trap_misalign.bin (expected trap cause 4 at pc 0x4, 24 cycles)
+CORE TB PASS [M COMB=1] trap_ecall.bin (expected trap cause 11 at pc 0x4, 24 cycles)
+CORE TB PASS [M COMB=1] trap_ebreak.bin (expected trap cause 3 at pc 0x4, 24 cycles)
+CORE TB PASS [M COMB=1] trap_store_misalign.bin (expected trap cause 6 at pc 0x8, 26 cycles)
+CORE TB PASS [M COMB=1] trap_younger_store.bin (expected trap cause 4 at pc 0x4, 24 cycles)
+CORE TB PASS [M COMB=1] trap_younger_csr.bin (207 cycles)
+CORE TB PASS [M COMB=1] counter_time_directed.bin (12687 cycles)
+CORE TB PASS [M COMB=1] hyp_directed.bin (3737 cycles)
+CORE TB PASS [M COMB=1] vec_directed.bin (2364 cycles)
+CORE TB PASS [M COMB=1] fpvec_directed.bin (927 cycles)
+CORE TB PASS [M COMB=1] trap_pa_fetch.bin (expected trap cause 1 at pc 0x100000000000000, 29 cycles)
+CORE TB PASS [M COMB=1] trap_pa_load.bin (expected trap cause 5 at pc 0x8, 26 cycles)
+CORE TB PASS [M COMB=1] md_irq_directed.bin (11 IRQ offsets 100..170)
+CORE TB PASS lines: 99; FAIL/TIMEOUT/PROTOCOL lines: 0
+verilator --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/icache --top-module muserisc_icache -GSETS=4 -GWAYS=2 -GLINE_BYTES=32 "-GC0_BASE=64'h1000" "-GC0_SIZE=64'h2000" "-GC1_BASE=64'h0080000000000000" "-GC1_SIZE=64'h0080000000000000" \
+verilator --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/dcache --top-module muserisc_dcache -GSETS=4 -GWAYS=2 -GLINE_BYTES=32 "-GC0_BASE=64'h1000" "-GC0_SIZE=64'h2000" "-GC1_BASE=64'h0080000000000000" "-GC1_SIZE=64'h0080000000000000" \
+verilator --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/core_ds1 --top-module muserisc_cpu \
+verilator --cc --exe --build -j 0 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/core_mdcomb --top-module muserisc_cpu \
+rc=0 wall=848s cmd=make core-test
+
+== Per-file coverage, merged core-test run (scripts/cov_report.py build/sim/cov_merged.dat ...)
+muserisc_bus_arb.sv          branch       22/22     100.00%
+muserisc_bus_arb.sv          line          6/6      100.00%
+muserisc_bus_arb.sv          toggle      624/782     79.80%
+muserisc_core.sv             branch      247/268     92.16%
+muserisc_core.sv             line        189/199     94.97%
+muserisc_core.sv             toggle     9768/16632   58.73%
+muserisc_cpu.sv              toggle     1604/2310    69.44%
+muserisc_dcache.sv           branch       58/58     100.00%
+muserisc_dcache.sv           line         41/41     100.00%
+muserisc_dcache.sv           toggle     3524/4202    83.86%
+muserisc_icache.sv           branch       44/44     100.00%
+muserisc_icache.sv           line         26/26     100.00%
+muserisc_icache.sv           toggle     1619/1842    87.89%
+muserisc_sram_sp.sv          branch        6/6      100.00%
+muserisc_sram_sp.sv          line          2/2      100.00%
+muserisc_sram_sp.sv          toggle      685/686     99.85%
+
+== make riscv-tests (caches + random latency)
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+rc=0 wall=41s cmd=make riscv-tests
+
+== riscv-tests, CORE_TB_ARGS='--mem-lat 1:6 --mem-gap 2 --mem-ready 70'
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+rc=0 wall=36s cmd=bash sim/run_riscv_tests.sh build/final/rvtests-rand.csv
+
+== riscv-tests, CORE_TB_ARGS='--no-cache'
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+rc=0 wall=35s cmd=bash sim/run_riscv_tests.sh build/final/rvtests-nocache.csv
+
+== ACT, 2,578 ELFs (stage-7 scalar/priv + Vx/Vls + Vf; same sw/act4-core config as #43), caches + random latency seed 5, 20 parallel jobs
+ACT (muserisc-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 674s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,21054
+rc=1 wall=674s cmd=bash <scratch>/act_par.sh build/final/core_tb build/final/act-rand.csv <act-tree>/third_party/riscv-arch-test/work/muserisc-core/elfs 20
+
+== ACT, same ELFs, --no-cache
+ACT (muserisc-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 904s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,29963
+rc=1 wall=904s cmd=bash <scratch>/act_par.sh build/final/core_tb build/final/act-nocache.csv <act-tree>/third_party/riscv-arch-test/work/muserisc-core/elfs 20
+
+== make -C sim socrtl (soc_rtl_tb crypto + secp256k1 ECDSA verify, caches + random latency)
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 18851904 cycles)
+rc=0 wall=124s cmd=make -C sim socrtl
+
+== soc_rtl_tb: u-socrtl-crypto-nocache
+SOC RTL TB PASS (exit string at 34486744 cycles)
+rc=0 wall=385s cmd=build/socrtl/soc_rtl_tb 400000000 --no-cache --load 0x80000000=build/soc-tests/crypto_soc_test.bin --uart-log build/socrtl/crypto-nocache-uart.log --exit-string SOC CRYPTO PASS
+rc=0 wall=385s cmd=build/socrtl/soc_rtl_tb 400000000 --no-cache --load 0x80000000=build/soc-tests/crypto_soc_test.bin --uart-log build/socrtl/crypto-nocache-uart.log --exit-string SOC CRYPTO PASS
+
+== soc_rtl_tb: u-socrtl-hello-lat1
+SOC RTL TB PASS (exit string at 11317000 cycles)
+rc=0 wall=121s cmd=build/socrtl/soc_rtl_tb 200000000 --load 0x80000000=build/linux/fw_jump.bin --load 0x83000000=build/linux/muserisc.dtb --load 0x80200000=build/linux/s_hello.bin --uart-log build/socrtl/hello-lat1-uart.log --exit-string HELLO
+rc=0 wall=121s cmd=build/socrtl/soc_rtl_tb 200000000 --load 0x80000000=build/linux/fw_jump.bin --load 0x83000000=build/linux/muserisc.dtb --load 0x80200000=build/linux/s_hello.bin --uart-log build/socrtl/hello-lat1-uart.log --exit-string HELLO
+
+== soc_rtl_tb: u-socrtl-hello-rand
+SOC RTL TB PASS (exit string at 11362632 cycles)
+rc=0 wall=144s cmd=build/socrtl/soc_rtl_tb 200000000 --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --load 0x80000000=build/linux/fw_jump.bin --load 0x83000000=build/linux/muserisc.dtb --load 0x80200000=build/linux/s_hello.bin --uart-log build/socrtl/hello-rand-uart.log --exit-string HELLO
+rc=0 wall=144s cmd=build/socrtl/soc_rtl_tb 200000000 --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --load 0x80000000=build/linux/fw_jump.bin --load 0x83000000=build/linux/muserisc.dtb --load 0x80200000=build/linux/s_hello.bin --uart-log build/socrtl/hello-rand-uart.log --exit-string HELLO
+
+== scripts/synth_caches.sh (Yosys + Nangate45, arrays as black boxes)
+== muserisc_icache
+   Chip area for module '\muserisc_icache': 2927.596000
+== muserisc_dcache
+   Chip area for module '\muserisc_dcache': 13795.558000
+== muserisc_bus_arb
+   Chip area for module '\muserisc_bus_arb': 259.350000
+rc=0 wall=9s cmd=bash scripts/synth_caches.sh
+      167   259.35 cells
+        4    21.28   DFFR_X1
+
+== Docker ubuntu:24.04, apt Verilator 5.020 + gcc-riscv64-unknown-elf 13 (GitHub CI toolchain)
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+LINT rc=0
+UNIT rc=0 tries=1
+ALU TB PASS (205642 checks)
+MULDIV TB PASS (165877 checks)
+MULDIV_MC TB PASS (985873 checks, 125137 squashes, 6393441 cycles)
+MULDIV_MC (COMB=1) TB PASS (203248 checks, 0 squashes, 265043 cycles)
+DECODER TB PASS (12343 checks)
+REGFILE TB PASS (4194 checks)
+CSR TB PASS (207 checks)
+MMU TB PASS (74 checks)
+FPU TB PASS (476563 checks)
+BEXT TB PASS (54980 checks)
+RVC TB PASS (49152 checks)
+VEC TB PASS (1014624 checks)
+ICACHE TB PASS
+DCACHE TB PASS
+CORE rc=0 tries=1
+68
+SOCBUILD rc=0
+RT rc=0
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 26/26 PASS, 0 FAIL
+wall 1916s

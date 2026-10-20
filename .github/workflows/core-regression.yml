@@ -50,7 +50,7 @@ jobs:
         run: |
           set -o pipefail
           make -C sim alu muldiv muldiv_mc decoder regfile csr mmu fpu \
-            bext rvc vec crypto 2>&1 | tee build-ci-unit.log
+            bext rvc vec icache dcache crypto 2>&1 | tee build-ci-unit.log
           grep -E "TB PASS" build-ci-unit.log >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run directed-asm core harness

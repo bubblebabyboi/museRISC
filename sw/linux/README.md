@@ -11,7 +11,7 @@ Build and reproduce the recorded boot from the repo root:
 make -C sim soc
 bash scripts/build_opensbi.sh
 bash scripts/build_linux_kernel.sh
-build/sim/soc_tb 1000000000 \
+build/sim/soc_tb 4000000000 \
   --load 0x1000=build/linux/boot_stub.bin \
   --load 0x80000000=build/linux/fw_jump.bin \
   --load 0x83000000=build/linux/muserisc.dtb \
@@ -19,6 +19,15 @@ build/sim/soc_tb 1000000000 \
   --uart-log build/linux/linux-boot-uart.log \
   --exit-string MUSERISC_LINUX_BOOT_OK
 ```
+
+Since the L1-cache stage `soc_tb` simulates `muserisc_cpu` (core
++ L1 I$/D$) behind a memory-bus model: only DRAM is cacheable,
+the boot ROM/CLINT/PLIC/UART are uncached I/O. Bus timing options
+`--mem-lat A:B`, `--mem-gap N`, `--mem-ready PCT`, `--mem-seed S`
+randomize latency/backpressure, and `--no-cache` disables the
+caches. The blocking caches roughly triple the boot's cycle
+count at bus latency 1 (hence the larger cycle budget above);
+`soc_tb` is built without coverage instrumentation.
 
 The OpenSBI-only smoke gate substitutes `s_hello.bin` for the
 kernel `Image` and `--exit-string HELLO`. Kernel output takes

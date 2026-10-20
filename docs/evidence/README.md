@@ -1552,3 +1552,56 @@ stages 4c/5:
   4.69 ns reg→reg, against 49.8k µm² and 115.8 ns combinational for
   the old unit. Not run on this base: SoC `read_slang` and the Linux
   boot (combinational vector unit too slow; see the log).
+
+## L1 I$/D$ + latency-tolerant core memory interface (2026-10-16, #32)
+
+- `muserisc_cpu` = `muserisc_core` + `muserisc_icache` (8 KiB 2-way)
+  + `muserisc_dcache` (16 KiB 4-way write-back) + `muserisc_bus_arb`
+  behind one valid/ready memory bus (`docs/CORE.md`, "Memory
+  interface and L1 caches"); `muserisc_soc_top` instantiates it via
+  `muserisc_soc_fabric`. Gates on the upstream stack (on top of
+  #43), all with the harness bus model's every-cycle request
+  stability check:
+  [`l1cache-upstream-2026-10-16.log`](l1cache-upstream-2026-10-16.log).
+- `make lint` clean; `make test` PASS; `make core-test`: 99
+  `CORE TB PASS`, 0 fail, unit TBs incl. `icache_tb` / `dcache_tb`;
+  every directed test (6 new: `smc_fencei`, `amo_cache`,
+  `mmio_bypass`, `vm_sfence_cache`, `fp_hold_cache`, `ptw_drop`)
+  runs with caches + random bus latency and with caches off,
+  including the `md_irq` (72), `fp_irq` (48) and `irq_exc_race`
+  (101) IRQ-offset sweeps. Coverage (merged): `muserisc_icache`,
+  `muserisc_dcache`, `muserisc_bus_arb`, `muserisc_sram_sp` 100 %
+  line and branch.
+- riscv-tests 123/123 with caches + random latency
+  ([csv](riscv-tests-core-l1cache-upstream-2026-10-16.csv)) and
+  uncached ([csv](riscv-tests-core-l1cache-nocache-upstream-2026-10-16.csv)).
+- ACT, the same 2,578 ELFs as #43: 2,577/2,578 with caches + random
+  latency ([csv](act-core-l1cache-upstream-2026-10-16.csv)) and
+  uncached ([csv](act-core-l1cache-nocache-upstream-2026-10-16.csv));
+  only the known `PMPSm_cfg_A_tor_zero-00` waiver. Run with the
+  parallel runner of #37 (same per-ELF verdict and 5M budget).
+- `soc_rtl_tb`: crypto + ECDSA PASS (18,851,904 cycles cached +
+  random latency; 34,486,744 uncached); OpenSBI + `s_hello` HELLO
+  at latency 1 (11,317,000) and random latency (11,362,632).
+- Cycle cost of the blocking caches (2 cycles per hit, one request
+  in flight): riscv-tests 2.74x total cycles (3.15x geomean) against
+  #41's CSV, uncached 3.64x; ACT 3.14x (uncached 3.81x) against
+  #43's CSV; `soc_rtl_tb` crypto 1.70x and OpenSBI hello 1.87x
+  against #43.
+- Synthesis, `scripts/synth_caches.sh` (Yosys + Nangate45, arrays as
+  black boxes): I$ 2,928 um2, D$ 13,796 um2, arbiter 259 um2
+  ([log](synth-caches-nangate45-upstream-2026-10-16.log)).
+- Verilator 5.020 (Docker ubuntu:24.04): lint clean, unit TBs PASS,
+  `make -C sim core` PASS, `soc_tb` / `soc_rtl_tb` build,
+  riscv-tests smoke 26/26.
+- Not run on this base: the Linux boot (the combinational vector
+  unit makes `soc_tb` too slow for a multi-billion-cycle boot).
+- `priv_directed` test 11 leaves its IRQ wait loop once `irq_flag`
+  is set (the test drops from 1.2M to 2,735 cycles with caches +
+  random latency). Re-run after that change: `make lint` clean
+  (5.048 and 5.020); `make core-test` 99 `CORE TB PASS`, 0 fail
+  (344 s); riscv-tests 123/123 cached + random latency and uncached;
+  stress at 20 % bus ready (seeds 401-402 x {lat 1-6 gap 2,
+  `--no-cache` lat 1-4, lat 2-30 gap 6}, riscv-tests + directed):
+  870 runs, 0 failures, 0 protocol errors; Verilator 5.020 unit TBs,
+  `make -C sim core`, SoC builds and riscv-tests smoke 26/26 PASS.

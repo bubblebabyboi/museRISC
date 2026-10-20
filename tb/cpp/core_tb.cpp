@@ -1,6 +1,7 @@
-// Core-level harness for muserisc_core. Models the
-// combinational-read Harvard SRAM the core expects (see
-// docs/CORE.md) over a paged memory, in two modes:
+// Core-level harness for the museRISC CPU (muserisc_cpu: core +
+// L1 I$/D$) over a paged memory behind the mbus slave model
+// (tb/cpp/mbus_model.h) with configurable, seeded random
+// latency and backpressure. Two program modes:
 //
 // - flat binary (directed tests): loaded at PA 0, boot PC 0, a
 //   store to EXIT_ADDR ends the test (0 = pass, nonzero =
@@ -9,16 +10,29 @@
 //   from the next cycle on (mip bit positions: 3 MSIP, 5 STIP,
 //   7 MTIP, 9 SEIP, 11 MEIP), so directed tests can raise and
 //   drop level interrupts at known points.
-// - ELF64 (riscv-tests, stage 3c): PT_LOAD segments are placed
+// - ELF64 (riscv-tests, ACT): PT_LOAD segments are placed
 //   at their physical addresses, boot PC = entry point, and the
 //   run ends on the HTIF convention: a write to `tohost` of 1 =
 //   pass, (n << 1) | 1 = failing subtest n.
 //
+// Stores are observed at the core's data port (dbg_st_*), so
+// test exit and HTIF work even though tohost is cacheable and a
+// write-back D$ may never send the store to the bus. The same
+// observations maintain an architectural shadow memory used by
+// the signature/range dumps.
+//
+// Cacheability in this harness (sim/Makefile -G overrides):
+// [0, 0x1000_0000) and [0x8000_0000, 0x1_0000_0000) cacheable,
+// so EXIT_ADDR (0x1000_0000) is uncached I/O.
+//
 // Usage: core_tb <program.bin|elf> [max_cycles] [--expect-trap CAUSE]
+//          [--irq-timer-after N] [--no-cache] [--mem-lat A:B]
+//          [--mem-gap N] [--mem-ready PCT] [--mem-seed S] [--trace]
 // Exit status: 0 pass, 1 test failure, 2 timeout, 3 unexpected trap.
-#include "Vmuserisc_core.h"
+#include "Vmuserisc_cpu.h"
 #include "verilated.h"
 #include "verilated_cov.h"
+#include "mbus_model.h"
 
 #include <array>
 #include <cstdint>
@@ -32,6 +46,8 @@
 namespace {
 constexpr uint64_t kExitAddr = 0x10000000ULL;
 constexpr uint64_t kIrqCtlAddr = 0x10000008ULL;
+constexpr uint64_t kDevBase = 0x20000000ULL;  // side-effect test device
+
 
 struct PagedMem {
   std::unordered_map<uint64_t, std::array<uint8_t, 4096>> pages;
@@ -114,13 +130,19 @@ int main(int argc, char** argv) {
   long expect_trap = -1;
   long irq_timer_after = -1;
   bool trace = std::getenv("CORE_TB_TRACE") != nullptr;
+  bool cache_en = true;
+  MbusConfig bus_cfg;
   for (int i = 2; i < argc; ++i) {
-    if (std::strcmp(argv[i], "--expect-trap") == 0 && i + 1 < argc) {
+    if (const int n = bus_cfg.Parse(argc, argv, i)) {
+      i += n - 1;
+    } else if (std::strcmp(argv[i], "--expect-trap") == 0 && i + 1 < argc) {
       expect_trap = std::atol(argv[++i]);
     } else if (std::strcmp(argv[i], "--irq-timer-after") == 0 && i + 1 < argc) {
       irq_timer_after = std::atol(argv[++i]);
     } else if (std::strcmp(argv[i], "--trace") == 0) {
       trace = true;
+    } else if (std::strcmp(argv[i], "--no-cache") == 0) {
+      cache_en = false;
     } else {
       max_cycles = std::strtoull(argv[i], nullptr, 0);
     }
@@ -142,6 +164,8 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "empty program %s\n", prog_path);
     return 2;
   }
+  // mem: what the bus sees. arch: initial image + every store
+  // the core issued (architectural view for HTIF and dumps).
   PagedMem mem;
   uint64_t boot_pc = 0, tohost_addr = 0, sig_begin = 0, sig_end = 0;
   const bool elf_mode = IsElf(prog);
@@ -153,19 +177,63 @@ int main(int argc, char** argv) {
   } else {
     for (size_t i = 0; i < prog.size(); ++i) mem.Wb(i, prog[i]);
   }
+  PagedMem arch = mem;
+
+  // Side-effect test device at kDevBase (uncached I/O in this
+  // harness's map), used by mmio_bypass_directed.S:
+  //   +0x00 R  read counter: returns the number of data reads of
+  //            this register seen so far (post-increment)
+  //   +0x08 R  number of write beats seen at +0x10
+  //   +0x10 W  write counter
+  // Any burst or instruction fetch into the device window is a
+  // harness error (it must never be cached).
+  uint64_t dev_reads = 0, dev_writes = 0;
+  bool dev_bad = false;
+  auto in_dev = [](uint64_t a) { return a >= kDevBase && a < kDevBase + 0x100; };
+  MbusModel bus(
+      bus_cfg,
+      [&](uint64_t a, uint8_t, bool inst, bool burst) -> uint64_t {
+        if (in_dev(a)) {
+          if (inst || burst) {
+            dev_bad = true;
+            return 0;
+          }
+          if ((a & ~7ull) == kDevBase) return dev_reads++;
+          if ((a & ~7ull) == kDevBase + 8) return dev_writes;
+          return 0;
+        }
+        return mem.R64(a & ~7ull);
+      },
+      [&](uint64_t a, uint8_t be, uint64_t wdata) {
+        if (in_dev(a)) {
+          if ((a & ~7ull) == kDevBase + 0x10) dev_writes++;
+          return;
+        }
+        const uint64_t base = a & ~7ull;
+        for (int i = 0; i < 8; ++i) {
+          if ((be & (1u << i)) != 0) {
+            mem.Wb(base + uint64_t(i), static_cast<uint8_t>(wdata >> (8 * i)));
+          }
+        }
+      });
 
   VerilatedContext context;
   context.commandArgs(argc, argv);
-  const std::unique_ptr<Vmuserisc_core> dut{new Vmuserisc_core{&context}};
+  const std::unique_ptr<Vmuserisc_cpu> dut{new Vmuserisc_cpu{&context}};
   const char* cov_path = std::getenv("COV_FILE");
 
   auto finish = [&](int rc) {
+    if (dev_bad) {
+      std::printf("CORE TB FAIL %s: burst or fetch into the I/O test device\n",
+                  prog_path);
+      rc = 1;
+    }
     // Debug aid for ACT triage: dump the signature area so it
     // can be diffed against the Sail-generated .sig file.
     if (std::getenv("CORE_TB_SIGDUMP") != nullptr && sig_end > sig_begin) {
       for (uint64_t a = sig_begin; a < sig_end; a += 8) {
         std::printf("SIG %016llx\n",
-                    static_cast<unsigned long long>(mem.R64(a)));
+                    static_cast<unsigned long long>(arch.R64(a)));
       }
     }
     // ... or an arbitrary range: CORE_TB_DUMP=0xADDR:0xLEN
@@ -176,7 +244,7 @@ int main(int argc, char** argv) {
                                ? std::strtoull(sep + 1, nullptr, 0) : 0;
       for (uint64_t a = base; a < base + len; a += 8) {
         std::printf("SIG %016llx\n",
-                    static_cast<unsigned long long>(mem.R64(a)));
+                    static_cast<unsigned long long>(arch.R64(a)));
       }
     }
     dut->final();
@@ -187,9 +255,11 @@ int main(int argc, char** argv) {
   dut->clk_i = 0;
   dut->rst_ni = 0;
   dut->boot_pc_i = boot_pc;
-  dut->imem_rdata_i = 0;
-  dut->dmem_rdata_i = 0;
-  dut->dmem_stall_i = 0;
+  dut->cache_en_i = cache_en ? 1 : 0;
+  dut->bus_req_ready_i = 0;
+  dut->bus_rsp_valid_i = 0;
+  dut->bus_rsp_rdata_i = 0;
+  dut->bus_rsp_last_i = 0;
   // Legacy --expect-trap runs freeze at the first trap; normal
   // runs let the core take traps to its handlers.
   dut->trap_halt_i = (expect_trap >= 0) ? 1 : 0;
@@ -240,23 +310,21 @@ int main(int argc, char** argv) {
       dut->irq_s_ext_i = (irq_ctl >> 9) & 1;
       dut->irq_m_ext_i = (irq_ctl >> 11) & 1;
     }
-    // Combinational memory phase (clock low). Two settles: first
-    // present the instruction so the core drives this cycle's data
-    // address, then present the data for that address. Presenting
-    // both before a single eval would serve the previous address.
+    // Clock-low phase: drive the bus slave outputs, settle.
     dut->clk_i = 0;
-    dut->imem_rdata_i = static_cast<uint32_t>(mem.R64(dut->imem_addr_o & ~7ull) >>
-                                              ((dut->imem_addr_o & 7ull) * 8));
-    dut->eval();
-    dut->dmem_rdata_i = mem.R64(dut->dmem_addr_o & ~7ull);
+    MbusDrive(&bus, dut.get());
     dut->eval();
     if (trace) {
-      std::printf("cy %4llu pc 0x%04lx insn 0x%08x daddr 0x%lx be 0x%02x wdata 0x%016lx re %d\n",
+      std::printf("cy %4llu fetch_pa 0x%lx bus %d%d a 0x%lx w%d len %u be 0x%02x | rsp %d 0x%016lx | st %d 0x%lx\n",
                   static_cast<unsigned long long>(cycle),
-                  static_cast<unsigned long>(dut->imem_addr_o), dut->imem_rdata_i,
-                  static_cast<unsigned long>(dut->dmem_addr_o), dut->dmem_be_o,
-                  static_cast<unsigned long>(dut->dmem_wdata_o),
-                  dut->dmem_re_o ? 1 : 0);
+                  static_cast<unsigned long>(dut->dbg_fetch_pa_o),
+                  dut->bus_req_valid_o, dut->bus_req_ready_i,
+                  static_cast<unsigned long>(dut->bus_req_addr_o),
+                  dut->bus_req_write_o, dut->bus_req_len_o, dut->bus_req_be_o,
+                  dut->bus_rsp_valid_i,
+                  static_cast<unsigned long>(dut->bus_rsp_rdata_i),
+                  dut->dbg_st_valid_o,
+                  static_cast<unsigned long>(dut->dbg_st_addr_o));
     }
 
     if (dut->trap_o && expect_trap >= 0) {
@@ -275,14 +343,16 @@ int main(int argc, char** argv) {
       return finish(3);
     }
 
-    // Clock rising edge: register write and PC update happen now;
-    // apply the (combinationally decoded) store exactly once.
-    const uint64_t daddr = dut->dmem_addr_o;
-    const uint8_t be = dut->dmem_be_o;
-    const uint64_t wdata = dut->dmem_wdata_o;
+    // Sample this cycle's handshakes, then the rising edge.
+    const MbusModel::Req req = MbusSample(dut.get());
+    const bool st = dut->dbg_st_valid_o;
+    const uint64_t daddr = dut->dbg_st_addr_o;
+    const uint8_t be = dut->dbg_st_be_o;
+    const uint64_t wdata = dut->dbg_st_wdata_o;
     dut->clk_i = 1;
     dut->eval();
-    if (be != 0) {
+    bus.Edge(req);
+    if (st) {
       if (!elf_mode && daddr == kExitAddr) {
         const long code = static_cast<long>(wdata & 0xffffffffULL);
         if (code == 0) {
@@ -298,11 +368,11 @@ int main(int argc, char** argv) {
       const uint64_t base = daddr & ~7ull;
       for (int i = 0; i < 8; ++i) {
         if ((be & (1u << i)) != 0) {
-          mem.Wb(base + uint64_t(i), static_cast<uint8_t>(wdata >> (8 * i)));
+          arch.Wb(base + uint64_t(i), static_cast<uint8_t>(wdata >> (8 * i)));
         }
       }
       if (elf_mode && (base >> 12) == (tohost_addr >> 12)) {
-        const uint64_t th = mem.R64(tohost_addr);
+        const uint64_t th = arch.R64(tohost_addr);
         if (th != 0) {
           if (th == 1) {
             std::printf("CORE TB PASS %s (htif, %llu cycles)\n", prog_path,
@@ -317,8 +387,9 @@ int main(int argc, char** argv) {
       }
     }
   }
-  std::printf("CORE TB TIMEOUT %s after %llu cycles (pc 0x%lx)\n", prog_path,
-              static_cast<unsigned long long>(max_cycles),
-              static_cast<unsigned long>(dut->imem_addr_o));
+  std::printf("CORE TB TIMEOUT %s after %llu cycles (fetch pa 0x%lx; bus %s)\n",
+              prog_path, static_cast<unsigned long long>(max_cycles),
+              static_cast<unsigned long>(dut->dbg_fetch_pa_o),
+              bus_cfg.Describe().c_str());
   return finish(2);
 }

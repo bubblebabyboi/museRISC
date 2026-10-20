@@ -27,7 +27,13 @@ export VERILOG_FILES = \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_decoder.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_csr.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_mmu.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_cache_pkg.sv \
   $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_core.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_sram_sp.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_icache.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_dcache.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_bus_arb.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/core/muserisc_cpu.sv \
   $(DESIGN_HOME)/src/muserisc_soc/crypto/sha256_block.sv \
   $(DESIGN_HOME)/src/muserisc_soc/crypto/ec_field.sv \
   $(DESIGN_HOME)/src/muserisc_soc/crypto/muse_crypto_top.sv \
@@ -36,10 +42,16 @@ export VERILOG_FILES = \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_uart16550.sv \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_bootrom.sv \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_crypto_bridge.sv \
+  $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_soc_fabric.sv \
   $(DESIGN_HOME)/src/muserisc_soc/soc/muserisc_soc_top.sv
 # muserisc_fpu_ops.svh is `included by muserisc_fpu_pkg.sv and
 # muserisc_fpu.sv.
 export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/muserisc_soc/core
+# The L1 cache data arrays (muserisc_sram_sp, 512x64 = 32 Kbit per
+# way) are inferred memories. With no SRAM macros configured they
+# are built from flops; allow that instead of tripping ORFS's
+# 4096-bit inferred-memory guard (map to fakeram45 macros later).
+export SYNTH_MEMORY_MAX_BITS = 32768
 export SDC_FILE      = $(DESIGN_HOME)/nangate45/muserisc_soc/constraint.sdc
 # First full-SoC closure attempt (issue #11 slice): start
 # sparse; the combinational FPU/vector datapaths, not

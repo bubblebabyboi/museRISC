@@ -35,3 +35,19 @@ multiplier, radix-4 early-terminating divider). The
 combinational `muserisc_muldiv.sv` stays as its `COMB=1` mode and
 as the simulation cross-check reference. Block synthesis:
 `scripts/synth_unit_nangate45.sh`.
+
+L1 caches (memory-interface stage): the core's memory ports are
+request/response (one request in flight per port, response no
+earlier than the next cycle). The integration top is
+`muserisc_cpu` = `muserisc_core` + `muserisc_icache` (8 KiB,
+2-way) + `muserisc_dcache` (16 KiB, 4-way, write-back +
+write-allocate) + `muserisc_bus_arb`, exposing one memory-bus
+master port; the arrays are `muserisc_sram_sp` single-port
+synchronous SRAMs (macro/BRAM friendly) and
+`muserisc_cache_pkg` holds the data-port opcodes and the
+cacheability (PMA) function. Protocol, cacheable windows and
+FENCE.I/SFENCE.VMA/atomics/walker rules:
+[`docs/CORE.md`](../../docs/CORE.md#memory-interface-and-l1-caches).
+Unit TBs: `tb/cpp/icache_tb.cpp`, `tb/cpp/dcache_tb.cpp`; bus
+slave model: `tb/cpp/mbus_model.h`; synthesis check:
+`scripts/synth_caches.sh`.

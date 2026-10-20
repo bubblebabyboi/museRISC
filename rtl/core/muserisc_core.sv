@@ -1,8 +1,9 @@
 // In-house RV64 core (issue #18). Five-stage in-order pipeline
-// (IF/ID/EX/MEM/WB) over combinational-read Harvard memory ports
-// with M/S/U privilege, precise traps, interrupts, PMP, and an
-// Sv39+Svnapot MMU; see docs/CORE.md for the contract and
-// staging plan.
+// (IF/ID/EX/MEM/WB) with M/S/U privilege, precise traps,
+// interrupts, PMP, and an Sv39+Svnapot MMU, over two
+// latency-tolerant request/response memory ports (instruction
+// fetch and data) that the L1 caches serve (muserisc_cpu.sv);
+// see docs/CORE.md for the contract and staging plan.
 //
 // Pipeline policy:
 // - Full forwarding to EX (EX/MEM and MEM/WB) plus a WB->ID
@@ -10,7 +11,8 @@
 //   producer is in WB latches the new value.
 // - One bubble on load-use (consumer in ID against a load in EX).
 // - All control transfers resolve in EX (predict not-taken):
-//   taken branches, jumps, xRET, and SFENCE flush IF/ID + ID/EX.
+//   taken branches, jumps, xRET, SFENCE and FENCE.I flush
+//   IF/ID + ID/EX.
 // - CSR writes commit on the EX->MEM edge; CSR reads in EX see
 //   all older writes. Privilege changes only via trap entry
 //   (WB) and xRET (EX), both of which flush, so priv_o always
@@ -26,27 +28,39 @@
 //   or stalls IF while the walker runs; a data miss stalls the
 //   whole pipeline with the access parked in MEM. PMP is always
 //   checked on physical addresses (port C covers PTE accesses).
+// - Memory ports (L1 stage): each port has at most one request
+//   in flight and every accepted request gets exactly one
+//   response, at the earliest the next cycle. IF holds the PC
+//   until its fetch word arrives (a flush or trap marks an
+//   outstanding fetch stale and its response is dropped). MEM
+//   holds the whole pipeline (mem_stall) until its access
+//   responds; a MEM access is only issued when no older
+//   instruction is trapping, so it is never abandoned. The
+//   page-table walker shares the data port (MEM first); AMOs
+//   are a read then a write with the port held in between.
 `default_nettype none
-module muserisc_core import muserisc_pkg::*; (
+module muserisc_core import muserisc_pkg::*, muserisc_cache_pkg::*; (
     input  wire        clk_i,
     input  wire        rst_ni,
     input  wire [63:0] boot_pc_i,     // reset PC (0 for directed TBs)
-    // Instruction memory (combinational read)
-    output wire [63:0] imem_addr_o,
-    input  wire [31:0] imem_rdata_i,
-    // Data memory (combinational read, byte-enable write)
-    output wire [63:0] dmem_addr_o,
-    output logic [63:0] dmem_wdata_o,
-    output logic [7:0]  dmem_be_o,
-    output wire        dmem_re_o,
-    input  wire [63:0] dmem_rdata_i,
-    // External scalar data stall: while asserted for a data
-    // access in MEM, the whole pipeline holds exactly as for a
-    // translation miss and the access completes in the cycle
-    // this drops (SoC fabric uses it for AXI/handshaked MMIO;
-    // tie to 0 for plain combinational SRAM). Vector LS and
-    // walker accesses do not consume it.
-    input  wire        dmem_stall_i,
+    // Instruction fetch port: PA of an aligned 32-bit word.
+    output logic       ireq_valid_o,
+    input  wire        ireq_ready_i,
+    output wire [63:0] ireq_addr_o,
+    input  wire        irsp_valid_i,
+    input  wire [31:0] irsp_rdata_i,
+    output wire        icache_inval_o,  // FENCE.I: invalidate I$
+    // Data port (op: muserisc_cache_pkg DOP_LOAD/STORE/CLEAN).
+    // LOAD returns the aligned 64-bit word; be names the
+    // accessed lanes for loads and stores alike.
+    output logic       dreq_valid_o,
+    input  wire        dreq_ready_i,
+    output logic [63:0] dreq_addr_o,
+    output logic [1:0] dreq_op_o,
+    output logic [63:0] dreq_wdata_o,
+    output logic [7:0] dreq_be_o,
+    input  wire        drsp_valid_i,
+    input  wire [63:0] drsp_rdata_i,
     // Trap observability: pulses the cycle a trap is taken.
     output wire        trap_o,
     output wire [63:0] trap_cause_o,
@@ -98,7 +112,8 @@ module muserisc_core import muserisc_pkg::*; (
   logic        walk_req, walk_we, walk_grant;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
-  logic        mem_stall;     // data translation miss: hold all regs
+  logic        mem_stall;     // MEM waiting (translation or port): hold all regs
+  logic        mem_port_done; // MEM's data-port access completes this cycle
   logic        fpu_req, fpu_done;
   logic        muldiv_req, muldiv_done;
   // M unit mode: multi-cycle (default) or, with
@@ -143,7 +158,7 @@ module muserisc_core import muserisc_pkg::*; (
   logic [63:0] fetch_va;
   assign fetch_va = straddle_q ? (pc_q + 64'd2)
                                : {pc_q[63:2], 2'b00};
-  assign imem_addr_o = mmu_if_pa;
+  assign ireq_addr_o = mmu_if_pa;
   // Physical addresses are 56 bits: an untranslated (M-mode /
   // Bare) address at or above 2^56 access-faults. Translated
   // PAs from the MMU are 56-bit by construction. Gated on
@@ -158,8 +173,22 @@ module muserisc_core import muserisc_pkg::*; (
   assign fetch_cause = mmu_if_fault ?
       (mmu_if_fault_guest ? 64'd20 :
        mmu_if_fault_page ? 64'd12 : 64'd1) : 64'd1;
-  assign fetch_stall = !fetch_pa_illegal && !mmu_if_ok &&
-                       !mmu_if_fault;
+  // Fetch-port state. ifw_q buffers the word for the current
+  // fetch_va when it arrives while IF cannot consume it; it is
+  // dropped whenever IF consumes or is redirected. ifq_drop_q
+  // marks the outstanding request stale (redirected past it).
+  logic        ifw_valid_q, ifq_pend_q, ifq_drop_q;
+  logic [31:0] ifw_q;
+  logic        fetch_word_ok, fencei_block;
+  logic [31:0] fetch_word;
+  assign fetch_word_ok = ifw_valid_q ||
+                         (irsp_valid_i && ifq_pend_q && !ifq_drop_q);
+  assign fetch_word = ifw_valid_q ? ifw_q : irsp_rdata_i;
+  // A translation miss, or a translated (non-faulting) fetch
+  // whose word has not arrived yet.
+  assign fetch_stall = !fetch_fault && !(mmu_if_ok && fetch_word_ok);
+  assign ireq_valid_o = mmu_if_ok && !fetch_fault && !ifw_valid_q &&
+                        !ifq_pend_q && !fencei_block;
 
   // Parcel assembly and decompression.
   logic [15:0] parcel16;
@@ -167,8 +196,8 @@ module muserisc_core import muserisc_pkg::*; (
   logic [31:0] fetch_instr, rvc_expanded;
   logic        fetch_rvc;
   logic [63:0] fetch_tval;
-  assign parcel16 = pc_q[1] ? imem_rdata_i[31:16]
-                            : imem_rdata_i[15:0];
+  assign parcel16 = pc_q[1] ? fetch_word[31:16]
+                            : fetch_word[15:0];
   assign parcel_long = (parcel16[1:0] == 2'b11);
   assign straddle_enter = !straddle_q && parcel_long && pc_q[1] &&
                           !fetch_fault && !fetch_stall;
@@ -179,13 +208,13 @@ module muserisc_core import muserisc_pkg::*; (
   );
   always_comb begin
     if (straddle_q) begin
-      fetch_instr = {imem_rdata_i[15:0], straddle_lo_q};
+      fetch_instr = {fetch_word[15:0], straddle_lo_q};
       fetch_rvc = 1'b0;
     end else if (!parcel_long) begin
       fetch_instr = rvc_illegal ? 32'b0 : rvc_expanded;
       fetch_rvc = 1'b1;
     end else begin
-      fetch_instr = imem_rdata_i;
+      fetch_instr = fetch_word;
       fetch_rvc = 1'b0;
     end
   end
@@ -852,7 +881,12 @@ module muserisc_core import muserisc_pkg::*; (
   );
 
   muserisc_vec u_vec (
-      .op_i      (idex_ctrl_q.bext_op),
+      // Operand isolation: a non-vector instruction in EX presents
+      // the trivial whole-register-move op to the vector unit
+      // (every consumer of its outputs is qualified by
+      // idex_ctrl_q.vec), so scalar code does not exercise the wide
+      // element loops: less switching, much faster simulation.
+      .op_i      (idex_ctrl_q.vec ? idex_ctrl_q.bext_op : VOP_MVR),
       .form_i    (idex_ctrl_q.fpu_aux),
       .sew_i     (csr_vtype[5:3]),
       .vl_i      (csr_vl),
@@ -950,8 +984,15 @@ module muserisc_core import muserisc_pkg::*; (
                   idex_ctrl_q.hlv    ? 3'd7 : 3'd0;
   assign ex_ret = idex_valid_q && (idex_ctrl_q.mret || idex_ctrl_q.sret) &&
                   !idex_exc_q && !sys_illegal;
-  // SFENCE/HFENCE and xRET serialize: redirect and flush.
-  assign ex_serialize = ex_ret ||
+  // FENCE.I (MISC-MEM funct3=001; decodes as a NOP) serializes
+  // like SFENCE: younger instructions are refetched after it
+  // has cleaned the D$ and invalidated the I$ in MEM.
+  logic ex_fencei;
+  assign ex_fencei = idex_valid_q && !idex_exc_q && !idex_rvc_q &&
+                     (idex_instr_q[6:0] == 7'b0001111) &&
+                     (idex_instr_q[14:12] == 3'b001);
+  // SFENCE/HFENCE, FENCE.I and xRET serialize: redirect and flush.
+  assign ex_serialize = ex_ret || ex_fencei ||
                         (idex_valid_q &&
                          (idex_ctrl_q.sfence || idex_ctrl_q.hfence) &&
                          !idex_exc_q && !sys_illegal);
@@ -999,7 +1040,7 @@ module muserisc_core import muserisc_pkg::*; (
                   (idex_ctrl_q.branch && branch_taken) || ex_serialize);
   always_comb begin
     if (ex_ret)                  redirect_pc = xret_pc;
-    else if (idex_ctrl_q.sfence || idex_ctrl_q.hfence)
+    else if (idex_ctrl_q.sfence || idex_ctrl_q.hfence || ex_fencei)
                                  redirect_pc = idex_pc_q + (idex_rvc_q ? 64'd2 : 64'd4);
     else if (idex_ctrl_q.jalr)   redirect_pc = (ex_rs1 + idex_imm_q) & ~64'd1;
     else                         redirect_pc = idex_pc_q + idex_imm_q;
@@ -1114,7 +1155,10 @@ module muserisc_core import muserisc_pkg::*; (
     vls_cur = vls_vl_eff;
     vls_has_cur = 1'b0;
     vls_more = 1'b0;
-    for (int i = 0; i < 512; i++) begin
+    // Every consumer of the element scans is qualified by vls_is,
+    // so skipping them for scalar MEM ops is equivalent; it keeps
+    // the 512-element loops out of every simulated cycle.
+    if (vls_is) for (int i = 0; i < 512; i++) begin
       if ((64'(unsigned'(i)) >= vls_idx_eff) &&
           (64'(unsigned'(i)) < vls_vl_eff) &&
           (vls_vm_eff || exmem_vec_mask_q[i])) begin
@@ -1179,7 +1223,7 @@ module muserisc_core import muserisc_pkg::*; (
        ((vls_eew_code == 3'd3) && |vls_addr[2:0]));
   assign vls_elem_done = vls_is && vls_has_cur && !vls_misalign &&
                          mmu_d_ok && pmp_allow_data &&
-                         !(|mmu_d_pa[63:56]);
+                         !(|mmu_d_pa[63:56]) && mem_port_done;
   // Fault-only-first: a fault after at least one completed
   // element trims vl to the faulting index, no trap.
   logic vls_fault_raw;
@@ -1213,7 +1257,7 @@ module muserisc_core import muserisc_pkg::*; (
     logic [11:0] mpos;
     int mpos_full;
     vls_merged = exmem_vec_data_q;
-    for (int i = 0; i < 512; i++) begin
+    if (vls_is) for (int i = 0; i < 512; i++) begin  // (see vls_cur scan)
      for (int f = 0; f < 8; f++) begin
       mpos_full = f * int'(vls_field_stride) * 512 +
                   (i << (vls_eew_code + 3));
@@ -1308,71 +1352,162 @@ module muserisc_core import muserisc_pkg::*; (
   assign data_access = exmem_valid_q && !exmem_exc_q &&
                        (exmem_ctrl_q.mem_read || exmem_ctrl_q.mem_write) &&
                        (!vls_is || vls_has_cur);
-  assign mem_stall = (data_access && !mmu_d_ok && !mmu_d_fault) ||
-                     (vls_is && !vls_done && !vls_fault) ||
-                     (data_access && mmu_d_ok && !vls_is &&
-                      dmem_stall_i);
   assign mem_trans_fault = data_access && mmu_d_fault;
   // PMP denial, or a physical address outside the 56-bit map.
   assign mem_pmp_fault = data_access && mmu_d_ok &&
                          (!pmp_allow_data || |mmu_d_pa[63:56]);
   assign mem_uses_port = data_access && mmu_d_ok && !mem_pmp_fault &&
                          !vls_misalign;
-  // The walker borrows the port whenever MEM is not using it.
-  assign walk_grant = walk_req && !mem_uses_port;
-  assign dmem_addr_o = walk_grant ? walk_addr : mmu_d_pa;
-  assign dmem_re_o = mem_uses_port && exmem_ctrl_q.mem_read;
 
+  // ---- Data-port controller ----
+  // One request in flight, owned by MEM or by the page-table
+  // walker (dq_walk_q). MEM has priority; the walker only gets
+  // the port while MEM does not need it. A MEM access issues
+  // only when no older instruction is trapping (trap_fire) so it
+  // always completes; a walker request abandoned by an MMU
+  // flush/abort is marked stale (dq_drop_q) and its response is
+  // swallowed. AMOs are a LOAD (value saved in amo_rdata_q) then
+  // a STORE of the combined value; the port stays MEM's between
+  // the two. A failing SC performs no access. FENCE.I issues a
+  // CLEAN (D$ write-back) and invalidates the I$ on its response.
+  logic        dq_pend_q, dq_walk_q, dq_drop_q;
+  logic        amo_wr_q;        // AMO read phase done; write next
+  logic [63:0] amo_rdata_q;
+  logic        exmem_fencei_q;
+  logic        mem_fencei, mem_needs_port, mem_issue, mem_rsp;
+  logic        mem_write_phase, walk_issue, walk_skip, walk_rsp;
+  logic        sc_success;
+  assign mem_fencei = exmem_valid_q && !exmem_exc_q && exmem_fencei_q;
+  assign mem_needs_port = (mem_uses_port &&
+                           !(exmem_ctrl_q.sc && !sc_success)) ||
+                          mem_fencei;
+  assign mem_write_phase = exmem_ctrl_q.mem_write &&
+                           (!exmem_ctrl_q.amo || amo_wr_q);
+  assign mem_issue = mem_needs_port && !dq_pend_q && !trap_fire && !freeze;
+  assign mem_rsp = drsp_valid_i && dq_pend_q && !dq_walk_q;
+  // The final (or only) phase of MEM's access responds.
+  assign mem_port_done = mem_rsp && (!exmem_ctrl_q.amo || amo_wr_q);
+  // Walker: PMP-denied PTE accesses complete at once with no
+  // memory access (the MMU turns them into access faults).
+  assign walk_issue = walk_req && pmp_allow_walk && !dq_pend_q &&
+                      !mem_needs_port && !trap_fire && !freeze;
+  assign walk_skip = walk_req && !pmp_allow_walk && !dq_pend_q &&
+                     !mem_needs_port && !trap_fire && !freeze;
+  assign walk_rsp = drsp_valid_i && dq_pend_q && dq_walk_q && !dq_drop_q;
+  assign walk_grant = walk_skip || walk_rsp;
+  assign dreq_valid_o = mem_issue || walk_issue;
+  assign fencei_block = mem_fencei;
+  assign icache_inval_o = mem_fencei && mem_rsp;
+
+  // MEM stalls on a translation miss, on its own port access
+  // until the final response, and while a vector LS sequences.
+  assign mem_stall = (data_access && !mmu_d_ok && !mmu_d_fault) ||
+                     (mem_needs_port && !vls_is && !mem_port_done) ||
+                     (vls_is && !vls_done && !vls_fault);
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      dq_pend_q <= 1'b0;
+      dq_walk_q <= 1'b0;
+      dq_drop_q <= 1'b0;
+      amo_wr_q <= 1'b0;
+      amo_rdata_q <= 64'd0;
+    end else begin
+      if (drsp_valid_i) begin
+        dq_pend_q <= 1'b0;
+        dq_drop_q <= 1'b0;
+      end
+      if (dreq_valid_o && dreq_ready_i) begin
+        dq_pend_q <= 1'b1;
+        dq_walk_q <= !mem_issue;
+        dq_drop_q <= 1'b0;
+      end
+      // MMU flush/abort kills the walk that owns the port.
+      if ((sfence_fire || trap_take) &&
+          ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
+           (walk_issue && dreq_ready_i))) begin
+        dq_drop_q <= 1'b1;
+      end
+      if (mem_rsp && exmem_ctrl_q.amo && !amo_wr_q) begin
+        amo_wr_q <= 1'b1;
+        amo_rdata_q <= drsp_rdata_i;
+      end else if (mem_port_done) begin
+        amo_wr_q <= 1'b0;
+      end
+    end
+  end
+
+  // A MEM access in flight is never abandoned: nothing older can
+  // trap while it waits (WB is frozen behind mem_stall).
+`ifndef SYNTHESIS
+  logic chk_live_q;
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) chk_live_q <= 1'b0;
+    else chk_live_q <= 1'b1;
+  end
+  a_mem_kept: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      (dq_pend_q && !dq_walk_q) |-> (!trap_take && mem_needs_port))
+    else $error("core: MEM data access abandoned in flight");
+  a_drsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      drsp_valid_i |-> dq_pend_q)
+    else $error("core: data response with no request");
+  a_irsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      irsp_valid_i |-> ifq_pend_q)
+    else $error("core: fetch response with no request");
+`endif
+
+  logic [63:0] mem_rdata;  // (load_shifted is forward-declared)
   logic        res_valid_q;
   logic [63:0] res_pa_q;
   logic        res_is_d_q;  // reserved access size: 1 = 8B, 0 = 4B
-  assign load_shifted = dmem_rdata_i >> {mem_va[2:0], 3'b000};
+  assign mem_rdata = amo_wr_q ? amo_rdata_q : drsp_rdata_i;
+  assign load_shifted = mem_rdata >> {mem_va[2:0], 3'b000};
 
-  // AMO read-modify-write, executed in MEM against the loaded
-  // value (combinational memory: read and write are one cycle).
-  logic [63:0] eff_store_data;
-  logic        sc_success;
+  // AMO read-modify-write in MEM: the write phase combines the
+  // value saved from the read phase with rs2.
+  logic [63:0] eff_store_data, amo_old;
+  assign amo_old = amo_rdata_q >> {mem_va[2:0], 3'b000};
   always_comb begin
     logic [31:0] a32, b32, r32;
     logic [63:0] r64;
-    a32 = load_shifted[31:0];
+    a32 = amo_old[31:0];
     b32 = exmem_store_data_q[31:0];
     unique case (exmem_ctrl_q.amo_op)
       5'b00000: begin  // AMOADD
         r32 = a32 + b32;
-        r64 = load_shifted + exmem_store_data_q;
+        r64 = amo_old + exmem_store_data_q;
       end
       5'b00100: begin  // AMOXOR
         r32 = a32 ^ b32;
-        r64 = load_shifted ^ exmem_store_data_q;
+        r64 = amo_old ^ exmem_store_data_q;
       end
       5'b01000: begin  // AMOOR
         r32 = a32 | b32;
-        r64 = load_shifted | exmem_store_data_q;
+        r64 = amo_old | exmem_store_data_q;
       end
       5'b01100: begin  // AMOAND
         r32 = a32 & b32;
-        r64 = load_shifted & exmem_store_data_q;
+        r64 = amo_old & exmem_store_data_q;
       end
       5'b10000: begin  // AMOMIN
         r32 = ($signed(a32) < $signed(b32)) ? a32 : b32;
-        r64 = ($signed(load_shifted) < $signed(exmem_store_data_q))
-              ? load_shifted : exmem_store_data_q;
+        r64 = ($signed(amo_old) < $signed(exmem_store_data_q))
+              ? amo_old : exmem_store_data_q;
       end
       5'b10100: begin  // AMOMAX
         r32 = ($signed(a32) > $signed(b32)) ? a32 : b32;
-        r64 = ($signed(load_shifted) > $signed(exmem_store_data_q))
-              ? load_shifted : exmem_store_data_q;
+        r64 = ($signed(amo_old) > $signed(exmem_store_data_q))
+              ? amo_old : exmem_store_data_q;
       end
       5'b11000: begin  // AMOMINU
         r32 = (a32 < b32) ? a32 : b32;
-        r64 = (load_shifted < exmem_store_data_q)
-              ? load_shifted : exmem_store_data_q;
+        r64 = (amo_old < exmem_store_data_q)
+              ? amo_old : exmem_store_data_q;
       end
       5'b11100: begin  // AMOMAXU
         r32 = (a32 > b32) ? a32 : b32;
-        r64 = (load_shifted > exmem_store_data_q)
-              ? load_shifted : exmem_store_data_q;
+        r64 = (amo_old > exmem_store_data_q)
+              ? amo_old : exmem_store_data_q;
       end
       default: begin  // AMOSWAP
         r32 = b32;
@@ -1400,35 +1535,45 @@ module muserisc_core import muserisc_pkg::*; (
   assign sc_success = res_valid_q && (res_pa_q == mmu_d_pa) &&
                       (res_is_d_q || (exmem_ctrl_q.funct3 == 3'b010));
 
+  // Data-port request payload. be names the accessed lanes for
+  // loads too (an uncached I/O load sees its exact width).
   always_comb begin
-    dmem_be_o = 8'd0;
-    dmem_wdata_o = 64'd0;
-    if (walk_grant && walk_we) begin
-      // PTE A/D writeback (suppressed on PMP denial; the MMU
-      // turns that into an access fault for the requester).
-      dmem_be_o = pmp_allow_walk ? 8'hFF : 8'd0;
-      dmem_wdata_o = walk_wdata;
-    end else if (mem_uses_port && exmem_ctrl_q.mem_write && !trap_fire &&
-                 (!exmem_ctrl_q.sc || sc_success)) begin
-      unique case (vls_is ? vls_eew_code[1:0]
-                          : exmem_ctrl_q.funct3[1:0])
-        2'b00: begin
-          dmem_be_o = 8'h01 << mem_va[2:0];
-          dmem_wdata_o = {8{eff_store_data[7:0]}};
-        end
-        2'b01: begin
-          dmem_be_o = 8'h03 << {mem_va[2:1], 1'b0};
-          dmem_wdata_o = {4{eff_store_data[15:0]}};
-        end
-        2'b10: begin
-          dmem_be_o = 8'h0F << {mem_va[2], 2'b00};
-          dmem_wdata_o = {2{eff_store_data[31:0]}};
-        end
-        default: begin
-          dmem_be_o = 8'hFF;
-          dmem_wdata_o = eff_store_data;
-        end
-      endcase
+    logic [7:0]  be;
+    logic [63:0] wdata;
+    unique case (vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0])
+      2'b00: begin
+        be = 8'h01 << mem_va[2:0];
+        wdata = {8{eff_store_data[7:0]}};
+      end
+      2'b01: begin
+        be = 8'h03 << {mem_va[2:1], 1'b0};
+        wdata = {4{eff_store_data[15:0]}};
+      end
+      2'b10: begin
+        be = 8'h0F << {mem_va[2], 2'b00};
+        wdata = {2{eff_store_data[31:0]}};
+      end
+      default: begin
+        be = 8'hFF;
+        wdata = eff_store_data;
+      end
+    endcase
+    if (!mem_issue) begin
+      // PTE read, or A/D writeback of the leaf PTE.
+      dreq_addr_o = walk_addr;
+      dreq_op_o = walk_we ? DOP_STORE : DOP_LOAD;
+      dreq_be_o = 8'hFF;
+      dreq_wdata_o = walk_wdata;
+    end else if (mem_fencei) begin
+      dreq_addr_o = 64'd0;
+      dreq_op_o = DOP_CLEAN;
+      dreq_be_o = 8'h00;
+      dreq_wdata_o = 64'd0;
+    end else begin
+      dreq_addr_o = mmu_d_pa;
+      dreq_op_o = mem_write_phase ? DOP_STORE : DOP_LOAD;
+      dreq_be_o = be;
+      dreq_wdata_o = wdata;
     end
   end
 
@@ -1652,7 +1797,7 @@ module muserisc_core import muserisc_pkg::*; (
       .walk_wdata_o     (walk_wdata),
       .walk_acc_o       (walk_acc),
       .walk_grant_i     (walk_grant),
-      .walk_rdata_i     (dmem_rdata_i),
+      .walk_rdata_i     (drsp_rdata_i),
       .walk_pmp_allow_i (pmp_allow_walk)
   );
 
@@ -1668,6 +1813,54 @@ module muserisc_core import muserisc_pkg::*; (
     else                                   pc_d = pc_q +
                                                  (fetch_rvc ? 64'd2
                                                             : 64'd4);
+  end
+
+  // FENCE.I marker travelling with EX/MEM (qualified by
+  // exmem_valid_q; same update condition as the EX/MEM register).
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      exmem_fencei_q <= 1'b0;
+    end else if (!trap_take && !freeze && !mem_stall) begin
+      exmem_fencei_q <= ex_fencei;
+    end
+  end
+
+  // Fetch-port bookkeeping (see fetch_word_ok above). IF
+  // consumes its word on the same condition that loads IF/ID
+  // (or enters a straddle) below; a flush or trap redirects.
+  // if_consume uses the generic ex_hold (vector unit and every
+  // multi-cycle EX unit), so a fetch word that arrives while EX
+  // is held stays buffered instead of being consumed.
+  logic if_redirect, if_consume, ifq_issue;
+  assign if_redirect = trap_take || (flush && !freeze && !mem_stall);
+  assign if_consume = !trap_take && !freeze && !mem_stall && !flush &&
+                      !stall && !fetch_stall && !ex_hold;
+  assign ifq_issue = ireq_valid_o && ireq_ready_i;
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      ifw_valid_q <= 1'b0;
+      ifw_q <= 32'd0;
+      ifq_pend_q <= 1'b0;
+      ifq_drop_q <= 1'b0;
+    end else begin
+      if (irsp_valid_i) ifq_pend_q <= 1'b0;
+      if (ifq_issue) begin
+        ifq_pend_q <= 1'b1;
+        ifq_drop_q <= 1'b0;
+      end
+      if (if_redirect) begin
+        ifw_valid_q <= 1'b0;
+        if ((ifq_pend_q && !irsp_valid_i) || ifq_issue) ifq_drop_q <= 1'b1;
+      end else if (if_consume) begin
+        // (A fetch fault can be consumed while a request is
+        // still out; its word then belongs to the old PC.)
+        ifw_valid_q <= 1'b0;
+        if (ifq_pend_q && !irsp_valid_i) ifq_drop_q <= 1'b1;
+      end else if (irsp_valid_i && ifq_pend_q && !ifq_drop_q) begin
+        ifw_valid_q <= 1'b1;
+        ifw_q <= irsp_rdata_i;
+      end
+    end
   end
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
