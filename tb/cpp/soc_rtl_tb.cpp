@@ -83,6 +83,9 @@ int main(int argc, char** argv) {
       exit_string = argv[++i];
     } else if (std::strcmp(argv[i], "--trace-traps") == 0) {
       trace_traps = true;
+    } else if (argv[i][0] == '+') {
+      // Verilator plusarg (e.g. +verilator+rand+reset+2), handled
+      // by commandArgs; must not be read as the cycle limit.
     } else {
       max_cycles = std::strtoull(argv[i], nullptr, 0);
     }

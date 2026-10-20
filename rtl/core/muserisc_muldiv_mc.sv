@@ -336,12 +336,16 @@ module muserisc_muldiv_mc #(
         .b_i       (chk_b),
         .result_o  (chk_ref)
     );
+    // Armed by the first reset edge (pre-reset state is arbitrary).
+    logic chk_armed;
+    initial chk_armed = 1'b0;
+    always @(posedge clk_i or negedge rst_ni) if (!rst_ni) chk_armed <= 1'b1;
     always_ff @(posedge clk_i) begin
       if ((state_q == S_IDLE) && req_i) begin
         chk_f3 <= funct3_i; chk_w <= word_op_i; chk_a <= a_i; chk_b <= b_i;
       end
       // Word funct3 001..011 (no MULHW) are don't-care encodings.
-      if (done_o && !kill_i && !(chk_w && !chk_f3[2] && (chk_f3[1:0] != 2'b00)) &&
+      if (chk_armed && done_o && !kill_i && !(chk_w && !chk_f3[2] && (chk_f3[1:0] != 2'b00)) &&
           (chk_ref != result_o))
         $error("muserisc_muldiv_mc: f3=%0d w=%0d a=%h b=%h: got %h, ref %h",
                chk_f3, chk_w, chk_a, chk_b, result_o, chk_ref);

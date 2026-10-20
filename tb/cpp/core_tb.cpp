@@ -143,6 +143,9 @@ int main(int argc, char** argv) {
       trace = true;
     } else if (std::strcmp(argv[i], "--no-cache") == 0) {
       cache_en = false;
+    } else if (argv[i][0] == '+') {
+      // Verilator plusarg (e.g. +verilator+rand+reset+2), handled
+      // by commandArgs; must not be read as the cycle limit.
     } else {
       max_cycles = std::strtoull(argv[i], nullptr, 0);
     }

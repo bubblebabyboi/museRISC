@@ -384,6 +384,9 @@ int main(int argc, char** argv) {
     } else if (std::strcmp(argv[i], "--bp") == 0 && need(i)) {
       // One-shot fetch breakpoints: log each listed PC once.
       breakpoints.push_back(std::strtoull(argv[++i], nullptr, 0));
+    } else if (argv[i][0] == '+') {
+      // Verilator plusarg (e.g. +verilator+rand+reset+2), handled
+      // by commandArgs; must not be read as the cycle limit.
     } else {
       max_cycles = std::strtoull(argv[i], nullptr, 0);
     }
