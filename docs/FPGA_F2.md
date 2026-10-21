@@ -53,6 +53,34 @@ peripherals) fits comfortably; reaching 100 MHz is the open risk.**
   (third-party price trackers; spot seen ≈ $0.67/h). Account F-instance
   quota (128 vCPUs) covers one. Builds (30–90 min) run off-F2.
 
+## F0 result (2026-10-21, #51)
+
+Vivado 2025.2 (F2 Developer AMI 1.19.2) out-of-context synthesis + full
+implementation of the whole `sigil_soc_top` for `xcvu47p-fsvh2892-2-e`
+(F2 Small Shell part, aws-fpga HDK v2.3.5), 100 MHz constraint, script
+`fpga/f0/f0_ooc.tcl`, on an r7iz.8xlarge build instance: **27 min wall**
+(synth 2:49, place 7:56, route 13:05). Reports:
+[`evidence/fpga-f0-2026-10-21/`](evidence/fpga-f0-2026-10-21/).
+
+| Resource | Used | VU47P | % |
+|---|---:|---:|---:|
+| CLB LUTs | 78,699 | 1,303,680 | 6.04 |
+| CLB registers | 32,463 | 2,607,360 | 1.25 |
+| RAMB36 | 9 | 2,016 | 0.45 |
+| DSP48E2 | 29 | 9,024 | 0.32 |
+| URAM | 0 | 960 | 0 |
+
+- Timing at 10 ns: setup WNS **−4.703 ns** (TNS −48,526 ns, 19,765 failing
+  endpoints), hold WHS +0.042 ns → about **68 MHz** today.
+- Worst path: vector register file BRAM read (`u_vregfile ... mem_q_reg`,
+  no BRAM output register) → 63 logic levels (17 CARRY8) → core
+  `exmem_result_q`. 65% of the delay is routing.
+- Portability: one fix needed for Vivado (`sigil_alu` `input var` for
+  the enum-typed port under `default_nettype none`).
+- Next (#53): register the VRF BRAM outputs (free BRAM DOB_REG, FPGA build
+  only), then pipeline the vector datapath into EX/MEM; re-run F0 after
+  each step.
+
 ## Platform facts (verified 2026-10-14)
 
 - F2 FPGA: AMD/Xilinx Virtex UltraScale+ **VU47P**

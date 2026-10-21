@@ -1,0 +1,29 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Wed Oct 21 04:32:23 2026
+| Host         : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command      : report_design_analysis -logic_level_distribution -file build/f0-100mhz/impl_logic_levels.rpt
+| Design       : sigil_soc_top
+| Device       : xcvu47p
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Design Analysis
+
+Table of Contents
+-----------------
+1. Logic Level Distribution
+
+1. Logic Level Distribution
+---------------------------
+
++-----------------+-------------+-----+-----+-----+----+----+----+----+----+----+----+----+
+| End Point Clock | Requirement |  53 |  54 |  55 | 56 | 57 | 58 | 59 | 60 | 61 | 62 | 63 |
++-----------------+-------------+-----+-----+-----+----+----+----+----+----+----+----+----+
+| core_clock      | 10.000ns    | 247 | 411 | 212 | 74 |  8 |  8 |  8 |  8 |  8 |  8 |  8 |
++-----------------+-------------+-----+-----+-----+----+----+----+----+----+----+----+----+
+* Columns represent the logic levels per end point clock
+** Distribution is for top worst 1000 paths
+
+

@@ -1,0 +1,5 @@
+rc=0 wall=1602s
+F0_RESULT period=10.0 wns=-4.703 fmax_est=68.0MHz
+synth_design: Time (s): cpu = 00:04:37 ; elapsed = 00:02:49 . Memory (MB): peak = 4134.438 ; gain = 2521.855 ; free physical = 248695 ; free virtual = 260411
+place_design: Time (s): cpu = 00:16:47 ; elapsed = 00:07:56 . Memory (MB): peak = 6813.520 ; gain = 1383.125 ; free physical = 245516 ; free virtual = 257906
+route_design: Time (s): cpu = 00:26:31 ; elapsed = 00:13:05 . Memory (MB): peak = 7076.520 ; gain = 230.984 ; free physical = 245179 ; free virtual = 257610

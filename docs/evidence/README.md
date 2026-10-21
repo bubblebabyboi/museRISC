@@ -1966,3 +1966,12 @@ the sky130 and oreg `srammacro` families), riscv-tests **123/123**, both
 the default `core_tb` and `core_tb_sky130` (registered SRAM reads,
 4 KiB direct-mapped L1s), only the PA0 waiver failing; the vendor
 OpenRAM model check passes with 0 same-address read/write warnings.
+
+## #51 FPGA F0: Vivado OOC implementation of the whole SoC (2026-10-21)
+
+Reports in [`fpga-f0-2026-10-21/`](fpga-f0-2026-10-21/): Vivado 2025.2,
+`xcvu47p-fsvh2892-2-e` (F2 Small Shell part), whole `sigil_soc_top`
+synthesized, placed and routed out-of-context in 27 min. 78,699 LUTs
+(6.0%), 32,463 FFs (1.25%), 9 RAMB36, 29 DSP. Setup WNS −4.703 ns at
+10 ns (≈68 MHz), hold clean. Worst path: VRF BRAM read → 63 levels →
+core EX/MEM result register. Details in `docs/FPGA_F2.md` (F0 result).
