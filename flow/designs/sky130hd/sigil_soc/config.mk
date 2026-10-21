@@ -40,7 +40,16 @@ export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/sigil_soc/core
 # Both are intended to build from flops/logic, as in the crypto macro.
 export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE      = $(DESIGN_HOME)/sky130hd/sigil_soc/constraint.sdc
-export CORE_UTILIZATION = 20
+# Floorplan sized for the Caravel user area (2920 x 3520 um): a
+# 2900 x 3500 um die (10.15 mm^2) with a ~10 um core margin. Std
+# cells (~3.0 mm^2 after synthesis) and the 7 macros (2.914 mm^2)
+# give ~45 % std-cell utilization of the space left by the macros
+# and their halos.
+export DIE_AREA  = 0 0 2900 3500
+export CORE_AREA = 10 10 2890 3490
 export PLACE_DENSITY_LB_ADDON = 0.05
 # The OpenRAM macros are up to ~1.1 mm x 0.6 mm; leave room around them.
 export MACRO_PLACE_HALO = 40 40
+# Design PDN: the platform one plus met4 straps over the OpenRAM
+# macros' met3 vdd/gnd pins (see pdn.tcl).
+export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_soc/pdn.tcl
