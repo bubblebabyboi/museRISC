@@ -65,17 +65,24 @@ task automatic sigil_power_up();
   int n;
   tb.power_up(.clk_recipe_a(ClockRecipe::A1));
   #500ns;
-  aws_clkgen_dsrt_rst();
-  aws_clkgen_asrt_rst();
-  // B1: VCO = 100 MHz x 11.875; b0 = /9.5 = 125 MHz; b1 = /19 = 62.5 MHz
-  aws_clkgen_set_mmcm(.mmcm_base(`AWS_CLKGEN_BASE_B), .mult(11), .mult_frac(875),
-                      .div(1), .div0(9), .div0_frac(500), .div1(19), .div2(1), .reset(0));
-  aws_clkgen_dsrt_rst();
   // DDR init over the Shell stat bus, as the HDK examples'
   // initialize_ddr() does (on hardware the Shell does this itself).
   tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0000));
   tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0001));
   tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0000));
+  // As aws_clkgen_set_recipe(): assert the CL resets, program the
+  // MMCM, release after lock. B1: VCO = 100 MHz x 11.875;
+  // b0 = /9.5 = 125 MHz; b1 = /19 = 62.5 MHz.
+  aws_clkgen_asrt_rst();
+  aws_clkgen_set_mmcm(.mmcm_base(`AWS_CLKGEN_BASE_B), .mult(11), .mult_frac(875),
+                      .div(1), .div0(9), .div0_frac(500), .div1(19), .div2(1), .reset(0));
+`ifdef SIGIL_SIM_SLOW_UNUSED_CLKS
+  // Simulation speed experiment: slow the unused groups down (A2, C2, H1).
+  aws_clkgen_set_mmcm(`AWS_CLKGEN_BASE_A, 12, 500, 1, 80, 0, 10, 20, 0);
+  aws_clkgen_set_mmcm(`AWS_CLKGEN_BASE_C, 12, 0, 1, 16, 0, 12, 1, 0);
+  aws_clkgen_set_mmcm(`AWS_CLKGEN_BASE_HBM, 11, 875, 1, 9, 500, 1, 1, 0);
+`endif
+  aws_clkgen_dsrt_rst();
   #1us;
   n = 0;
   do begin
@@ -108,7 +115,8 @@ endtask
 // read the first and last line back through PCIS.
 task automatic sigil_load_pcis(input string path, input logic [63:0] ddr_addr);
   int fd, c, nbytes;
-  byte unsigned img[$];
+  logic [7:0] img[$];
+  logic [7:0] b;
   logic [511:0] d, rd;
   logic [63:0] strb;
   fd = $fopen(path, "rb");
@@ -116,9 +124,16 @@ task automatic sigil_load_pcis(input string path, input logic [63:0] ddr_addr);
     error_count++;
     $fatal(1, "cannot open %s", path);
   end
-  while ((c = $fgetc(fd)) != -1) img.push_back(byte'(c));
+  // (XSIM 2025.2 pushed zeros for img.push_back(byte'(c)) here, so the
+  // byte goes through a variable.)
+  while ((c = $fgetc(fd)) != -1) begin
+    b = c[7:0];
+    img.push_back(b);
+  end
   $fclose(fd);
   nbytes = img.size();
+  $display("[%t] sigil: %s first bytes %02h %02h %02h %02h %02h %02h %02h %02h", $realtime, path,
+           img[0], img[1], img[2], img[3], img[4], img[5], img[6], img[7]);
   for (int off = 0; off < nbytes; off += 64) begin
     d = '0;
     strb = '0;
@@ -128,9 +143,12 @@ task automatic sigil_load_pcis(input string path, input logic [63:0] ddr_addr);
     end
     tb.poke_pcis(.addr(ddr_addr + off), .data(d), .strb(strb));
   end
-  for (int pass = 0; pass < 2; pass++) begin
+  // Read every line back (images here are a few KiB; the large OpenSBI
+  // payloads get head and tail only).
+  for (int line = 0; line < (nbytes + 63) / 64; line++) begin
     int off, bad;
-    off = (pass == 0) ? 0 : ((nbytes - 1) / 64) * 64;
+    if (nbytes > 65536 && line != 0 && line != (nbytes - 1) / 64) continue;
+    off = line * 64;
     bad = -1;
     tb.peek_pcis(.addr(ddr_addr + off), .data(rd));
     for (int k = 0; k < 64; k++) begin
@@ -173,7 +191,16 @@ task automatic sigil_run(input string pass, input string rx, input int max_us,
       longint unsigned cp;
       t_prog = $realtime;
       sigil_cycles(cp);
-      $display("\n[%t] sigil: progress %0d core cycles since release", $realtime, cp - c0);
+      begin
+        logic [31:0] s0, s1, s2, cs, pc;
+        sigil_ocl_rd(`SIGIL_STATUS, s0);
+        sigil_ocl_rd(`SIGIL_TX_STATUS, s1);
+        sigil_ocl_rd(`SIGIL_TRAP_COUNT, s2);
+        sigil_ocl_rd(32'h028, cs);
+        sigil_ocl_rd(32'h030, pc);
+        $display("\n[%t] sigil: progress %0d core cycles since release, %0d UART bytes; STATUS 0x%0h TX_STATUS 0x%0h traps %0d (last cause 0x%0h pc 0x%0h)",
+                 $realtime, cp - c0, out.len(), s0, s1, s2, cs, pc);
+      end
     end
     sigil_ocl_rd(`SIGIL_TX_DATA, d);
     if (d[31]) begin
@@ -223,7 +250,11 @@ function automatic string sigil_read_text(input string path);
   string s = "";
   fd = $fopen(path, "rb");
   if (fd == 0) $fatal(1, "cannot open %s", path);
-  while ((c = $fgetc(fd)) != -1) s = {s, string'(byte'(c))};
+  while ((c = $fgetc(fd)) != -1) begin
+    logic [7:0] b;
+    b = c[7:0];
+    s = {s, string'(b)};
+  end
   $fclose(fd);
   return s;
 endfunction

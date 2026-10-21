@@ -24,6 +24,7 @@ test_sigil_ed25519: all
 test_sigil_hello: TEST=test_sigil_hello
 test_sigil_hello: all
 
+# Bring-up debug: PCIS handshakes through the SmartConnect to sh_ddr.
 test_sigil_dbg: TEST=test_sigil_dbg
 test_sigil_dbg: all
 
@@ -33,3 +34,12 @@ test_sigil_host_cosim: TEST=test_sigil_host_cosim
 test_sigil_host_cosim: C_FILES = $(C_SDK_USR_UTILS_DIR)/sh_dpi_tasks.c $(CL_DIR)/../host/sigil_host.c $(CL_DIR)/../host/cosim/sigil_host_cosim.c
 test_sigil_host_cosim: C_INCLUDE_DIRS += $(CL_DIR)/../host $(CL_DIR)/../host/cosim
 test_sigil_host_cosim: all
+
+# XSIM speed experiment: sochash with the unused AWS_CLK_GEN groups slowed down.
+test_sigil_speed: TEST=test_sigil_speed
+test_sigil_speed: DEFAULT_DEFINES += +define+SIGIL_SIM_SLOW_UNUSED_CLKS
+test_sigil_speed: all
+
+# Bring-up debug: first core traps and AXI reads during sochash.
+test_sigil_dbg2: TEST=test_sigil_dbg2
+test_sigil_dbg2: all
