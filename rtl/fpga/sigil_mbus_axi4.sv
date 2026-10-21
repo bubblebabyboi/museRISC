@@ -369,7 +369,7 @@ module sigil_mbus_axi4 #(
   // (Vivado 2025.2 xelab segfaults on the LB'() cast inside the
   // property, so the beat's lane is computed outside it.)
   logic [8:0] wbeat_lane;
-  assign wbeat_lane = 9'(req_addr_i[LB-1:0] >> 3);
+  assign wbeat_lane = 9'(req_addr_i[LB-1:0]) >> 3;
   a_wbeat_addr: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       (req_fire && req_write_i && st_q == S_WR) |->
         (wbeat_lane == (wbeat_q & 9'(RATIO - 1))))
