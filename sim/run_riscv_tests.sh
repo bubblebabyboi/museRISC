@@ -9,6 +9,10 @@
 # RISCV_TESTS_DIR overrides the source tree location.
 # RISCV_TESTS_LIST (a file of test names, one per line) limits
 # the run to a smoke subset; default is every test.
+# FPGA_TB (e.g. build/sim/fpga_top_tb) runs every test on the FPGA
+# SoC top instead (issue #52): raw image at 0x8000_0000, L1 caches
+# off so the HTIF tohost store reaches the AXI DDR model, exit on
+# the tohost write; FPGA_TB_ARGS adds harness options.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -17,6 +21,8 @@ BUILD=build/riscv-tests
 CORE_TB=${CORE_TB:-build/sim/core_tb}
 # Extra harness options (e.g. bus latency) for every run.
 CORE_TB_ARGS=${CORE_TB_ARGS:-}
+FPGA_TB=${FPGA_TB:-}
+FPGA_TB_ARGS=${FPGA_TB_ARGS:-}
 mkdir -p "$BUILD"
 
 PREFIX=$(command -v riscv64-unknown-elf-gcc >/dev/null 2>&1 \
@@ -64,7 +70,13 @@ for suite in rv64ui rv64um rv64ua rv64uf rv64ud rv64uc rv64mi rv64si; do
     total=$((total + 1))
     # One ELF run contributes coverage (notably the boot_pc_i
     # pin, which directed binaries tie to 0).
-    if [ "$name" = rv64ui-p-simple ]; then
+    if [ -n "$FPGA_TB" ]; then
+      ${PREFIX}objcopy -O binary "$elf" "$elf.bin"
+      th=$(${PREFIX}nm "$elf" | awk '$3 == "tohost" { print "0x" $1 }')
+      # shellcheck disable=SC2086
+      out=$("$FPGA_TB" 20000000 --no-cache --load 0x80000000="$elf.bin" \
+            --tohost "$th" $FPGA_TB_ARGS 2>&1)
+    elif [ "$name" = rv64ui-p-simple ]; then
       out=$(COV_FILE=build/sim/cov_rvtest.dat "$CORE_TB" "$elf" 2000000 $CORE_TB_ARGS 2>&1)
     else
       out=$("$CORE_TB" "$elf" 2000000 $CORE_TB_ARGS 2>&1)
@@ -81,5 +93,5 @@ for suite in rv64ui rv64um rv64ua rv64uf rv64ud rv64uc rv64mi rv64si; do
     [ $# -ge 1 ] && echo "$name,$res,$cycles" >> "$1"
   done
 done
-echo "riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: $pass/$total PASS, $fail FAIL"
+echo "riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si${FPGA_TB:+ on $(basename "$FPGA_TB")}: $pass/$total PASS, $fail FAIL"
 [ "$fail" -eq 0 ] && [ "$total" -gt 0 ]

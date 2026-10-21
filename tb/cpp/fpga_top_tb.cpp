@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
   uint64_t tohost_val = 0;
   if (tohost != 0) {
     const uint64_t t = tohost - kRamBase + kDdrBase;
-    axi.SetWriteObserver([&](uint64_t blk, const uint8_t* data, uint64_t strb) {
+    axi.SetWriteObserver([&, t](uint64_t blk, const uint8_t* data, uint64_t strb) {
       if (t < blk || t >= blk + kDw) return;
       const int off = int(t - blk);
       uint64_t v = 0;

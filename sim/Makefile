@@ -66,8 +66,8 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
-        axibridge fpgatop fpgatop-rvtests fpgatop-hello
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge coverage
+        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 # Caches on, seeded random bus latency/gaps/backpressure.
@@ -495,13 +495,13 @@ $(SOCFW)/fpga_smoke_test.bin: $(ROOT)/sw/fpga-tests/fpga_smoke_test.c \
 FPGA_AXI_ARGS ?= --axi-lat 8:40 --axi-gap 2 --axi-ready 70
 FPGA_FW := $(addprefix $(SOCFW)/,fpga_smoke_test.bin hash_soc_test.bin \
              $(addsuffix .bin,$(SOC_CRYPTO_FW)))
-# Not part of `all`/core-test: the crypto images take tens of
-# minutes in Verilator (like socrtl). Runs, in order: smoke test
-# on 64- and 512-bit AXI (a reset mid-traffic, then two full runs
-# with a SoC reset between them), sochash and both
-# crypto images through the FPGA top (64-bit AXI), crypto_soc_test
-# on 512-bit AXI. fpgatop-rvtests / fpgatop-hello are separate.
-fpgatop: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
+# fpgatop-quick is part of `all` (core-test, ~1.5 min): the smoke
+# test on 64- and 512-bit AXI (a SoC reset mid-traffic, then two
+# full runs with a SoC reset between them) and sochash through the
+# FPGA top. fpgatop adds both crypto images (64-bit AXI) and
+# crypto_soc_test on 512-bit AXI (~4 min in all; the crypto images
+# run ~28M cycles each). fpgatop-rvtests / fpgatop-hello are separate.
+fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	cd $(BUILD) && for tb in fpga_top_tb fpga_top_tb_w512; do \
 	  ./$$tb 50000000 $(FPGA_AXI_ARGS) --reset-mid 3000000 --rerun 1 \
 	    --load 0x80000000=$(SOCFW)/fpga_smoke_test.bin \
@@ -510,6 +510,7 @@ fpgatop: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	done
 	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+fpgatop: fpgatop-quick
 	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
 	  ./fpga_top_tb 400000000 $(FPGA_AXI_ARGS) \
 	    --load 0x80000000=$(SOCFW)/$$fw.bin --exit-string "SOC CRYPTO PASS" || exit 1; \
@@ -520,17 +521,20 @@ fpgatop: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 # Upstream riscv-tests (ELFs from `make riscv-tests`) through the
 # FPGA top with the L1 caches off, so every access -- including the
 # HTIF tohost store -- is an AXI transaction.
+# FPGA_RVTESTS_CSV=path writes a per-test CSV.
 fpgatop-rvtests: $(BUILD)/fpga_top_tb
-	FPGA_TB_ARGS="$(FPGA_AXI_ARGS)" bash $(ROOT)/sim/run_fpga_riscv_tests.sh
+	FPGA_TB=build/sim/fpga_top_tb FPGA_TB_ARGS="$(FPGA_AXI_ARGS)" \
+	  bash $(ROOT)/sim/run_riscv_tests.sh $(FPGA_RVTESTS_CSV)
 
 # OpenSBI fw_jump + DTB + S-mode payload through the FPGA top
-# (images from scripts/build_opensbi.sh / `make soc`; FW_DIR
-# overrides where they are found).
+# (images from scripts/build_opensbi.sh / `make soc`; FW_DIR and
+# DTB override where they are found).
 FW_DIR ?= $(abspath $(ROOT)/build/linux)
+DTB    ?= $(FW_DIR)/sigil.dtb
 fpgatop-hello: $(BUILD)/fpga_top_tb $(ROOT)/build/linux/s_hello.bin
 	cd $(BUILD) && ./fpga_top_tb 100000000 $(FPGA_AXI_ARGS) \
 	  --load 0x80000000=$(FW_DIR)/fw_jump.bin \
-	  --load 0x83000000=$(FW_DIR)/sigil.dtb \
+	  --load 0x83000000=$(DTB) \
 	  --load 0x80200000=$(abspath $(ROOT)/build/linux/s_hello.bin) \
 	  --exit-string "HELLO FROM S-MODE"
 
