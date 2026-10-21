@@ -28,6 +28,11 @@ export VERILOG_FILES = \
 # sigil_fpu_ops.svh is `included by sigil_fpu_pkg.sv and
 # sigil_fpu.sv.
 export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/sigil_soc/core
+# W3 (#6) put sha512_block in the SoC: its 80x64 message schedule (5,120
+# bits, flops) and its 80-entry K table (padded to 128x64 = 8,192 bits,
+# constant logic) exceed ORFS's default 4096-bit inferred-memory guard.
+# Both are intended to build from flops/logic, as in the crypto macro.
+export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE      = $(DESIGN_HOME)/sky130hd/sigil_soc/constraint.sdc
 export CORE_UTILIZATION = 20
 export PLACE_DENSITY_LB_ADDON = 0.05
