@@ -37,10 +37,8 @@ export VERILOG_FILES = \
 # sigil_fpu_ops.svh is `included by sigil_fpu_pkg.sv and
 # sigil_fpu.sv.
 export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/sigil_soc/core
-# With the VRF banks and L1 arrays on macros, no inferred memory
-# exceeds ORFS's default 4096-bit SYNTH_MEMORY_MAX_BITS guard
-# (largest: the 32x64 int/FP regfiles and SHA-256 w, 2048 bits).
-# W3 (#6) put sha512_block in the SoC: its 80x64 message schedule (5,120
+# With the VRF banks and L1 arrays on macros, the core's largest inferred
+# memories are the 32x64 int/FP regfiles (2048 bits). W3 (#6) put sha512_block in the SoC: its 80x64 message schedule (5,120
 # bits, flops) and its 80-entry K table (padded to 128x64 = 8,192 bits,
 # constant logic) exceed ORFS's default 4096-bit inferred-memory guard.
 # Both are intended to build from flops/logic, as in the crypto macro.
