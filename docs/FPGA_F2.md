@@ -351,7 +351,7 @@ fast AXI memory model; evidence log
 | `test_sigil_smoke` | B5 100 MHz (sim speed) | PASS — boot ROM → FPGA smoke firmware: D$-thrashing memory test over the SmartConnect/DDR path, then the 170-byte line pushed through `UART_RX_DATA` → `FPGA SMOKE PASS` after 11,740,850 core cycles (5 h 02 min wall) |
 | `test_sigil_crypto` | B5 | PASS — socrtl `crypto_soc_test` (SHA-256, field mul, secp256k1 ECDSA verify + tamper reject on the accelerator) → `SOC CRYPTO PASS` after 27,690,806 core cycles (12 h 13 min wall) |
 | `test_sigil_ed25519` | B5 | PASS — socrtl `ed25519_soc_test` (RFC 8032 verify, tampered/non-canonical S rejected) → `SOC CRYPTO PASS` after 28,617,201 core cycles (12 h 21 min wall) |
-| `test_sigil_hello` | B5 | PASS — boot ROM → **OpenSBI v1.9** `fw_jump` (279 KB over PCIS) + DTB at `0x8300_0000` → S-mode `s_hello` → `HELLO FROM S-MODE` after 11,451,667 core cycles (4 h 59 min wall; full OpenSBI banner in the log). DTB: `muserisc.dtb`, built from the same DTS before the rename commit `95b02da` (same nodes; no `dtc` on the build hosts) |
+| `test_sigil_hello` | B5 | PASS — boot ROM → **OpenSBI v1.9** `fw_jump` (279 KB over PCIS) + DTB at `0x8300_0000` → S-mode `s_hello` → `HELLO FROM S-MODE` after 11,451,667 core cycles (4 h 59 min wall; full OpenSBI banner in the log). DTB: the build of the same DTS from before the rename commit `95b02da` (same nodes, only the name strings differ; no `dtc` on the build hosts) |
 
 XSIM speed: about 400 core cycles per second at B1 and ~800 at B5
 (r7iz.8xlarge, one simulator process per test), so a full Linux boot
