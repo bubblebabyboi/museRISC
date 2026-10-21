@@ -158,7 +158,7 @@ task automatic sigil_run(input string pass, input string rx, input int max_us,
   string out = "";
   int rx_i = 0, idle = 0;
   longint unsigned c0, c1;
-  realtime t0, t_end;
+  realtime t0, t_end, t_prog;
   ok = 0;
   sigil_ocl_wr(`SIGIL_BOOT_PC_LO, 32'h1000);
   sigil_ocl_wr(`SIGIL_BOOT_PC_HI, 32'h0);
@@ -167,7 +167,14 @@ task automatic sigil_run(input string pass, input string rx, input int max_us,
   t0 = $realtime;
   t_end = t0 + max_us * 1us;
   $display("[%t] sigil: SoC released, waiting for \"%s\"", $realtime, pass);
+  t_prog = t0;
   while ($realtime < t_end) begin
+    if ($realtime - t_prog >= 500us) begin
+      longint unsigned cp;
+      t_prog = $realtime;
+      sigil_cycles(cp);
+      $display("\n[%t] sigil: progress %0d core cycles since release", $realtime, cp - c0);
+    end
     sigil_ocl_rd(`SIGIL_TX_DATA, d);
     if (d[31]) begin
       idle = 0;

@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
   const uint64_t c0 = cycles();
   const double t0 = now_s();
   wr(R_CTRL, ctrl_run);  // release
-  info("SoC released: boot PC 0x%" PRIx64 ", caches %s, timeout %.0f s", boot_pc,
+  info("SoC released: boot PC 0x%" PRIx64 ", caches %s, timeout %g s", boot_pc,
        cache_en ? "on" : "off", timeout);
 
   // ---- console loop -----------------------------------------------------
