@@ -1,0 +1,438 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date              : Wed Oct 21 09:23:12 2026
+| Host              : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command           : report_timing -group [get_clocks clk_main_a0] -max_paths 5 -nworst 1 -unique_pins -file /home/ubuntu/cl-sigil-build2/rpt/clk_main_a0_top_paths.rpt
+| Design            : top
+| Device            : xcvu47p-fsvh2892
+| Speed File        : -2  PRODUCTION 1.30 05-01-2022
+| Design State      : Routed
+| Temperature Grade : E
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             0.197ns  (required time - arrival time)
+  Source:                 WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[112]/R
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_main_a0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_main_a0 rise@4.000ns - clk_main_a0 rise@0.000ns)
+  Data Path Delay:        3.779ns  (logic 0.080ns (2.117%)  route 3.699ns (97.883%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.108ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    5.859ns = ( 9.859 - 4.000 ) 
+    Source Clock Delay      (SCD):    5.553ns
+    Clock Pessimism Removal (CPR):    -0.197ns
+  Clock Uncertainty:      0.059ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.094ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      2.136ns (routing 0.461ns, distribution 1.675ns)
+  Clock Net Delay (Destination): 2.098ns (routing 0.421ns, distribution 1.677ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Partition      PBlock               Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------------------------------------------
+                         (clock clk_main_a0 rise edge)
+                                                      0.000     0.000 r                                      
+    BJ4                                               0.000     0.000 r  static                              <hidden>
+                         net (fo=0)                   0.100     0.100    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.863     0.963 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.050     1.013    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     1.013 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.348     1.361    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     1.389 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.883     3.272    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                     -0.127     3.145 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.245     3.390    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     3.418 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.136     5.553    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/s_sc_aclk
+    SLR Crossing[1->2]   
+    SLICE_X105Y499       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+  -------------------------------------------------------------------    -------------------------------------------------------
+    SLICE_X105Y499       FDRE (Prop_HFF2_SLICEL_C_Q)
+                                                      0.080     5.633 r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/Q
+                         net (fo=567, routed)         3.699     9.332    reconfigurable                      WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/rstb
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[112]/R
+  -------------------------------------------------------------------    -------------------------------------------------------
+
+                         (clock clk_main_a0 rise edge)
+                                                      4.000     4.000 r                                      
+    BJ4                                               0.000     4.000 r  static                              <hidden>
+                         net (fo=0)                   0.079     4.079    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.750     4.829 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.040     4.869    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     4.869 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.309     5.178    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     5.202 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.690     6.892    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                      0.630     7.522 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.215     7.737    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     7.761 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.098     9.859    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/clka
+    SLR Crossing[1->2]   
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[112]/C
+                         clock pessimism             -0.197     9.662                                            
+                         clock uncertainty           -0.059     9.603                                            
+    SLICE_X145Y494       FDRE (Setup_AFF2_SLICEM_C_R)
+                                                     -0.074     9.529    reconfigurable   pblock_CL              WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[112]
+  -------------------------------------------------------------------
+                         required time                          9.529                                            
+                         arrival time                          -9.332                                            
+  -------------------------------------------------------------------
+                         slack                                  0.197                                            
+
+Slack (MET) :             0.197ns  (required time - arrival time)
+  Source:                 WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[113]/R
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_main_a0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_main_a0 rise@4.000ns - clk_main_a0 rise@0.000ns)
+  Data Path Delay:        3.779ns  (logic 0.080ns (2.117%)  route 3.699ns (97.883%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.108ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    5.859ns = ( 9.859 - 4.000 ) 
+    Source Clock Delay      (SCD):    5.553ns
+    Clock Pessimism Removal (CPR):    -0.197ns
+  Clock Uncertainty:      0.059ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.094ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      2.136ns (routing 0.461ns, distribution 1.675ns)
+  Clock Net Delay (Destination): 2.098ns (routing 0.421ns, distribution 1.677ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Partition      PBlock               Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------------------------------------------
+                         (clock clk_main_a0 rise edge)
+                                                      0.000     0.000 r                                      
+    BJ4                                               0.000     0.000 r  static                              <hidden>
+                         net (fo=0)                   0.100     0.100    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.863     0.963 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.050     1.013    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     1.013 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.348     1.361    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     1.389 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.883     3.272    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                     -0.127     3.145 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.245     3.390    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     3.418 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.136     5.553    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/s_sc_aclk
+    SLR Crossing[1->2]   
+    SLICE_X105Y499       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+  -------------------------------------------------------------------    -------------------------------------------------------
+    SLICE_X105Y499       FDRE (Prop_HFF2_SLICEL_C_Q)
+                                                      0.080     5.633 r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/Q
+                         net (fo=567, routed)         3.699     9.332    reconfigurable                      WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/rstb
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[113]/R
+  -------------------------------------------------------------------    -------------------------------------------------------
+
+                         (clock clk_main_a0 rise edge)
+                                                      4.000     4.000 r                                      
+    BJ4                                               0.000     4.000 r  static                              <hidden>
+                         net (fo=0)                   0.079     4.079    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.750     4.829 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.040     4.869    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     4.869 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.309     5.178    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     5.202 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.690     6.892    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                      0.630     7.522 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.215     7.737    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     7.761 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.098     9.859    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/clka
+    SLR Crossing[1->2]   
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[113]/C
+                         clock pessimism             -0.197     9.662                                            
+                         clock uncertainty           -0.059     9.603                                            
+    SLICE_X145Y494       FDRE (Setup_AFF_SLICEM_C_R)
+                                                     -0.074     9.529    reconfigurable   pblock_CL              WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[113]
+  -------------------------------------------------------------------
+                         required time                          9.529                                            
+                         arrival time                          -9.332                                            
+  -------------------------------------------------------------------
+                         slack                                  0.197                                            
+
+Slack (MET) :             0.197ns  (required time - arrival time)
+  Source:                 WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[114]/R
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_main_a0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_main_a0 rise@4.000ns - clk_main_a0 rise@0.000ns)
+  Data Path Delay:        3.779ns  (logic 0.080ns (2.117%)  route 3.699ns (97.883%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.108ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    5.859ns = ( 9.859 - 4.000 ) 
+    Source Clock Delay      (SCD):    5.553ns
+    Clock Pessimism Removal (CPR):    -0.197ns
+  Clock Uncertainty:      0.059ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.094ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      2.136ns (routing 0.461ns, distribution 1.675ns)
+  Clock Net Delay (Destination): 2.098ns (routing 0.421ns, distribution 1.677ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Partition      PBlock               Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------------------------------------------
+                         (clock clk_main_a0 rise edge)
+                                                      0.000     0.000 r                                      
+    BJ4                                               0.000     0.000 r  static                              <hidden>
+                         net (fo=0)                   0.100     0.100    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.863     0.963 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.050     1.013    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     1.013 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.348     1.361    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     1.389 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.883     3.272    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                     -0.127     3.145 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.245     3.390    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     3.418 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.136     5.553    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/s_sc_aclk
+    SLR Crossing[1->2]   
+    SLICE_X105Y499       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+  -------------------------------------------------------------------    -------------------------------------------------------
+    SLICE_X105Y499       FDRE (Prop_HFF2_SLICEL_C_Q)
+                                                      0.080     5.633 r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/Q
+                         net (fo=567, routed)         3.699     9.332    reconfigurable                      WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/rstb
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[114]/R
+  -------------------------------------------------------------------    -------------------------------------------------------
+
+                         (clock clk_main_a0 rise edge)
+                                                      4.000     4.000 r                                      
+    BJ4                                               0.000     4.000 r  static                              <hidden>
+                         net (fo=0)                   0.079     4.079    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.750     4.829 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.040     4.869    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     4.869 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.309     5.178    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     5.202 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.690     6.892    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                      0.630     7.522 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.215     7.737    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     7.761 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.098     9.859    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/clka
+    SLR Crossing[1->2]   
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[114]/C
+                         clock pessimism             -0.197     9.662                                            
+                         clock uncertainty           -0.059     9.603                                            
+    SLICE_X145Y494       FDRE (Setup_BFF2_SLICEM_C_R)
+                                                     -0.074     9.529    reconfigurable   pblock_CL              WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[114]
+  -------------------------------------------------------------------
+                         required time                          9.529                                            
+                         arrival time                          -9.332                                            
+  -------------------------------------------------------------------
+                         slack                                  0.197                                            
+
+Slack (MET) :             0.197ns  (required time - arrival time)
+  Source:                 WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[115]/R
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_main_a0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_main_a0 rise@4.000ns - clk_main_a0 rise@0.000ns)
+  Data Path Delay:        3.779ns  (logic 0.080ns (2.117%)  route 3.699ns (97.883%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.108ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    5.859ns = ( 9.859 - 4.000 ) 
+    Source Clock Delay      (SCD):    5.553ns
+    Clock Pessimism Removal (CPR):    -0.197ns
+  Clock Uncertainty:      0.059ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.094ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      2.136ns (routing 0.461ns, distribution 1.675ns)
+  Clock Net Delay (Destination): 2.098ns (routing 0.421ns, distribution 1.677ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Partition      PBlock               Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------------------------------------------
+                         (clock clk_main_a0 rise edge)
+                                                      0.000     0.000 r                                      
+    BJ4                                               0.000     0.000 r  static                              <hidden>
+                         net (fo=0)                   0.100     0.100    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.863     0.963 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.050     1.013    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     1.013 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.348     1.361    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     1.389 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.883     3.272    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                     -0.127     3.145 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.245     3.390    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     3.418 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.136     5.553    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/s_sc_aclk
+    SLR Crossing[1->2]   
+    SLICE_X105Y499       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+  -------------------------------------------------------------------    -------------------------------------------------------
+    SLICE_X105Y499       FDRE (Prop_HFF2_SLICEL_C_Q)
+                                                      0.080     5.633 r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/Q
+                         net (fo=567, routed)         3.699     9.332    reconfigurable                      WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/rstb
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[115]/R
+  -------------------------------------------------------------------    -------------------------------------------------------
+
+                         (clock clk_main_a0 rise edge)
+                                                      4.000     4.000 r                                      
+    BJ4                                               0.000     4.000 r  static                              <hidden>
+                         net (fo=0)                   0.079     4.079    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.750     4.829 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.040     4.869    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     4.869 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.309     5.178    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     5.202 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.690     6.892    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                      0.630     7.522 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.215     7.737    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     7.761 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.098     9.859    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/clka
+    SLR Crossing[1->2]   
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[115]/C
+                         clock pessimism             -0.197     9.662                                            
+                         clock uncertainty           -0.059     9.603                                            
+    SLICE_X145Y494       FDRE (Setup_BFF_SLICEM_C_R)
+                                                     -0.074     9.529    reconfigurable   pblock_CL              WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[115]
+  -------------------------------------------------------------------
+                         required time                          9.529                                            
+                         arrival time                          -9.332                                            
+  -------------------------------------------------------------------
+                         slack                                  0.197                                            
+
+Slack (MET) :             0.197ns  (required time - arrival time)
+  Source:                 WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[116]/R
+                            (rising edge-triggered cell FDRE clocked by clk_main_a0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_main_a0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_main_a0 rise@4.000ns - clk_main_a0 rise@0.000ns)
+  Data Path Delay:        3.779ns  (logic 0.080ns (2.117%)  route 3.699ns (97.883%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.108ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    5.859ns = ( 9.859 - 4.000 ) 
+    Source Clock Delay      (SCD):    5.553ns
+    Clock Pessimism Removal (CPR):    -0.197ns
+  Clock Uncertainty:      0.059ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.094ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      2.136ns (routing 0.461ns, distribution 1.675ns)
+  Clock Net Delay (Destination): 2.098ns (routing 0.421ns, distribution 1.677ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Partition      PBlock               Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------------------------------------------
+                         (clock clk_main_a0 rise edge)
+                                                      0.000     0.000 r                                      
+    BJ4                                               0.000     0.000 r  static                              <hidden>
+                         net (fo=0)                   0.100     0.100    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.863     0.963 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.050     1.013    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     1.013 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.348     1.361    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     1.389 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.883     3.272    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                     -0.127     3.145 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.245     3.390    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     3.418 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.136     5.553    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/s_sc_aclk
+    SLR Crossing[1->2]   
+    SLICE_X105Y499       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+  -------------------------------------------------------------------    -------------------------------------------------------
+    SLICE_X105Y499       FDRE (Prop_HFF2_SLICEL_C_Q)
+                                                      0.080     5.633 r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/m_sc_areset_r_reg/Q
+                         net (fo=567, routed)         3.699     9.332    reconfigurable                      WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/rstb
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[116]/R
+  -------------------------------------------------------------------    -------------------------------------------------------
+
+                         (clock clk_main_a0 rise edge)
+                                                      4.000     4.000 r                                      
+    BJ4                                               0.000     4.000 r  static                              <hidden>
+                         net (fo=0)                   0.079     4.079    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    HPIOBDIFFINBUF_X0Y130
+                         DIFFINBUF (Prop_DIFFINBUF_HPIOBDIFFINBUF_DIFF_IN_P_O)
+                                                      0.750     4.829 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.040     4.869    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BJ4                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     4.869 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=1, routed)           0.309     5.178    static                              <hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y122        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     5.202 r  static                              <hidden>/<hidden>/<hidden>
+                         net (fo=3, routed)           1.690     6.892    static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+    MMCM_X0Y5            MMCME4_ADV (Prop_MMCM_CLKIN1_CLKOUT0)
+                                                      0.630     7.522 r  static                              <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=2, routed)           0.215     7.737    static                              <hidden>/<hidden>/<hidden>/<hidden>
+    BUFGCE_X0Y135        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     7.761 r  static                              <hidden>/<hidden>/<hidden>/<hidden>
+    X3Y5 (CLOCK_ROOT)    net (fo=27234, routed)       2.098     9.859    boundary                            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/clka
+    SLR Crossing[1->2]   
+    SLICE_X145Y494       FDRE                                         r  reconfigurable pblock_CL            WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[116]/C
+                         clock pessimism             -0.197     9.662                                            
+                         clock uncertainty           -0.059     9.603                                            
+    SLICE_X145Y494       FDRE (Setup_CFF2_SLICEM_C_R)
+                                                     -0.074     9.529    reconfigurable   pblock_CL              WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[116]
+  -------------------------------------------------------------------
+                         required time                          9.529                                            
+                         arrival time                          -9.332                                            
+  -------------------------------------------------------------------
+                         slack                                  0.197                                            
+
+
+
+

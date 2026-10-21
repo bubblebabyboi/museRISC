@@ -271,7 +271,47 @@ RTL straight from `rtl/`). Output:
 manifest: the `create-fpga-image` input for #55) and reports in
 `fpga/cl_sigil/build/reports/`.
 
-DCP_RESULTS_PLACEHOLDER
+Result (2026-10-21, recipe B1, r7iz.8xlarge F2 Developer AMI 1.19.2,
+Vivado 2025.2; reports in
+[`evidence/fpga-cl-54-2026-10-21/`](evidence/fpga-cl-54-2026-10-21/)):
+the full `BuildAll` flow (synthesis, link into the Small Shell
+`cl_bb_routed` checkpoint, place, phys_opt, route) completes in
+**1 h 07–1 h 09 min**; **"SUCCESS: Design has no negative slack path"**,
+so the HDK writes `post_route.dcp` (not `.VIOLATED`) and the
+`Developer_CL.tar` (manifest: PCIe `0xF054/0x1D0F`, subsystem
+`0x5160/0x1D0F`, shell `0x10212415`, hdk 2.3.5, tool v2025.2, recipes
+A1/B1/C0/H2). Two identical builds (commits `9ed857b`, `77373eb`; the
+RTL between them changed only in simulation-only code) gave the same
+numbers.
+
+| Clock (period) | Setup WNS | Hold WHS | Endpoints |
+|---|---:|---:|---:|
+| core `clk_extra_b1` = `clk_out2_clk_mmcm_b` (16 ns, B1 62.5 MHz) | **+0.147 ns** | +0.010 ns | 84,473 |
+| `clk_main_a0` (4 ns, 250 MHz: SmartConnect, PCIS slice, converters' main side) | +0.197 ns | +0.011 ns | 78,905 |
+| DDR4 controller `mmcm_clkout0` | +0.213 ns | +0.010 ns | 64,317 |
+| core ↔ main crossings (clock converters, XPM) | +3.577 / +3.958 ns | | 72 / 52 |
+| whole design (incl. `async_default` recovery in `clk_main_a0`) | +0.070 ns | +0.010 ns | 275,923 |
+
+The core path closes 16 ns with 0.147 ns to spare (≈63.1 MHz Fmax
+estimate), the same picture as F0's 68 MHz OOC result once the Shell,
+pblock and DDR placement are in: worst path is again the vector
+register file BRAM read (`u_vregfile ... mem_q_reg`, no output
+register) → 43 logic levels (13 CARRY8) → D$ data RAM enable, 70%
+routing. B1 therefore has no margin to spare; 75 MHz (B4) or
+100 MHz (B5) needs #53's pipelining first.
+
+Utilization of the CL partition (`WRAPPER/CL`, post-route):
+
+| Block | LUTs | FFs | RAMB36 | RAMB18 | DSP |
+|---|---:|---:|---:|---:|---:|
+| **CL total** | **122,329 (9.4%)** | **95,551 (3.7%)** | **71** | **3** | **32** |
+| SIGIL (SoC + bridge + OCL regs) | 80,529 | 34,572 | 9 | 0 | 29 |
+| SH_DDR (DDR4 controller) | 23,638 | 31,544 | 26 | 1 | 3 |
+| DDR_XBAR (SmartConnect 2x2) | 8,495 | 15,338 | 36 | 2 | 0 |
+| AWS_CLK_GEN (4 MMCMs + regs) | 5,636 | 7,699 | 0 | 0 | 0 |
+| DDR_CDC / OCL_CDC / PCIS_SLC | 889 / 42 / 672 | 2,816 / 282 / 2,647 | 0 | 0 | 0 |
+
+(Percentages of the VU47P; 5 MMCMs incl. the DDR controller's.)
 
 ### Simulating (HDK XSIM)
 
@@ -302,7 +342,10 @@ fast AXI memory model; evidence log
 | `test_sigil_regs` | B1 62.5 MHz | PASS — ID/VERSION/CLK_KHZ, CTRL/STATUS/BOOT_PC reset values, scratch + boot-PC read/write, unmapped `0xBAAD_DEC0`, TX empty, RX FIFO count with the SoC held, PCIS write/read at DDR `0x0` and `0x7FF_FFC0`; **measured 62.475–62.525 MHz** (cycle counter over 20.28 µs) |
 | `test_sigil_hash` | B1 | PASS — boot ROM → sochash `SOC HASH PASS` after 104,734 core cycles (1.68 ms simulated), measured 62.499 MHz |
 | `test_sigil_host_cosim` | B1 | PASS — **`fpga/host/sigil_host.c` unchanged** (`--recipe-b 1 --bin hash_soc_test.bin`): clock recipe, ID check, hold, PCIS load + read-back, release, UART drain → `SOC HASH PASS` after 113,156 cycles; host-reported measured clock 62.500 MHz |
-LONG_RESULTS_PLACEHOLDER
+| `test_sigil_smoke` | B5 100 MHz (sim speed) | RUNNING — FPGA smoke firmware + 170-byte RX line over OCL (`FPGA SMOKE PASS`) |
+| `test_sigil_crypto` | B5 | RUNNING — socrtl `crypto_soc_test` (`SOC CRYPTO PASS`) |
+| `test_sigil_ed25519` | B5 | RUNNING — socrtl `ed25519_soc_test` (`SOC CRYPTO PASS`) |
+| `test_sigil_hello` | B5 | RUNNING — boot ROM → OpenSBI `fw_jump` + DTB → S-mode `s_hello` (`HELLO FROM S-MODE`) |
 
 XSIM speed: about 400 core cycles per second at B1 and ~800 at B5
 (r7iz.8xlarge, one simulator process per test), so a full Linux boot
