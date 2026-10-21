@@ -13,6 +13,46 @@ setup WS 4.34 ns, TNS 0 at the 100 MHz constraint; that
 result is for `sigil_crypto_top` on nangate45 and says
 nothing about core Fmax on FPGA — see below).
 
+## Feasibility check (2026-10-21, research only — nothing launched)
+
+Verdict: **the whole SoC (core + vector unit + L1s + crypto engine +
+peripherals) fits comfortably; reaching 100 MHz is the open risk.**
+
+- **Resources** (Yosys `synth_xilinx -family xcup`, whole `sigil_soc_top`,
+  [`fpga-yosys-estimate-32-2026-10-21.log`](evidence/fpga-yosys-estimate-32-2026-10-21.log)):
+  ~110k LUTs (109,339 logic + ~544 LUTRAM), 31,652 FFs, 32 DSP48E2,
+  9 RAMB36 — about 8–9% of the VU47P's ~1.3M LUTs (2,851,800 logic
+  cells / 162,960 CLBs × 8 LUTs; derived, confirm in DS890), <2% of FFs
+  and DSPs. This is a Yosys estimate (20,281 separate INV cells that
+  Vivado folds into LUTs); it excludes the AWS Shell, DDR4 controller,
+  CL wrapper, virtual UART and AXI bridge. F0 replaces it with Vivado
+  numbers.
+- **Readiness gaps 1–3 above are closed on `main`:** synthesizable SoC
+  (`rtl/soc/sigil_soc_top.sv`, #4), L1 I$/D$ with a latency-tolerant
+  bus (#44), multi-cycle FPU and M unit (#41/#43), element-serial
+  vector unit with a banked sync-read VRF (#38), vector FP on the
+  shared FPU (#47). Gap 4 (Vivado elaboration) remains F0.
+- **Fmax expectation:** the unrepaired Nangate45 worst path is 6.19 ns
+  (`vls_started_q` → vector `cnt_ok_q`, `docs/SOC_AREA.md`). FPGA
+  fabric is typically 2–4× slower on the same logic depth, so a first
+  build may land around 50–80 MHz; 100 MHz likely needs a few vector /
+  FPU paths pipelined. A labelled lower-clock interim bitstream is an
+  acceptable first step.
+- **Tooling:** the AWS F2 HDK supports the Small Shell only (no built-in
+  DMA; CL gets the full top SLR), base clocks 250 MHz `clk_main_a0` and
+  100 MHz `clk_hbm_ref`, other frequencies via `AWS_CLK_GEN` recipes.
+  Supported Vivado per the HDK docs: 2024.2 / 2025.1 / 2025.2 (2025.2
+  ships on the current Developer AMI). The `vivado_rnd` host has Vivado
+  2026.1 with `virtexuplusHBM` device files but **no license**, and the
+  VU47P is not a free-edition device — F0 must run on the AWS FPGA
+  Developer AMI (license included on EC2), on a non-F2 compute instance.
+- **Work still to build for F3:** core bus → AXI4 bridge to Shell DDR4,
+  OCL AXI-Lite virtual UART + control/reset/cycle counter, host loader
+  for OpenSBI/Image/DTB.
+- **Cost:** `f2.6xlarge` ≈ $1.98/h On-Demand in us-east-1/us-west-2
+  (third-party price trackers; spot seen ≈ $0.67/h). Account F-instance
+  quota (128 vCPUs) covers one. Builds (30–90 min) run off-F2.
+
 ## Platform facts (verified 2026-10-14)
 
 - F2 FPGA: AMD/Xilinx Virtex UltraScale+ **VU47P**

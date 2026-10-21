@@ -1,0 +1,30 @@
+Yosys synth_xilinx -family xcup resource estimate, whole SoC (sigil_soc_top), 2026-10-21
+Tree: main d3080d0 (post-rename, incl. W1/W3); behavioural SRAMs (no ASIC macro defines); -DSYNTHESIS; read_slang --unroll-limit=200000
+Tool: Yosys in openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663 on AWS r7i.4xlarge
+rc=0 wall=788s
+
+== stat (flattened)
+   179298 cells
+        1   BUFG
+     4426   CARRY4
+       32   DSP48E2
+    17906   FDCE
+       24   FDPE
+    13284   FDRE
+      438   FDSE
+      176   IBUF
+    20281   INV
+     2042   LUT1
+    24995   LUT2
+    24890   LUT3
+     6659   LUT4
+    13105   LUT5
+    37648   LUT6
+     8417   MUXF7
+     3283   MUXF8
+     1096   MUXF9
+      287   OBUF
+       35   RAM32M16
+      264   RAM64X1S
+        9   RAMB36E2
+
