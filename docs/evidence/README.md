@@ -2003,3 +2003,14 @@ FIFOs for the #54 CL wrapper. Verilator against an AXI4 DDR model
   new targets), riscv-tests 123/123, `socrtl`, `sochash` pass.
 - Not run: CI-parity lint (Verilator 5.020), ACT, any Vivado
   elaboration/synthesis/timing, any AWS work.
+
+## #53 FPGA timing step 1: registered VRF reads (2026-10-21)
+
+[`fpga-vrf-oreg-53-2026-10-21.log`](fpga-vrf-oreg-53-2026-10-21.log):
+`SIGIL_VRF_OREG` (FPGA build) registers only the vector register file
+read outputs. Vivado OOC on the F2 part: WNS −4.703 → **−4.226 ns**
+(≈68 → 70.3 MHz), 79,087 LUTs. The worst path moves to the MEM stage
+(address translation / PMP / trap cause into `exmem_result_q`, 68
+levels) — the next #53 step. Gates: core-test 234 PASS (incl. the new
+`vrforeg` srammacro family), riscv-tests 123/123, full ACT 2,577/2,578
+on `core_tb_vrforeg`, lint clean on Verilator 5.044/5.048/5.020.

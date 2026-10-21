@@ -81,6 +81,9 @@ implementation of the whole `sigil_soc_top` for `xcvu47p-fsvh2892-2-e`
 - Next (#53): register the VRF BRAM outputs (free BRAM DOB_REG, FPGA build
   only), then pipeline the vector datapath into EX/MEM; re-run F0 after
   each step.
+- #53 step 1 done (2026-10-21): `SIGIL_VRF_OREG` → WNS −4.226 ns (≈70.3 MHz).
+  The FPGA build should define it. Next limit: the MEM-stage translate /
+  PMP / trap-cause path (68 levels) into `exmem_result_q`.
 
 ## F1 status (2026-10-21, #52): FPGA SoC top + AXI4 DDR bridge
 
