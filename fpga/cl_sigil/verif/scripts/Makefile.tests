@@ -1,5 +1,14 @@
 # Sigil CL XSIM tests (issue #54). Firmware images are read from
 # $CL_DIR/verif/fw (staged by fpga/scripts/sim_cl_sigil.sh).
+#
+# The multi-million-cycle images run with the core on recipe B5
+# (100 MHz) and the unused clock groups slowed down: XSIM spends most
+# of its time on the 250 MHz Shell side, so this is ~1.7x faster per
+# core cycle. Clock rate does not change RTL behaviour; the B1
+# (62.5 MHz) build recipe itself is exercised by test_sigil_regs,
+# test_sigil_hash and test_sigil_host_cosim. Clear the variable to run
+# them at B1.
+SIGIL_LONG_RUN_DEFINES ?= +define+SIGIL_SIM_SLOW_UNUSED_CLKS +define+SIGIL_SIM_RECIPE_B5
 
 # OCL registers, clock recipe + measured core clock, PCIS <-> DDR.
 test_sigil_regs: TEST=test_sigil_regs
@@ -11,17 +20,21 @@ test_sigil_hash: all
 
 # Boot ROM -> FPGA smoke firmware + virtual-UART RX line ("FPGA SMOKE PASS").
 test_sigil_smoke: TEST=test_sigil_smoke
+test_sigil_smoke: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
 test_sigil_smoke: all
 
 # Boot ROM -> socrtl crypto images ("SOC CRYPTO PASS").
 test_sigil_crypto: TEST=test_sigil_crypto
+test_sigil_crypto: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
 test_sigil_crypto: all
 
 test_sigil_ed25519: TEST=test_sigil_ed25519
+test_sigil_ed25519: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
 test_sigil_ed25519: all
 
 # Boot ROM -> OpenSBI fw_jump + DTB -> S-mode hello ("HELLO FROM S-MODE").
 test_sigil_hello: TEST=test_sigil_hello
+test_sigil_hello: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
 test_sigil_hello: all
 
 # Bring-up debug: PCIS handshakes through the SmartConnect to sh_ddr.
