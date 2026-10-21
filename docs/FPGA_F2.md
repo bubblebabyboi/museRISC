@@ -280,9 +280,15 @@ the full `BuildAll` flow (synthesis, link into the Small Shell
 so the HDK writes `post_route.dcp` (not `.VIOLATED`) and the
 `Developer_CL.tar` (manifest: PCIe `0xF054/0x1D0F`, subsystem
 `0x5160/0x1D0F`, shell `0x10212415`, hdk 2.3.5, tool v2025.2, recipes
-A1/B1/C0/H2). Two identical builds (commits `9ed857b`, `77373eb`; the
-RTL between them changed only in simulation-only code) gave the same
-numbers.
+A1/B1/C0/H2). Three builds (commits `9ed857b`, `77373eb`, `4058108`;
+the RTL between them changed only in simulation-only code) gave
+identical timing and utilization. **Candidate for #55:**
+`2026_10_21-092135.Developer_CL.tar` from `4058108` (sha256
+`9a8ecf4a5c8f594d1086942e7e33d4de63fe58f81e986d32d948a1a092cbc112`,
+manifest `dcp_hash=b7e54d4f2c059be6adbe2db9bc2d36f189c4c75385e76b1177feeb14bbffbf7d`),
+kept on the build instance under
+`~/cl-sigil-build3/fpga/cl_sigil/build/checkpoints/`. (Pass `--tag` only
+in the HDK's `YYYY_MM_DD-HHMMSS` form: it becomes the manifest `date`.)
 
 | Clock (period) | Setup WNS | Hold WHS | Endpoints |
 |---|---:|---:|---:|

@@ -11,6 +11,11 @@
 #   --no-encrypt --clock_recipe_a A1 --clock_recipe_b B1 --clock_recipe_c C0 --clock_recipe_hbm H2
 # build b1-try2  (commit 9ed857b): Build Time = 1:06:39, "SUCCESS: Design has no negative slack path"
 # build b1-77373eb (commit 77373eb): Build Time = 1:08:43, same result, same timing numbers
+# build 2026_10_21-092135 (commit 4058108, final wrapper): Build Time = 1:09:58, same result,
+#   CL_RESULT core_clock_period=16.000 wns=0.147, design WNS 0.070 / WHS 0.010, CL 122,329 LUTs (identical)
+#   sha256 9a8ecf4a5c8f594d1086942e7e33d4de63fe58f81e986d32d948a1a092cbc112  2026_10_21-092135.Developer_CL.tar
+#   manifest dcp_hash=b7e54d4f2c059be6adbe2db9bc2d36f189c4c75385e76b1177feeb14bbffbf7d date=2026_10_21-092135
+#   (kept on the build instance: ~/cl-sigil-build3/fpga/cl_sigil/build/checkpoints/)
 # (Reports for 77373eb: docs/evidence/fpga-cl-54-2026-10-21/)
 # CL_RESULT core_clock_period=16.000 wns=0.147 fmax_est=63.1MHz
 | Design Timing Summary
