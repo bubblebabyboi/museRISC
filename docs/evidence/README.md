@@ -2014,3 +2014,30 @@ read outputs. Vivado OOC on the F2 part: WNS −4.703 → **−4.226 ns**
 levels) — the next #53 step. Gates: core-test 234 PASS (incl. the new
 `vrforeg` srammacro family), riscv-tests 123/123, full ACT 2,577/2,578
 on `core_tb_vrforeg`, lint clean on Verilator 5.044/5.048/5.020.
+
+## #11: whole-SoC place-and-route on nangate45 — GDS generated (2026-10-21)
+
+[`soc-pnr-nangate45-11-2026-10-21/`](soc-pnr-nangate45-11-2026-10-21/)
+(summary in `summary.log`, overview image `final_all.jpg`). The whole
+`sigil_soc_top` — in-house RV64GCV core with vector unit and L1 caches,
+crypto/hash engine, CLINT/PLIC/UART/boot ROM, 15 fakeram45 macros —
+through the full ORFS flow to `6_final.gds`:
+
+| | nangate45 |
+|---|---:|
+| Clock / setup | 10 ns met, worst slack +0.74 ns, TNS 0 (fmax 107.9 MHz) |
+| Hold | met |
+| Route DRC (OpenROAD) | 0 |
+| Antenna (OpenROAD ANT) | 0 net / 0 pin |
+| Power connectivity (PSM) | clean |
+| Die / std-cell area | 2,020 × 2,020 µm (4.08 mm²) / 0.934 mm², 23% util |
+| Power | 0.129 W |
+
+KLayout `make drc` with the FreePDK45 deck reports 179 markers (176
+antenna per that deck's model, 2 `WELL.4`, 1 `METAL1.5` inside library
+cell `OAI221_X4`) that OpenROAD's own checks do not flag; earlier
+nangate45 releases reported only the OpenROAD checks. Runs 1–2 failed the
+6_report power-connectivity check (45 cells on a rail segment in a 22 µm
+macro gap with no metal4 strap); fixed with full 60 µm macro channels
+(`RTLMP_MIN_CHANNEL_SIZE`, `RTLMP_PIN_AWARE_CHANNELS 0`). Wording: GDS
+generated / place-and-route complete — not a tapeout.

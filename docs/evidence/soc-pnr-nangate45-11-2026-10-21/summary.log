@@ -1,0 +1,40 @@
+Whole-SoC ORFS place-and-route, nangate45, #11 — run 3 (2026-10-21)
+Tree: main d3080d0-era RTL (post-rename, W1/W3) + sky130 prep merge 560463e config; branch 11-n45-pdn-fix (RTLMP_MIN_CHANNEL_SIZE 60 60, RTLMP_PIN_AWARE_CHANNELS 0; SYNTH_MEMORY_MAX_BITS 8192)
+Image: openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663; host AWS r7i.4xlarge; synthesis reused from run 1
+flow rc=0 wall=6810s
+drc rc=0 wall=8044s
+DONE
+
+== timing (6_finish.rpt)
+tns max 0.00
+
+wns max 0.00
+
+worst slack max 0.74
+
+core_clock period_min = 9.26 fmax = 107.94
+
+
+== area / power (6_report.log)
+Design area 934327 um^2 23% utilization.
+Total power      : 1.29e-01 W
+DIEAREA ( 0 0 ) ( 4040130 4040130 ) ;
+
+== route DRC (5_route_drc.rpt lines): 0
+== OpenROAD antenna:
+[INFO ANT-0002] Found 0 net violations.
+[INFO ANT-0001] Found 0 pin violations.
+== power connectivity: 6_report passed (no PSM-0069); runs 1-2 failed with 45 unpowered cells in a 22 um macro gap
+
+== KLayout DRC (FreePDK45.lydrc, make drc): 179 markers
+    53 METAL2_ANTENNA
+    44 METAL5_ANTENNA
+    42 METAL3_ANTENNA
+    33 METAL4_ANTENNA
+     2 WELL.4
+     2 METAL6_ANTENNA
+     2 METAL7_ANTENNA
+     1 METAL1.5
+  (176 antenna markers per the KLayout FreePDK45 deck vs 0 from OpenROAD ANT check; METAL1.5 is inside library cell OAI221_X4)
+
+== GDS: 6_final.gds 441780326 bytes, sha256 dd7b3b6d619e698f670d7ce23c56405c36d5e0362068a14f37571d272ca9dfab
