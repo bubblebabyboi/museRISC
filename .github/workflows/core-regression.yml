@@ -25,7 +25,8 @@ env:
 
 concurrency:
   group: core-regression-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs only for PRs; every commit on main gets a full result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   core-tbs:

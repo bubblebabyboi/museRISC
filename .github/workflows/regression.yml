@@ -19,7 +19,8 @@ env:
 
 concurrency:
   group: rtl-regression-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs only for PRs; every commit on main gets a full result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   rtl:
