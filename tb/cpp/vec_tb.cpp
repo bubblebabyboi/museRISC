@@ -405,12 +405,19 @@ struct Dut {
     }
     d->tb_we_i = 0;
   }
+  // Backdoor reads on port C, pipelined one word per cycle. The
+  // read latency is 1 cycle, or 2 with registered SRAM outputs
+  // (SRAM_OREG: always on sky130, or +define+SIGIL_SRAM_OREG).
   VRF Dump() {
     VRF f;
+    const int lat = d->sram_oreg_o ? 2 : 1;
     d->tb_re_i = 1;
-    for (int w = 0; w < 256; ++w) {
-      d->tb_raddr_i = w;
+    for (int k = 0; k < 256 + lat - 1; ++k) {
+      d->tb_re_i = k < 256;
+      d->tb_raddr_i = k & 255;
       Tick();
+      const int w = k - (lat - 1);
+      if (w < 0) continue;
       // Sample the sync-read data where a flop would: before the
       // next rising edge. The sky130 OpenRAM macro drives its read
       // data only after the falling edge.

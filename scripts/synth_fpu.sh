@@ -30,7 +30,7 @@ mkdir -p "$OUT"
 RTL="${RTL_DIR:-rtl/core}"
 case "$TOP" in
   sigil_fpu) SRCS="$RTL/sigil_fpu_pkg.sv $RTL/sigil_fpu.sv" ;;
-  *) SRCS="$RTL/sigil_pkg.sv $RTL/sigil_regfile.sv \
+  *) SRCS="$RTL/sigil_pkg.sv $RTL/sigil_cache_pkg.sv $RTL/sigil_regfile.sv \
        $RTL/sigil_fpregfile.sv $RTL/sigil_alu.sv $RTL/sigil_muldiv.sv $RTL/sigil_muldiv_mc.sv \
        $RTL/sigil_fpu_pkg.sv $RTL/sigil_fpu.sv $RTL/sigil_bext_pkg.sv \
        $RTL/sigil_bext.sv $RTL/sigil_vregfile.sv $RTL/sigil_vec_pkg.sv \

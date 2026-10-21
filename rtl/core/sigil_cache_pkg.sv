@@ -2,6 +2,25 @@
 // interface (see docs/CORE.md "Memory interface").
 `default_nettype none
 package sigil_cache_pkg;
+  // Registered SRAM read outputs (W7.1, docs/SOC_AREA.md). With
+  // SRAM_OREG set, every SRAM read (L1 data/tag ways in
+  // sigil_sram_sp, VRF ports in sigil_vregfile) takes one more cycle:
+  // the read data is captured in a rising-edge register straight
+  // after the array, so no path launches from a macro output (the
+  // sky130 OpenRAM macros drive dout from the falling edge) into
+  // logic. The consumers (caches, vector unit, vector load/store
+  // sequencer) add the matching wait cycle. On for the sky130 macro
+  // build (SIGIL_SRAM_SKY130); SIGIL_SRAM_OREG turns it on for any
+  // other build (simulation of the sky130 latency on behavioural
+  // arrays). Off otherwise: it costs a cycle per I$ fetch, D$ hit and
+  // VRF read, which nangate45 / FPGA do not need.
+`ifdef SIGIL_SRAM_SKY130
+  localparam bit SRAM_OREG = 1'b1;
+`elsif SIGIL_SRAM_OREG
+  localparam bit SRAM_OREG = 1'b1;
+`else
+  localparam bit SRAM_OREG = 1'b0;
+`endif
   /* verilator lint_off UNUSEDPARAM */
   // Core data-port operations (dreq_op).
   localparam logic [1:0] DOP_LOAD  = 2'd0;  // read the aligned 64-bit word

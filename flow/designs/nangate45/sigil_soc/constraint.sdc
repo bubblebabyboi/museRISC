@@ -8,10 +8,15 @@ set_clock_uncertainty -hold 0.05 [get_clocks core_clock]
 set_input_delay  2.0 -clock core_clock [all_inputs]
 set_output_delay 2.0 -clock core_clock [all_outputs]
 # boot_pc_i is a static strap: the core reads it combinationally
-# from reset until the first PC update after reset release, so it
-# must be stable from before reset release through that cycle
-# (there is no reset synchronizer in sigil_soc_top yet).
+# from reset until the first PC update after the (synchronized)
+# reset release, so it must be stable from before rst_ni rises
+# through that cycle.
 set_false_path -from [get_ports boot_pc_i]
+# rst_ni only reaches the two-flop reset synchronizer in
+# sigil_soc_top (asynchronous assert, synchronous release); every
+# other async-reset flop is driven from the synchronizer output and
+# is timed (recovery/removal) against core_clock.
+set_false_path -from [get_ports rst_ni]
 # Same repair guardband as sigil_crypto (not signoff; liberty
 # limits via scripts/orfs_liberty_check.sh remain the gate).
 set_max_capacitance 21 [current_design]

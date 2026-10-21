@@ -28,6 +28,13 @@
 //       vfrec7/vfrsqrt7 estimate here; every sub-step
 //       result is registered before use. The element
 //       result is written with byte enables.
+// With sigil_cache_pkg::SRAM_OREG (registered VRF read outputs,
+// always on sky130) VRF reads take two cycles, and a stage R sits
+// between S0 and S1 holding the slot whose reads are in flight
+// (S0 -> R -> S1 -> S2 -> S3). The VRF port output registers load
+// only when S1 can take R's slot (ld_*_o), so R and S1 stall
+// together without losing read data; a vrgather.vv vs2 read takes a
+// wait phase in S1.
 // Mask-destination ops accumulate 64 result bits in a word
 // register (seeded from the old vd word) and write it once
 // per 64 elements. Prestart, tail and inactive elements are
@@ -41,6 +48,7 @@
 `default_nettype none
 module sigil_vec
   import sigil_pkg::*, sigil_vec_pkg::*, sigil_fpu_pkg::*;
+  import sigil_cache_pkg::SRAM_OREG;
 (
     input  wire          clk_i,
     input  wire          rst_ni,
@@ -65,8 +73,11 @@ module sigil_vec
     input  wire [1:0]    vxrm_i,
     input  wire [2:0]    frm_i,
 
-    // VRF ports (synchronous read: data valid the cycle
-    // after re; held while re is low).
+    // VRF ports (synchronous read: data valid 1 + SRAM_OREG
+    // cycles after re; see sigil_vregfile for ld_*_o).
+    output logic         ld_a_o,
+    output logic         ld_b_o,
+    output logic         ld_c_o,
     output logic         re_a_o,
     output logic [7:0]   raddr_a_o,
     input  wire  [63:0]  rdata_a_i,
@@ -271,7 +282,16 @@ module sigil_vec
   logic [1:0] s0_ph_q;
   logic [9:0] i0_q;
 
-  logic       s1_v_q, s1_ph_q;
+  // R (SRAM_OREG only): the slot whose VRF reads are in flight.
+  logic       r_v_q;
+  logic [1:0] r_kind_q;
+  logic [9:0] r_i_q, r_ai_q;
+  logic       r_m_q, r_first_q, r_last_q, r_skip_q;
+
+  // s1_ph_q: vrgather.vv phase in S1 (0 = issue the vs2 read,
+  // 1 = read latency wait (SRAM_OREG), 2 = vs2 data valid).
+  logic       s1_v_q;
+  logic [1:0] s1_ph_q;
   logic [1:0] s1_kind_q;
   logic [9:0] s1_i_q, s1_ai_q;
   logic       s1_m_q, s1_first_q, s1_last_q;
@@ -325,20 +345,33 @@ module sigil_vec
   // vd word; it travels with the element (row, "still current" flag
   // cleared by any write to that row while the element is in S1/S2).
   // comb_* is the last word S3 wrote, when that write was full-word.
-  logic [7:0]  s1_crow_q, s2_crow_q, w_crow_q;
-  logic        s1_cok_q, s2_cok_q, w_cok_q;
+  logic [7:0]  r_crow_q, s1_crow_q, s2_crow_q, w_crow_q;
+  logic        r_cok_q, s1_cok_q, s2_cok_q, w_cok_q;
   logic [63:0] w_cw_q;
   logic        comb_v_q;
   logic [7:0]  comb_addr_q;
   logic [63:0] comb_q;
 
   logic s2_free, s1_ready, s1_adv, s1_free, s0_issue, s0_want;
+  logic r_adv, r_free, s1_load;
   logic vrf_coll;  // a read this cycle would hit a partial S3 write
   assign s2_free = !s2_v_q || s2_done;
-  assign s1_ready = !(is_gvv && (s1_kind_q == K_ELEM) && !s1_ph_q);
+  assign s1_ready = !(is_gvv && (s1_kind_q == K_ELEM) && (s1_ph_q != 2'd2));
   assign s1_adv = s1_v_q && s1_ready && s2_free;
   assign s1_free = !s1_v_q || s1_adv;
-  assign s0_want = run_q && (s0_ph_q != PH_END) && s1_free;
+  assign r_adv = r_v_q && s1_free;
+  assign r_free = !r_v_q || r_adv;
+  // S0 issues into R (SRAM_OREG) or straight into S1.
+  assign s0_want = run_q && (s0_ph_q != PH_END) &&
+                   (SRAM_OREG ? r_free : s1_free);
+  assign s1_load = SRAM_OREG ? r_adv : s0_issue;
+  // VRF output registers (SRAM_OREG): load R's read data as the slot
+  // moves to S1 (any cycle S1 is free; with R empty the load is
+  // unused), and the vrgather.vv vs2 read in its wait phase.
+  assign ld_a_o = s1_free ||
+                  (s1_v_q && is_gvv && (s1_kind_q == K_ELEM) && (s1_ph_q == 2'd1));
+  assign ld_b_o = s1_free;
+  assign ld_c_o = s1_free;
   // VRF read/write row collisions. SRAM macros (e.g. the sky130
   // OpenRAM 1rw1r) leave a read of the row written in the same cycle
   // undefined, so the VRF never relies on the array for it:
@@ -956,7 +989,7 @@ module sigil_vec
                  : ext_el(rdata_b_i, s1_i_q, sew_q);
   assign g_ok = g_idx < {54'd0, vlmax10_q};
   logic s1_gissue, s1_gwant;
-  assign s1_gwant = s1_v_q && is_gvv && (s1_kind_q == K_ELEM) && !s1_ph_q;
+  assign s1_gwant = s1_v_q && is_gvv && (s1_kind_q == K_ELEM) && (s1_ph_q == 2'd0);
   assign s1_gissue = s1_gwant && !vrf_coll;
 
   // Candidate reads (what S1 gather / S0 would read this cycle); they
@@ -1020,7 +1053,7 @@ module sigil_vec
   // Sequential state
   // ------------------------------------------------------------
   assign busy_o = run_q;
-  assign done_o = run_q && (s0_ph_q == PH_END) && !s1_v_q && !s2_v_q &&
+  assign done_o = run_q && (s0_ph_q == PH_END) && !r_v_q && !s1_v_q && !s2_v_q &&
                   !w_v_q;
   assign we_o = w_v_q;
   assign waddr_o = w_addr_q;
@@ -1069,15 +1102,22 @@ module sigil_vec
     end
   end
   // Old-vd word currency: cleared by any write to its row while the
-  // element sits in S1 or S2 (a write in the read's own cycle is
+  // element sits in R, S1 or S2 (a write in the read's own cycle is
   // either full-word, which the VRF forwards, or stalls the read).
-  logic s1_crow_hit, s2_crow_hit;
+  logic r_crow_hit, s1_crow_hit, s2_crow_hit;
+  assign r_crow_hit = w_v_q && (w_addr_q == r_crow_q);
   assign s1_crow_hit = w_v_q && (w_addr_q == s1_crow_q);
   assign s2_crow_hit = w_v_q && (w_addr_q == s2_crow_q);
   always_ff @(posedge clk_i) begin
     if (s0_issue) begin
-      s1_crow_q <= c_ra_c;
-      s1_cok_q <= c_re_c;
+      r_crow_q <= c_ra_c;
+      r_cok_q <= c_re_c;
+    end else if (r_crow_hit) begin
+      r_cok_q <= 1'b0;
+    end
+    if (s1_load) begin
+      s1_crow_q <= SRAM_OREG ? r_crow_q : c_ra_c;
+      s1_cok_q <= SRAM_OREG ? (r_cok_q && !r_crow_hit) : c_re_c;
     end else if (s1_crow_hit) begin
       s1_cok_q <= 1'b0;
     end
@@ -1101,7 +1141,7 @@ module sigil_vec
   // row after its port-C read is always the immediately preceding S3
   // write (a full-word comb hit, which takes priority) or a partial
   // write followed by a row change, so the write-invalidation clauses
-  // above (s1/s2_crow_hit) never decide anything today. They are kept
+  // above (r/s1/s2_crow_hit) never decide anything today. They are kept
   // as protection for a future non-monotonic writer; if this check
   // fires, review that the clauses (and their tests) still cover it.
   logic       chk_wv_q;
@@ -1139,11 +1179,13 @@ module sigil_vec
     if (!rst_ni) begin
       run_q <= 1'b0;
       s0_ph_q <= PH_END;
+      r_v_q <= 1'b0;
       s1_v_q <= 1'b0;
       s2_v_q <= 1'b0;
     end else if (kill_i) begin
       run_q <= 1'b0;
       s0_ph_q <= PH_END;
+      r_v_q <= 1'b0;
       s1_v_q <= 1'b0;
       s2_v_q <= 1'b0;
     end else if (!run_q) begin
@@ -1161,7 +1203,11 @@ module sigil_vec
           default: s0_ph_q <= PH_END;
         endcase
       end
-      if (s0_issue) s1_v_q <= 1'b1;
+      if (SRAM_OREG) begin
+        if (s0_issue) r_v_q <= 1'b1;
+        else if (r_adv) r_v_q <= 1'b0;
+      end
+      if (s1_load) s1_v_q <= 1'b1;
       else if (s1_adv) s1_v_q <= 1'b0;
       if (s1_adv) s2_v_q <= 1'b1;
       else if (s2_done) s2_v_q <= 1'b0;
@@ -1212,20 +1258,43 @@ module sigil_vec
     end else if (run_q) begin
       if (s0_issue && (s0_ph_q == PH_ELEM)) i0_q <= i0_q + 10'd1;
 
-      // ---- S0 -> S1 ----
+      // ---- S0 -> R (SRAM_OREG) ----
       if (s0_issue) begin
-        s1_kind_q <= s0_kind;
-        s1_i_q <= i0_q;
-        s1_ai_q <= s0_ai;
-        s1_m_q <= v0_i[i0_q[8:0]];
-        s1_first_q <= (i0_q == beg_q);
-        s1_last_q <= s0_last;
-        s1_skip_q <= s0_skip;
-        s1_ph_q <= 1'b0;
+        r_kind_q <= s0_kind;
+        r_i_q <= i0_q;
+        r_ai_q <= s0_ai;
+        r_m_q <= v0_i[i0_q[8:0]];
+        r_first_q <= (i0_q == beg_q);
+        r_last_q <= s0_last;
+        r_skip_q <= s0_skip;
+      end
+
+      // ---- S0 / R -> S1 ----
+      if (s1_load) begin
+        if (SRAM_OREG) begin
+          s1_kind_q <= r_kind_q;
+          s1_i_q <= r_i_q;
+          s1_ai_q <= r_ai_q;
+          s1_m_q <= r_m_q;
+          s1_first_q <= r_first_q;
+          s1_last_q <= r_last_q;
+          s1_skip_q <= r_skip_q;
+        end else begin
+          s1_kind_q <= s0_kind;
+          s1_i_q <= i0_q;
+          s1_ai_q <= s0_ai;
+          s1_m_q <= v0_i[i0_q[8:0]];
+          s1_first_q <= (i0_q == beg_q);
+          s1_last_q <= s0_last;
+          s1_skip_q <= s0_skip;
+        end
+        s1_ph_q <= 2'd0;
       end else if (s1_gissue) begin
-        s1_ph_q <= 1'b1;
+        s1_ph_q <= SRAM_OREG ? 2'd1 : 2'd2;
         s1_skip_q <= !g_ok;
         s1_ai_q <= g_idx[9:0];
+      end else if (s1_v_q && (s1_ph_q == 2'd1)) begin
+        s1_ph_q <= 2'd2;
       end
 
       // ---- S1 -> S2 ----

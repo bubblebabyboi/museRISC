@@ -28,9 +28,9 @@ if [ "$SV2V_PIN" != any ] && [ "$SV2V_HAVE" != "$SV2V_PIN" ]; then
 fi
 echo "sv2v $SV2V_HAVE" > "$OUT/tool-versions.txt"
 LIB=/OpenROAD-flow-scripts/flow/platforms/nangate45/lib/NangateOpenCellLibrary_typical.lib
-"$SV2V" -DSYNTHESIS rtl/core/sigil_pkg.sv rtl/core/sigil_vec_pkg.sv \
+"$SV2V" -DSYNTHESIS rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_vec_pkg.sv \
   flow/vec-synth/fpu_stub_pkg.sv "$RTL/sigil_vec.sv" > "$OUT/sigil_vec.v"
-"$SV2V" rtl/core/sigil_pkg.sv "$RTL/sigil_vregfile.sv" > "$OUT/sigil_vregfile.v"
+"$SV2V" rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv "$RTL/sigil_vregfile.sv" > "$OUT/sigil_vregfile.v"
 for top in $TOPS; do
   src=$OUT/$top.v
   cat > "$OUT/$top.ys" <<EOF

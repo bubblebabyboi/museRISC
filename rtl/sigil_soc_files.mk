@@ -40,3 +40,14 @@ SIGIL_SOC_RTL = \
   soc/sigil_crypto_bridge.sv \
   soc/sigil_soc_fabric.sv \
   soc/sigil_soc_top.sv
+
+# sky130hd SoC configuration (W7, owner default, reversible): 4 KiB
+# direct-mapped L1 I$ and D$ (64 sets x 64 B lines, one way each),
+# set as sigil_soc_top / sigil_cpu parameter overrides by the
+# sky130hd ORFS config and by the sky130 SRAM-macro simulation
+# builds (sim/Makefile srammacro, make lint). Each way is the same
+# 512x64 data / 64x44 tag geometry as the default caches, so the
+# same OpenRAM macros map it: 2 data + 2 tag + 3 VRF = 7 macros
+# instead of 15. Delete the overrides to get the default 8 KiB
+# 2-way I$ / 16 KiB 4-way D$ back.
+SIGIL_SOC_PARAMS_SKY130 = IC_WAYS=1 DC_WAYS=1

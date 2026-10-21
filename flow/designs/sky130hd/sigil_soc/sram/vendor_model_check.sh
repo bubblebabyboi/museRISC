@@ -44,16 +44,19 @@ R=rtl/core
 VFL="--cc --exe --build -j 0 --coverage-line -Wno-fatal -Wno-lint -Wno-style --no-timing \
   --x-assign unique --x-initial unique -I$R -CFLAGS -std=c++17 -CFLAGS -O2 +define+SIGIL_SRAM_SKY130"
 verilator $VFL --Mdir "$OUT/obj_vec" --top-module sigil_vec_harness -o "$(pwd)/$OUT/vec_tb_vendor" \
-  $V $R/sigil_pkg.sv $R/sigil_vec_pkg.sv $R/sigil_fpu_pkg.sv $R/sigil_fpu.sv \
+  $V $R/sigil_pkg.sv $R/sigil_cache_pkg.sv $R/sigil_vec_pkg.sv $R/sigil_fpu_pkg.sv $R/sigil_fpu.sv \
   $R/sigil_vregfile.sv $R/sigil_vec.sv tb/sv/sigil_vec_harness.sv "$(pwd)/tb/cpp/vec_tb.cpp" \
   > "$OUT/build_vec.log" 2>&1 || { tail -20 "$OUT/build_vec.log"; exit 1; }
-CPU="$R/sigil_pkg.sv $R/sigil_regfile.sv $R/sigil_fpregfile.sv $R/sigil_alu.sv \
+CPU="$R/sigil_pkg.sv $R/sigil_cache_pkg.sv $R/sigil_regfile.sv $R/sigil_fpregfile.sv $R/sigil_alu.sv \
   $R/sigil_muldiv.sv $R/sigil_muldiv_mc.sv $R/sigil_fpu_pkg.sv $R/sigil_fpu.sv \
   $R/sigil_bext_pkg.sv $R/sigil_bext.sv $R/sigil_vregfile.sv $R/sigil_vec_pkg.sv \
   $R/sigil_vec.sv $R/sigil_rvc.sv $R/sigil_decoder.sv $R/sigil_csr.sv $R/sigil_mmu.sv \
-  $R/sigil_cache_pkg.sv $R/sigil_core.sv $R/sigil_sram_sp.sv $R/sigil_icache.sv \
+  $R/sigil_core.sv $R/sigil_sram_sp.sv $R/sigil_icache.sv \
   $R/sigil_dcache.sv $R/sigil_bus_arb.sv $R/sigil_cpu.sv"
-verilator $VFL --Mdir "$OUT/obj_core" --top-module sigil_cpu "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+# sky130 SoC cache geometry (SIGIL_SOC_PARAMS_SKY130 in rtl/sigil_soc_files.mk).
+GEO=$(sed -n 's/^SIGIL_SOC_PARAMS_SKY130 *= *//p' rtl/sigil_soc_files.mk | sed 's/[^ ][^ ]*/-G&/g')
+# shellcheck disable=SC2086
+verilator $VFL --Mdir "$OUT/obj_core" --top-module sigil_cpu "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" $GEO \
   -CFLAGS "-I$(pwd)/tb/cpp" -o "$(pwd)/$OUT/core_tb_vendor" $V $CPU "$(pwd)/tb/cpp/core_tb.cpp" \
   > "$OUT/build_core.log" 2>&1 || { tail -20 "$OUT/build_core.log"; exit 1; }
 make -s -C sim directed-bins >/dev/null || exit 1
