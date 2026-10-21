@@ -2025,9 +2025,12 @@ hardware and no AFI was created (#55).
   (register map, PCIS ↔ DDR, measured 62.5 MHz), `test_sigil_hash`
   (`SOC HASH PASS`, 104,734 cycles at 62.5 MHz) and
   `test_sigil_host_cosim` (the unchanged `fpga/host/sigil_host.c` via
-  DPI: `SOC HASH PASS`, measured 62.500 MHz) — PASS. Long images
-  (smoke, crypto, ed25519, OpenSBI `s_hello`) at the B5 recipe for
-  simulation speed: see the log.
+  DPI: `SOC HASH PASS`, measured 62.500 MHz) — PASS. Long images at
+  the B5 recipe (100 MHz, for simulation speed): `FPGA SMOKE PASS`
+  (11,740,850 cycles), OpenSBI v1.9 → `HELLO FROM S-MODE`
+  (11,451,667), `crypto_soc_test` `SOC CRYPTO PASS` (27,690,806),
+  `ed25519_soc_test` `SOC CRYPTO PASS` (28,617,201) — PASS (5–12 h
+  wall each).
 - **Verilator** `make -C sim fpgaocl` (`fpgaocl-quick` added to
   core-test): `sigil_fpga_ocl` driven only through its OCL registers —
   `SOC HASH PASS` (105,056), `FPGA SMOKE PASS` (11,791,881),
