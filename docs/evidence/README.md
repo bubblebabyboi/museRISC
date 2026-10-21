@@ -1911,3 +1911,13 @@ died in slang canonicalize at the 7.65 GiB Docker limit, and on #38's
 test host at 201 GB. This is synthesis only: no floorplan, placement,
 routing, timing signoff or GDS for the SoC follows from it (#11 stays
 open for P&R).
+
+## Post-merge gates: W3, W1 and the Sigil rename (2026-10-20)
+
+Full log: [`post-merge-gates-2026-10-20.log`](post-merge-gates-2026-10-20.log).
+On `594c41c` (W3 + W1) and again on `95b02da` (rename on top): `make
+lint` clean on Verilator 5.048 and CI's 5.020, `make test` and `make
+core-test` pass, riscv-tests **123/123**, `SOC HASH PASS` and both
+`socrtl` images (secp256k1 27,689,496 cycles, Ed25519 28,615,074). Full
+ACT on the renamed tree (marchid now `"SIGL"`, DUT config `sigil-core`):
+**2,577/2,578**, identical to the pre-rename result.
