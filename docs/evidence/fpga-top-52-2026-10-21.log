@@ -1,0 +1,106 @@
+FPGA F1 (#52): sigil_fpga_top + sigil_mbus_axi4 Verilator proof
+Date: 2026-10-21 (UTC). Branch 52-fpga-soc-top, tree at 1c6b9e4 (RTL/TB last changed in eb4e8c9).
+Host: macOS, Homebrew Verilator 5.044, riscv64-elf-gcc 16.2, Apple clang.
+AXI slave model: tb/cpp/axi4_slave_model.h. FPGA_AXI_ARGS = --axi-lat 8:40 --axi-gap 2 --axi-ready 70 (seed 1).
+
+== make lint (adds sigil_fpga_top @64/512-bit AXI, bridge @128): clean, 0 warnings, 6.5 s
+
+== make -C sim axibridge (bridge alone vs reference memory; part of core-test)
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4976 rd1, 5029 rd-line, 4935 wr1, 5060 wr-line, 4271 quiesce pulses) in 241271 cycles; AXI: 10005 AR (45208 R beats), 9995 AW (45415 W beats, 9995 B); stall cycles AW 0 W 0 AR 0 R 0 B 0
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (5071 rd1, 5006 rd-line, 4978 wr1, 4945 wr-line, 9995 quiesce pulses) in 562094 cycles; AXI: 10077 AR (45119 R beats), 9923 AW (44538 W beats, 9923 B); stall cycles AW 6662 W 29928 AR 6738 R 0 B 0
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4937 rd1, 4981 rd-line, 5156 wr1, 4926 wr-line, 10208 quiesce pulses) in 563223 cycles; AXI: 9918 AR (44785 R beats), 10082 AW (44564 W beats, 10082 B); stall cycles AW 6887 W 30155 AR 6456 R 0 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (5004 rd1, 5072 rd-line, 4870 wr1, 5054 wr-line, 4017 quiesce pulses) in 225656 cycles; AXI: 10076 AR (25292 R beats), 9924 AW (25086 W beats, 9924 B); stall cycles AW 0 W 0 AR 0 R 15216 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4939 rd1, 4978 rd-line, 5043 wr1, 5040 wr-line, 8755 quiesce pulses) in 495308 cycles; AXI: 9917 AR (24851 R beats), 10083 AW (25203 W beats, 10083 B); stall cycles AW 6524 W 16626 AR 6676 R 3849 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4916 rd1, 4959 rd-line, 5048 wr1, 5077 wr-line, 8794 quiesce pulses) in 493949 cycles; AXI: 9875 AR (24752 R beats), 10125 AW (25356 W beats, 10125 B); stall cycles AW 6637 W 17057 AR 6615 R 3687 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4950 rd1, 5060 rd-line, 4958 wr1, 5032 wr-line, 3803 quiesce pulses) in 214621 cycles; AXI: 10010 AR (10010 R beats), 9990 AW (9990 W beats, 9990 B); stall cycles AW 0 W 0 AR 0 R 0 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (5058 rd1, 5073 rd-line, 4990 wr1, 4879 wr-line, 8161 quiesce pulses) in 460624 cycles; AXI: 10131 AR (10131 R beats), 9869 AW (9869 W beats, 9869 B); stall cycles AW 6499 W 6631 AR 6801 R 0 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4994 rd1, 4991 rd-line, 4968 wr1, 5047 wr-line, 8263 quiesce pulses) in 461079 cycles; AXI: 9985 AR (9985 R beats), 10015 AW (10015 W beats, 10015 B); stall cycles AW 6792 W 6733 AR 6476 R 0 B 0
+
+== make -C sim fpgatop (wall 261s; includes fpgatop-quick, which is in core-test)
+loaded 1074 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+reset requested mid-run at 3000000 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 12391827 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 12388959 cycles after reset release)
+AXI: 98538 AR (788304 R beats), 81985 AW (655880 W beats, 81985 B); stall cycles AW 35393 W 279815 AR 42664 R 0 B 0
+loaded 1074 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+reset requested mid-run at 3000000 cycles after release
+soc reset after 13 cycles of quiesce; reloading
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 11795711 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 11787989 cycles after reset release)
+AXI: 101396 AR (101396 R beats), 84843 AW (84843 W beats, 84843 B); stall cycles AW 36620 W 36166 AR 44245 R 0 B 0
+loaded 2104 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105452 cycles after reset release)
+AXI: 53 AR (424 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 20 R 0 B 0
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/crypto_soc_test.bin
+fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 27691528 cycles after reset release)
+AXI: 90 AR (720 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 41 R 0 B 0
+loaded 5977 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/ed25519_soc_test.bin
+fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 28618145 cycles after reset release)
+AXI: 135 AR (1080 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 57 R 0 B 0
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/52-fpga-soc-top/build/soc-tests/crypto_soc_test.bin
+fpga_top_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 27690766 cycles after reset release)
+AXI: 90 AR (90 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 37 R 0 B 0
+
+== make -C sim fpgatop-rvtests (riscv-tests, L1 off, every access incl. tohost over AXI)
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si on fpga_top_tb: 123/123 PASS, 0 FAIL
+  64-bit AXI wall 8s, total 1411217 cycles (per test: fpga-top-rvtests-52-2026-10-21.csv)
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si on fpga_top_tb_w512: 123/123 PASS, 0 FAIL
+  512-bit AXI (FPGA_TB=build/sim/fpga_top_tb_w512) wall 6s, total 1411217 cycles
+
+== make -C sim fpgatop-hello: OpenSBI v1.9 fw_jump.bin (sha1 9432af6d73210905743d4e1c1f8f40d750e4066f) + DTB + s_hello
+   FW_DIR/DTB = main checkout build/linux (fw_jump.bin, muserisc.dtb: the sigil.dts content compiled before
+   the rename; only the root compatible/model strings differ -- no dtc on this host)
+-- build/fpgatop-hello.log
+fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+OpenSBI v1.9
+Platform Name               : museRISC in-house RV64GC core (Verilator)
+Platform IPI Device         : aclint-mswi
+Platform Timer Device       : aclint-mtimer @ 10000000Hz
+Platform Console Device     : uart8250
+Domain0 Next Mode           : S-mode
+HELLO FROM S-MODE
+FPGA TOP TB PASS run 0 (exit string at 11491166 cycles after reset release)
+AXI: 4209 AR (33672 R beats), 660 AW (5280 W beats, 660 B); stall cycles AW 259 W 2333 AR 1801 R 0 B 0
+EXIT 0 WALL 17s
+-- build/fpgatop-hello-w512.log
+fpga_top_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+OpenSBI v1.9
+Platform Name               : museRISC in-house RV64GC core (Verilator)
+Platform IPI Device         : aclint-mswi
+Platform Timer Device       : aclint-mtimer @ 10000000Hz
+Platform Console Device     : uart8250
+Domain0 Next Mode           : S-mode
+HELLO FROM S-MODE
+FPGA TOP TB PASS run 0 (exit string at 11454427 cycles after reset release)
+AXI: 4209 AR (4209 R beats), 660 AW (660 W beats, 660 B); stall cycles AW 283 W 294 AR 1849 R 0 B 0
+EXIT 0 WALL 21s
+
+== Gates on this branch
+make test: ALL PHASE-0 KATs PASS, EXIT 0 WALL 17s
+make core-test: pass, 231 TB PASS lines, 0 failures; wall ~2006 s (run alongside other jobs;
+  wall from log timestamps -- the wrapper's EXIT line was lost); includes axibridge + fpgatop-quick
+make riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL, EXIT 0 WALL 21s
+make -C sim socrtl: 2/2 SOC CRYPTO PASS (27689496/28615074 cycles), EXIT 0 WALL 117s
+make -C sim sochash: SOC HASH PASS (104,275 cycles), EXIT 0 WALL 1s
+scripts/rename_to_sigil.sh check: clean
+
+Claim boundary: Verilator simulation of the FPGA top against an AXI4 memory model only. Not Vivado
+elaboration/synthesis/timing (F0 #51, F2 #53), not the AWS Shell/CL (#54), not hardware. CI-parity lint on
+Verilator 5.020 and ACT were not run here (Docker unavailable).

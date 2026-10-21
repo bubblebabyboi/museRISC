@@ -1,0 +1,32 @@
+#53 FPGA timing step 1: SIGIL_VRF_OREG (registered VRF read outputs only), 2026-10-21, branch 53-fpga-vrf-oreg
+
+== Vivado 2025.2 OOC, xcvu47p-fsvh2892-2-e, 10 ns, fpga/f0/f0_ooc.tcl (r7iz.8xlarge build instance)
+baseline (F0, #51):      WNS -4.703 ns  (~68.0 MHz), worst path VRF BRAM read -> 63 levels -> exmem_result_q
+F0_RESULT defines=SYNTHESIS SIGIL_VRF_OREG period=10.0 wns=-4.226 fmax_est=70.3MHz
+rc=0 wall=1760s
+
+| CLB LUTs                   | 79087 |     0 |          0 |   1303680 |  6.07 |
+| CLB Registers              | 32695 |     0 |          0 |   2607360 |  1.25 |
+| CLB Registers                              | 32695 |     0 |          0 |   2607360 |  1.25 |
+new worst path: exmem_ctrl_q[bext_op] -> MEM-stage translate (u_mmu res_pa) / PMP / trap cause (memwb_cause, memwb_tval) -> exmem_result_q, 68 levels
+
+== Functional gates (macOS Verilator 5.044)
+lint rc=0
+test rc=0
+core-test rc=0 pass=234 fail=0
+riscv-tests rc=0 riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+wall 2004s
+
+VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro vrforeg]
+SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro vrforeg]
+
+== vivado_rnd (Verilator 5.048 deps; CI-parity 5.020 lint in Docker)
+lint5020 rc=0 23s
+build-tb rc=0 15s
+act-vrforeg rc=1 595s
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 595s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18056
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162

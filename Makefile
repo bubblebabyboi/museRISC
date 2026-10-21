@@ -7,6 +7,9 @@ RTL := rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv \
        rtl/soc/sigil_crypto_bridge.sv \
        rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
 BUILD := build
+# FPGA SoC top + mbus->AXI4 bridge (issue #52).
+FPGA_RTL := rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv \
+            rtl/fpga/sigil_fpga_top.sv
 
 CORE_RTL := rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv \
             rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv \
@@ -54,6 +57,10 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_VRF_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

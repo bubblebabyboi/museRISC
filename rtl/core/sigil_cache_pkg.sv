@@ -14,12 +14,27 @@ package sigil_cache_pkg;
   // other build (simulation of the sky130 latency on behavioural
   // arrays). Off otherwise: it costs a cycle per I$ fetch, D$ hit and
   // VRF read, which nangate45 / FPGA do not need.
+  // SRAM_OREG and VRF_OREG are each unused in some sub-builds (e.g. the
+  // vector-unit TB reads only VRF_OREG).
+  /* verilator lint_off UNUSEDPARAM */
 `ifdef SIGIL_SRAM_SKY130
   localparam bit SRAM_OREG = 1'b1;
 `elsif SIGIL_SRAM_OREG
   localparam bit SRAM_OREG = 1'b1;
 `else
   localparam bit SRAM_OREG = 1'b0;
+`endif
+  // Registered VRF read outputs only (vector register file ports in
+  // sigil_vregfile, the vector unit's R stage and the vector LS
+  // sequencer's VLS_RW cycle). Implied by SRAM_OREG; SIGIL_VRF_OREG
+  // turns it on alone for the FPGA build (#53), where the VRF BRAM read
+  // feeding the vector datapath is the worst path but the caches do not
+  // need the extra cycle (+0.37% on the vector TB vs +35-47% with the
+  // cache registers too).
+`ifdef SIGIL_VRF_OREG
+  localparam bit VRF_OREG = 1'b1;
+`else
+  localparam bit VRF_OREG = SRAM_OREG;
 `endif
   /* verilator lint_off UNUSEDPARAM */
   // Core data-port operations (dreq_op).

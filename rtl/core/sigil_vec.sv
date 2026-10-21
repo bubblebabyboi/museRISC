@@ -28,7 +28,7 @@
 //       vfrec7/vfrsqrt7 estimate here; every sub-step
 //       result is registered before use. The element
 //       result is written with byte enables.
-// With sigil_cache_pkg::SRAM_OREG (registered VRF read outputs,
+// With sigil_cache_pkg::VRF_OREG (registered VRF read outputs,
 // always on sky130) VRF reads take two cycles, and a stage R sits
 // between S0 and S1 holding the slot whose reads are in flight
 // (S0 -> R -> S1 -> S2 -> S3). The VRF port output registers load
@@ -48,7 +48,7 @@
 `default_nettype none
 module sigil_vec
   import sigil_pkg::*, sigil_vec_pkg::*, sigil_fpu_pkg::*;
-  import sigil_cache_pkg::SRAM_OREG;
+  import sigil_cache_pkg::VRF_OREG;
 (
     input  wire          clk_i,
     input  wire          rst_ni,
@@ -73,7 +73,7 @@ module sigil_vec
     input  wire [1:0]    vxrm_i,
     input  wire [2:0]    frm_i,
 
-    // VRF ports (synchronous read: data valid 1 + SRAM_OREG
+    // VRF ports (synchronous read: data valid 1 + VRF_OREG
     // cycles after re; see sigil_vregfile for ld_*_o).
     output logic         ld_a_o,
     output logic         ld_b_o,
@@ -282,14 +282,14 @@ module sigil_vec
   logic [1:0] s0_ph_q;
   logic [9:0] i0_q;
 
-  // R (SRAM_OREG only): the slot whose VRF reads are in flight.
+  // R (VRF_OREG only): the slot whose VRF reads are in flight.
   logic       r_v_q;
   logic [1:0] r_kind_q;
   logic [9:0] r_i_q, r_ai_q;
   logic       r_m_q, r_first_q, r_last_q, r_skip_q;
 
   // s1_ph_q: vrgather.vv phase in S1 (0 = issue the vs2 read,
-  // 1 = read latency wait (SRAM_OREG), 2 = vs2 data valid).
+  // 1 = read latency wait (VRF_OREG), 2 = vs2 data valid).
   logic       s1_v_q;
   logic [1:0] s1_ph_q;
   logic [1:0] s1_kind_q;
@@ -361,11 +361,11 @@ module sigil_vec
   assign s1_free = !s1_v_q || s1_adv;
   assign r_adv = r_v_q && s1_free;
   assign r_free = !r_v_q || r_adv;
-  // S0 issues into R (SRAM_OREG) or straight into S1.
+  // S0 issues into R (VRF_OREG) or straight into S1.
   assign s0_want = run_q && (s0_ph_q != PH_END) &&
-                   (SRAM_OREG ? r_free : s1_free);
-  assign s1_load = SRAM_OREG ? r_adv : s0_issue;
-  // VRF output registers (SRAM_OREG): load R's read data as the slot
+                   (VRF_OREG ? r_free : s1_free);
+  assign s1_load = VRF_OREG ? r_adv : s0_issue;
+  // VRF output registers (VRF_OREG): load R's read data as the slot
   // moves to S1 (any cycle S1 is free; with R empty the load is
   // unused), and the vrgather.vv vs2 read in its wait phase.
   assign ld_a_o = s1_free ||
@@ -1116,8 +1116,8 @@ module sigil_vec
       r_cok_q <= 1'b0;
     end
     if (s1_load) begin
-      s1_crow_q <= SRAM_OREG ? r_crow_q : c_ra_c;
-      s1_cok_q <= SRAM_OREG ? (r_cok_q && !r_crow_hit) : c_re_c;
+      s1_crow_q <= VRF_OREG ? r_crow_q : c_ra_c;
+      s1_cok_q <= VRF_OREG ? (r_cok_q && !r_crow_hit) : c_re_c;
     end else if (s1_crow_hit) begin
       s1_cok_q <= 1'b0;
     end
@@ -1203,7 +1203,7 @@ module sigil_vec
           default: s0_ph_q <= PH_END;
         endcase
       end
-      if (SRAM_OREG) begin
+      if (VRF_OREG) begin
         if (s0_issue) r_v_q <= 1'b1;
         else if (r_adv) r_v_q <= 1'b0;
       end
@@ -1258,7 +1258,7 @@ module sigil_vec
     end else if (run_q) begin
       if (s0_issue && (s0_ph_q == PH_ELEM)) i0_q <= i0_q + 10'd1;
 
-      // ---- S0 -> R (SRAM_OREG) ----
+      // ---- S0 -> R (VRF_OREG) ----
       if (s0_issue) begin
         r_kind_q <= s0_kind;
         r_i_q <= i0_q;
@@ -1271,7 +1271,7 @@ module sigil_vec
 
       // ---- S0 / R -> S1 ----
       if (s1_load) begin
-        if (SRAM_OREG) begin
+        if (VRF_OREG) begin
           s1_kind_q <= r_kind_q;
           s1_i_q <= r_i_q;
           s1_ai_q <= r_ai_q;
@@ -1290,7 +1290,7 @@ module sigil_vec
         end
         s1_ph_q <= 2'd0;
       end else if (s1_gissue) begin
-        s1_ph_q <= SRAM_OREG ? 2'd1 : 2'd2;
+        s1_ph_q <= VRF_OREG ? 2'd1 : 2'd2;
         s1_skip_q <= !g_ok;
         s1_ai_q <= g_idx[9:0];
       end else if (s1_v_q && (s1_ph_q == 2'd1)) begin

@@ -6,7 +6,7 @@
 // unit-testable in isolation.
 `default_nettype none
 module sigil_alu import sigil_pkg::*; (
-    input  sigil_pkg::alu_op_e op_i,
+    input  var sigil_pkg::alu_op_e op_i,
     input  wire                    word_op_i,
     input  wire [63:0]             a_i,
     input  wire [63:0]             b_i,

@@ -963,7 +963,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign vrf_wa = vls_is ? vls_vrf_wa : vu_wa;
   assign vrf_wbe = vls_is ? vls_vrf_wbe : vu_wbe;
   assign vrf_wd = vls_is ? vls_vrf_wd : vu_wd;
-  // VRF output-register loads (SRAM_OREG): the LS sequencer never
+  // VRF output-register loads (VRF_OREG): the LS sequencer never
   // stalls a word in flight (it waits in VLS_RW), so it loads every
   // cycle; the vector unit drives its own.
 
@@ -1251,7 +1251,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // (RVV 1.0 7.7). Whole-register transfers iterate bytes;
   // their vstart (in encoded-EEW elements) is scaled to
   // bytes on entry and back to elements on a fault.
-  // VLS_RW (SRAM_OREG only): the cycle between an element's VRF
+  // VLS_RW (VRF_OREG only): the cycle between an element's VRF
   // read in VLS_RD and its use in VLS_ACC (two-cycle VRF reads).
   localparam logic [1:0] VLS_RD = 2'd0, VLS_ACC = 2'd1, VLS_WO = 2'd2,
                          VLS_RW = 2'd3;
@@ -1436,7 +1436,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       unique case (vls_ph)
         VLS_RD: begin
           if (vls_act) begin
-            vls_ph_q <= (SRAM_OREG && (vls_re_a || vls_re_c)) ? VLS_RW : VLS_ACC;
+            vls_ph_q <= (VRF_OREG && (vls_re_a || vls_re_c)) ? VLS_RW : VLS_ACC;
           end else begin
             vls_i_q <= vls_i + 10'd1;          // skip element
             vls_ea_q <= vls_ea + vls_step;

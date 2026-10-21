@@ -3,7 +3,9 @@
 // the standard 16x divisor latch (bit period = 16*divisor
 // clocks of clk_i); a parallel byte stream is exposed for
 // simulation/host capture (tx pulses on THR write, rx bytes
-// may be pushed). Bus is the core's aligned-64-bit word:
+// may be pushed; rx_ready_o is high when a byte pushed on
+// rx_data_i/rx_valid_i this cycle is accepted, i.e. the RX
+// FIFO has room and no serial byte lands in the same cycle). Bus is the core's aligned-64-bit word:
 // rdata_o packs registers 7..0 into byte lanes.
 `default_nettype none
 module sigil_uart16550 (
@@ -20,7 +22,8 @@ module sigil_uart16550 (
     output wire [7:0]  tx_data_o,
     output wire        tx_valid_o,
     input  wire [7:0]  rx_data_i,
-    input  wire        rx_valid_i
+    input  wire        rx_valid_i,
+    output wire        rx_ready_o
 );
   logic [7:0] ier_q, lcr_q, mcr_q, scr_q, dll_q, dlm_q;
   /* verilator lint_off UNUSEDSIGNAL */
@@ -78,8 +81,8 @@ module sigil_uart16550 (
   logic [20:0] rx_cnt_q;
   logic [3:0]  rx_idx_q;
   logic [7:0]  rx_shift_q;
-  assign rx_push_par = rx_valid_i && (rx_count_q < 5'd16) &&
-                       !rx_push_ser;
+  assign rx_ready_o = (rx_count_q < 5'd16) && !rx_push_ser;
+  assign rx_push_par = rx_valid_i && rx_ready_o;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin

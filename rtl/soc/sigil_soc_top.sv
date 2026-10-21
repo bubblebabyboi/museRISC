@@ -61,6 +61,7 @@ module sigil_soc_top #(
     output wire        uart_tx_valid_o,
     input  wire [7:0]  uart_rx_data_i,
     input  wire        uart_rx_valid_i,
+    output wire        uart_rx_ready_o,  // uart_rx_valid_i accepted
     // Extra PLIC interrupt sources (source 10 is the UART).
     input  wire [31:0] ext_irq_i,
     // Trap observability (test/debug).
@@ -241,7 +242,8 @@ module sigil_soc_top #(
       .wdata_i(dev_wdata), .rdata_o(uart_rdata),
       .irq_o(uart_irq), .tx_o(uart_tx_o), .rx_i(uart_rx_i),
       .tx_data_o(uart_tx_data_o), .tx_valid_o(uart_tx_valid_o),
-      .rx_data_i(uart_rx_data_i), .rx_valid_i(uart_rx_valid_i));
+      .rx_data_i(uart_rx_data_i), .rx_valid_i(uart_rx_valid_i),
+      .rx_ready_o(uart_rx_ready_o));
   sigil_crypto_bridge u_crypto_bridge (
       .clk_i(clk_i), .rst_ni(rst_n),
       .sel_i(sel_crypto && dev_sel), .re_i(dev_re),
