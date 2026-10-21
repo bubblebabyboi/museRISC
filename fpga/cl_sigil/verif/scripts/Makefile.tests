@@ -46,5 +46,5 @@ test_sigil_dbg2: all
 
 # XSIM speed experiment: sochash at recipe B5 (core 100 MHz) with slow unused groups.
 test_sigil_speed_b5: TEST=test_sigil_speed_b5
-test_sigil_speed_b5: DEFAULT_DEFINES += +define+SIGIL_SIM_SLOW_UNUSED_CLKS+define+SIGIL_SIM_RECIPE_B5
+test_sigil_speed_b5: DEFAULT_DEFINES += +define+SIGIL_SIM_SLOW_UNUSED_CLKS +define+SIGIL_SIM_RECIPE_B5
 test_sigil_speed_b5: all
