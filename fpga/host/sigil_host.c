@@ -55,6 +55,21 @@ enum {
 #define MAX_LOADS 8
 #define MAX_MARKERS 16
 
+#ifdef SV_TEST
+// HDK XSIM co-simulation build (fpga/host/cosim/): the SDK calls are
+// served by the Shell BFM through DPI, time is simulation time.
+#include "cosim/sigil_host_cosim.h"
+#define main sigil_host_main
+#else
+static double now_s(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec + ts.tv_nsec * 1e-9;
+}
+#define sigil_exit exit
+#define sigil_usleep usleep
+#endif
+
 static pci_bar_handle_t ocl = PCI_BAR_HANDLE_INIT;
 static pci_bar_handle_t pcis = PCI_BAR_HANDLE_INIT;
 static int verbose = 1;
@@ -75,7 +90,7 @@ static void die(int code, const char *fmt, ...) {
   vfprintf(stderr, fmt, ap);
   fputc('\n', stderr);
   va_end(ap);
-  exit(code);
+  sigil_exit(code);
 }
 
 static uint32_t rd(uint64_t off) {
@@ -91,12 +106,6 @@ static uint64_t cycles(void) {
   uint32_t hi = rd(R_CYCLE_HI);
   return ((uint64_t)hi << 32) | lo;
 }
-static double now_s(void) {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return ts.tv_sec + ts.tv_nsec * 1e-9;
-}
-
 struct load { uint64_t addr; const char *path; };
 
 static uint8_t *read_file(const char *path, size_t *len) {
@@ -172,7 +181,7 @@ static void usage(const char *p) {
 "  --verify           read every loaded word back (default: head/tail)\n"
 "  --keep-running     leave the SoC running on exit (default: hold in reset)\n"
 "  -q                 quiet (UART output only)\n", p);
-  exit(3);
+  sigil_exit(3);
 }
 
 int main(int argc, char **argv) {
@@ -285,7 +294,7 @@ int main(int argc, char **argv) {
   if (stale) info("discarded %u UART bytes from a previous run", stale);
   for (int k = 0; !(rd(R_STATUS) & ST_DDR_READY); k++) {
     if (k > 1000) die(3, "DDR not ready (STATUS 0x%08x)", rd(R_STATUS));
-    usleep(1000);
+    sigil_usleep(1000);
   }
   for (int k = 0; k < nloads; k++) load_image(&loads[k], verify_all);
   if (tohost) {
@@ -363,7 +372,7 @@ int main(int argc, char **argv) {
         break;
       }
     }
-    if (!cnt) usleep(200);
+    if (!cnt) sigil_usleep(200);
   }
   const uint64_t c1 = cycles();
   const double t1 = now_s();

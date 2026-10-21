@@ -129,15 +129,21 @@ task automatic sigil_load_pcis(input string path, input logic [63:0] ddr_addr);
     tb.poke_pcis(.addr(ddr_addr + off), .data(d), .strb(strb));
   end
   for (int pass = 0; pass < 2; pass++) begin
-    int off = pass == 0 ? 0 : ((nbytes - 1) / 64) * 64;
+    int off, bad;
+    off = (pass == 0) ? 0 : ((nbytes - 1) / 64) * 64;
+    bad = -1;
     tb.peek_pcis(.addr(ddr_addr + off), .data(rd));
-    for (int k = 0; k < 64 && off + k < nbytes; k++)
-      if (rd[8*k +: 8] !== img[off + k]) begin
-        error_count++;
-        $error("[%t] PCIS readback mismatch %s +0x%0x: 0x%02x vs 0x%02x",
-               $realtime, path, off + k, rd[8*k +: 8], img[off + k]);
-        break;
-      end
+    for (int k = 0; k < 64; k++) begin
+      logic [7:0] got, exp;
+      got = rd[8*k +: 8];
+      exp = (off + k < nbytes) ? img[off + k] : got;
+      if (bad < 0 && got !== exp) bad = k;
+    end
+    if (bad >= 0) begin
+      error_count++;
+      $error("[%t] PCIS readback mismatch %s +0x%0x: got %h expected %h", $realtime,
+             path, off + bad, rd[8*bad +: 8], img[off + bad]);
+    end
   end
   $display("[%t] sigil: loaded %0d bytes from %s at DDR 0x%0x (PCIS)", $realtime,
            nbytes, path, ddr_addr);
