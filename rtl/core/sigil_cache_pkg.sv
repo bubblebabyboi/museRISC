@@ -21,6 +21,18 @@ package sigil_cache_pkg;
 `else
   localparam bit SRAM_OREG = 1'b0;
 `endif
+  // Registered VRF read outputs only (vector register file ports in
+  // sigil_vregfile, the vector unit's R stage and the vector LS
+  // sequencer's VLS_RW cycle). Implied by SRAM_OREG; SIGIL_VRF_OREG
+  // turns it on alone for the FPGA build (#53), where the VRF BRAM read
+  // feeding the vector datapath is the worst path but the caches do not
+  // need the extra cycle (+0.37% on the vector TB vs +35-47% with the
+  // cache registers too).
+`ifdef SIGIL_VRF_OREG
+  localparam bit VRF_OREG = 1'b1;
+`else
+  localparam bit VRF_OREG = SRAM_OREG;
+`endif
   /* verilator lint_off UNUSEDPARAM */
   // Core data-port operations (dreq_op).
   localparam logic [1:0] DOP_LOAD  = 2'd0;  // read the aligned 64-bit word

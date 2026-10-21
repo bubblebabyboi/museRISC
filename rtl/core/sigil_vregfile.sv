@@ -28,8 +28,8 @@
 //    and writes (ACC/WO phases) in the same cycle.
 // A read in the cycle after a write sees the written data.
 //
-// Read latency (sigil_cache_pkg::SRAM_OREG). Without SRAM_OREG,
-// read data is valid the cycle after re. With SRAM_OREG (always on
+// Read latency (sigil_cache_pkg::VRF_OREG). Without VRF_OREG,
+// read data is valid the cycle after re. With VRF_OREG (always on
 // sky130) each port has an output register after the replica: a
 // read issued at cycle T is at the replica output at T+1 (bypass
 // applied there) and is loaded into the port's output register when
@@ -38,7 +38,7 @@
 // pipeline (read in flight + data in use) stall without losing
 // data, provided no new read is issued on the port while the
 // in-flight word waits at the replica output. Consumers that never
-// stall tie ld high. ld_*_i is ignored without SRAM_OREG.
+// stall tie ld high. ld_*_i is ignored without VRF_OREG.
 //
 // Consumer contract: read data is valid at the latency above
 // and is then held while re stays low, but a held word does
@@ -138,7 +138,7 @@ module sigil_vrf_bank (
 `undef SIGIL_SRAM_MACRO
 endmodule
 
-module sigil_vregfile import sigil_cache_pkg::SRAM_OREG; (
+module sigil_vregfile import sigil_cache_pkg::VRF_OREG; (
     input  wire        clk_i,
     // rst is unnecessary: vector registers are uninitialized
     // architecturally (tests write before reading).
@@ -152,7 +152,7 @@ module sigil_vregfile import sigil_cache_pkg::SRAM_OREG; (
     input  wire        re_c_i,
     input  wire [7:0]  raddr_c_i,
     output logic [63:0] rdata_c_o,
-    // Output-register load enables (SRAM_OREG only; see above).
+    // Output-register load enables (VRF_OREG only; see above).
     input  wire        ld_a_i,
     input  wire        ld_b_i,
     input  wire        ld_c_i,
@@ -213,7 +213,7 @@ module sigil_vregfile import sigil_cache_pkg::SRAM_OREG; (
   for (genvar p = 0; p < 3; p++) begin : g_rd1
     assign rd1[p] = byp_q[p] ? byp_data_q[p] : ram_q[p];
   end
-  if (SRAM_OREG) begin : g_oreg
+  if (VRF_OREG) begin : g_oreg
     logic [2:0]  ld;
     logic [63:0] out_q [3];
     assign ld = {ld_c_i, ld_b_i, ld_a_i};
