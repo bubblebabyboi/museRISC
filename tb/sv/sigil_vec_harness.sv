@@ -40,9 +40,9 @@ module sigil_vec_harness (
     output logic         sat_o,
     output logic [4:0]   fflags_o,
     output logic         we_o,      // unit VRF write strobe (observability)
-    output logic         sram_oreg_o  // VRF read latency is 2 (SRAM_OREG)
+    output logic         sram_oreg_o  // VRF read latency is 2 (VRF_OREG)
 );
-  assign sram_oreg_o = sigil_cache_pkg::SRAM_OREG;
+  assign sram_oreg_o = sigil_cache_pkg::VRF_OREG;
   logic        re_a, re_b, re_c, we;
   logic [7:0]  ra_a, ra_b, ra_c, wa, wbe;
   logic [63:0] rd_a, rd_b, rd_c, wd;

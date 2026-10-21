@@ -14,6 +14,9 @@ package sigil_cache_pkg;
   // other build (simulation of the sky130 latency on behavioural
   // arrays). Off otherwise: it costs a cycle per I$ fetch, D$ hit and
   // VRF read, which nangate45 / FPGA do not need.
+  // SRAM_OREG and VRF_OREG are each unused in some sub-builds (e.g. the
+  // vector-unit TB reads only VRF_OREG).
+  /* verilator lint_off UNUSEDPARAM */
 `ifdef SIGIL_SRAM_SKY130
   localparam bit SRAM_OREG = 1'b1;
 `elsif SIGIL_SRAM_OREG

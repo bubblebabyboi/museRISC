@@ -407,7 +407,7 @@ struct Dut {
   }
   // Backdoor reads on port C, pipelined one word per cycle. The
   // read latency is 1 cycle, or 2 with registered SRAM outputs
-  // (SRAM_OREG: always on sky130, or +define+SIGIL_SRAM_OREG).
+  // (VRF_OREG: SRAM_OREG on sky130 or +define+SIGIL_SRAM_OREG, or +define+SIGIL_VRF_OREG alone).
   VRF Dump() {
     VRF f;
     const int lat = d->sram_oreg_o ? 2 : 1;
