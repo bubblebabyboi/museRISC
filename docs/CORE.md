@@ -312,7 +312,11 @@ cycle later. Boot-ROM instruction fetches use the same path
 without a read-enable. The core's former `dmem_stall_i` input
 is gone; the request/response data port covers it. `rst_ni` reaches the SoC through a two-flop
 reset synchronizer in `sigil_soc_top` (asynchronous assert,
-release two rising edges after `rst_ni` rises).
+release two rising edges after `rst_ni` rises). For FPGA builds
+`rtl/fpga/sigil_fpga_top.sv` wraps the SoC and serves the external
+memory bus from an AXI4 master (`sigil_mbus_axi4`: single beats as
+narrow 8-byte transfers, line bursts as INCR bursts of 64- to 512-bit
+beats); see `docs/FPGA_F2.md` (F1).
 
 ### Performance expectations
 
