@@ -34,13 +34,12 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AWS_FPGA_REPO_DIR="${AWS_FPGA_REPO_DIR:-$HOME/src/project_data/aws-fpga}"
 export CL_DIR="$REPO/fpga/cl_sigil"
 # hdk_setup.sh is not -u/-e clean.
-set +eu
+set +euo pipefail
 cd "$AWS_FPGA_REPO_DIR"
 # shellcheck disable=SC1091
 source hdk_setup.sh > "$CL_DIR/build/hdk_setup.log" 2>&1
-rc=$?
-set -eu
-[ $rc -eq 0 ] && [ -n "${HDK_SHELL_DIR:-}" ] || {
+set -euo pipefail
+[ -n "${HDK_SHELL_DIR:-}" ] || {
   echo "hdk_setup.sh failed; see $CL_DIR/build/hdk_setup.log" >&2; exit 1; }
 grep -q "RELEASE_VERSION=2.3.5" "$AWS_FPGA_REPO_DIR/release_version.txt" ||
   echo "WARNING: aws-fpga is not v2.3.5 ($(cat "$AWS_FPGA_REPO_DIR/release_version.txt"))" >&2

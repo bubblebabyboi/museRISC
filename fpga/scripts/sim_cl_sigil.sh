@@ -22,13 +22,12 @@ export CL_DIR="$REPO/fpga/cl_sigil"
 mkdir -p "$CL_DIR/verif/fw"
 cp -f "$FW_SRC"/* "$CL_DIR/verif/fw/" 2>/dev/null || true
 cp -f "$REPO/sw/fpga-tests/fpga_smoke_uart_in.txt" "$CL_DIR/verif/fw/"
-set +eu
+set +euo pipefail
 cd "$AWS_FPGA_REPO_DIR"
 # shellcheck disable=SC1091
 source hdk_setup.sh > /dev/null 2>&1
-rc=$?
-set -eu
-[ $rc -eq 0 ] && [ -n "${HDK_COMMON_DIR:-}" ] || { echo "hdk_setup.sh failed" >&2; exit 1; }
+set -euo pipefail
+[ -n "${HDK_COMMON_DIR:-}" ] || { echo "hdk_setup.sh failed" >&2; exit 1; }
 cd "$CL_DIR/verif/scripts"
 for t in "$@"; do
   s=$(date +%s)
