@@ -16,6 +16,7 @@
 set -euo pipefail
 [ $# -ge 2 ] || { sed -n 2,16p "$0"; exit 2; }
 FW_SRC="$(cd "$1" && pwd)"; shift
+TESTS=("$@")
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AWS_FPGA_REPO_DIR="${AWS_FPGA_REPO_DIR:-$HOME/src/project_data/aws-fpga}"
 export CL_DIR="$REPO/fpga/cl_sigil"
@@ -24,12 +25,13 @@ cp -f "$FW_SRC"/* "$CL_DIR/verif/fw/" 2>/dev/null || true
 cp -f "$REPO/sw/fpga-tests/fpga_smoke_uart_in.txt" "$CL_DIR/verif/fw/"
 set +euo pipefail
 cd "$AWS_FPGA_REPO_DIR"
+set --  # hdk_setup.sh reads positional args
 # shellcheck disable=SC1091
 source hdk_setup.sh > /dev/null 2>&1
 set -euo pipefail
 [ -n "${HDK_COMMON_DIR:-}" ] || { echo "hdk_setup.sh failed" >&2; exit 1; }
 cd "$CL_DIR/verif/scripts"
-for t in "$@"; do
+for t in "${TESTS[@]}"; do
   s=$(date +%s)
   make "$t" AXI_MEMORY_MODEL=1 > "$CL_DIR/verif/$t.make.log" 2>&1 || true
   log="$CL_DIR/verif/sim/xsim/${t}_sv_fast/$t.log"
