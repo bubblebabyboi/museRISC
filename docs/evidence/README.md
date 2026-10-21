@@ -1955,3 +1955,14 @@ Branch `11-sky130-sram-reg`, local macOS (Homebrew Verilator 5.044):
 - Not run here: CI-parity lint (Verilator 5.020, Docker), ACT, ORFS
   synthesis/STA/P&R and `vendor_model_check.sh`. Re-measured sky130
   fmax and area are pending that synthesis run.
+
+## sky130 RTL prep merged: gates (2026-10-21)
+
+[`sky130-prep-gates-2026-10-21.log`](sky130-prep-gates-2026-10-21.log)
+(tree `73a681a`, merged to `main` as `560463e`): lint clean on Verilator
+5.048 and CI's 5.020, `make test`, `make core-test` (217 TB PASS incl.
+the sky130 and oreg `srammacro` families), riscv-tests **123/123**, both
+`socrtl` images and `SOC HASH PASS`; full ACT **2,577/2,578** on both
+the default `core_tb` and `core_tb_sky130` (registered SRAM reads,
+4 KiB direct-mapped L1s), only the PA0 waiver failing; the vendor
+OpenRAM model check passes with 0 same-address read/write warnings.

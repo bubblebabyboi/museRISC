@@ -1,0 +1,33 @@
+Gates for the sky130 RTL prep (W7.1/W7.2: SRAM_OREG registered macro reads, reset synchronizer, 4 KiB direct-mapped L1 for sky130) + lint fixes, tree 73a681a (merged to main as 560463e), 2026-10-21
+Host: AWS vivado_rnd r7i.4xlarge, Ubuntu 24.04; deps Verilator 5.048; CI-parity lint = ubuntu:24.04 apt Verilator 5.020 in Docker
+
+lint548 rc=0 11s
+lint5020 rc=0 22s
+test rc=0 27s
+core-test rc=0 1632s
+riscv-tests rc=0 25s
+socrtl rc=0 251s
+sochash rc=0 0s
+act-default rc=1 509s
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 509s
+act-sky130 rc=1 875s
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 875s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,26230
+vendor rc=0 122s
+VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [vendor OpenRAM models, X seed 3]
+run_directed exit 0: 37 PASS lines [vendor OpenRAM models]
+vendor same-address read/write warnings: 0
+
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+SOC HASH PASS
+SOC RTL TB PASS (exit string at 104275 cycles)
+SOC RTL TB PASS (exit string at 27689496 cycles)
+SOC RTL TB PASS (exit string at 28615074 cycles)
+core-test: 217 TB PASS lines
+act-default Vx: 821/821
+act-default Vls: 1051/1051
+act-default Vf: 162/162
+act-sky130 Vx: 821/821
+act-sky130 Vls: 1051/1051
+act-sky130 Vf: 162/162
+ACT sources: same-commit generation; 34 Sail generation failures excluded as in w0-stack-gates-2026-10-20.log
