@@ -9,6 +9,10 @@
 // it arrives completes and answers its request but does not
 // leave the line valid, so no pre-clean data survives.
 //
+// Array reads take 1 + SRAM_OREG cycles (sigil_sram_sp): with
+// SRAM_OREG the lookup waits one cycle in S_RD, so a hit answers
+// two cycles after acceptance instead of one.
+//
 // Bus side: line refill = one read burst of LINE_BYTES/8 beats;
 // uncacheable fetches are single beats.
 `default_nettype none
@@ -60,10 +64,12 @@ module sigil_icache import sigil_cache_pkg::*; #(
     $error("icache: WAYS must be in [1, 16]");
   end
 
-  typedef enum logic [2:0] {
+  typedef enum logic [3:0] {
     S_IDLE, S_LOOKUP, S_FILL_REQ, S_FILL, S_REPLAY, S_UNC_REQ, S_UNC_RSP,
-    S_UNC_DONE
+    S_UNC_DONE, S_RD
   } state_e;
+  // State after issuing the lookup reads (S_RD: read-latency wait).
+  localparam state_e S_RD_NEXT = SRAM_OREG ? S_RD : S_LOOKUP;
   state_e state_q;
 
   logic [63:0] r_addr_q;
@@ -191,7 +197,7 @@ module sigil_icache import sigil_cache_pkg::*; #(
         data_en = '1;
       end
       S_UNC_REQ: bus_req_valid_o = 1'b1;
-      default: ;  // S_LOOKUP, S_UNC_RSP, S_UNC_DONE
+      default: ;  // S_LOOKUP, S_RD, S_UNC_RSP, S_UNC_DONE
     endcase
   end
 
@@ -210,7 +216,7 @@ module sigil_icache import sigil_cache_pkg::*; #(
         S_IDLE: begin
           if (req_valid_i) begin
             r_addr_q <= req_addr_i;
-            state_q <= req_cacheable ? S_LOOKUP : S_UNC_REQ;
+            state_q <= req_cacheable ? S_RD_NEXT : S_UNC_REQ;
           end
         end
         S_LOOKUP: begin
@@ -237,7 +243,8 @@ module sigil_icache import sigil_cache_pkg::*; #(
             end
           end
         end
-        S_REPLAY: state_q <= S_LOOKUP;
+        S_REPLAY: state_q <= S_RD_NEXT;
+        S_RD: state_q <= S_LOOKUP;
         S_UNC_REQ: if (bus_req_ready_i) state_q <= S_UNC_RSP;
         S_UNC_RSP: begin
           if (bus_rsp_valid_i) begin

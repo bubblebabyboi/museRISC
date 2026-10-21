@@ -28,7 +28,19 @@
 //    and writes (ACC/WO phases) in the same cycle.
 // A read in the cycle after a write sees the written data.
 //
-// Consumer contract: read data is valid the cycle after re
+// Read latency (sigil_cache_pkg::SRAM_OREG). Without SRAM_OREG,
+// read data is valid the cycle after re. With SRAM_OREG (always on
+// sky130) each port has an output register after the replica: a
+// read issued at cycle T is at the replica output at T+1 (bypass
+// applied there) and is loaded into the port's output register when
+// ld_*_i is high, so with ld high at T+1 it is valid at T+2. The
+// register holds while ld is low, which lets a two-deep consumer
+// pipeline (read in flight + data in use) stall without losing
+// data, provided no new read is issued on the port while the
+// in-flight word waits at the replica output. Consumers that never
+// stall tie ld high. ld_*_i is ignored without SRAM_OREG.
+//
+// Consumer contract: read data is valid at the latency above
 // and is then held while re stays low, but a held word does
 // NOT reflect writes that land after it was sampled. A
 // consumer may hold read data across a write only if that
@@ -126,7 +138,7 @@ module sigil_vrf_bank (
 `undef SIGIL_SRAM_MACRO
 endmodule
 
-module sigil_vregfile (
+module sigil_vregfile import sigil_cache_pkg::SRAM_OREG; (
     input  wire        clk_i,
     // rst is unnecessary: vector registers are uninitialized
     // architecturally (tests write before reading).
@@ -140,6 +152,10 @@ module sigil_vregfile (
     input  wire        re_c_i,
     input  wire [7:0]  raddr_c_i,
     output logic [63:0] rdata_c_o,
+    // Output-register load enables (SRAM_OREG only; see above).
+    input  wire        ld_a_i,
+    input  wire        ld_b_i,
+    input  wire        ld_c_i,
     output logic [511:0] v0_o,      // mask register shadow
 
     input  wire        we_i,
@@ -191,9 +207,33 @@ module sigil_vregfile (
 `endif
   end
 
-  assign rdata_a_o = byp_q[0] ? byp_data_q[0] : ram_q[0];
-  assign rdata_b_o = byp_q[1] ? byp_data_q[1] : ram_q[1];
-  assign rdata_c_o = byp_q[2] ? byp_data_q[2] : ram_q[2];
+  // Replica output with the full-word bypass applied (the read
+  // data in the cycle after the read).
+  logic [63:0] rd1 [3];
+  for (genvar p = 0; p < 3; p++) begin : g_rd1
+    assign rd1[p] = byp_q[p] ? byp_data_q[p] : ram_q[p];
+  end
+  if (SRAM_OREG) begin : g_oreg
+    logic [2:0]  ld;
+    logic [63:0] out_q [3];
+    assign ld = {ld_c_i, ld_b_i, ld_a_i};
+    always_ff @(posedge clk_i) begin
+      for (int p = 0; p < 3; p++) begin
+        if (ld[p]) out_q[p] <= rd1[p];
+      end
+    end
+    assign rdata_a_o = out_q[0];
+    assign rdata_b_o = out_q[1];
+    assign rdata_c_o = out_q[2];
+  end else begin : g_noreg
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic unused_ld;
+    assign unused_ld = ld_a_i ^ ld_b_i ^ ld_c_i;
+    /* verilator lint_on UNUSEDSIGNAL */
+    assign rdata_a_o = rd1[0];
+    assign rdata_b_o = rd1[1];
+    assign rdata_c_o = rd1[2];
+  end
 
   // v0 shadow (register 0 = words 0..7).
   logic [511:0] v0_q;

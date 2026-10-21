@@ -34,6 +34,8 @@ test: ## Python golden self-check + Verilator C++ crypto KATs (needs python3, ve
 	$(MAKE) -C sim crypto
 	@echo "ALL PHASE-0 KATs PASS"
 
+# sky130 SoC parameter overrides (SIGIL_SOC_PARAMS_SKY130).
+include rtl/sigil_soc_files.mk
 # Behavioural models of the ORFS SRAM macros (VRF + L1 arrays).
 SRAM_MODELS_FAKERAM45 := $(addprefix flow/designs/nangate45/sigil_soc/sram/,\
   fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
@@ -49,7 +51,9 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_muldiv_mc -GCOMB=1 rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu $(CORE_RTL) $(CACHE_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 $(SRAM_MODELS_FAKERAM45) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

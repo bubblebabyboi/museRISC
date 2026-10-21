@@ -39,13 +39,15 @@ module sigil_vec_harness (
     output logic [63:0]  scalar_o,
     output logic         sat_o,
     output logic [4:0]   fflags_o,
-    output logic         we_o       // unit VRF write strobe (observability)
+    output logic         we_o,      // unit VRF write strobe (observability)
+    output logic         sram_oreg_o  // VRF read latency is 2 (SRAM_OREG)
 );
+  assign sram_oreg_o = sigil_cache_pkg::SRAM_OREG;
   logic        re_a, re_b, re_c, we;
   logic [7:0]  ra_a, ra_b, ra_c, wa, wbe;
   logic [63:0] rd_a, rd_b, rd_c, wd;
   logic [511:0] v0;
-  logic        u_re_c, u_we;
+  logic        u_re_c, u_we, u_ld_a, u_ld_b, u_ld_c;
   logic [7:0]  u_ra_c, u_wa, u_wbe;
   logic [63:0] u_wd;
   logic        tb_own;
@@ -75,6 +77,9 @@ module sigil_vec_harness (
       .re_c_i    (re_c),
       .raddr_c_i (ra_c),
       .rdata_c_o (rd_c),
+      .ld_a_i    (u_ld_a),
+      .ld_b_i    (u_ld_b),
+      .ld_c_i    (tb_own || u_ld_c),
       .v0_o      (v0),
       .we_i      (we),
       .waddr_i   (wa),
@@ -105,6 +110,9 @@ module sigil_vec_harness (
       .imm_i     (imm_i),
       .vxrm_i    (vxrm_i),
       .frm_i     (frm_i),
+      .ld_a_o    (u_ld_a),
+      .ld_b_o    (u_ld_b),
+      .ld_c_o    (u_ld_c),
       .re_a_o    (re_a),
       .raddr_a_o (ra_a),
       .rdata_a_i (rd_a),

@@ -947,6 +947,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic [63:0]   vrf_rd_a, vrf_rd_b, vrf_rd_c, vrf_wd;
   logic [511:0]  vec_v0;
   logic          vu_re_a, vu_re_b, vu_re_c, vu_we;
+  logic          vu_ld_a, vu_ld_b, vu_ld_c;
   logic [7:0]    vu_ra_a, vu_ra_b, vu_ra_c, vu_wa, vu_wbe;
   logic [63:0]   vu_wd;
   logic          vls_re_a, vls_re_c, vls_vrf_we;
@@ -962,6 +963,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign vrf_wa = vls_is ? vls_vrf_wa : vu_wa;
   assign vrf_wbe = vls_is ? vls_vrf_wbe : vu_wbe;
   assign vrf_wd = vls_is ? vls_vrf_wd : vu_wd;
+  // VRF output-register loads (SRAM_OREG): the LS sequencer never
+  // stalls a word in flight (it waits in VLS_RW), so it loads every
+  // cycle; the vector unit drives its own.
 
   sigil_vregfile u_vregfile (
       .clk_i     (clk_i),
@@ -974,6 +978,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .re_c_i    (vrf_re_c),
       .raddr_c_i (vrf_ra_c),
       .rdata_c_o (vrf_rd_c),
+      .ld_a_i    (vls_is || vu_ld_a),
+      .ld_b_i    (vls_is || vu_ld_b),
+      .ld_c_i    (vls_is || vu_ld_c),
       .v0_o      (vec_v0),
       .we_i      (vrf_we),
       .waddr_i   (vrf_wa),
@@ -1006,6 +1013,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .imm_i     (idex_imm_q),
       .vxrm_i    (csr_vxrm),
       .frm_i     (csr_frm),
+      .ld_a_o    (vu_ld_a),
+      .ld_b_o    (vu_ld_b),
+      .ld_c_o    (vu_ld_c),
       .re_a_o    (vu_re_a),
       .raddr_a_o (vu_ra_a),
       .rdata_a_i (vrf_rd_a),
@@ -1241,7 +1251,10 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // (RVV 1.0 7.7). Whole-register transfers iterate bytes;
   // their vstart (in encoded-EEW elements) is scaled to
   // bytes on entry and back to elements on a fault.
-  localparam logic [1:0] VLS_RD = 2'd0, VLS_ACC = 2'd1, VLS_WO = 2'd2;
+  // VLS_RW (SRAM_OREG only): the cycle between an element's VRF
+  // read in VLS_RD and its use in VLS_ACC (two-cycle VRF reads).
+  localparam logic [1:0] VLS_RD = 2'd0, VLS_ACC = 2'd1, VLS_WO = 2'd2,
+                         VLS_RW = 2'd3;
   logic        vls_done, vls_elem_done;
   logic        vls_whole, vls_strided, vls_indexed, vls_ff, vls_maskls;
   logic        vls_started_q;
@@ -1423,7 +1436,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       unique case (vls_ph)
         VLS_RD: begin
           if (vls_act) begin
-            vls_ph_q <= VLS_ACC;
+            vls_ph_q <= (SRAM_OREG && (vls_re_a || vls_re_c)) ? VLS_RW : VLS_ACC;
           end else begin
             vls_i_q <= vls_i + 10'd1;          // skip element
             vls_ea_q <= vls_ea + vls_step;
@@ -1445,6 +1458,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
             end
           end
         end
+        VLS_RW: vls_ph_q <= VLS_ACC;
         default: begin  // VLS_WO
           if (!vls_last_field) begin
             vls_f_q <= vls_f + 3'd1;

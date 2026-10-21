@@ -1,0 +1,98 @@
+W7.1 + W7.2 RTL prep (issue #11): registered SRAM read outputs (SRAM_OREG), reset synchronizer, sky130 4 KiB direct-mapped L1
+Branch 11-sky130-sram-reg; local macOS arm64, Homebrew Verilator 5.044, riscv64-elf-gcc (GCC) 16.2.0, make -j<=4 (VJOBS=4), 2026-10-20
+
+== Gate wall times
+  make test rc=0 17s
+  make core-test rc=0 1630s
+  make riscv-tests rc=0 19s
+  riscv-tests on core_tb_sky130 rc=0 18s
+  riscv-tests on core_tb_oreg rc=0 17s
+  make -C sim socrtl rc=0 94s
+  make -C sim sochash rc=0 0s
+  make lint rc=0 5s (11 lint runs incl. sky130 with -GIC_WAYS=1 -GDC_WAYS=1, sky130 default geometry, SIGIL_SRAM_OREG behavioural)
+
+== make test
+ALL PHASE-0 KATs PASS
+
+== make core-test
+  'TB PASS' lines: 217; TB FAIL/TIMEOUT/%Error: 0
+  Total coverage (3612/6726) 53.00%
+  srammacro:
+    DCACHE TB PASS [SRAM_OREG]
+    ICACHE TB PASS [SRAM_OREG]
+    VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+    CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro fakeram45]
+    SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro fakeram45]
+    VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+    CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro sky130]
+    SOC RTL TB PASS (exit string at 40649633 cycles) [SRAM macro sky130]
+    VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+    CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro oreg]
+    SOC RTL TB PASS (exit string at 40648793 cycles) [SRAM macro oreg]
+
+== riscv-tests (RISCV_TESTS_DIR = main checkout third_party/cva6/tmp/riscv-tests, random bus latency)
+  core_tb (default):      riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+  core_tb_sky130:         riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+  core_tb_oreg:           riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+== make -C sim socrtl
+  SOC CRYPTO PASS
+  SOC RTL TB PASS (exit string at 27689496 cycles)
+  SOC CRYPTO PASS
+  SOC RTL TB PASS (exit string at 28615074 cycles)
+== make -C sim sochash
+  SHA-512 1000 B: 0x000000000000584e cycles
+  SOC HASH PASS
+  SOC RTL TB PASS (exit string at 104275 cycles)
+
+== SRAM_OREG cycle cost (same default cache geometry unless noted)
+  RTL SoC crypto firmware: 1-cycle reads 27,689,496 / SRAM_OREG (oreg) 40,648,793 (+46.8%) / sky130 config (OREG + 4 KiB DM caches) 40,649,633
+  vector TB: 13,232,168 / 13,280,622 (+0.37%)
+  directed core tests (srammacro runs, per-test bus seeds identical across families; fakeram45 = behavioural 1-cycle):
+    test                                 1-cycle      oreg    sky130  oreg/1c
+    rv64i_directed.bin                      1267      1612      1444    1.272
+    rv64m_directed.bin                       713       852       852    1.195
+    md_directed.bin                         2215      2644      2644    1.194
+    md_kill_directed.bin                     716       895       895    1.250
+    amo_directed.bin                        1185      1768      1768    1.492
+    fp_directed.bin                         2022      2475      2475    1.224
+    fp_stall_directed.bin                   2580      3187      3187    1.235
+    bext_directed.bin                       1330      1770      1770    1.331
+    rvc_directed.bin                         487       674       674    1.384
+    pipeline_directed.bin                   1331      1887      1887    1.418
+    priv_directed.bin                       2735      4001      4083    1.463
+    vm_directed.bin                        19883     30595     36430    1.539
+    trap_illegal.bin                          27        32        32    1.185
+    trap_misalign.bin                         30        32        32    1.067
+    trap_ecall.bin                            29        31        31    1.069
+    trap_ebreak.bin                           24        29        29    1.208
+    trap_store_misalign.bin                   24        30        30    1.250
+    trap_younger_store.bin                    27        32        32    1.185
+    trap_younger_csr.bin                     217       285       285    1.313
+    irq_seip_rmw.bin                         476       625       625    1.313
+    irq_mip_rmw_variants.bin                 520       668       668    1.285
+    counter_time_directed.bin              12690     19008     19008    1.498
+    hyp_directed.bin                        3778      4886      6450    1.293
+    vec_directed.bin                        3250      4262      4262    1.311
+    fpvec_directed.bin                      1331      1694      1694    1.273
+    vec_trap_directed.bin                  14465     15981     15981    1.105
+    trap_pa_fetch.bin                         31        40        40    1.290
+    trap_pa_load.bin                          25        32        32    1.280
+    smc_fencei_directed.bin                 8565      9120      5035    1.065
+    amo_cache_directed.bin                  3486      4254      4331    1.220
+    mmio_bypass_directed.bin                1779      2133      1738    1.199
+    vm_sfence_cache_directed.bin           23224     33414     33555    1.439
+    fp_hold_cache_directed.bin              2780      3058      2463    1.100
+    ptw_drop_directed.bin                  37647     51306     51103    1.363
+    TOTAL                                 150889    203312    205565    1.347 sky130/1c 1.362
+
+== sky130 macros (LEF SIZE from ORFS flow/platforms/sky130ram, master)
+  sky130_sram_1rw1r_64x256_8   1040.76 x 403.035 = 419,463 um2  x3 (VRF)
+  sky130_sram_1rw1r_128x256_8  1141.72 x 632.475 = 722,109 um2  x2 (L1 data, 4 KiB DM I$ + D$)
+  sky130_sram_1rw1r_44x64_8     445.24 x 237.415 = 105,707 um2  x2 (L1 tags)
+  sky130_sram_1rw1r_80x64_8     758.67 x 239.855 = 181,971 um2  (unused; only other prebuilt macro)
+  total 7 macros 2,914,020 um2 (was 15 macros 6,225,284 um2); with 40 um halos 3,698,427 um2
+
+== Not run here
+  CI-parity lint with Verilator 5.020 (Docker daemon not running on this host)
+  ACT, ORFS synthesis / STA / P&R (lead runs on AWS); vendor_model_check.sh (needs ORFS image)

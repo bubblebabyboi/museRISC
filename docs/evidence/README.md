@@ -1929,3 +1929,29 @@ Yosys `synth_xilinx -family xcup` of the whole `sigil_soc_top` (main
 `d3080d0`, behavioural SRAMs): ~110k LUTs, 31,652 FFs, 32 DSP48E2,
 9 RAMB36 — roughly 8–9% of the VU47P's LUTs. Estimate only (no AWS
 Shell/DDR, not Vivado); feasibility notes in `docs/FPGA_F2.md`.
+
+## W7.1 + W7.2: registered SRAM outputs, reset synchronizer, sky130 4 KiB L1 (#11, 2026-10-20)
+
+Full log: [`w7-sram-oreg-2026-10-20.log`](w7-sram-oreg-2026-10-20.log).
+Branch `11-sky130-sram-reg`, local macOS (Homebrew Verilator 5.044):
+
+- **Registered SRAM read outputs** (`sigil_cache_pkg::SRAM_OREG`, on
+  for `SIGIL_SRAM_SKY130`, or any build with `+define+SIGIL_SRAM_OREG`):
+  every L1 data/tag way and VRF port read is captured in a
+  rising-edge register before any logic. Cache hits and VRF reads take
+  one more cycle. Off for nangate45/FPGA/default simulation: on the
+  same cache geometry it costs +46.8 % cycles on the RTL SoC crypto
+  firmware and +34.7 % on the cached directed tests.
+- **Reset synchronizer** in `sigil_soc_top` (async assert, two-flop
+  synchronous release).
+- **sky130 config:** 4 KiB direct-mapped I$ and D$ (`IC_WAYS=1
+  DC_WAYS=1`): 7 OpenRAM macros, 2.914 mm² (was 15, 6.225 mm²).
+- Gates: `make lint` clean (5 s), `make test` pass (17 s), `make
+  core-test` pass (1,630 s; 217 TB PASS, 0 fail, `srammacro` with
+  fakeram45, sky130 and the new behavioural `oreg` family, plus the
+  I$/D$ unit tests with `SRAM_OREG`), riscv-tests **123/123** on the
+  default, sky130 and oreg core builds, `socrtl` (both images) and
+  `sochash` pass.
+- Not run here: CI-parity lint (Verilator 5.020, Docker), ACT, ORFS
+  synthesis/STA/P&R and `vendor_model_check.sh`. Re-measured sky130
+  fmax and area are pending that synthesis run.

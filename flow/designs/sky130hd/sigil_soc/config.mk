@@ -1,17 +1,23 @@
-# sigil_soc_top on sky130hd (area/timing estimate for the
-# chip-size decision; same RTL as nangate45/sigil_soc via the
-# shared rtl/sigil_soc_files.mk). SRAM macros
-# (SIGIL_SRAM_SKY130) are the OpenRAM macros shipped with ORFS:
+# sigil_soc_top on sky130hd (same RTL as nangate45/sigil_soc via
+# the shared rtl/sigil_soc_files.mk). sky130 configuration:
+#  - SIGIL_SRAM_SKY130: SRAM macros, with registered read outputs
+#    (sigil_cache_pkg::SRAM_OREG: one more cycle per VRF read and
+#    cache hit, no logic after the falling-edge OpenRAM outputs);
+#  - SIGIL_SOC_PARAMS_SKY130 (rtl/sigil_soc_files.mk): 4 KiB
+#    direct-mapped L1 I$ and D$ (owner default for the Caravel fit;
+#    drop the -G overrides for the default 8 KiB + 16 KiB caches).
+# Macros, all OpenRAM macros shipped with ORFS (sky130ram), 7 in all:
 #   VRF banks, 3x 256x64 1R1W byte-write: sky130_sram_1rw1r_64x256_8
-#   L1 data ways, 6x 512x64: sky130_sram_1rw1r_128x256_8 as 256x128
-#   L1 tag ways, 6x 64x44: sky130_sram_1rw1r_44x64_8
+#   L1 data ways, 2x 512x64: sky130_sram_1rw1r_128x256_8 as 256x128
+#   L1 tag ways, 2x 64x44: sky130_sram_1rw1r_44x64_8
 # The .v models (sram/gen_openram_models.py) give slang the ports;
 # the .libs blackbox them.
 export DESIGN_NAME = sigil_soc_top
 export PLATFORM    = sky130hd
 export SYNTH_HDL_FRONTEND = slang
 # -DSYNTHESIS: see nangate45/sigil_soc/config.mk (ORFS also passes it).
-export SYNTH_SLANG_ARGS = --unroll-limit=200000 -DSYNTHESIS -DSIGIL_SRAM_SKY130
+export SYNTH_SLANG_ARGS = --unroll-limit=200000 -DSYNTHESIS -DSIGIL_SRAM_SKY130 \
+  $(foreach p,$(SIGIL_SOC_PARAMS_SKY130),-G $(p))
 SKY130_RAM = $(FLOW_HOME)/platforms/sky130ram
 SKY130_MACROS = sky130_sram_1rw1r_64x256_8 sky130_sram_1rw1r_128x256_8 \
                 sky130_sram_1rw1r_44x64_8

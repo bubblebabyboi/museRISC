@@ -1,5 +1,29 @@
 # SoC area and timing estimate (synthesis, 2026-10-16)
 
+> **Update 2026-10-20 (W7.1 + W7.2 RTL prep, issue #11).** The
+> synthesis numbers below were measured before these changes and
+> have not been re-run yet:
+> - **Registered SRAM outputs (sky130).** Under `SIGIL_SRAM_SKY130`
+>   every macro read output is captured in a rising-edge register
+>   before any logic (`sigil_cache_pkg::SRAM_OREG`; all 15 / now 7
+>   macros: VRF ports and L1 data and tag ways). VRF reads and cache
+>   hits take one more cycle. Nangate45, FPGA and the default
+>   simulation builds keep one-cycle reads (see "Registered read
+>   outputs" below for why). The "all 15 macro outputs registered"
+>   experiment below (23.0 MHz) is the expected sky130 limit until
+>   synthesis is re-run.
+> - **Reset synchronizer.** `sigil_soc_top` now releases reset
+>   through a two-flop synchronizer (asynchronous assert,
+>   synchronous release).
+> - **sky130 cache size.** The sky130hd config builds 4 KiB
+>   direct-mapped I$ and D$ (`IC_WAYS=1 DC_WAYS=1`, set by
+>   `SIGIL_SOC_PARAMS_SKY130` in `rtl/sigil_soc_files.mk`): **7
+>   macros** (3 VRF + 2 L1 data + 2 L1 tag), **2.914 mm²** of macro
+>   area instead of 6.225 mm². See "sky130 configuration (W7.2)".
+>   Other targets keep 8 KiB 2-way + 16 KiB 4-way.
+>
+> Evidence: [`evidence/w7-sram-oreg-2026-10-20.log`](evidence/w7-sram-oreg-2026-10-20.log).
+
 This is ORFS synthesis of the whole `sigil_soc_top`: the core with
 the element-serial vector unit (FP on the shared multi-cycle FPU,
 #47), the multi-cycle M unit, the L1 I$/D$ with bus arbiter (#44), the
@@ -161,6 +185,47 @@ RTL list, `rtl/sigil_soc_files.mk`.
   writes and a registered half select on reads. Port 1 is unused.
 - **L1 tags:** `sky130_sram_1rw1r_44x64_8` (port 0 only).
 
+**Registered read outputs (`SRAM_OREG`, W7.1).** With
+`sigil_cache_pkg::SRAM_OREG` set (always under `SIGIL_SRAM_SKY130`;
+`+define+SIGIL_SRAM_OREG` turns it on for behavioural arrays), each
+array read gets an output register straight after the array:
+- `sigil_sram_sp`: the capture register `hold_q` below becomes the
+  output (`rdata_o = hold_q`, loaded in the cycle after a read), so
+  the only logic between an OpenRAM `dout0` and a flop is the
+  capture mux (and the data ways' half select).
+- `sigil_vregfile`: a per-port output register after each replica's
+  capture and full-word bypass muxes, with a load enable (`ld_*`)
+  from the consumer so a stalled two-deep pipeline keeps its data.
+- One more cycle of latency: an I$/D$ hit answers two cycles after
+  acceptance (new `S_RD` wait state; the D$ clean tag read waits in
+  `S_CLEAN_RD` and the write-back read stream is two beats deep);
+  the vector unit gets a stage R between S0 and S1 holding the slot
+  whose reads are in flight, and a `vrgather.vv` wait phase; the
+  vector load/store sequencer waits one cycle (`VLS_RW`) after an
+  element's VRF read (stores, indexed accesses).
+- The flop count is unchanged for the L1 ways (`hold_q` is reused)
+  and +3 × 64 for the VRF output registers.
+
+Why sky130 only: the core fetches one instruction at a time, so a
+two-cycle I$ hit costs about one cycle per instruction. Measured
+with the same default cache geometry, one-cycle vs registered reads
+([`evidence/w7-sram-oreg-2026-10-20.log`](evidence/w7-sram-oreg-2026-10-20.log)):
+- RTL SoC crypto firmware: 27,689,496 → 40,648,793 cycles (+46.8 %);
+- the 34 cached directed core tests (random bus latency): 150,889 →
+  203,312 cycles in total (+34.7 %);
+- vector TB: 13,232,168 → 13,280,622 cycles (+0.37 %; vector ops pay
+  about one cycle per instruction for the R stage).
+The sky130 configuration (registered reads and 4 KiB direct-mapped
+caches) takes 40,649,633 cycles on the crypto firmware, so on that
+workload the smaller caches cost almost nothing next to the extra
+read cycle.
+Nangate45 and FPGA have no half-cycle macro paths (fakeram and BRAM
+outputs are rising-edge), so they keep one-cycle reads. One RTL
+serves both; the choice is a package constant, and `make core-test`
+(`srammacro`) runs both latencies: the sky130 models (registered)
+and an `oreg` family (behavioural arrays, default cache geometry,
+registered), plus the I$/D$ unit tests with `SIGIL_SRAM_OREG`.
+
 **Read hold.** Neither macro family holds its read data.
 - OpenRAM sets `dout` to X on every rising edge and reloads it on the
   falling edge only when that port reads; the .lib `dout` arcs are
@@ -171,7 +236,8 @@ The RTL contracts expect held data: the VRF holds while `re` is low,
 and `sigil_sram_sp` holds until the next read. So every macro
 wrapper has a capture register: `rd_q` marks a read in the previous
 cycle, `hold_q` takes the macro output in the cycle after a read, and
-`rdata = rd_q ? macro_out : hold_q`. Latency is unchanged.
+`rdata = rd_q ? macro_out : hold_q`. Latency is unchanged. (With
+`SRAM_OREG`, `rdata = hold_q`: one more cycle, see above.)
 
 The vector unit depends on the hold: without it, both macro families
 fail the vector TB.
@@ -188,7 +254,11 @@ on silicon. The cost:
 - One 2:1 mux (a few hundred ps) on the L1 half-cycle `dout0` path,
   which is the limit once the VRF outputs are registered.
 
-**Half-cycle paths on sky130.** OpenRAM read data arrives ~0.3–0.4 ns
+**Half-cycle paths on sky130 (before `SRAM_OREG`).** With
+`SRAM_OREG` (now always on for sky130) the half-cycle paths end at
+the capture / output registers after one to three 2:1 muxes; the
+paragraph below describes the unregistered design that the
+2026-10-16 numbers measured. OpenRAM read data arrives ~0.3–0.4 ns
 after the falling edge. So everything from `dout` through the capture
 mux to the first flop gets half a clock period, and the period must be
 at least 2 × (clk→q + logic + setup + uncertainty).
@@ -247,8 +317,10 @@ prints a warning. So the design never issues one to a macro.
 - The OpenRAM `.lib` has only a falling-edge arc on `dout`: no
   rising-edge invalidation or min-delay arc.
 - So no STA checks that `dout` stays valid past the rising edge at the
-  flops that sample it there: the capture register and, in the cycle
-  after a read, every downstream consumer.
+  flops that sample it there. With `SRAM_OREG` (sky130) those are only
+  the capture registers in the macro wrappers (and the VRF port output
+  registers through their muxes); without it, every downstream
+  consumer in the cycle after a read as well.
 - The design assumes the macro's clk→dout-invalid delay exceeds those
   flops' hold time plus clock skew. This must be confirmed with the
   macro's characterization, or a timed gate-level simulation, at
@@ -340,9 +412,11 @@ strap: it is now read combinationally until the first PC update
 rather than sampled at reset, so it must be stable through that cycle
 (see the SoC SDCs).
 
-Follow-up: like every async-reset flop in the SoC, `boot_q` needs a
-synchronized reset release, and `sigil_soc_top` has no reset
-synchronizer yet.
+Reset release: `sigil_soc_top` now has a two-flop reset synchronizer
+(2026-10-20, W7.1). `rst_ni` asserts every async reset immediately
+and is released to the SoC two rising edges after it rises, so
+`boot_q` and every other async-reset flop leave reset synchronously;
+the SDCs false-path `rst_ni` (it only reaches the synchronizer).
 
 ## Timing findings
 
@@ -374,7 +448,45 @@ than as an achievable fmax.
    status, vector scalar/FP result capture, and CSR (~32–45 ns). All
    are FPU-adjacent wide muxing.
 
-## sky130 chip-size estimate (rough)
+## sky130 configuration (W7.2, 2026-10-20)
+
+Owner default for the Caravel fit, reversible: **4 KiB I$ and 4 KiB
+D$**, direct-mapped (64 sets × 1 way × 64 B lines), sky130 only.
+`flow/designs/sky130hd/sigil_soc/config.mk` passes
+`-G IC_WAYS=1 -G DC_WAYS=1` (from `SIGIL_SOC_PARAMS_SKY130` in
+`rtl/sigil_soc_files.mk`) to the new `sigil_soc_top` parameters,
+which pass them to `sigil_cpu`. The sky130 simulation builds
+(`srammacro`, `make lint`) use the same overrides.
+
+Why direct-mapped: ORFS ships four sky130 OpenRAM macros
+(`sky130ram/`: `sky130_sram_1rw1r_{64x256,128x256,44x64,80x64}_8`).
+A 4 KiB way (64 sets × 64 B) has the same 512×64 data / 64×44 tag
+geometry as today's ways, so the existing 128x256 and 44x64 macros
+map it unchanged. A 2-way 4 KiB cache needs 2 KiB ways: 256×64 data
+(fits `64x256` directly) but 45-bit tags, which do not fit the 44-bit
+tag macro, so the tags would need the `80x64` macro (half its rows
+unused) or flops.
+
+| | Macros | Macro area (LEF) | With 40 µm halos |
+|---|---:|---:|---:|
+| Before (8 KiB 2-way I$ + 16 KiB 4-way D$) | 15 | 6.225 mm² | 7.85 mm² |
+| **sky130 config: 4 KiB + 4 KiB direct-mapped** | **7** | **2.914 mm²** | **3.70 mm²** |
+| Alternative: 4 KiB + 4 KiB 2-way (64x256 data, 80x64 tags) | 11 | 3.664 mm² | — |
+
+The 7 macros: 3 × `sky130_sram_1rw1r_64x256_8` (VRF, 1040.76 ×
+403.035 µm = 0.419 mm² each), 2 × `sky130_sram_1rw1r_128x256_8`
+(L1 data, 1141.72 × 632.475 µm = 0.722 mm²), 2 ×
+`sky130_sram_1rw1r_44x64_8` (L1 tags, 445.24 × 237.415 µm =
+0.106 mm²). The macro set (and `ADDITIONAL_LEFS/LIBS/GDS`) is
+unchanged; only the instance count drops. Std-cell area also shrinks
+a little (fewer way muxes, valid/dirty bits); not re-measured yet.
+
+With the 2026-10-16 std-cell estimate (3.9–5.7 mm² placed) the core
+is ≈ 7.6–9.4 mm² against Caravel's 2.92 × 3.52 mm = 10.3 mm² user
+area, before the IO/wrapper overhead: a fit is plausible but must be
+shown by placement.
+
+## sky130 chip-size estimate (rough, 2026-10-16 configuration)
 
 - **Synthesized (flat):** 2.36 mm² std cells + 6.23 mm² SRAM macros.
 - **Placed std-cell region:** 3.9–4.7 mm² at 50–60 % utilization.

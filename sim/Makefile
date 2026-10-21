@@ -217,13 +217,13 @@ rvc: $(BUILD)/rvc_tb
 
 ## ---- Vector unit test ------------------------------------------------------
 # Harness = sigil_vec + banked sigil_vregfile + TB backdoor.
-$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
+$(BUILD)/vec_tb: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(FPU_INC) \
                  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
                  $(RTL)/sigil_fpu.sv \
                  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
                  $(ROOT)/tb/sv/sigil_vec_harness.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/vec --top-module sigil_vec_harness \
-	  -o $(abspath $(BUILD)/vec_tb) $(PKG) \
+	  -o $(abspath $(BUILD)/vec_tb) $(PKG) $(RTL)/sigil_cache_pkg.sv \
 	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
 	  $(RTL)/sigil_fpu.sv \
 	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
@@ -237,7 +237,7 @@ vec: $(BUILD)/vec_tb
 # +verilator+rand+reset+2): the simulation cross-checks must stay
 # quiet until reset. Short runs; seeds 1, 2 and 4 each fired a
 # cross-check at time 0 before the reset gating. No coverage.
-$(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
+$(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(FPU_INC) \
                  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
                  $(RTL)/sigil_fpu.sv \
                  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
@@ -245,7 +245,7 @@ $(BUILD)/vec_tb_xinit: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) \
 	$(VERILATOR) --cc --exe --build -j $(VJOBS) -Wall -Wno-DECLFILENAME --assert --coverage-line \
 	  --x-initial unique -I$(RTL) -CFLAGS "-std=c++17 -O2" \
 	  --Mdir $(OBJ)/vec_xinit --top-module sigil_vec_harness \
-	  -o $(abspath $(BUILD)/vec_tb_xinit) $(PKG) \
+	  -o $(abspath $(BUILD)/vec_tb_xinit) $(PKG) $(RTL)/sigil_cache_pkg.sv \
 	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
 	  $(RTL)/sigil_fpu.sv \
 	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
@@ -515,20 +515,31 @@ core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TEST
 # data) and rerun the vector TB, every directed core test (random bus
 # latency) and the SoC crypto firmware, so the wrappers (masks,
 # selects, half select, read capture) are checked bit-exactly.
+# The sky130 builds use the sky130 SoC configuration (registered SRAM
+# outputs, SRAM_OREG, and the cache geometry in
+# SIGIL_SOC_PARAMS_SKY130). The "oreg" family is the default
+# behavioural arrays and cache geometry with SIGIL_SRAM_OREG: the
+# two-cycle read pipelines with multi-way caches; srammacro also
+# reruns the small-geometry I$/D$ unit tests with that latency.
+include $(ROOT)/rtl/sigil_soc_files.mk
 SRAM_DEF_fakeram45 := +define+SIGIL_SRAM_FAKERAM45
 SRAM_DEF_sky130    := +define+SIGIL_SRAM_SKY130
+SRAM_DEF_oreg      := +define+SIGIL_SRAM_OREG
+# Cache geometry overrides (sigil_cpu / sigil_soc_top parameters).
+SRAM_GEO_sky130    := $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130))
 SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/sigil_soc/sram/,\
   fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
 SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/sigil_soc/sram/,\
   sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
-SRAM_MACROS := fakeram45 sky130
+SRAM_MOD_oreg :=
+SRAM_MACROS := fakeram45 sky130 oreg
 .SECONDEXPANSION:
-$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/sigil_vec_pkg.sv \
+$(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(FPU_INC) $(RTL)/sigil_vec_pkg.sv \
                  $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
                  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
                  $(ROOT)/tb/sv/sigil_vec_harness.sv $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/vec_$* --top-module sigil_vec_harness \
-	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) -o $(abspath $@) $(PKG) \
+	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) -o $(abspath $@) $(PKG) $(RTL)/sigil_cache_pkg.sv \
 	  $(RTL)/sigil_vec_pkg.sv $(RTL)/sigil_fpu_pkg.sv \
 	  $(RTL)/sigil_fpu.sv \
 	  $(RTL)/sigil_vregfile.sv $(RTL)/sigil_vec.sv \
@@ -538,7 +549,7 @@ $(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(FPU_INC) $(RTL)/sigil_vec_
 $(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
                   $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module sigil_cpu \
-	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  $(SRAM_DEF_$*) $(SRAM_GEO_$*) $(SRAM_MOD_$*) \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(CPU_RTL) \
@@ -547,7 +558,7 @@ $(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU
 $(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
                      $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module sigil_soc_top \
-	  $(SRAM_DEF_$*) $(SRAM_MOD_$*) \
+	  $(SRAM_DEF_$*) $(SRAM_GEO_$*) $(SRAM_MOD_$*) \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(SOC_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp)
@@ -555,10 +566,22 @@ $(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h
 # All directed-test binaries (used by vendor_model_check.sh).
 directed-bins: $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS)))
 
+# I$/D$ unit tests (small geometry) with two-cycle array reads.
+$(BUILD)/%cache_tb_oreg: $(ROOT)/tb/cpp/%cache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/$*cache_oreg --top-module sigil_$*cache $(CACHE_TB_G) \
+	  $(SRAM_DEF_oreg) -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CACHE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/$*cache_tb.cpp)
+
 srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/core_tb_,$(SRAM_MACROS)) \
            $(addprefix $(BUILD)/soc_rtl_tb_,$(SRAM_MACROS)) \
+           $(BUILD)/dcache_tb_oreg $(BUILD)/icache_tb_oreg \
            $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS))) $(SOCFW)/crypto_soc_test.bin
-	cd $(BUILD) && for m in $(SRAM_MACROS); do \
+	cd $(BUILD) && for c in dcache icache; do \
+	  COV_FILE=nocov_$${c}_oreg.dat ./$${c}_tb_oreg > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [SRAM_OREG]/"; \
+	done; \
+	for m in $(SRAM_MACROS); do \
 	  ./vec_tb_$$m > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
 	  tail -1 srammacro.log | sed "s/$$/ [SRAM macro $$m]/"; \
 	  CORE_TB=./core_tb_$$m COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh $$m $(CORE_RAND_ARGS) \

@@ -18,7 +18,10 @@
 // address and byte enables, issued in program order.
 //
 // Arrays (tags, data) are single-port synchronous SRAMs
-// (sigil_sram_sp); valid/dirty bits and the replacement
+// (sigil_sram_sp) with a read latency of LAT = 1 + SRAM_OREG
+// cycles: with SRAM_OREG the lookup and the clean tag read wait
+// one cycle (S_RD, S_CLEAN_RD) and the write-back read stream is
+// two beats deep; valid/dirty bits and the replacement
 // pointer are flops. Victim: first invalid way, else a
 // round-robin pointer advanced on every miss.
 `default_nettype none
@@ -78,8 +81,16 @@ module sigil_dcache import sigil_cache_pkg::*; #(
 
   typedef enum logic [3:0] {
     S_IDLE, S_LOOKUP, S_WB_RD, S_WB_BUS, S_WB_ACK, S_FILL_REQ, S_FILL,
-    S_REPLAY, S_UNC_REQ, S_UNC_RSP, S_UNC_DONE, S_CLEAN, S_CLEAN_TAG
+    S_REPLAY, S_UNC_REQ, S_UNC_RSP, S_UNC_DONE, S_CLEAN, S_CLEAN_TAG,
+    S_RD, S_CLEAN_RD
   } state_e;
+  // States after issuing the lookup / clean tag reads (S_RD and
+  // S_CLEAN_RD are the SRAM_OREG read-latency wait).
+  localparam state_e S_RD_NEXT = SRAM_OREG ? S_RD : S_LOOKUP;
+  localparam state_e S_CLEAN_NEXT = SRAM_OREG ? S_CLEAN_RD : S_CLEAN_TAG;
+  // Write-back read stream: beat k is read with cnt = k and lands in
+  // linebuf with cnt = k + LAT.
+  localparam int unsigned LAT = SRAM_OREG ? 2 : 1;
   state_e state_q;
 
   logic [63:0] r_addr_q, r_wdata_q;
@@ -215,7 +226,7 @@ module sigil_dcache import sigil_cache_pkg::*; #(
       end
       S_WB_RD: begin
         data_addr = {line_idx, cnt_q[BW-1:0]};
-        if (cnt_q != (BW + 1)'(BEATS)) data_en[victim_q] = 1'b1;
+        if (cnt_q < (BW + 1)'(BEATS)) data_en[victim_q] = 1'b1;
       end
       S_WB_BUS: begin
         bus_req_valid_o = 1'b1;
@@ -256,7 +267,7 @@ module sigil_dcache import sigil_cache_pkg::*; #(
         tag_addr = sc_set_q;
         if (sc_dirty) tag_en[sc_way_q] = 1'b1;
       end
-      default: ;  // S_WB_ACK, S_UNC_RSP, S_UNC_DONE, S_CLEAN_TAG
+      default: ;  // S_WB_ACK, S_UNC_RSP, S_UNC_DONE, S_CLEAN_TAG, S_RD, S_CLEAN_RD
     endcase
   end
 
@@ -289,7 +300,7 @@ module sigil_dcache import sigil_cache_pkg::*; #(
             sc_set_q <= '0;
             sc_way_q <= '0;
             if (req_op_i == DOP_CLEAN) state_q <= S_CLEAN;
-            else if (req_cacheable) state_q <= S_LOOKUP;
+            else if (req_cacheable) state_q <= S_RD_NEXT;
             else state_q <= S_UNC_REQ;
           end
         end
@@ -307,8 +318,9 @@ module sigil_dcache import sigil_cache_pkg::*; #(
           end
         end
         S_WB_RD: begin
-          if (cnt_q != '0) linebuf_q[cnt_q[BW-1:0] - 1'b1] <= data_rdata[victim_q];
-          if (cnt_q == (BW + 1)'(BEATS)) begin
+          if (cnt_q >= (BW + 1)'(LAT))
+            linebuf_q[BW'(cnt_q - (BW + 1)'(LAT))] <= data_rdata[victim_q];
+          if (cnt_q == (BW + 1)'(BEATS + LAT - 1)) begin
             cnt_q <= '0;
             state_q <= S_WB_BUS;
           end else begin
@@ -349,7 +361,8 @@ module sigil_dcache import sigil_cache_pkg::*; #(
             end
           end
         end
-        S_REPLAY: state_q <= S_LOOKUP;
+        S_REPLAY: state_q <= S_RD_NEXT;
+        S_RD: state_q <= S_LOOKUP;
         S_UNC_REQ: if (bus_req_ready_i) state_q <= S_UNC_RSP;
         S_UNC_RSP: begin
           if (bus_rsp_valid_i) begin
@@ -361,7 +374,7 @@ module sigil_dcache import sigil_cache_pkg::*; #(
         S_CLEAN: begin
           if (sc_dirty) begin
             victim_q <= sc_way_q;
-            state_q <= S_CLEAN_TAG;
+            state_q <= S_CLEAN_NEXT;
           end else if (sc_last) begin
             state_q <= S_IDLE;
           end else if (sc_way_q == WAY_W'(WAYS - 1)) begin
@@ -371,6 +384,7 @@ module sigil_dcache import sigil_cache_pkg::*; #(
             sc_way_q <= sc_way_q + 1'b1;
           end
         end
+        S_CLEAN_RD: state_q <= S_CLEAN_TAG;
         S_CLEAN_TAG: begin
           vtag_q <= tag_rdata[victim_q];
           cnt_q <= '0;

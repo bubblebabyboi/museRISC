@@ -1,13 +1,16 @@
 // Single-port synchronous SRAM model (L1 cache arrays).
 //
 // One access per cycle: with en_i high the word at addr_i is
-// read (rdata_o valid the following cycle, held until the next
-// enabled read) or, with any we_i lane set, written under the
-// per-lane write mask. A write cycle does not update rdata_o
-// (no read-during-write forwarding is assumed by the caches).
-// This is the behavior of a standard single-port SRAM macro or
-// an FPGA BRAM in NO_CHANGE mode; the behavioral body below is
-// what Verilator simulates by default.
+// read or, with any we_i lane set, written under the per-lane
+// write mask. Read data is valid LAT = 1 + SRAM_OREG cycles after
+// the read (sigil_cache_pkg::SRAM_OREG) and is then held until the
+// next read's data replaces it; reads may issue every cycle
+// (pipelined). A write cycle does not update rdata_o (no
+// read-during-write forwarding is assumed by the caches). With
+// LAT = 1 this is a standard single-port SRAM macro or an FPGA
+// BRAM in NO_CHANGE mode; LAT = 2 adds an output register (FPGA:
+// the BRAM output register). By default the simulation uses the
+// behavioural body below.
 //
 // ASIC flows: SIGIL_SRAM_FAKERAM45 (nangate45) and
 // SIGIL_SRAM_SKY130 (sky130hd), set by the ORFS configs, map the
@@ -20,10 +23,14 @@
 //     sky130_sram_1rw1r_44x64_8 (port 0 RW; port 1 unused).
 // The macros do not hold read data (fakeram: X after a non-read
 // edge; OpenRAM: X after every rising edge, valid from the falling
-// edge), so a capture register restores the hold-until-next-read
-// contract: rdata_o = rd_q ? macro : hold_q.
+// edge). LAT = 1: a capture register restores the
+// hold-until-next-read contract, rdata_o = rd_q ? macro : hold_q.
+// LAT = 2 (always on sky130): the macro output is captured in the
+// cycle after the read and rdata_o is that register, so the only
+// logic after the macro is the capture (and half-select) mux and
+// nothing launches from the falling-edge macro output.
 `default_nettype none
-module sigil_sram_sp #(
+module sigil_sram_sp import sigil_cache_pkg::SRAM_OREG; #(
     parameter int unsigned WIDTH = 64,
     parameter int unsigned DEPTH = 64,
     parameter int unsigned LANES = 8,   // write-mask lanes (WIDTH % LANES == 0)
@@ -57,7 +64,10 @@ module sigil_sram_sp #(
       rd_q <= rd;
       if (rd_q) hold_q <= mac_rd;
     end
-    assign rdata_o = rd_q ? mac_rd : hold_q;
+    // SRAM_OREG: hold_q is the output register (valid the cycle
+    // after the capture); otherwise the macro output is forwarded in
+    // the capture cycle.
+    assign rdata_o = (rd_q && !SRAM_OREG) ? mac_rd : hold_q;
 `ifdef SIGIL_SRAM_FAKERAM45
     // fakeram45 takes a per-bit write mask.
     logic [WIDTH-1:0] wmask;
@@ -133,6 +143,7 @@ module sigil_sram_sp #(
 `endif
   end else begin : g_behav
     logic [WIDTH-1:0] mem_q [DEPTH];
+    logic [WIDTH-1:0] rd_q;
     always_ff @(posedge clk_i) begin
       if (en_i) begin
         if (|we_i) begin
@@ -140,9 +151,18 @@ module sigil_sram_sp #(
             if (we_i[l]) mem_q[addr_i][l*LW +: LW] <= wdata_i[l*LW +: LW];
           end
         end else begin
-          rdata_o <= mem_q[addr_i];
+          rd_q <= mem_q[addr_i];
         end
       end
+    end
+    if (SRAM_OREG) begin : g_oreg
+      logic rv_q;
+      always_ff @(posedge clk_i) begin
+        rv_q <= en_i && !(|we_i);
+        if (rv_q) rdata_o <= rd_q;
+      end
+    end else begin : g_noreg
+      assign rdata_o = rd_q;
     end
   end
 endmodule

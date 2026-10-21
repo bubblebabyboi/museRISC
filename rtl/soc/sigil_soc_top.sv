@@ -20,8 +20,23 @@
 // the devices are reached by uncached single-beat accesses
 // through sigil_soc_fabric, so their side effects happen
 // exactly once per load/store.
+//
+// Reset: rst_ni is asserted asynchronously and released through a
+// two-flop synchronizer (rst_sync_q), so every async-reset flop in
+// the SoC leaves reset on a clock edge (reset release is two
+// cycles after rst_ni rises).
+//
+// L1 geometry: IC_*/DC_* pass through to sigil_cpu (defaults are
+// sigil_cpu's). The sky130hd flow and its simulation builds set
+// IC_WAYS=1 DC_WAYS=1 (4 KiB direct-mapped I$ and D$, see
+// SIGIL_SOC_PARAMS_SKY130 in rtl/sigil_soc_files.mk).
 `default_nettype none
-module sigil_soc_top (
+module sigil_soc_top #(
+    parameter int unsigned IC_SETS = 64,
+    parameter int unsigned IC_WAYS = 2,
+    parameter int unsigned DC_SETS = 64,
+    parameter int unsigned DC_WAYS = 4
+) (
     input  wire        clk_i,
     input  wire        rst_ni,
     input  wire [63:0] boot_pc_i,
@@ -53,6 +68,15 @@ module sigil_soc_top (
     output wire [63:0] trap_cause_o,
     output wire [63:0] trap_pc_o
 );
+  // Reset synchronizer: asynchronous assert, synchronous release.
+  logic [1:0] rst_sync_q;
+  logic       rst_n;
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) rst_sync_q <= 2'b00;
+    else rst_sync_q <= {rst_sync_q[0], 1'b1};
+  end
+  assign rst_n = rst_sync_q[1];
+
   localparam logic [63:0] ROM_BASE    = 64'h0000_1000;
   localparam logic [63:0] CLINT_BASE  = 64'h0200_0000;
   localparam logic [63:0] PLIC_BASE   = 64'h0C00_0000;
@@ -83,9 +107,12 @@ module sigil_soc_top (
   logic [7:0]  dbg_st_be;
   /* verilator lint_on UNUSEDSIGNAL */
 
-  sigil_cpu u_cpu (
+  sigil_cpu #(
+      .IC_SETS(IC_SETS), .IC_WAYS(IC_WAYS),
+      .DC_SETS(DC_SETS), .DC_WAYS(DC_WAYS)
+  ) u_cpu (
       .clk_i           (clk_i),
-      .rst_ni          (rst_ni),
+      .rst_ni          (rst_n),
       .boot_pc_i       (boot_pc_i),
       .cache_en_i      (cache_en_i),
       .bus_req_valid_o (c_req_valid),
@@ -118,7 +145,7 @@ module sigil_soc_top (
 
   sigil_soc_fabric #(.RAM_BASE(RAM_BASE)) u_fabric (
       .clk_i         (clk_i),
-      .rst_ni        (rst_ni),
+      .rst_ni        (rst_n),
       .m_req_valid_i (c_req_valid),
       .m_req_ready_o (c_req_ready),
       .m_req_addr_i  (c_req_addr),
@@ -186,20 +213,20 @@ module sigil_soc_top (
   assign irq_s_ext = plic_eip[1];
 
   sigil_clint u_clint (
-      .clk_i(clk_i), .rst_ni(rst_ni),
+      .clk_i(clk_i), .rst_ni(rst_n),
       .addr_i(dev_addr[15:0]),
       .be_i(sel_clint ? dev_be : 8'd0),
       .wdata_i(dev_wdata), .rdata_o(clint_rdata),
       .irq_m_timer_o(irq_m_timer), .irq_m_soft_o(irq_m_soft));
   sigil_plic u_plic (
-      .clk_i(clk_i), .rst_ni(rst_ni),
+      .clk_i(clk_i), .rst_ni(rst_n),
       .addr_i(dev_addr[25:0]),
       .re_i(sel_plic && dev_re),
       .be_i(sel_plic ? dev_be : 8'd0),
       .wdata_i(dev_wdata), .rdata_o(plic_rdata),
       .irq_sources_i(plic_sources), .eip_o(plic_eip));
   sigil_uart16550 u_uart (
-      .clk_i(clk_i), .rst_ni(rst_ni),
+      .clk_i(clk_i), .rst_ni(rst_n),
       .addr_i(dev_addr[2:0]),
       .re_i(sel_uart && dev_re),
       .be_i(sel_uart ? dev_be : 8'd0),
@@ -208,7 +235,7 @@ module sigil_soc_top (
       .tx_data_o(uart_tx_data_o), .tx_valid_o(uart_tx_valid_o),
       .rx_data_i(uart_rx_data_i), .rx_valid_i(uart_rx_valid_i));
   sigil_crypto_bridge u_crypto_bridge (
-      .clk_i(clk_i), .rst_ni(rst_ni),
+      .clk_i(clk_i), .rst_ni(rst_n),
       .sel_i(sel_crypto && dev_sel), .re_i(dev_re),
       .be_i(dev_be), .addr_i(dev_addr[7:0]),
       .wdata_i(dev_wdata), .rdata_o(crypto_rdata),

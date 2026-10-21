@@ -232,6 +232,7 @@ Pipeline behaviour:
 | | I$ | D$ |
 |---|---|---|
 | Default geometry | 64 sets x 2 ways x 64 B = 8 KiB | 64 sets x 4 ways x 64 B = 16 KiB |
+| sky130hd SoC config | 64 sets x 1 way x 64 B = 4 KiB | 64 sets x 1 way x 64 B = 4 KiB |
 | Policy | read-only, blocking | write-back + write-allocate, blocking |
 | Replacement | first invalid way, else round-robin | same |
 | Arrays (per way) | data 512 x 64 b, tag 64 x 44 b | data 512 x 64 b (8 byte lanes), tag 64 x 44 b |
@@ -239,11 +240,18 @@ Pipeline behaviour:
 
 Parameters on `sigil_cpu`: `IC_SETS`, `IC_WAYS`, `DC_SETS`,
 `DC_WAYS`, `LINE_BYTES` (power of two, 16..2048), and the
-cacheable windows below. Arrays are `sigil_sram_sp`
-instances: single-port, synchronous read (data the cycle after
-the address), per-lane write mask, no read-during-write
-forwarding needed — i.e. an SRAM macro or a BRAM in NO_CHANGE
-mode. Hit latency is one cycle after acceptance; a miss adds a
+cacheable windows below. `sigil_soc_top` passes its own
+`IC_SETS/IC_WAYS/DC_SETS/DC_WAYS` (same defaults) through; the
+sky130hd flow and the sky130 simulation builds set
+`IC_WAYS=1 DC_WAYS=1` (`SIGIL_SOC_PARAMS_SKY130` in
+`rtl/sigil_soc_files.mk`; see `docs/SOC_AREA.md`). Arrays are
+`sigil_sram_sp` instances: single-port, synchronous read, per-lane
+write mask, no read-during-write forwarding needed — i.e. an SRAM
+macro or a BRAM in NO_CHANGE mode. Read latency is one cycle, or two
+with registered SRAM outputs (`sigil_cache_pkg::SRAM_OREG`: always
+on for the sky130 macro build, `+define+SIGIL_SRAM_OREG` elsewhere;
+off by default). Hit latency is one cycle after acceptance (two with
+`SRAM_OREG`: an `S_RD` wait state before the lookup); a miss adds a
 line refill (one burst) plus, for a dirty victim, a line
 write-back (one burst) before it, then a one-cycle replay.
 Uncached responses are registered in the cache (one extra
@@ -302,13 +310,16 @@ with the read-enable/byte-enables asserted exactly once, and
 the captured data is returned as a single response beat one
 cycle later. Boot-ROM instruction fetches use the same path
 without a read-enable. The core's former `dmem_stall_i` input
-is gone; the request/response data port covers it.
+is gone; the request/response data port covers it. `rst_ni` reaches the SoC through a two-flop
+reset synchronizer in `sigil_soc_top` (asynchronous assert,
+release two rising edges after `rst_ni` rises).
 
 ### Performance expectations
 
 Correctness first: both caches are blocking and the core issues
 a new request only after the previous response, so a hitting
-fetch or load/store costs two cycles (request, response) —
+fetch or load/store costs two cycles (request, response; three
+with `SRAM_OREG`, i.e. on sky130) —
 roughly half the IPC of the old combinational model with a
 perfect memory. Misses add the bus latency plus a 8-beat burst
 (and a write-back burst for dirty victims). Obvious next steps:
@@ -422,6 +433,18 @@ from a 32x512 flop VRF). It is now element-serial over a
 64-bit datapath, so its logic does not grow with VLEN and it
 can close timing.
 
+**VRF read latency.** One cycle by default; two with
+`sigil_cache_pkg::SRAM_OREG` (sky130), where each read port has an
+output register after its replica, loaded under the consumer's
+`ld_*` enable. The vector unit then inserts a stage **R** between S0
+and S1 (the slot whose reads are in flight; R and S1 stall together,
+the output registers load only when S1 takes R's slot), a
+`vrgather.vv` vs2 read waits one extra S1 cycle, and the MEM
+sequencer spends a `VLS_RW` cycle between an element's VRF read and
+its access. Element results and the write-combining rules are
+unchanged (the old-vd currency flag is also cleared by writes while
+the slot is in R).
+
 **VRF** (`sigil_vregfile.sv`): 32 x 512 bits stored as 256
 64-bit words (`{reg, word}` addressing). Three identical 1R1W
 256x64 RAM replicas with byte-write enables and *synchronous*
@@ -474,7 +497,7 @@ elements skip the FPU. Simulation asserts each sub-step result
 against `fp_eval`/`fp_estimate` on the issued operands.
 
 Read-ahead safety: S0 reads up to three elements ahead of
-the write in S3. For every source/destination overlap RVV
+the write in S3 (four with the `SRAM_OREG` stage R). For every source/destination overlap RVV
 allows (identical groups, widening into the high half,
 narrowing or mask results into the low part) destination
 element j only overwrites source elements <= j, which have
@@ -513,11 +536,13 @@ Interrupt latency: a vector arithmetic op delays an
 interrupt by at most its own cycle count (max 5,124 cycles,
 `vdiv` e8 m8 vl=512). A vector load/store in MEM also blocks
 interrupt injection while it runs: 2 cycles per active
-element or segment field, 1 per skipped element, *nf* per
+element or segment field (3 with `SRAM_OREG` when it reads the
+VRF: stores and indexed accesses), 1 per skipped element, *nf* per
 segment element for write-out, plus page-table walks on TLB
 misses. Without misses the worst case is 1,537 cycles (a
 segment load moving 512 fields: 2 cycles per field plus 1
-write-out cycle per field, plus the final cycle); an
+write-out cycle per field, plus the final cycle; 2,049 for an
+indexed one with `SRAM_OREG`); an
 unmasked `vle8.v` with vl=512 takes 1,025.
 
 **Cycle counts** (vector unit, from `start` to `done`
