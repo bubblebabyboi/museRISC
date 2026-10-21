@@ -1921,3 +1921,11 @@ core-test` pass, riscv-tests **123/123**, `SOC HASH PASS` and both
 `socrtl` images (secp256k1 27,689,496 cycles, Ed25519 28,615,074). Full
 ACT on the renamed tree (marchid now `"SIGL"`, DUT config `sigil-core`):
 **2,577/2,578**, identical to the pre-rename result.
+
+## #32: F2 FPGA feasibility — Yosys resource estimate (2026-10-21)
+
+[`fpga-yosys-estimate-32-2026-10-21.log`](fpga-yosys-estimate-32-2026-10-21.log):
+Yosys `synth_xilinx -family xcup` of the whole `sigil_soc_top` (main
+`d3080d0`, behavioural SRAMs): ~110k LUTs, 31,652 FFs, 32 DSP48E2,
+9 RAMB36 — roughly 8–9% of the VU47P's LUTs. Estimate only (no AWS
+Shell/DDR, not Vivado); feasibility notes in `docs/FPGA_F2.md`.
