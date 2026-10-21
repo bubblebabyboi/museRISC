@@ -1,5 +1,5 @@
 FPGA F1 (#52): sigil_fpga_top + sigil_mbus_axi4 Verilator proof
-Date: 2026-10-21 (UTC). Branch 52-fpga-soc-top, RTL/TB tree at 1c6b9e4 (docs-only commits follow).
+Date: 2026-10-21 (UTC). Branch 52-fpga-soc-top, tree at 1c6b9e4 (RTL/TB last changed in eb4e8c9).
 Host: macOS, Homebrew Verilator 5.044, riscv64-elf-gcc 16.2, Apple clang.
 AXI slave model: tb/cpp/axi4_slave_model.h. FPGA_AXI_ARGS = --axi-lat 8:40 --axi-gap 2 --axi-ready 70 (seed 1).
 
@@ -68,7 +68,6 @@ riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si on fpga_top_tb_w512: 123/123 PASS, 0 FAI
    FW_DIR/DTB = main checkout build/linux (fw_jump.bin, muserisc.dtb: the sigil.dts content compiled before
    the rename; only the root compatible/model strings differ -- no dtc on this host)
 -- build/fpgatop-hello.log
-	  --exit-string "HELLO FROM S-MODE"
 fpga_top_tb: 64-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
 OpenSBI v1.9
 Platform Name               : museRISC in-house RV64GC core (Verilator)
@@ -98,9 +97,8 @@ make test: ALL PHASE-0 KATs PASS, EXIT 0 WALL 17s
 make core-test: pass, 231 TB PASS lines, 0 failures; wall ~2006 s (run alongside other jobs;
   wall from log timestamps -- the wrapper's EXIT line was lost); includes axibridge + fpgatop-quick
 make riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL, EXIT 0 WALL 21s
-make -C sim socrtl: 3/2 SOC CRYPTO PASS (27689496/28615074 cycles), EXIT 0 WALL 117s
-make -C sim sochash: 	  --exit-string "SOC HASH PASS"
-SOC HASH PASS, EXIT 0 WALL 1s
+make -C sim socrtl: 2/2 SOC CRYPTO PASS (27689496/28615074 cycles), EXIT 0 WALL 117s
+make -C sim sochash: SOC HASH PASS (104,275 cycles), EXIT 0 WALL 1s
 scripts/rename_to_sigil.sh check: clean
 
 Claim boundary: Verilator simulation of the FPGA top against an AXI4 memory model only. Not Vivado
