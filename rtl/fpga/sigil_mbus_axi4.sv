@@ -366,9 +366,13 @@ module sigil_mbus_axi4 #(
         (req_last_i == ((st_q == S_IDLE ? 9'd0 : wbeat_q) ==
                         (st_q == S_IDLE ? {1'b0, req_len_i} : wlen_q))))
     else $error("mbus_axi4: req_last on the wrong write beat");
+  // (Vivado 2025.2 xelab segfaults on the LB'() cast inside the
+  // property, so the beat's lane is computed outside it.)
+  logic [8:0] wbeat_lane;
+  assign wbeat_lane = 9'(req_addr_i[LB-1:0] >> 3);
   a_wbeat_addr: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       (req_fire && req_write_i && st_q == S_WR) |->
-        ((req_addr_i[LB-1:0] >> 3) == LB'(wbeat_q & 9'(RATIO - 1))))
+        (wbeat_lane == (wbeat_q & 9'(RATIO - 1))))
     else $error("mbus_axi4: write burst beat address out of order");
 `endif
 endmodule
