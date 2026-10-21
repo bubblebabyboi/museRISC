@@ -58,6 +58,7 @@ export MACRO_PLACE_HALO = 40 40
 # carry any small leftover overflow into detailed routing, which is
 # then judged by its own DRC count.
 export ROUTING_LAYER_ADJUSTMENT = 0.1
+export PRE_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_soc/grt_adjust.tcl
 export GLOBAL_ROUTE_ARGS = -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
 # Design PDN: the platform one plus met4 straps over the OpenRAM
 # macros' met3 vdd/gnd pins (see pdn.tcl).
