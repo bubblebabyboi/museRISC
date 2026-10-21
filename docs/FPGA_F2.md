@@ -46,8 +46,9 @@ peripherals) fits comfortably; reaching 100 MHz is the open risk.**
   2026.1 with `virtexuplusHBM` device files but **no license**, and the
   VU47P is not a free-edition device — F0 must run on the AWS FPGA
   Developer AMI (license included on EC2), on a non-F2 compute instance.
-- **Work still to build for F3:** core bus → AXI4 bridge to Shell DDR4,
-  OCL AXI-Lite virtual UART + control/reset/cycle counter, host loader
+- **Work still to build for F3:** ~~core bus → AXI4 bridge to Shell
+  DDR4~~ (done in F1, below), OCL AXI-Lite mapping of the virtual UART +
+  control/reset/cycle counter that `sigil_fpga_top` exposes, host loader
   for OpenSBI/Image/DTB.
 - **Cost:** `f2.6xlarge` ≈ $1.98/h On-Demand in us-east-1/us-west-2
   (third-party price trackers; spot seen ≈ $0.67/h). Account F-instance
@@ -80,6 +81,79 @@ implementation of the whole `sigil_soc_top` for `xcvu47p-fsvh2892-2-e`
 - Next (#53): register the VRF BRAM outputs (free BRAM DOB_REG, FPGA build
   only), then pipeline the vector datapath into EX/MEM; re-run F0 after
   each step.
+
+## F1 status (2026-10-21, #52): FPGA SoC top + AXI4 DDR bridge
+
+What exists now (Verilator-proven, not yet synthesized in Vivado):
+
+- `rtl/fpga/sigil_fpga_top.sv` — the unit the F2 CL wrapper (#54)
+  instantiates: the unchanged `sigil_soc_top` (core + L1s + boot ROM +
+  CLINT + PLIC + 16550 + crypto; same memory map and
+  `sw/linux/sigil.dts`, RAM 128 MiB at `0x8000_0000`), its external-RAM
+  memory bus bridged to an AXI4 master, plus boot/control and
+  virtual-UART ports.
+- `rtl/fpga/sigil_mbus_axi4.sv` — mbus → AXI4 master bridge.
+  `AXI_DATA_W` 64/128/256/512 (`AXI_ID_W`, `AXI_ADDR_W`, `AXI_ID`
+  parameters; one fixed ID, so everything is in order). Single-beat
+  accesses (uncached, 8 bytes) become narrow `AxSIZE=3`, `AxLEN=0`
+  transfers with `WSTRB` on the addressed lane; L1 line refills and
+  write-backs (64-byte, line-aligned, 8 × 64-bit beats) become INCR
+  bursts of `64/(AXI_DATA_W/8)` wide beats — **one 512-bit beat at the
+  Shell DDR4 width**, so no separate width converter is needed. Write
+  beats are packed into wide W beats; wide R beats are unpacked into
+  64-bit mbus beats (RREADY drops only while unpacking). All AXI
+  outputs are registered; AW and W are issued independently; B and R
+  are always accepted when a response is expected. xRESP errors and
+  unexpected IDs set a sticky `mem_err_o` (the mbus has no error
+  response). `ARPROT[2]` = instruction fetch, `AxCACHE=0011`.
+- `rtl/fpga/sigil_fifo.sv` — small FWFT FIFO for the virtual UART.
+- `sigil_uart16550` / `sigil_soc_top` gained `rx_ready_o` /
+  `uart_rx_ready_o` (high when a byte on the parallel RX port is
+  accepted) so host RX bytes are never dropped.
+
+Clocking choice: **one clock domain.** `clk_i` clocks the SoC, the
+bridge and the AXI master; CDC is out of scope for F1. #54 either runs
+the core on `clk_main_a0` (250 MHz, unlikely to close) or, more likely,
+on an `AWS_CLK_GEN` clock with an AXI clock converter between the
+bridge and the Shell DDR4 port, and does its own OCL-side CDC.
+
+Interface for #54 (`sigil_fpga_top` ports, all on `clk_i`):
+
+| Port | Dir | Meaning |
+|---|---|---|
+| `clk_i`, `rst_ni` | in | core clock; Shell reset for that domain (active low, synchronized inside) |
+| `soc_reset_req_i` | in | 1 = hold the SoC in reset. Map to an OCL control bit that **resets to 1**; the host loads DDR, then writes 0. Asserting it while running quiesces the bridge (no new requests), waits for the transaction in flight, then resets the SoC — the AXI side never sees a torn burst |
+| `soc_in_reset_o` | out | SoC is held in reset |
+| `boot_pc_i[63:0]` | in | reset PC (`0x1000` = boot ROM → OpenSBI at `0x8000_0000`, DTB `0x8300_0000`) |
+| `cache_en_i` | in | L1 strap, sampled during reset (1 for normal runs) |
+| `cycle_count_o[63:0]` | out | free-running `clk_i` count since `rst_ni` release — read twice over OCL against host wall time to measure the runtime clock |
+| `mem_err_o` | out | sticky AXI error |
+| `trap_o`, `trap_cause_o`, `trap_pc_o` | out | core trap pulse (debug) |
+| `uart_tx_data_o[7:0]`, `uart_tx_valid_o`, `uart_tx_pop_i`, `uart_tx_count_o`, `uart_tx_overflow_o` | | SoC → host byte FIFO (FWFT, `UART_TX_DEPTH`=1024); overflow is sticky until the next SoC reset; never flushed |
+| `uart_rx_data_i[7:0]`, `uart_rx_push_i`, `uart_rx_full_o`, `uart_rx_count_o` | | host → SoC byte FIFO (`UART_RX_DEPTH`=64), fed into the 16550 whenever it has room; flushed when a running SoC is reset |
+| `m_axi_*` | | AXI4 master (AW/W/B/AR/R incl. `id`, `len`, `size`, `burst`, `lock`, `cache`, `prot`, `qos`) → Shell DDR4 |
+
+Parameters: `AXI_DATA_W` (set 512 for the Shell DDR4), `AXI_ID_W`,
+`AXI_ADDR_W` (64), `AXI_ID`, `DDR_BASE` (DDR offset of SoC RAM, default
+0), `RAM_SIZE` (128 MiB, must match the DTS), FIFO depths, and the L1
+geometry passed through to `sigil_soc_top`.
+
+Verilator proof ([evidence](evidence/fpga-top-52-2026-10-21.log)):
+`tb/cpp/axi4_slave_model.h` stands in for the Shell DDR4 (seeded
+latency, R gaps, AW/W/AR backpressure; checks VALID/payload stability,
+WLAST, burst shape, 4 KiB, WSTRB lanes). `make -C sim axibridge` (in
+core-test) runs the bridge alone against a reference memory at 64,
+128 and 512 bits; `make -C sim fpgatop-quick` (in core-test) and
+`fpgatop` run firmware through `sigil_fpga_top` at 64- and 512-bit AXI
+with DDR-like latency (8–40 cycles): a D$-thrashing memory test with
+partial stores + a 170-byte virtual-UART RX line, mid-traffic SoC reset
+and rerun, `SOC HASH PASS`, both crypto images (`SOC CRYPTO PASS`);
+`fpgatop-rvtests` runs the upstream riscv-tests uncached through the
+AXI path; `fpgatop-hello` boots OpenSBI + `s_hello`.
+
+Not done in F1: Vivado elaboration/synthesis of the FPGA top (F0/#51),
+any CDC, BRAM-only bring-up variant (unneeded: the AXI path works at
+every width), AXI-Lite/OCL register map (#54).
 
 ## Platform facts (verified 2026-10-14)
 
@@ -157,7 +231,9 @@ implementation of the whole `sigil_soc_top` for `xcvu47p-fsvh2892-2-e`
   100 MHz constraint. File LUT/FF/DSP/BRAM/WNS and the
   top critical paths under `docs/evidence/`. Gate:
   elaborates; we have real numbers, not guesses.
-- **F1 — Synthesizable FPGA SoC.** New
+- **F1 — Synthesizable FPGA SoC.** (Done 2026-10-21 as
+  `rtl/fpga/sigil_fpga_top.sv` around `sigil_soc_top` with RAM over
+  AXI4 instead of BRAM; see "F1 status" above.) Original plan:
   `rtl/soc/sigil_fpga_soc.sv`: core + boot ROM +
   CLINT + PLIC subset + 16550-compatible UART RTL +
   BRAM RAM (size what fits; DDR in F3) at the `soc_tb`

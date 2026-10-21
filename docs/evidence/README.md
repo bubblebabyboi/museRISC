@@ -1975,3 +1975,31 @@ synthesized, placed and routed out-of-context in 27 min. 78,699 LUTs
 (6.0%), 32,463 FFs (1.25%), 9 RAMB36, 29 DSP. Setup WNS −4.703 ns at
 10 ns (≈68 MHz), hold clean. Worst path: VRF BRAM read → 63 levels →
 core EX/MEM result register. Details in `docs/FPGA_F2.md` (F0 result).
+
+## #52 / FPGA F1: FPGA SoC top + mbus→AXI4 DDR bridge (2026-10-21)
+
+[`fpga-top-52-2026-10-21.log`](fpga-top-52-2026-10-21.log), per-test
+riscv-tests cycles in
+[`fpga-top-rvtests-52-2026-10-21.csv`](fpga-top-rvtests-52-2026-10-21.csv).
+Branch `52-fpga-soc-top`, local macOS (Homebrew Verilator 5.044).
+`rtl/fpga/sigil_fpga_top.sv` wraps the unchanged `sigil_soc_top` (same
+memory map / DTS) and serves its RAM window from an AXI4 master
+(`sigil_mbus_axi4`, 64–512-bit data; a 64-byte line is one 512-bit
+beat), with SoC reset hold/quiesce, a cycle counter and virtual-UART
+FIFOs for the #54 CL wrapper. Verilator against an AXI4 DDR model
+(latency 8–40, R gaps, 70% AW/W/AR ready, protocol checks):
+
+- `axibridge` (in core-test): 9 × 20,000 random transactions vs a
+  reference memory at 64/128/512 bits — PASS.
+- `fpgatop` (261 s; its `fpgatop-quick` part is in core-test): smoke
+  test (D$-thrashing memory test + 170-byte UART RX line, mid-traffic
+  SoC reset, rerun) at 64 and 512 bits, `SOC HASH PASS`, both crypto
+  images `SOC CRYPTO PASS` (27,691,528 / 28,618,145 cycles at 64-bit;
+  secp256k1 27,690,766 at 512-bit) — PASS.
+- `fpgatop-rvtests`: riscv-tests **123/123** uncached through the AXI
+  path at 64 and 512 bits; `fpgatop-hello`: OpenSBI v1.9 + `s_hello`
+  `HELLO FROM S-MODE` at 64 bits (11,491,166 cycles) and 512 bits.
+- Gates: `make lint` clean, `make test`, `make core-test` (incl. the
+  new targets), riscv-tests 123/123, `socrtl`, `sochash` pass.
+- Not run: CI-parity lint (Verilator 5.020), ACT, any Vivado
+  elaboration/synthesis/timing, any AWS work.

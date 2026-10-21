@@ -65,8 +65,9 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
-        crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro coverage
+        crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
+        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 # Caches on, seeded random bus latency/gaps/backpressure.
@@ -441,6 +442,101 @@ sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
 	cd $(BUILD) && ./soc_rtl_tb 50000000 $(CORE_RAND_ARGS) \
 	  --load 0x80000000=$(abspath $(SOCFW))/hash_soc_test.bin \
 	  --exit-string "SOC HASH PASS"
+
+## ---- FPGA SoC top + mbus->AXI4 bridge (issue #52) ---------------------
+FPGADIR    := $(ROOT)/rtl/fpga
+BRIDGE_RTL := $(FPGADIR)/sigil_mbus_axi4.sv
+FPGA_RTL   := $(SOC_RTL) $(FPGADIR)/sigil_fifo.sv $(BRIDGE_RTL) \
+              $(FPGADIR)/sigil_fpga_top.sv
+AXI_TB_H   := $(ROOT)/tb/cpp/axi4_slave_model.h
+AXIB_WIDTHS := 64 128 512
+# Bridge unit TB at each AXI data width (window 64 KiB, AXI base
+# 0x4_0000: must match the constants in axi_bridge_tb.cpp).
+$(BUILD)/axi_bridge_tb_%: $(ROOT)/tb/cpp/axi_bridge_tb.cpp $(AXI_TB_H) $(BRIDGE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/axib_$* --top-module sigil_mbus_axi4 \
+	  -GAXI_DATA_W=$* "-GMEM_MASK=64'hFFFF" "-GAXI_BASE=64'h40000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=$$(($*/8)) \
+	  -o $(abspath $@) $(BRIDGE_RTL) $(abspath $(ROOT)/tb/cpp/axi_bridge_tb.cpp)
+
+# Part of `all` (core-test): seconds. Per width: ideal slave, then
+# DDR-like latency with R gaps and AW/W/AR backpressure at two seeds.
+AXIB_SLOW := --axi-lat 1:24 --axi-gap 3 --axi-ready 60
+axibridge: $(addprefix $(BUILD)/axi_bridge_tb_,$(AXIB_WIDTHS))
+	cd $(BUILD) && for w in $(AXIB_WIDTHS); do \
+	  ./axi_bridge_tb_$$w --txns 20000 || exit 1; \
+	  for s in 1 2; do ./axi_bridge_tb_$$w --txns 20000 $(AXIB_SLOW) --axi-seed $$s || exit 1; done; \
+	done
+
+# FPGA top harness: 64-bit AXI (default) and 512-bit (F2 Shell DDR4
+# width). Long firmware runs: no coverage instrumentation.
+$(BUILD)/fpga_top_tb: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop --top-module sigil_fpga_top \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
+$(BUILD)/fpga_top_tb_w512: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_w512 --top-module sigil_fpga_top \
+	  -GAXI_DATA_W=512 -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 \
+	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
+
+# FPGA smoke firmware: D$-thrashing memory test with partial
+# stores, then a 170-byte line over the virtual UART RX path.
+$(SOCFW)/fpga_smoke_test.bin: $(ROOT)/sw/fpga-tests/fpga_smoke_test.c \
+		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/soc-tests/link.ld
+	mkdir -p $(SOCFW)
+	$(RISCV_GCC) -march=rv64imafdc -mabi=lp64 -mcmodel=medany \
+	  -nostdlib -ffreestanding -fno-builtin -O1 \
+	  -T $(ROOT)/sw/soc-tests/link.ld \
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/fpga_smoke_test.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/fpga_smoke_test.elf $@
+
+# DDR-like AXI timing for the FPGA-top runs (Shell DDR4 round trips
+# are tens of core cycles; seeded random backpressure on every
+# channel).
+FPGA_AXI_ARGS ?= --axi-lat 8:40 --axi-gap 2 --axi-ready 70
+FPGA_FW := $(addprefix $(SOCFW)/,fpga_smoke_test.bin hash_soc_test.bin \
+             $(addsuffix .bin,$(SOC_CRYPTO_FW)))
+# fpgatop-quick is part of `all` (core-test, ~1.5 min): the smoke
+# test on 64- and 512-bit AXI (a SoC reset mid-traffic, then two
+# full runs with a SoC reset between them) and sochash through the
+# FPGA top. fpgatop adds both crypto images (64-bit AXI) and
+# crypto_soc_test on 512-bit AXI (~4 min in all; the crypto images
+# run ~28M cycles each). fpgatop-rvtests / fpgatop-hello are separate.
+fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
+	cd $(BUILD) && for tb in fpga_top_tb fpga_top_tb_w512; do \
+	  ./$$tb 50000000 $(FPGA_AXI_ARGS) --reset-mid 3000000 --rerun 1 \
+	    --load 0x80000000=$(SOCFW)/fpga_smoke_test.bin \
+	    --uart-in $(abspath $(ROOT)/sw/fpga-tests/fpga_smoke_uart_in.txt) \
+	    --exit-string "FPGA SMOKE PASS" || exit 1; \
+	done
+	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+fpgatop: fpgatop-quick
+	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
+	  ./fpga_top_tb 400000000 $(FPGA_AXI_ARGS) \
+	    --load 0x80000000=$(SOCFW)/$$fw.bin --exit-string "SOC CRYPTO PASS" || exit 1; \
+	done
+	cd $(BUILD) && ./fpga_top_tb_w512 400000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/crypto_soc_test.bin --exit-string "SOC CRYPTO PASS"
+
+# Upstream riscv-tests (ELFs from `make riscv-tests`) through the
+# FPGA top with the L1 caches off, so every access -- including the
+# HTIF tohost store -- is an AXI transaction.
+# FPGA_RVTESTS_CSV=path writes a per-test CSV.
+fpgatop-rvtests: $(BUILD)/fpga_top_tb
+	FPGA_TB=build/sim/fpga_top_tb FPGA_TB_ARGS="$(FPGA_AXI_ARGS)" \
+	  bash $(ROOT)/sim/run_riscv_tests.sh $(FPGA_RVTESTS_CSV)
+
+# OpenSBI fw_jump + DTB + S-mode payload through the FPGA top
+# (images from scripts/build_opensbi.sh / `make soc`; FW_DIR and
+# DTB override where they are found).
+FW_DIR ?= $(abspath $(ROOT)/build/linux)
+DTB    ?= $(FW_DIR)/sigil.dtb
+fpgatop-hello: $(BUILD)/fpga_top_tb $(ROOT)/build/linux/s_hello.bin
+	cd $(BUILD) && ./fpga_top_tb 100000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(FW_DIR)/fw_jump.bin \
+	  --load 0x83000000=$(DTB) \
+	  --load 0x80200000=$(abspath $(ROOT)/build/linux/s_hello.bin) \
+	  --exit-string "HELLO FROM S-MODE"
 
 $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUILD)
 	$(RISCV_GCC) $(SWFLAGS) $< -o $(BUILD)/$*.elf
