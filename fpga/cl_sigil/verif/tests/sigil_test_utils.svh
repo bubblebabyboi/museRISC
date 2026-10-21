@@ -71,6 +71,11 @@ task automatic sigil_power_up();
   aws_clkgen_set_mmcm(.mmcm_base(`AWS_CLKGEN_BASE_B), .mult(11), .mult_frac(875),
                       .div(1), .div0(9), .div0_frac(500), .div1(19), .div2(1), .reset(0));
   aws_clkgen_dsrt_rst();
+  // DDR init over the Shell stat bus, as the HDK examples'
+  // initialize_ddr() does (on hardware the Shell does this itself).
+  tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0000));
+  tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0001));
+  tb.poke_stat(.addr(8'h0c), .intf("ddr"), .data(32'h0000_0000));
   #1us;
   n = 0;
   do begin

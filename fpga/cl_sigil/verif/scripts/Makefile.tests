@@ -23,3 +23,6 @@ test_sigil_ed25519: all
 # Boot ROM -> OpenSBI fw_jump + DTB -> S-mode hello ("HELLO FROM S-MODE").
 test_sigil_hello: TEST=test_sigil_hello
 test_sigil_hello: all
+
+test_sigil_dbg: TEST=test_sigil_dbg
+test_sigil_dbg: all
