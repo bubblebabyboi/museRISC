@@ -48,12 +48,15 @@ export SDC_FILE      = $(DESIGN_HOME)/nangate45/sigil_soc/constraint.sdc
 # sparse; the combinational FPU/vector datapaths, not
 # utilization, are expected to set Fmax. Report honestly.
 export CORE_UTILIZATION = 20
-# Macro halo: with the default halo the macro placer left ~22 um gaps
-# between the SRAM tag macros; nangate45 metal4 PDN straps are on a 56 um
-# pitch, so a gap with no strap left a stranded metal1 rail segment and
-# 45 unpowered cells (PSM-0069 at 6_report). A 40 um halo makes every
-# channel either >= 80 um wide (always crossed by a strap) or row-free.
-export MACRO_PLACE_HALO = 40 40
+# Macro channels: the platform default (RTLMP_MIN_CHANNEL_SIZE 44.8 30.24
+# with pin-aware channel trimming) left ~22 um gaps between the 46.9 um
+# SRAM tag macros. nangate45 metal4 PDN straps are on a 56 um pitch, so one
+# gap had no strap: its metal1 rail segment and 45 cells (incl. repeaters)
+# were unpowered (PSM-0069 at 6_report). Full (not pin-trimmed) channels of
+# at least 60 um are always crossed by a strap. (MACRO_PLACE_HALO is not
+# read by this ORFS version's rtl_macro_placer.)
+export RTLMP_MIN_CHANNEL_SIZE = 60 60
+export RTLMP_PIN_AWARE_CHANNELS = 0
 export PLACE_DENSITY_LB_ADDON = 0.05
 export CLOCK_PERIOD = 10
 export EARLY_SIZING_CAP_RATIO = 0.8
