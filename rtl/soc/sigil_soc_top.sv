@@ -69,13 +69,21 @@ module sigil_soc_top #(
     output wire [63:0] trap_pc_o
 );
   // Reset synchronizer: asynchronous assert, synchronous release.
-  logic [1:0] rst_sync_q;
-  logic       rst_n;
+  // Separate first/second flops so the released reset (used as an
+  // async reset downstream) is never also a flop data input
+  // (Verilator SYNCASYNCNET).
+  logic rst_meta_q, rst_sync_q;
+  logic rst_n;
   always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) rst_sync_q <= 2'b00;
-    else rst_sync_q <= {rst_sync_q[0], 1'b1};
+    if (!rst_ni) begin
+      rst_meta_q <= 1'b0;
+      rst_sync_q <= 1'b0;
+    end else begin
+      rst_meta_q <= 1'b1;
+      rst_sync_q <= rst_meta_q;
+    end
   end
-  assign rst_n = rst_sync_q[1];
+  assign rst_n = rst_sync_q;
 
   localparam logic [63:0] ROM_BASE    = 64'h0000_1000;
   localparam logic [63:0] CLINT_BASE  = 64'h0200_0000;

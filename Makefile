@@ -8,7 +8,7 @@ RTL := rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv \
        rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
 BUILD := build
 
-CORE_RTL := rtl/core/sigil_pkg.sv rtl/core/sigil_regfile.sv \
+CORE_RTL := rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv \
             rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv \
             rtl/core/sigil_muldiv.sv \
             rtl/core/sigil_muldiv_mc.sv \
@@ -18,7 +18,7 @@ CORE_RTL := rtl/core/sigil_pkg.sv rtl/core/sigil_regfile.sv \
             rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv \
             rtl/core/sigil_rvc.sv \
             rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv \
-            rtl/core/sigil_mmu.sv rtl/core/sigil_cache_pkg.sv \
+            rtl/core/sigil_mmu.sv \
             rtl/core/sigil_core.sv
 # L1 caches + CPU wrapper (top: sigil_cpu); the cache package
 # is already in CORE_RTL.

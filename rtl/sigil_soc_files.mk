@@ -4,6 +4,7 @@
 # designs/src/sigil_soc. Order matters for slang: packages first.
 SIGIL_SOC_RTL = \
   core/sigil_pkg.sv \
+  core/sigil_cache_pkg.sv \
   core/sigil_regfile.sv \
   core/sigil_fpregfile.sv \
   core/sigil_alu.sv \
@@ -20,7 +21,6 @@ SIGIL_SOC_RTL = \
   core/sigil_decoder.sv \
   core/sigil_csr.sv \
   core/sigil_mmu.sv \
-  core/sigil_cache_pkg.sv \
   core/sigil_core.sv \
   core/sigil_sram_sp.sv \
   core/sigil_icache.sv \

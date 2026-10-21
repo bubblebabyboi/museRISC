@@ -38,7 +38,7 @@ RISCV_GCC     := $(RISCV_PREFIX)gcc
 RISCV_OBJCOPY := $(RISCV_PREFIX)objcopy
 SWFLAGS       := -march=rv64imafdc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh_zicsr_zifencei -mabi=lp64 -nostdlib -T $(ROOT)/sw/core-tests/link.ld
 
-CORE_RTL := $(PKG) $(RTL)/sigil_regfile.sv \
+CORE_RTL := $(PKG) $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_regfile.sv \
             $(RTL)/sigil_fpregfile.sv $(RTL)/sigil_alu.sv \
             $(RTL)/sigil_muldiv.sv \
             $(RTL)/sigil_muldiv_mc.sv \
@@ -49,7 +49,7 @@ CORE_RTL := $(PKG) $(RTL)/sigil_regfile.sv \
             $(RTL)/sigil_rvc.sv \
             $(RTL)/sigil_decoder.sv \
             $(RTL)/sigil_csr.sv $(RTL)/sigil_mmu.sv \
-            $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_core.sv
+            $(RTL)/sigil_core.sv
 # L1 caches + CPU wrapper (sigil_cpu is the harness top).
 CACHE_RTL := $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_sram_sp.sv \
              $(RTL)/sigil_icache.sv $(RTL)/sigil_dcache.sv \
