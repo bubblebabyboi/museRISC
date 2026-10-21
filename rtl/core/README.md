@@ -46,8 +46,10 @@ earlier than the next cycle). The integration top is
 write-allocate) + `sigil_bus_arb`, exposing one memory-bus
 master port; the arrays are `sigil_sram_sp` single-port
 synchronous SRAMs (macro/BRAM friendly) and
-`sigil_cache_pkg` holds the data-port opcodes and the
-cacheability (PMA) function. Protocol, cacheable windows and
+`sigil_cache_pkg` holds the data-port opcodes, the
+cacheability (PMA) function and `SRAM_OREG` (registered SRAM read
+outputs: two-cycle cache and VRF reads; on for the sky130 macro
+build). The sky130hd SoC builds 4 KiB direct-mapped caches. Protocol, cacheable windows and
 FENCE.I/SFENCE.VMA/atomics/walker rules:
 [`docs/CORE.md`](../../docs/CORE.md#memory-interface-and-l1-caches).
 Unit TBs: `tb/cpp/icache_tb.cpp`, `tb/cpp/dcache_tb.cpp`; bus
