@@ -16,11 +16,6 @@
 
 # Sigil
 
-> **Formerly museRISC.** Renamed 2026-10-20: the core and SoC are
-> in-house RTL, built for hashing and signature verification in
-> hardware, so the project is named for what it does. A sigil is a
-> seal that authenticates. Old GitHub links redirect.
-
 Sigil is an open RISC-V project building a Linux-capable
 processor and crypto accelerator in the open, one verified stage
 at a time. The processor is now a clean-slate, in-house
