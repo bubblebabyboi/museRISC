@@ -1,0 +1,25 @@
+# Sigil CL XSIM tests (issue #54). Firmware images are read from
+# $CL_DIR/verif/fw (staged by fpga/scripts/sim_cl_sigil.sh).
+
+# OCL registers, clock recipe + measured core clock, PCIS <-> DDR.
+test_sigil_regs: TEST=test_sigil_regs
+test_sigil_regs: all
+
+# Boot ROM -> sochash firmware ("SOC HASH PASS", ~0.1M core cycles).
+test_sigil_hash: TEST=test_sigil_hash
+test_sigil_hash: all
+
+# Boot ROM -> FPGA smoke firmware + virtual-UART RX line ("FPGA SMOKE PASS").
+test_sigil_smoke: TEST=test_sigil_smoke
+test_sigil_smoke: all
+
+# Boot ROM -> socrtl crypto images ("SOC CRYPTO PASS").
+test_sigil_crypto: TEST=test_sigil_crypto
+test_sigil_crypto: all
+
+test_sigil_ed25519: TEST=test_sigil_ed25519
+test_sigil_ed25519: all
+
+# Boot ROM -> OpenSBI fw_jump + DTB -> S-mode hello ("HELLO FROM S-MODE").
+test_sigil_hello: TEST=test_sigil_hello
+test_sigil_hello: all

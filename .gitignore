@@ -24,3 +24,5 @@ __pycache__/
 /fpga/cl_sigil/verif/sim/
 /fpga/host/sigil_host
 /fpga/host/*.o
+/fpga/cl_sigil/verif/fw/
+/fpga/cl_sigil/verif/*.make.log
