@@ -2003,3 +2003,40 @@ FIFOs for the #54 CL wrapper. Verilator against an AXI4 DDR model
   new targets), riscv-tests 123/123, `socrtl`, `sochash` pass.
 - Not run: CI-parity lint (Verilator 5.020), ACT, any Vivado
   elaboration/synthesis/timing, any AWS work.
+
+## #54 / FPGA F3: AWS F2 CL wrapper, virtual UART, host runtime (2026-10-21)
+
+Log: [`fpga-cl-54-2026-10-21.log`](fpga-cl-54-2026-10-21.log); post-route
+reports in [`fpga-cl-54-2026-10-21/`](fpga-cl-54-2026-10-21/). Branch
+`54-fpga-cl`. Build/sim on the EC2 r7iz.8xlarge build instance (F2
+Developer AMI 1.19.2, Vivado/XSIM 2025.2, aws-fpga v2.3.5 `c34f88e`,
+Small Shell `0x10212415`); Verilator 5.044 on macOS. Nothing ran on F2
+hardware and no AFI was created (#55).
+
+- **DCP build** (`fpga/scripts/build_cl_sigil.sh --recipe-b B1`, i.e.
+  `aws_build_dcp_from_cl.py --mode small_shell --aws_clk_gen
+  --no-encrypt`, recipes A1/B1/C0/H2): BuildAll in 1 h 07–1 h 09 min,
+  "no negative slack path". Core clock `clk_extra_b1` 16 ns (B1,
+  62.5 MHz): WNS **+0.147 ns** (≈63.1 MHz), `clk_main_a0` +0.197 ns,
+  DDR +0.213 ns, design +0.070 ns, hold +0.010 ns. CL: 122,329 LUTs
+  (9.4%), 95,551 FFs, 71 RAMB36 + 3 RAMB18, 32 DSP; SoC 80,529 LUTs.
+  Worst core path: VRF BRAM read → 43 levels → D$ data RAM enable.
+- **XSIM** (HDK testbench, fast AXI memory model): `test_sigil_regs`
+  (register map, PCIS ↔ DDR, measured 62.5 MHz), `test_sigil_hash`
+  (`SOC HASH PASS`, 104,734 cycles at 62.5 MHz) and
+  `test_sigil_host_cosim` (the unchanged `fpga/host/sigil_host.c` via
+  DPI: `SOC HASH PASS`, measured 62.500 MHz) — PASS. Long images
+  (smoke, crypto, ed25519, OpenSBI `s_hello`) at the B5 recipe for
+  simulation speed: see the log.
+- **Verilator** `make -C sim fpgaocl` (`fpgaocl-quick` added to
+  core-test): `sigil_fpga_ocl` driven only through its OCL registers —
+  `SOC HASH PASS` (105,056), `FPGA SMOKE PASS` (11,791,881),
+  `SOC CRYPTO PASS` (27,690,936) — PASS; `axibridge`, `fpgatop-quick`
+  re-run after the `sigil_mbus_axi4` assertion rewrite — PASS;
+  `make lint` clean (new: `sigil_fpga_ocl`, `sigil_axi_decerr`);
+  `scripts/rename_to_sigil.sh check` clean.
+- Host runtime builds `-Wall -Wextra -Werror` against the v2.3.5 SDK
+  (static `libfpga_mgmt.a`).
+- Not run: F2 hardware, AFI creation, CI-parity lint (Verilator 5.020;
+  no Docker daemon), full `make core-test`, Linux in XSIM (~a week at
+  ~800 cycles/s).

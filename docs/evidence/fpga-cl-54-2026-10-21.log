@@ -1,0 +1,89 @@
+# Issue #54 / FPGA F3: AWS F2 CL wrapper (cl_sigil), virtual UART, host runtime
+# Date: 2026-10-21. Branch 54-fpga-cl.
+# Build/sim host: EC2 r7iz.8xlarge "sigil-fpga-build", F2 Developer AMI 1.19.2,
+#   Vivado/XSIM 2025.2, aws-fpga v2.3.5 (c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82),
+#   Small Shell 0x10212415, part xcvu47p-fsvh2892-2-e.
+# Verilator runs: macOS, Homebrew Verilator 5.044.
+# Nothing ran on F2 hardware; no AFI was created.
+
+## 1. DCP build (fpga/scripts/build_cl_sigil.sh --recipe-b B1)
+# aws_build_dcp_from_cl.py -c cl_sigil --mode small_shell --flow BuildAll --aws_clk_gen
+#   --no-encrypt --clock_recipe_a A1 --clock_recipe_b B1 --clock_recipe_c C0 --clock_recipe_hbm H2
+# build b1-try2  (commit 9ed857b): Build Time = 1:06:39, "SUCCESS: Design has no negative slack path"
+# build b1-77373eb (commit 77373eb): Build Time = 1:08:43, same result, same timing numbers
+# (Reports for 77373eb: docs/evidence/fpga-cl-54-2026-10-21/)
+# CL_RESULT core_clock_period=16.000 wns=0.147 fmax_est=63.1MHz
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      0.070        0.000                      0               275923        0.010        0.000                      0               274959        0.000        0.000                       0                112229  
+
+
+All user specified timing constraints are met.
+# manifest of b1-77373eb.Developer_CL.tar:
+pci_device_id=0xF054
+pci_vendor_id=0x1D0F
+pci_subsystem_id=0x5160
+pci_subsystem_vendor_id=0x1D0F
+manifest_format_version=2
+dcp_hash=64579fbfab4ae3176a2b7bbc8b2dc42d1d501872022ffef695a1633e81f0254d
+shell_version=0x10212415
+hdk_version=2.3.5
+tool_version=v2025.2
+clock_recipe_a=A1
+clock_recipe_b=B1
+clock_recipe_c=C0
+clock_recipe_hbm=H2
+
+## 2. HDK XSIM (fpga/scripts/sim_cl_sigil.sh, AXI_MEMORY_MODEL=1), recipe B1
+# --- test_sigil_regs (wall 32 s) ---
+[   15844.000 ns] sigil: clocks programmed (B1), resets released, STATUS 0x00000041
+[   15984.000 ns] check ID = 0x5349474c ok
+[   16124.000 ns] check VERSION = 0x00030001 ok
+[   16264.000 ns] check CLK_KHZ = 0x0000f424 ok
+[   16424.000 ns] check CTRL reset value = 0x00000003 ok
+[   16564.000 ns] check STATUS (in reset, DDR ready) = 0x00000041 ok
+[   16704.000 ns] check BOOT_PC_LO reset = 0x00001000 ok
+[   16844.000 ns] check BOOT_PC_HI reset = 0x00000000 ok
+[   17164.000 ns] check SCRATCH = 0xa5c30f96 ok
+[   17484.000 ns] check BOOT_PC_LO rw = 0x80000000 ok
+[   17804.000 ns] check unmapped = 0xbaaddec0 ok
+[   17944.000 ns] check TX_DATA empty = 0x00000000 ok
+[   18104.000 ns] check TRAP_COUNT = 0x00000000 ok
+[   39244.000 ns] sigil: cycle counter 250 -> 1518 over 20.280 us = 62.525 MHz
+[   40284.000 ns] check RX_STATUS count = 0x00000005 ok
+[   40964.000 ns] PCIS DDR readback checks done
+[   42064.000 ns] : Detected   0 errors
+[   42064.000 ns] : Checking protocol checker error status...
+*** TEST PASSED ***
+# --- test_sigil_hash (wall 299 s) ---
+[   15844.000 ns] sigil: clocks programmed (B1), resets released, STATUS 0x00000041
+[   27204.000 ns] sigil: loaded 2104 bytes from ../../../fw/hash_soc_test.bin at DDR 0x0 (PCIS)
+[   28024.000 ns] sigil: SoC released, waiting for "SOC HASH PASS"
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+[ 1703784.000 ns] SIGIL PASS "SOC HASH PASS" after 104734 core cycles, 1675.8 us simulated, measured 62.499 MHz
+[ 1704884.000 ns] : Detected   0 errors
+*** TEST PASSED ***
+# --- test_sigil_host_cosim: fpga/host/sigil_host.c via DPI (wall 322 s) ---
+# args: --recipe-b 1 --bin ../../../fw/hash_soc_test.bin --exit 'SOC HASH PASS' --timeout 0.02 --log sigil_host_uart.log
+[sigil_host] slot 0: AFI xsim-cl_sigil, shell 0x10212415
+[sigil_host] AWS_CLK_GEN: group B recipe B1 (A1 C0 H2 for the unused groups)
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded ../../../fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 0.02 s
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 113156 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x00000040
+[ 1876124.000 ns] cosim: sigil_host returned 0
+[ 1877224.000 ns] : Detected   0 errors
+*** TEST PASSED ***
+# sigil_host_uart.log:
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+# --- speed probes (sochash): default 287-299 s wall; B5 core clock + slowed unused groups 201 s ---
+[   34104.000 ns] sigil: clocks programmed (B5, 100 MHz), resets released, STATUS 0x00000041
+[ 1096684.000 ns] SIGIL PASS "SOC HASH PASS" after 105060 core cycles, 1050.6 us simulated, measured 100.000 MHz
