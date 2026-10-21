@@ -66,8 +66,9 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
-        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick coverage
+        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
+        fpgaocl-quick fpgaocl
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 # Caches on, seeded random bus latency/gaps/backpressure.
@@ -537,6 +538,26 @@ fpgatop-hello: $(BUILD)/fpga_top_tb $(ROOT)/build/linux/s_hello.bin
 	  --load 0x83000000=$(DTB) \
 	  --load 0x80200000=$(abspath $(ROOT)/build/linux/s_hello.bin) \
 	  --exit-string "HELLO FROM S-MODE"
+
+## ---- AWS F2 CL core-clock half via its OCL registers (issue #54) ------
+FPGA_OCL_RTL := $(FPGA_RTL) $(FPGADIR)/sigil_ocl_regs.sv $(FPGADIR)/sigil_fpga_ocl.sv
+$(BUILD)/fpga_ocl_tb: $(ROOT)/tb/cpp/fpga_ocl_tb.cpp $(AXI_TB_H) $(FPGA_OCL_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgaocl --top-module sigil_fpga_ocl \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(FPGA_OCL_RTL) $(abspath $(ROOT)/tb/cpp/fpga_ocl_tb.cpp)
+# fpgaocl-quick (in `all`): register map, cycle counter, sochash run to
+# its pass string with the UART drained over OCL, re-hold. fpgaocl adds
+# the smoke test (virtual-UART RX line pushed over OCL) and crypto.
+fpgaocl-quick: $(BUILD)/fpga_ocl_tb $(SOCFW)/hash_soc_test.bin
+	cd $(BUILD) && ./fpga_ocl_tb 50000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+fpgaocl: fpgaocl-quick $(FPGA_FW)
+	cd $(BUILD) && ./fpga_ocl_tb 100000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/fpga_smoke_test.bin \
+	  --uart-in $(abspath $(ROOT)/sw/fpga-tests/fpga_smoke_uart_in.txt) \
+	  --exit-string "FPGA SMOKE PASS"
+	cd $(BUILD) && ./fpga_ocl_tb 400000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/crypto_soc_test.bin --exit-string "SOC CRYPTO PASS"
 
 $(BUILD)/%.bin: $(ROOT)/sw/core-tests/%.S $(ROOT)/sw/core-tests/link.ld | $(BUILD)
 	$(RISCV_GCC) $(SWFLAGS) $< -o $(BUILD)/$*.elf
