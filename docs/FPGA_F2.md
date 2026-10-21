@@ -47,9 +47,9 @@ peripherals) fits comfortably; reaching 100 MHz is the open risk.**
   VU47P is not a free-edition device — F0 must run on the AWS FPGA
   Developer AMI (license included on EC2), on a non-F2 compute instance.
 - **Work still to build for F3:** ~~core bus → AXI4 bridge to Shell
-  DDR4~~ (done in F1, below), OCL AXI-Lite mapping of the virtual UART +
+  DDR4~~ (done in F1, below), ~~OCL AXI-Lite mapping of the virtual UART +
   control/reset/cycle counter that `sigil_fpga_top` exposes, host loader
-  for OpenSBI/Image/DTB.
+  for OpenSBI/Image/DTB~~ (done in F3, below).
 - **Cost:** `f2.6xlarge` ≈ $1.98/h On-Demand in us-east-1/us-west-2
   (third-party price trackers; spot seen ≈ $0.67/h). Account F-instance
   quota (128 vCPUs) covers one. Builds (30–90 min) run off-F2.
@@ -155,6 +155,240 @@ Not done in F1: Vivado elaboration/synthesis of the FPGA top (F0/#51),
 any CDC, BRAM-only bring-up variant (unneeded: the AXI path works at
 every width), AXI-Lite/OCL register map (#54).
 
+## F3 status (2026-10-21, #54): AWS CL wrapper, virtual UART, host runtime
+
+Pinned toolchain: **aws-fpga HDK v2.3.5** (tag `v2.3.5`, commit
+`c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82`), **Small Shell
+`0x10212415`**, part `xcvu47p-fsvh2892-2-e`, Vivado 2025.2 on the F2
+Developer AMI 1.19.2. Everything is built unencrypted (`--no-encrypt`)
+so the AFI can be published and rebuilt from this repository.
+
+### CL architecture (`fpga/cl_sigil/`, HDK CL layout)
+
+```
+Shell SDA ──────────────────────────────> AWS_CLK_GEN (all 4 MMCM groups)
+                                             └─ clk_extra_b1 = core clock
+Shell OCL (AXI-Lite, clk_main_a0) ─> OCL_CDC (AXI-Lite clock converter)
+   ─> SIGIL = sigil_fpga_ocl (core clock)
+        sigil_ocl_regs (OCL register map below)
+        sigil_fpga_top (SoC + mbus→AXI4 bridge @512 bit + UART FIFOs)
+            m_axi ─> DDR_CDC (AXI4 clock converter, 512 b) ─> SmartConnect "ATG" ─┐
+Shell PCIS (host loads DDR) ─> PCIS_SLC (register slice) ─> SmartConnect "XDMA" ─┤
+            SmartConnect 2x2 (HDK cl_axi_sc_2x2, clk_main_a0):                  │
+              DDRA 0x0..64 GiB ─> SH_DDR (sh_ddr, Shell DDR4 controller)  <─────┘
+              DDRB 64 GiB..    ─> DDRB_DECERR (sigil_axi_decerr)
+```
+
+- `design/cl_sigil.sv` — CL top: AWS_CLK_GEN (named `AWS_CLK_GEN`
+  in the CL top as the HDK requires, SDA wired straight to it), the
+  two Xilinx clock converters (HDK IP `cl_axi_clock_converter`,
+  `cl_axi_clock_converter_light`), PCIS register slice
+  (`axi_register_slice`), SmartConnect (`cl_axi_sc_2x2` block design),
+  `sh_ddr` with the stat bus piped like the HDK examples, FLR
+  handshake, PCIe IDs (`cl_id_defines.vh`: `0xF054/0x1D0F`,
+  subsystem `0x5160/0x1D0F`), CL_TEMPLATE tie-offs for PCIM, IRQs,
+  virtual JTAG, HBM APB and the PCIe pass-through pins. Virtual LEDs:
+  bit 0 SoC held in reset, bit 1 AXI error, bit 2 DDR calibrated.
+- `rtl/fpga/sigil_fpga_ocl.sv` + `rtl/fpga/sigil_ocl_regs.sv` — the
+  core-clock half (no Xilinx primitives; Verilator-linted).
+  `rtl/fpga/sigil_axi_decerr.sv` — DECERR responder.
+- Resets: `sh_ddr` gets `rst_main_n` only (HDK rule); the main-clock
+  fabric uses AWS_CLK_GEN `cl_rst_main_n`; the core domain and both
+  clock-converter sides use `cl_rst_b1_n AND cl_rst_main_n` (XPM
+  synchronizers into each clock), so both converter sides reset
+  together. `cl_rst_b1_n` stays asserted after AFI load until the host
+  calls `aws_clkgen_deassert_resets()` / `aws_clkgen_set_recipe()`.
+  The SoC is additionally held by OCL `CTRL.soc_reset_req` (resets
+  to 1).
+- Clock-domain crossings: only the two AXI clock converters and XPM
+  CDC cells (`xpm_cdc_async_rst`, `xpm_cdc_single`,
+  `xpm_cdc_array_single`).
+- Placement: `small_shell_cl_pnr_user.xdc` keeps `SIGIL`, `DDR_CDC`
+  and `SH_DDR` in SLR2 (clock regions X0Y8:X7Y11, wholly CL, where
+  the HDK `cl_mem_perf` example also places `SH_DDR`).
+- DDR map: SoC RAM `0x8000_0000 + x` (128 MiB, `sw/linux/sigil.dts`)
+  = DDR / PCIS (AppPF BAR4) offset `x` (bridge `DDR_BASE = 0`,
+  `MEM_MASK = 0x07FF_FFFF`). OpenSBI `fw_jump.bin` → PCIS `0x0`,
+  Linux `Image` → `0x20_0000`, DTB → `0x300_0000`.
+
+### Core clock recipe
+
+The core runs on AWS_CLK_GEN **group B, `clk_extra_b1`**. Recipe is a
+build parameter (`fpga/scripts/build_cl_sigil.sh --recipe-b`), also
+settable at run time (`sigil_host --recipe-b N` →
+`aws_clkgen_set_recipe`):
+
+| Recipe | clk_extra_b1 | Use |
+|---|---:|---|
+| **B1** (default) | **62.5 MHz** | **interim label for the first AFI** — F0 closed ~68 MHz OOC; the CL build closes 16 ns with +0.147 ns |
+| B4 | 75 MHz | after partial #53 progress |
+| B5 | 100 MHz | the epic target once #53 closes 10 ns |
+
+Groups A/C/HBM are instantiated (the SDK's clkgen calls program and
+poll every MMCM) but unused, left at the HDK defaults A1/C0/H2. The
+OCL `CLK_KHZ` register reports the build recipe's nominal frequency;
+the host compares it with the measured one.
+
+### OCL register map (AppPF BAR0, 32-bit accesses)
+
+All registers live in the core-clock domain behind the AXI-Lite clock
+converter. Unmapped reads return `0xBAAD_DEC0`; registers alias every
+4 KiB.
+
+| Offset | Name | Access | Reset | Meaning |
+|---|---|---|---|---|
+| 0x000 | ID | RO | `0x5349_474C` | "SIGL" |
+| 0x004 | VERSION | RO | `0x0003_0001` | F3, revision 1 |
+| 0x008 | CTRL | RW | `0x3` | bit 0 `soc_reset_req` (1 = hold SoC in reset; a running SoC is quiesced first, see F1), bit 1 `cache_en` (L1 strap, sampled in reset) |
+| 0x00C | STATUS | RO | | bit 0 `soc_in_reset`, 1 `mem_err` (sticky AXI error), 2 `tx_overflow` (sticky until SoC reset), 3 `rx_full`, 4 trap seen since release, 5 TX data available, 6 DDR calibrated |
+| 0x010 / 0x014 | BOOT_PC_LO / HI | RW | `0x1000` | reset PC (`0x1000` = boot ROM, which jumps to `0x8000_0000` with the DTB at `0x8300_0000`) |
+| 0x018 | CYCLE_LO | RO, side effect | | core-clock cycles since CL reset, low half; **reading it snapshots the high half** |
+| 0x01C | CYCLE_HI | RO | | high half captured by the last CYCLE_LO read (read LO then HI = atomic 64-bit value) |
+| 0x020 | TRAP_COUNT | RO | 0 | core traps since release (cleared while held) |
+| 0x024 | CLK_KHZ | RO | build | nominal core clock of the build recipe (62500 for B1) |
+| 0x028 / 0x02C | TRAP_CAUSE_LO / HI | RO | | cause of the last trap (`trap_cause_o`) |
+| 0x030 / 0x034 | TRAP_PC_LO / HI | RO | | PC of the last trap |
+| 0x03C | SCRATCH | RW | 0 | host scratch |
+| 0x040 | UART_TX_DATA | RO, pops | | bit 31 valid, bits 7:0 byte; a read with bit 31 set **pops** the TX FIFO (1024 B, SoC → host) |
+| 0x044 | UART_TX_STATUS | RO | | bit 31 overflow, bits 15:0 bytes waiting |
+| 0x048 | UART_RX_DATA | WO, pushes | | bits 7:0 pushed into the RX FIFO (64 B, host → SoC); dropped when full |
+| 0x04C | UART_RX_STATUS | RO | | bit 31 full, bits 15:0 bytes queued |
+
+### Building the DCP
+
+```
+# on the F2 Developer AMI (Vivado 2025.2), aws-fpga v2.3.5 at
+# $AWS_FPGA_REPO_DIR (default ~/src/project_data/aws-fpga)
+fpga/scripts/build_cl_sigil.sh --recipe-b B1 [--tag NAME]
+```
+
+runs `aws_build_dcp_from_cl.py -c cl_sigil --mode small_shell
+--aws_clk_gen --no-encrypt --clock_recipe_a A1 --clock_recipe_b B1
+--clock_recipe_c C0 --clock_recipe_hbm H2` (HDK build scripts linked
+into `fpga/cl_sigil/build/scripts/`; `synth_cl_sigil.tcl` reads the SoC
+RTL straight from `rtl/`). Output:
+`fpga/cl_sigil/build/checkpoints/<tag>.Developer_CL.tar` (routed DCP +
+manifest: the `create-fpga-image` input for #55) and reports in
+`fpga/cl_sigil/build/reports/`.
+
+DCP_RESULTS_PLACEHOLDER
+
+### Simulating (HDK XSIM)
+
+```
+# firmware from the dev machine: make -C sim build/soc-tests/*.bin
+fpga/scripts/sim_cl_sigil.sh <fw_dir> test_sigil_regs test_sigil_hash ...
+```
+
+uses the HDK testbench (Shell BFM on OCL/PCIS/SDA/stat bus) with the
+HDK fast AXI memory model behind `sh_ddr` (`AXI_MEMORY_MODEL=1`:
+DDR4 calibration and DRAM timing are not simulated; the
+PCIS/SoC → SmartConnect → `sh_ddr` AXI path is). Tests in
+`fpga/cl_sigil/verif/tests/` do what the host does: program
+AWS_CLK_GEN group B to B1 over SDA and release its resets, Shell DDR
+init over the stat bus, hold the SoC, load the image over PCIS (with
+read-back), set the boot PC, release, drain the virtual UART over OCL
+(feeding RX bytes when given) until the pass string.
+`test_sigil_host_cosim` instead runs **`fpga/host/sigil_host.c`
+itself** against the simulated CL (DPI shim
+`fpga/host/cosim/sigil_host_cosim.c` maps the SDK calls onto the BFM).
+
+Results (2026-10-21, Vivado 2025.2 XSIM, aws-fpga v2.3.5 testbench,
+fast AXI memory model; evidence log
+[`fpga-cl-54-2026-10-21.log`](evidence/fpga-cl-54-2026-10-21.log)):
+
+| Test | Core clock | Result |
+|---|---|---|
+| `test_sigil_regs` | B1 62.5 MHz | PASS — ID/VERSION/CLK_KHZ, CTRL/STATUS/BOOT_PC reset values, scratch + boot-PC read/write, unmapped `0xBAAD_DEC0`, TX empty, RX FIFO count with the SoC held, PCIS write/read at DDR `0x0` and `0x7FF_FFC0`; **measured 62.475–62.525 MHz** (cycle counter over 20.28 µs) |
+| `test_sigil_hash` | B1 | PASS — boot ROM → sochash `SOC HASH PASS` after 104,734 core cycles (1.68 ms simulated), measured 62.499 MHz |
+| `test_sigil_host_cosim` | B1 | PASS — **`fpga/host/sigil_host.c` unchanged** (`--recipe-b 1 --bin hash_soc_test.bin`): clock recipe, ID check, hold, PCIS load + read-back, release, UART drain → `SOC HASH PASS` after 113,156 cycles; host-reported measured clock 62.500 MHz |
+LONG_RESULTS_PLACEHOLDER
+
+XSIM speed: about 400 core cycles per second at B1 and ~800 at B5
+(r7iz.8xlarge, one simulator process per test), so a full Linux boot
+(~509M cycles in Verilator) would take about a week in XSIM and is
+**not attempted**; Linux is left to the F2 hardware run (#55). The
+same images run through the core-clock half in Verilator through the
+OCL registers (`make -C sim fpgaocl`, below) in minutes.
+
+Two XSIM-specific fixes were needed: `sigil_mbus_axi4`'s simulation-only
+`a_wbeat_addr` assertion made Vivado 2025.2 `xelab` segfault (the
+width cast moved out of the property; Verilator unaffected), and the
+test bench's image loader works around an XSIM quirk with
+`queue.push_back(byte'(c))`.
+
+Verilator (`make -C sim fpgaocl`; `fpgaocl-quick` is in `core-test`):
+`tb/cpp/fpga_ocl_tb.cpp` drives `sigil_fpga_ocl` (OCL register block +
+FPGA top, 512-bit AXI to the DDR model with 8–40-cycle latency and
+backpressure) only through AXI-Lite register accesses, like the host:
+register reset values, scratch/boot-PC, cycle-counter delta = harness
+cycles, then `SOC HASH PASS` (105,056 cycles), `FPGA SMOKE PASS`
+(11,791,881; the 170-byte RX line pushed through `UART_RX_DATA`) and
+`SOC CRYPTO PASS` (27,690,936), re-hold with the AXI side idle — PASS.
+
+
+### Host runtime (`fpga/host/`)
+
+`make -C fpga/host SDK_DIR=<aws-fpga>/sdk` (after building the SDK
+once: `sdk/userspace/mkall_fpga_mgmt_tools.sh`, or `source
+sdk_setup.sh`); links `libfpga_mgmt.a` statically. Run as root on the
+F2 instance:
+
+```
+sudo ./sigil_host --afi agfi-XXXX --bin crypto_soc_test.bin            # baremetal
+sudo ./sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil.dtb \
+                  --timeout 300 --stdin --log boot.log                 # OpenSBI + Linux
+sudo ./sigil_host --no-cache --tohost 0x80001000 --bin rv64ui-p-add.bin  # riscv-tests (HTIF)
+```
+
+Flow: optional AFI load (`fpga_mgmt_load_local_image_sync`) →
+`aws_clkgen_deassert_resets` (or `aws_clkgen_set_recipe` with
+`--recipe-b`) → check `ID` → hold the SoC (`CTRL`) and drain stale
+UART bytes → wait for DDR → copy the images through PCIS
+(`fpga_pci_write_burst` on AppPF BAR4, then head/tail or full
+`--verify` read-back) → `BOOT_PC` → release → loop: pop
+`UART_TX_STATUS.count` bytes to stdout (and `--log`), push stdin to
+`UART_RX_DATA` with `--stdin`, poll `tohost` with `--tohost`, check
+`STATUS` for AXI errors/overflow → stop on an exit marker (defaults
+`SIGIL_LINUX_BOOT_OK`, `SOC CRYPTO PASS`, `SOC HASH PASS`, `FPGA SMOKE
+PASS`, `HELLO FROM S-MODE`), a fail marker (`FAIL`, `Kernel panic`)
+or `--timeout` → print **measured core clock = Δ`CYCLE` / Δwall time**
+next to the build recipe, trap count / last trap, and hold the SoC
+again (unless `--keep-running`). Exit status 0 pass, 1 fail, 2
+timeout, 3 setup error.
+
+### Left for #55
+
+Upload the DCP tarball to S3 and `create-fpga-image` (owner sign-off on
+region/budget), make the AFI/AGFI public, load it on an `f2.6xlarge`
+and run the F5 sequence with `sigil_host`; nothing here has run on F2
+hardware yet. Raise `--recipe-b` to B5 once #53 closes 100 MHz.
+
+## Flash Sigil on your own F2 (draft — TODO: public AGFI id)
+
+> Draft for the public AFI from #55; the AGFI id and the
+> pre-built payload downloads do not exist yet.
+
+1. Launch an **`f2.6xlarge`** in a region with F2 (e.g. us-east-1)
+   from the AWS **FPGA Developer AMI** (or Amazon Linux 2023 / Ubuntu
+   with the aws-fpga SDK). Budget about $2/h On-Demand; stop it when
+   done.
+2. Install the SDK: `git clone -b v2.3.5
+   https://github.com/aws/aws-fpga && cd aws-fpga && source
+   sdk_setup.sh`.
+3. Load the public Sigil AFI: `sudo fpga-load-local-image -S 0 -I
+   agfi-TODO` (check with `sudo fpga-describe-local-image -S 0 -H`;
+   the PCIe IDs are `0xF054/0x1D0F`).
+4. Build the runtime: `git clone https://github.com/bubblebabyboi/sigil
+   && make -C sigil/fpga/host SDK_DIR=$PWD/aws-fpga/sdk`.
+5. Run: `sudo sigil/fpga/host/sigil_host --bin crypto_soc_test.bin`
+   (baremetal) or `sudo sigil/fpga/host/sigil_host --linux --fw
+   fw_jump.bin --image Image --dtb sigil.dtb --stdin --timeout 600`
+   (payloads: `make -C sim` / `scripts/build_opensbi.sh` / `make soc`,
+   see `docs/QEMU.md`). The last lines report the measured core clock.
+6. To rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on
+   the FPGA Developer AMI, then the AWS `create-fpga-image` flow.
+
 ## Platform facts (verified 2026-10-14)
 
 - F2 FPGA: AMD/Xilinx Virtex UltraScale+ **VU47P**
@@ -251,7 +485,8 @@ every width), AXI-Lite/OCL register map (#54).
   configuration already verified, or is explicitly
   labelled otherwise. Gate: Vivado post-route WNS ≥ 0
   at 100 MHz (report filed), unit/ACT gates re-run.
-- **F3 — AWS CL wrapper + host runtime.** Pin the
+- **F3 — AWS CL wrapper + host runtime.** (Done 2026-10-21, see
+  "F3 status" above: aws-fpga v2.3.5, Small Shell 0x10212415.) Pin the
   aws-fpga HDK commit and shell version in this doc when
   chosen. CL wraps the SoC: Shell clocks → 100 MHz core
   clock (HDK clock recipe), OCL AXI-Lite control/status
