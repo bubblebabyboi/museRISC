@@ -348,10 +348,10 @@ fast AXI memory model; evidence log
 | `test_sigil_regs` | B1 62.5 MHz | PASS — ID/VERSION/CLK_KHZ, CTRL/STATUS/BOOT_PC reset values, scratch + boot-PC read/write, unmapped `0xBAAD_DEC0`, TX empty, RX FIFO count with the SoC held, PCIS write/read at DDR `0x0` and `0x7FF_FFC0`; **measured 62.475–62.525 MHz** (cycle counter over 20.28 µs) |
 | `test_sigil_hash` | B1 | PASS — boot ROM → sochash `SOC HASH PASS` after 104,734 core cycles (1.68 ms simulated), measured 62.499 MHz |
 | `test_sigil_host_cosim` | B1 | PASS — **`fpga/host/sigil_host.c` unchanged** (`--recipe-b 1 --bin hash_soc_test.bin`): clock recipe, ID check, hold, PCIS load + read-back, release, UART drain → `SOC HASH PASS` after 113,156 cycles; host-reported measured clock 62.500 MHz |
-| `test_sigil_smoke` | B5 100 MHz (sim speed) | RUNNING — FPGA smoke firmware + 170-byte RX line over OCL (`FPGA SMOKE PASS`) |
+| `test_sigil_smoke` | B5 100 MHz (sim speed) | PASS — boot ROM → FPGA smoke firmware: D$-thrashing memory test over the SmartConnect/DDR path, then the 170-byte line pushed through `UART_RX_DATA` → `FPGA SMOKE PASS` after 11,740,850 core cycles (5 h 02 min wall) |
 | `test_sigil_crypto` | B5 | RUNNING — socrtl `crypto_soc_test` (`SOC CRYPTO PASS`) |
 | `test_sigil_ed25519` | B5 | RUNNING — socrtl `ed25519_soc_test` (`SOC CRYPTO PASS`) |
-| `test_sigil_hello` | B5 | RUNNING — boot ROM → OpenSBI `fw_jump` + DTB → S-mode `s_hello` (`HELLO FROM S-MODE`) |
+| `test_sigil_hello` | B5 | PASS — boot ROM → **OpenSBI v1.9** `fw_jump` (279 KB over PCIS) + DTB at `0x8300_0000` → S-mode `s_hello` → `HELLO FROM S-MODE` after 11,451,667 core cycles (4 h 59 min wall; full OpenSBI banner in the log). DTB: the pre-rename `sigil.dts` build (`muserisc.dtb`, same nodes) |
 
 XSIM speed: about 400 core cycles per second at B1 and ~800 at B5
 (r7iz.8xlarge, one simulator process per test), so a full Linux boot
