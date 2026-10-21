@@ -59,6 +59,7 @@ read_ip [ list \
   ${HDK_IP_SRC_DIR}/clk_mmcm_c/clk_mmcm_c.xci \
   ${HDK_IP_SRC_DIR}/clk_mmcm_hbm/clk_mmcm_hbm.xci \
   ${HDK_IP_SRC_DIR}/cl_clk_axil_xbar/cl_clk_axil_xbar.xci \
+  ${HDK_IP_SRC_DIR}/cl_axi_register_slice_light/cl_axi_register_slice_light.xci \
 ]
 read_ip [ list \
   ${HDK_IP_SRC_DIR}/axi_register_slice/axi_register_slice.xci \
