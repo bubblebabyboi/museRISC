@@ -2,8 +2,9 @@
 // top's virtual-UART byte queues (issue #52). One clock domain;
 // data_o shows the head entry whenever empty_o is low. A push
 // while full or a pop while empty is ignored (the caller checks
-// full_o / empty_o). Storage has no reset (LUTRAM/BRAM-friendly);
-// only the pointers do. DEPTH must be a power of two >= 2.
+// full_o / empty_o); flush_i empties it (takes priority). Storage
+// has no reset (LUTRAM/BRAM-friendly); only the pointers do.
+// DEPTH must be a power of two >= 2.
 `default_nettype none
 module sigil_fifo #(
     parameter int unsigned WIDTH = 8,
@@ -11,6 +12,7 @@ module sigil_fifo #(
 ) (
     input  wire              clk_i,
     input  wire              rst_ni,
+    input  wire              flush_i,
     input  wire              push_i,
     input  wire [WIDTH-1:0]  data_i,
     output logic             full_o,
@@ -38,6 +40,10 @@ module sigil_fifo #(
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
+      wptr_q <= '0;
+      rptr_q <= '0;
+      count_q <= '0;
+    end else if (flush_i) begin
       wptr_q <= '0;
       rptr_q <= '0;
       count_q <= '0;

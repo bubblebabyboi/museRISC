@@ -39,7 +39,11 @@
 // clocks (its serial shifter still runs), so a host draining a
 // 1 KiB FIFO every few hundred microseconds keeps up at 100 MHz.
 // Host bytes pushed into the RX FIFO (uart_rx_*) are fed to the
-// 16550 RX FIFO whenever it has room, so none are lost.
+// 16550 RX FIFO whenever it has room, so none are lost. A SoC
+// reset requested while running discards RX bytes not yet taken
+// (the RX FIFO is flushed as the SoC enters reset); bytes pushed
+// while the SoC is held are kept and delivered after release.
+// The TX FIFO is never flushed: the host drains what is left.
 `default_nettype none
 module sigil_fpga_top #(
     // SoC L1 geometry (sigil_soc_top defaults).
@@ -147,6 +151,7 @@ module sigil_fpga_top #(
   logic    br_idle;
   logic [$clog2(RX_HOLDOFF + 1)-1:0] holdoff_q;
   logic [63:0] cycle_q;
+  logic        rx_flush_q;  // one cycle as the SoC enters reset
 
   always_ff @(posedge clk_i or negedge rst_n) begin
     if (!rst_n) begin
@@ -154,13 +159,16 @@ module sigil_fpga_top #(
       soc_rst_n_q <= 1'b0;
       holdoff_q <= '0;
       cycle_q <= 64'd0;
+      rx_flush_q <= 1'b0;
     end else begin
       cycle_q <= cycle_q + 64'd1;
+      rx_flush_q <= 1'b0;
       unique case (cst_q)
         C_RUN: if (soc_reset_req_i) cst_q <= C_QUIESCE;
         C_QUIESCE: if (br_idle) begin
           cst_q <= C_HOLD;
           soc_rst_n_q <= 1'b0;
+          rx_flush_q <= 1'b1;
         end
         default: if (!soc_reset_req_i) begin  // C_HOLD
           cst_q <= C_RUN;
@@ -284,7 +292,7 @@ module sigil_fpga_top #(
   // Virtual UART TX: SoC THR writes -> FIFO -> host.
   logic txf_full, txf_empty, tx_ovf_q;
   sigil_fifo #(.WIDTH(8), .DEPTH(UART_TX_DEPTH)) u_txf (
-      .clk_i(clk_i), .rst_ni(rst_n),
+      .clk_i(clk_i), .rst_ni(rst_n), .flush_i(1'b0),
       .push_i(soc_tx_valid), .data_i(soc_tx_data), .full_o(txf_full),
       .pop_i(uart_tx_pop_i), .data_o(uart_tx_data_o),
       .empty_o(txf_empty), .count_o(uart_tx_count_o));
@@ -303,7 +311,7 @@ module sigil_fpga_top #(
                    !rxf_empty;
   assign soc_rx_valid = rx_feed;
   sigil_fifo #(.WIDTH(8), .DEPTH(UART_RX_DEPTH)) u_rxf (
-      .clk_i(clk_i), .rst_ni(rst_n),
+      .clk_i(clk_i), .rst_ni(rst_n), .flush_i(rx_flush_q),
       .push_i(uart_rx_push_i), .data_i(uart_rx_data_i),
       .full_o(uart_rx_full_o),
       .pop_i(rx_feed && soc_rx_ready), .data_o(rxf_data),
