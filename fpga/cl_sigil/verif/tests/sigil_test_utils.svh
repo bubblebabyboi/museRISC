@@ -74,8 +74,16 @@ task automatic sigil_power_up();
   // MMCM, release after lock. B1: VCO = 100 MHz x 11.875;
   // b0 = /9.5 = 125 MHz; b1 = /19 = 62.5 MHz.
   aws_clkgen_asrt_rst();
+`ifdef SIGIL_SIM_RECIPE_B5
+  // Long firmware runs only: recipe B5 (b1 = 100 MHz, the #53 target)
+  // needs fewer 250 MHz Shell-side events per core cycle in XSIM. The
+  // CL logic is the same; clock rate does not change RTL behaviour.
+  aws_clkgen_set_mmcm(.mmcm_base(`AWS_CLKGEN_BASE_B), .mult(12), .mult_frac(0),
+                      .div(1), .div0(3), .div0_frac(0), .div1(12), .div2(1), .reset(0));
+`else
   aws_clkgen_set_mmcm(.mmcm_base(`AWS_CLKGEN_BASE_B), .mult(11), .mult_frac(875),
                       .div(1), .div0(9), .div0_frac(500), .div1(19), .div2(1), .reset(0));
+`endif
 `ifdef SIGIL_SIM_SLOW_UNUSED_CLKS
   // Simulation speed experiment: slow the unused groups down (A2, C2, H1).
   aws_clkgen_set_mmcm(`AWS_CLKGEN_BASE_A, 12, 500, 1, 80, 0, 10, 20, 0);
@@ -94,7 +102,11 @@ task automatic sigil_power_up();
     error_count++;
     $error("[%t] DDR never reported ready (STATUS 0x%08x)", $realtime, st);
   end
-  $display("[%t] sigil: clocks programmed (B1), resets released, STATUS 0x%08x", $realtime, st);
+  `ifdef SIGIL_SIM_RECIPE_B5
+  $display("[%t] sigil: clocks programmed (B5, 100 MHz), resets released, STATUS 0x%08x", $realtime, st);
+`else
+  $display("[%t] sigil: clocks programmed (B1, 62.5 MHz), resets released, STATUS 0x%08x", $realtime, st);
+`endif
 endtask
 
 // Measured core clock: cycle-counter delta over simulated time.
