@@ -295,5 +295,7 @@ the **GNU General Public License v3.0** — see
 `third_party/` keep their own licences.
 
 The Sigil logo is an original project mark, not an
-official RISC-V logo. “RISC-V” is used descriptively
+official RISC-V logo. Its lettering is UnifrakturMaguntia and Cinzel
+(both SIL Open Font License 1.1), converted to outlines by
+`docs/assets/src/gen_sigil_logo.py`. “RISC-V” is used descriptively
 for the instruction-set target.
