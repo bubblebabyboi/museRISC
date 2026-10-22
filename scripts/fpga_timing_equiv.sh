@@ -5,21 +5,71 @@
 # is proven equivalent to the REF (default origin/main) version with
 # Yosys: equiv_make, equiv_struct, equiv_simple, equiv_induct.
 # SystemVerilog is converted with sv2v (SV2V=/path/to/sv2v).
-#   scripts/fpga_timing_equiv.sh [module ...]   (default: sigil_csr sigil_mmu sigil_dcache sigil_icache)
-# Logs: build/fpga_timing_equiv/<module>/eq.log. sigil_mmu takes ~45 min;
+#   scripts/fpga_timing_equiv.sh [module ...]
+#   (default: sigil_csr sigil_mmu sigil_dcache sigil_icache sigil_core)
+# Logs: build/fpga_timing_equiv/<module>/eq*.log. sigil_mmu takes ~45-70 min;
 # sigil_dcache / sigil_icache read sigil_cache_pkg from the same side.
+# sigil_core is proven in the default and SIGIL_SRAM_OREG configurations.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SV2V=${SV2V:-sv2v}
 REF=${REF:-origin/main}
 mods=("$@")
-[ ${#mods[@]} -gt 0 ] || mods=(sigil_csr sigil_mmu sigil_dcache sigil_icache)
+[ ${#mods[@]} -gt 0 ] || mods=(sigil_csr sigil_mmu sigil_dcache sigil_icache sigil_core)
 # Ports only this branch has, read only with FPGA_TIMING: internal wires
 # (undriven, unused) for the proof.
 declare -A extra_ports=([sigil_csr]="wr_intent_i"
   [sigil_mmu]="dl_va_i dl_write_i dl_exec_i dl_priv_i dl_virt_i dl_satp_i dl_sum_i dl_mxr_i dl_ld_i dl_vld_i")
 rc=0
+# sigil_core: the core's own logic. Its submodule instances are black
+# boxes that equiv_make pairs (inputs proven equal, outputs merged):
+# sigil_csr and sigil_mmu, proven on their own, and the leaves, whose
+# sources must be unchanged. The gate's FPGA_TIMING-only connections and
+# parameter overrides go, as those ports do in the module proofs.
+core_eq() {
+  local d=build/fpga_timing_equiv/sigil_core changed srcs cfg r t0
+  rm -rf "$d"; mkdir -p "$d/gold"
+  changed=$(git diff --name-only "$REF" -- rtl/core |
+            grep -vE '/sigil_(cache_pkg|core|csr|mmu|dcache|icache)\.sv$' || true)
+  if [ -n "$changed" ]; then
+    echo "sigil_core: black-boxed sources differ from $REF:" $changed; rc=1; return
+  fi
+  git archive "$REF" rtl/core | tar x -C "$d/gold"
+  srcs=$(sed -n '/^SIGIL_SOC_RTL/,/^$/p' rtl/sigil_soc_files.mk | grep -oE 'core/[a-z_0-9]+\.sv' |
+         grep -vE 'sram_sp|icache|dcache|bus_arb|sigil_cpu')
+  for cfg in default SIGIL_SRAM_OREG; do
+    local def=(); [ $cfg = default ] || def=("-D$cfg")
+    # shellcheck disable=SC2046
+    "$SV2V" -DSYNTHESIS "${def[@]}" -I"$d/gold/rtl/core" $(sed "s|^|$d/gold/rtl/|" <<< "$srcs") > "$d/gold.v"
+    # shellcheck disable=SC2046
+    "$SV2V" -DSYNTHESIS "${def[@]}" -Irtl/core $(sed 's|^|rtl/|' <<< "$srcs") > "$d/gate.v"
+    perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$d/gold.v" "$d/gate.v"
+    perl -ni -e 's/sigil_(csr|mmu) #\(\.FPGA_TIMING\([^)]*\)\) u_/sigil_$1 u_/;
+                 print unless /^\s*\.(wr_intent_i|dl_[a-z]+_i)\(/' "$d/gate.v"
+    {
+      for side in gold gate; do
+        echo "read_verilog -mem2reg $d/$side.v"
+        echo "hierarchy -check -top sigil_core"
+        echo "blackbox *sigil_regfile* *sigil_fpregfile* *sigil_alu* *sigil_muldiv* *sigil_fpu*" \
+             "*sigil_bext* *sigil_vregfile* *sigil_vec* *sigil_rvc* *sigil_decoder* sigil_csr sigil_mmu"
+        echo "proc; flatten; memory -nomap; memory_map; opt_clean"
+        echo "rename sigil_core $side; design -stash $side"
+      done
+      echo "design -load gold; design -copy-from gate -as gate gate"
+      echo "opt -purge gold gate; async2sync gold gate"
+      echo "equiv_make gold gate equiv; hierarchy -top equiv"
+      echo "equiv_struct; equiv_simple; equiv_induct; equiv_status -assert"
+    } > "$d/eq_$cfg.ys"
+    t0=$(date +%s)
+    if yosys -q -l "$d/eq_$cfg.log" "$d/eq_$cfg.ys" > /dev/null 2>&1; then r=EQUIVALENT; else r=FAILED; rc=1; fi
+    echo "sigil_core ($cfg) vs $REF ($(git rev-parse --short "$REF")), FPGA_TIMING=0: $r," \
+         "$(grep -c 'Presumably equivalent cells' "$d/eq_$cfg.log") paired submodules," \
+         "$(grep -oE '[0-9]+ are proven and [0-9]+ are unproven' "$d/eq_$cfg.log" | tail -1)," \
+         "$(( $(date +%s) - t0 )) s"
+  done
+}
 for mod in "${mods[@]}"; do
+  if [ "$mod" = sigil_core ]; then core_eq; continue; fi
   d=build/fpga_timing_equiv/$mod
   rm -rf "$d"; mkdir -p "$d"
   git show "$REF:rtl/core/$mod.sv" > "$d/gold.sv"
