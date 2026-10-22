@@ -120,7 +120,7 @@ cp build/linux/fw_jump.bin build/linux/sigil-f2.dtb build/linux/sigil-qemu.dtb "
 ch systemctl enable sigil-boot-ok.service
 ch systemctl mask apt-daily.timer apt-daily-upgrade.timer man-db.timer \
   e2scrub_all.timer e2scrub_reap.service fstrim.timer dpkg-db-backup.timer \
-  systemd-networkd-wait-online.service
+  systemd-networkd-wait-online.service ndctl-monitor.service cxl-monitor.service
 ch systemctl set-default multi-user.target
 ch ldconfig
 ch systemd-hwdb update

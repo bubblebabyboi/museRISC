@@ -12,7 +12,8 @@ if [ -n "${BASH_VERSION:-}" ] && [ -t 0 ] && [ -t 1 ]; then
     case "$rows$cols" in ''|*[!0-9]*) return 1 ;; esac
     stty rows "$rows" cols "$cols"
   }
+  # agetty usually sets the size already; ask only if it is unknown.
   case $(tty) in
-    /dev/ttyS*|/dev/hvc*) sigil-resize ;;
+    /dev/ttyS*|/dev/hvc*) [ "$(stty size 2>/dev/null)" = "0 0" ] && sigil-resize ;;
   esac
 fi

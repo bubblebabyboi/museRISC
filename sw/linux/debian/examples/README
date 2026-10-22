@@ -7,6 +7,7 @@ Sigil Linux examples (docs/LINUX.md in the Sigil repository)
   memwhere.c     which NUMA node a malloc'd buffer landed on (try it
                  under numactl --membind=1 / --interleave=0,1)
   rvv_vadd.c     user-space vector (Zve64d, VLEN 512) with RVV intrinsics
+  autovec.c      plain C loops GCC vectorizes with -march=..._zve64d_zvl512b
 
   make && make run
   numactl --hardware             # the two memory nodes

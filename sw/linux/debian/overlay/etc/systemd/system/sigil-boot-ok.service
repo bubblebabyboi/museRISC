@@ -1,5 +1,5 @@
 [Unit]
-Description=Sigil boot marker on the console (SIGIL_LINUX_BOOT_OK)
+Description=Sigil boot-complete marker on the console
 Documentation=https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md
 After=systemd-user-sessions.service
 Before=serial-getty@ttyS0.service getty.target

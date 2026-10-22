@@ -20,6 +20,8 @@ import time
 import pexpect
 
 PROMPT = "SIGILPS> "
+# terminal control sequences (colours, bracketed paste, titles, keypad)
+ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\x1b[=>78]")
 PASSWORD = "sigil"
 
 
@@ -54,7 +56,7 @@ class Run:
         self.p.sendline(PASSWORD)
         # sigil-resize asks the terminal for its size (CPR); answer it.
         while True:
-            i = self.expect([r"\x1b\[6n", r"sigil@sigil:~\$ ", r"root@sigil:~# "], 600)
+            i = self.expect([r"\x1b\[6n", r"sigil@sigil\S*~\S*\$ ", r"root@sigil\S*~\S*# "], 600)
             if i == 0:
                 self.p.send("\x1b[50;160R")
                 continue
@@ -67,7 +69,7 @@ class Run:
     def sh(self, cmd, timeout=300, check=None, name=None):
         self.p.sendline(cmd)
         self.expect([re.escape(PROMPT)], timeout)
-        out = self.p.before.replace("\r", "")
+        out = ANSI.sub("", self.p.before).replace("\r", "")
         ok = True
         if check is not None:
             ok = bool(re.search(check, out, re.M))
@@ -147,15 +149,8 @@ def checks(r):
          check=r"node 0: 512 MiB node 1: 512 MiB$", name="numactl --interleave=0,1 splits")
     r.sh("grep -E 'MemTotal|MemUsed' /sys/devices/system/node/node1/meminfo")
     r.sh("./rvv_vadd", check=r"VLEN = 512 bits[\s\S]*^RVV OK", name="RVV Zve64d user program")
-    r.sh("gcc -O3 -march=rv64gc_zve64d -o vadd_auto -x c - <<'EOF'\n"
-         "#include <stdio.h>\n"
-         "double a[4096], b[4096];\n"
-         "int main(void) { for (int i = 0; i < 4096; i++) { a[i] = i; b[i] = 2 * i; }\n"
-         "  for (int i = 0; i < 4096; i++) a[i] += 3 * b[i];\n"
-         "  double s = 0; for (int i = 0; i < 4096; i++) s += a[i];\n"
-         "  printf(\"autovec sum %.0f\\n\", s); return 0; }\n"
-         "EOF\n./vadd_auto; echo \"vector insns: $(objdump -d vadd_auto | grep -cE '\\sv(le64|se64|fmacc|fmadd|fadd)\\.')\"",
-         check=r"^autovec sum 58705920\n[\s\S]*vector insns: [1-9]", name="gcc auto-vectorized Zve64d program")
+    r.sh("./autovec && echo \"vector insns: $(objdump -d autovec | grep -cE '\\sv(le64|se64|fmacc|fmadd|fadd)\\.')\"",
+         check=r"^autovec sum 58705920 [\s\S]*vector insns: [1-9]", name="gcc auto-vectorized Zve64d program")
     r.p.sendline("sudo -k; sudo id")
     r.expect([r"\[sudo\] password for sigil: "], 120)
     r.p.sendline(PASSWORD)
