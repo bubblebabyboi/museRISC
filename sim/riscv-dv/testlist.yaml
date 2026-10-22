@@ -272,6 +272,20 @@
   # Spike's --instructions budget is charged up to 5,000 per trap.
   spike_max_instr: 20000000
 
+- test: sigil_hint_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    HINT encodings (what riscv_hint_instr_test would generate; pygen cannot):
+    200 blocks of 24 random 32-bit HINTs (rd = x0: LUI, AUIPC, OP-IMM incl.
+    Zicbop prefetch encodings, OP incl. M and Zbb funct7 0x20 forms,
+    OP-IMM-32, OP-32) and FENCEs with random pred/succ, fm and ignored
+    rs1/rd, and 16-bit HINTs (C.NOP nzimm, C.ADDI imm 0, C.LI/C.LUI/C.MV/
+    C.ADD rd = x0, C.SLLI rd = x0 or shamt 0, C.SRLI/C.SRAI shamt 0),
+    written to memory and executed after FENCE.I with PRNG data in the
+    registers.
+  asm: directed/sigil_hint_test.S
+  march: rv64gc
+
 # ---------------------------------------------------------------------
 # Excluded
 # ---------------------------------------------------------------------
@@ -317,6 +331,7 @@
     pygen's HINT generation (+hint_instr_ratio, riscv_illegal_instr hint
     path) fails with a constraint solve failure for every seed tried
     (docs/evidence/riscv-dv-8-2026-10-22/critic/hint-test-gen-fail.txt).
+    The HINT encodings run in the directed sigil_hint_test instead.
 
 - test: riscv_misaligned_instr_test
   source: target/rv32i/testlist.yaml
