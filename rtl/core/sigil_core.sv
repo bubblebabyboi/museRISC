@@ -1930,7 +1930,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // MMU (Sv39 + Svnapot TLB and walker)
   // ------------------------------------------------------------
-  sigil_mmu u_mmu (
+  sigil_mmu #(.FPGA_TIMING(FPGA_TIMING)) u_mmu (
       .clk_i            (clk_i),
       .rst_ni           (rst_ni),
       .satp_i           (csr_fsatp),

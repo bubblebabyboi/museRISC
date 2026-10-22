@@ -31,7 +31,11 @@
 //   from the access type. The physical-address PMP check on
 //   the translated address itself stays in the core.
 `default_nettype none
-module sigil_mmu (
+module sigil_mmu #(
+    // FPGA timing structures (#53, sigil_cache_pkg::FPGA_TIMING):
+    // one-hot port lookups.
+    parameter bit FPGA_TIMING = 1'b0
+) (
     input  wire        clk_i,
     input  wire        rst_ni,
     input  wire [63:0] satp_i,         // fetch satp/vsatp for current V
@@ -180,6 +184,61 @@ module sigil_mmu (
     end
   endfunction
 
+  // A port lookup: hit, the selected entry, and that entry's
+  // verdicts for the access (perm_ok; g_perm_ok with A, and D for a
+  // store).
+  typedef struct packed {
+    logic       hit;
+    logic       perm;
+    logic       gok;
+    tlb_entry_t e;
+  } lookup_t;
+
+  function automatic lookup_t lookup_idx(
+      input logic [63:0] va, input logic [15:0] asid,
+      input logic guest, input logic [15:0] vmid, input logic g_on,
+      input logic vs_on, input logic [1:0] priv, input logic [1:0] acc,
+      input logic write);
+    logic [5:0] f;
+    lookup_t    r;
+    f = find_entry(va, asid, guest, vmid, g_on, vs_on);
+    r.hit = f[5];
+    r.e = tlb_q[f[4:0]];
+    r.perm = perm_ok(r.e, priv, acc, sum_i, mxr_i);
+    r.gok = g_perm_ok(r.e, acc, hs_mxr_i) && r.e.a && (!write || r.e.d);
+    return r;
+  endfunction
+
+  // One-hot form of lookup_idx (FPGA_TIMING, #53), same result on a
+  // hit: the match bits, the highest matching index kept by a mask
+  // (find_entry's rule), and an AND-OR select of the entry and of
+  // per-entry verdicts computed beside the match, instead of a
+  // priority encoder feeding a 32:1 entry mux and the verdicts.
+  function automatic lookup_t lookup_1h(
+      input logic [63:0] va, input logic [15:0] asid,
+      input logic guest, input logic [15:0] vmid, input logic g_on,
+      input logic vs_on, input logic [1:0] priv, input logic [1:0] acc,
+      input logic write);
+    logic [31:0] m;
+    logic        above, sel;
+    lookup_t     r;
+    for (int i = 0; i < 32; i++) begin
+      m[i] = entry_match(tlb_q[i], va, asid, guest, vmid, g_on, vs_on);
+    end
+    r = '0;
+    above = 1'b0;  // a higher-numbered entry matched
+    for (int i = 31; i >= 0; i--) begin
+      sel = m[i] && !above;
+      above = above || m[i];
+      r.e = r.e | (tlb_q[i] & {$bits(tlb_entry_t){sel}});
+      r.perm = r.perm || (sel && perm_ok(tlb_q[i], priv, acc, sum_i, mxr_i));
+      r.gok = r.gok || (sel && g_perm_ok(tlb_q[i], acc, hs_mxr_i) &&
+                        tlb_q[i].a && (!write || tlb_q[i].d));
+    end
+    r.hit = above;
+    return r;
+  endfunction
+
   /* verilator lint_on UNUSEDSIGNAL */
 
   // ------------------------------------------------------------
@@ -199,18 +258,48 @@ module sigil_mmu (
   assign if_trans = if_vs_trans || if_g_trans;
   assign d_trans  = d_vs_trans || d_g_trans;
 
+  /* verilator lint_off UNUSEDSIGNAL */  // only the PA fields of .e are read
+  lookup_t if_lk, d_lk;
+  /* verilator lint_on UNUSEDSIGNAL */
+  if (FPGA_TIMING) begin : g_lookup_1h
+    assign if_lk = lookup_1h(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
+                             if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
+    assign d_lk = lookup_1h(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
+                            d_g_trans, d_vs_trans, d_priv_i,
+                            d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
+                            d_write_i);
+`ifndef SYNTHESIS
+    // Every cycle: a one-hot hit is an index hit with the same entry
+    // and verdicts.
+    lookup_t if_ref, d_ref;
+    assign if_ref = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
+                               if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
+    assign d_ref = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
+                              d_g_trans, d_vs_trans, d_priv_i,
+                              d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
+                              d_write_i);
+    always_ff @(posedge clk_i) begin
+      if ((if_lk.hit != if_ref.hit) || (if_lk.hit && (if_lk != if_ref)) ||
+          (d_lk.hit != d_ref.hit) || (d_lk.hit && (d_lk != d_ref)))
+        $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
+    end
+`endif
+  end else begin : g_lookup_1h_off
+    assign if_lk = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
+                              if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
+    assign d_lk = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
+                             d_g_trans, d_vs_trans, d_priv_i,
+                             d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
+                             d_write_i);
+  end
+
   always_comb begin
-    logic [5:0] f;
-    tlb_entry_t e;
     if_pa_o = if_va_i;
     if_ok_o = 1'b0;
     if_fault_o = 1'b0;
     if_fault_page_o = 1'b1;
     if_fault_guest_o = 1'b0;
     if_fault_gpa_o = 64'd0;
-    f = find_entry(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
-                   if_g_trans, if_vs_trans);
-    e = tlb_q[f[4:0]];
     if (!if_trans) begin
       if_ok_o = 1'b1;
     end else if (if_vs_trans && !canonical(if_va_i)) begin
@@ -226,28 +315,23 @@ module sigil_mmu (
       if_fault_page_o = wf_page_q;
       if_fault_guest_o = wf_guest_q;
       if_fault_gpa_o = wf_gpa_q;
-    end else if (f[5]) begin
-      if_pa_o = entry_pa(e, if_va_i);
-      if (!perm_ok(e, if_priv_i, 2'd2, sum_i, mxr_i)) begin
+    end else if (if_lk.hit) begin
+      if_pa_o = entry_pa(if_lk.e, if_va_i);
+      if (!if_lk.perm) begin
         if_fault_o = 1'b1;
-      end else if (g_perm_ok(e, 2'd2, hs_mxr_i) && e.a) begin
+      end else if (if_lk.gok) begin
         if_ok_o = 1'b1;  // G denial or A=0 falls through to a re-walk
       end
     end
   end
 
   always_comb begin
-    logic [5:0] f;
-    tlb_entry_t e;
     d_pa_o = d_va_i;
     d_ok_o = 1'b0;
     d_fault_o = 1'b0;
     d_fault_page_o = 1'b1;
     d_fault_guest_o = 1'b0;
     d_fault_gpa_o = 64'd0;
-    f = find_entry(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
-                   d_g_trans, d_vs_trans);
-    e = tlb_q[f[4:0]];
     if (!d_trans) begin
       d_ok_o = 1'b1;
     end else if (d_vs_trans && !canonical(d_va_i)) begin
@@ -261,16 +345,11 @@ module sigil_mmu (
       d_fault_page_o = wf_page_q;
       d_fault_guest_o = wf_guest_q;
       d_fault_gpa_o = wf_gpa_q;
-    end else if (f[5]) begin
-      d_pa_o = entry_pa(e, d_va_i);
-      if (!perm_ok(e, d_priv_i,
-                   d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
-                   sum_i, mxr_i)) begin
+    end else if (d_lk.hit) begin
+      d_pa_o = entry_pa(d_lk.e, d_va_i);
+      if (!d_lk.perm) begin
         d_fault_o = d_valid_i;
-      end else if (g_perm_ok(e,
-                             d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
-                             hs_mxr_i) &&
-                   e.a && (!d_write_i || e.d)) begin
+      end else if (d_lk.gok) begin
         d_ok_o = 1'b1;
       end
     end

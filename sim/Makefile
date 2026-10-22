@@ -166,8 +166,16 @@ $(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/mmu_tb) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
 
-mmu: $(BUILD)/mmu_tb
+# FPGA_TIMING form (#53): one-hot port lookups.
+$(BUILD)/mmu_tb_fpga: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu_fpga --top-module sigil_mmu -GFPGA_TIMING=1 \
+	  -o $(abspath $(BUILD)/mmu_tb_fpga) $(RTL)/sigil_mmu.sv \
+	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
+
+mmu: $(BUILD)/mmu_tb $(BUILD)/mmu_tb_fpga
 	cd $(BUILD) && COV_FILE=cov_mmu.dat ./mmu_tb
+	cd $(BUILD) && { COV_FILE=nocov_mmu_fpga.dat ./mmu_tb_fpga > mmu_fpga.log 2>&1 || { cat mmu_fpga.log; exit 1; }; } && \
+	  tail -1 mmu_fpga.log | sed 's/$$/ [FPGA_TIMING]/'
 
 ## ---- FPU unit test --------------------------------------------------------
 SOFTFLOAT := $(ROOT)/third_party/berkeley-softfloat-3
