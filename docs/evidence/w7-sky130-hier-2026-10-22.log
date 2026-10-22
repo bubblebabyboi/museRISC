@@ -455,3 +455,43 @@ die").
     FLOW_VARIANT=s116a PWR_NETS_VOLTAGES= GND_NETS_VOLTAGES=
     generate_abstract` (make starts at 5_3_fillcell). The CPU config
     now also sets MAX_REPAIR_ANTENNAS_ITER_DRT ?= 8 for later runs.
+
+  s116a finish + abstract (20:19-20:34Z, 15 min): fill cells 9 s,
+    6_report 12.4 min (OpenRCX: 239,234 nets, 2,769,099 wires; LEC of
+    the final netlist against synthesis passed), GDS merge 36 s ("All
+    LEF cells have matching GDS/OAS cells", no orphan cells),
+    abstract 1.8 min. 5_route_drc.rpt empty (0 DRC), drt_antennas.log
+    empty (0 antenna nets). Design area 5,303,551 um^2, 46 %
+    utilization (std cells + macros over the 3390 x 3410 core).
+    Artifacts (~/sb/build/results/sky130hd/sigil_hier_sigil_cpu/
+    s116a on sigil-sky130): 6_final.gds (423 MB, sha256 68468221...),
+    sigil_cpu.lef (3400 x 3420, 620 pins incl. VDD/VSS met4 straps,
+    233e9cf0...), sigil_cpu_typ.lib (e187db63...), 6_final.spef/.v/.sdc.
+  s116a timing, routed (6_final + its RCX SPEF, corner_sta.tcl):
+    corner            setup WNS / TNS (ns), endpoints   hold WNS  slew / cap viol.
+    tt (platform)     -0.939 / -79.06, 130              +0.247    2,834 / 236
+    ss_100C_1v60      -27.865 / -207,363, 12,741        +0.609    32,056 / 5,108
+    ff_n40C_1v95      +9.218 / 0                        +0.118    59 / 12
+    TT power 0.150 W (sequential 24 mW, combinational 59, clock 33,
+    OpenRAM macros 34).
+    All 130 TT setup violations are block outputs against the 12 ns
+    output budget of constraint.sdc: dbg_st_wdata_o 64, dbg_st_addr_o
+    57, dbg_st_be_o 8, dbg_st_valid_o 1 (worst u_core.exmem_ctrl_q[2]
+    -> dbg_st_wdata_o[13]). These debug ports are unused at the SoC
+    top (rtl/soc/sigil_soc_top.sv leaves dbg_st_* unconnected). Worst
+    register-to-register path +6.39 ns (u_core.boot_q -> I$ tag
+    OpenRAM csb0, captured on the macro's falling-edge check).
+    Max slew (limit 1.5 ns, TT): 2,834 pins on 292 nets; 2,151 of the
+    pins are antenna diodes on those nets. Of the 292 nets 175 have no
+    diode, 64 have more than 5 (up to 66 diodes on 1.6-1.8 mm buf_4
+    nets with 2 sinks), 9 are driven by OpenRAM macros; half-perimeter
+    152 under 0.5 mm, 102 0.5-1 mm, 38 1-2 mm. The flow's last
+    repair_design / repair_timing ran in the global-route stage with
+    global-route parasitics, before the GRT antenna repair (21,928
+    diodes) and the post-route antenna rounds (3,180 diodes) loaded
+    these nets; the global-route report already had 461 max-slew pins.
+  Next: post-route ECO on a copy (s116b): drt_eco_repair.tcl, timing
+    with the s116a SPEF (nets it changes re-estimated from their
+    global routes), repair_design slew/cap margins 20 %, repair_timing
+    -setup margin 0.3 ns, incremental global route + detailed_route,
+    antenna loop; then finish + abstract again. Started 20:45Z.
