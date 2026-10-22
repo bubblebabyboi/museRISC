@@ -353,7 +353,8 @@ headers), **gdb 16**, git, pkgconf, patch; vim, nano, less, tmux, htop,
 file, strace, lsof, tree, time, bc; **python3 3.13**; **numactl +
 libnuma-dev**; man pages; xz/zstd/bzip2. `~/examples` holds small C
 programs with a `Makefile` (`make && make run`). There is no network on
-the F2 yet (#72), so `apt install` works only in QEMU (§6).
+the F2 yet (#72), so install more packages into the disk file from the
+host (§6).
 
 ### 5.3 Compiling programs on the board
 

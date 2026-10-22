@@ -155,7 +155,7 @@ Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linu
 ## Known issues
 
 - **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs about **13 cycles per instruction** running Linux, at an interim 62.5 MHz. Booting takes minutes and `gcc hello.c` takes about a minute (estimate; `<F2 measured: pending>`). Performance work is epic #61; 100 MHz is #53.
-- **No network on the F2** (#72). To install more packages, boot your disk in QEMU with networking on the F2 host, `apt install` there, and boot it on the F2 again (commands in [`docs/LINUX.md` §6](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#6-the-disk-pmem-saving-it-back-adding-packages)).
+- **No network on the F2** (#72). To install more packages, `apt-get install` them into your disk file from the F2 host through a `qemu-user-static` chroot while `sigil-linux` is not running (commands in [`docs/LINUX.md` §6](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#6-the-disk-pmem-saving-it-back-adding-packages)).
 - **The crypto engine has not had a side-channel or fault-injection review.** Do not use real keys.
 - One hart (no SMP). The vector unit is **Zve64d with VLEN 512, not full V**: build with `-march=rv64gc_zve64d` (add `_zvl512b` for auto-vectorization), never `rv64gcv`.
 - The disk lives in DDR4; `sigil-linux` saves it to `~/sigil-disk.ext4` after `sudo poweroff`; Ctrl-] or a dropped SSH session outside tmux loses changes since boot. It survives `reboot` within a session.
