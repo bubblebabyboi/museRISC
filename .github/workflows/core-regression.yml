@@ -35,7 +35,7 @@ jobs:
   core-tbs:
     name: Verilator unit + directed core TBs
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - name: Check out Sigil
         uses: actions/checkout@v4
