@@ -1,0 +1,193 @@
+#53 FPGA timing: full gates, FPGA_TIMING off (default/ASIC) and on (FPGA: SIGIL_FPGA_TIMING + SIGIL_VRF_OREG)
+Gates round 1, 2026-10-22 UTC (this file is overwritten per round). Plan: docs/FPGA_TIMING_53.md step 15.
+
+Final head: 116c4a4 (branch 53-mem-stage-pipeline, base main eeaa332). The round started at f4840f4, found two
+failures, fixed them on the branch, and reran every gate on clean remote worktrees of the pushed 116c4a4:
+  3034a62 sim/Makefile: FPGA_TIMING=1'b1 for the csr/mmu _fpga TBs (CI Verilator 5.020 -Wall)
+  116c4a4 sigil_mmu: FPGA_TIMING=0 fetch/data ports are main's code verbatim (RTL; Vivado F0 rerun below)
+Later commits: db7e759 adds the sigil_core proof below to scripts/fpga_timing_equiv.sh (script only; run on
+the 116c4a4 RTL), then this evidence.
+origin/main moved during the round, eeaa332 -> d7fb9a2 (#56 perf harness, #20 TestFloat): its RTL changes are
+simulation-only (`ifndef SYNTHESIS perf counters in sigil_cpu, perf_miss taps in sigil_dcache/icache). The
+synthesis view of the rtl/sigil_soc_files.mk list (sv2v -DSYNTHESIS, default and -DSIGIL_SRAM_OREG; the input of
+the stat and equivalence checks below) is byte-identical at eeaa332 and d7fb9a2, so every ASIC result below also
+holds against the current origin/main. The branch merges d7fb9a2 without conflicts (not committed; see the end).
+
+Host: sigil-fpga-build2 (r7iz.8xlarge, 32 vCPU, 247 GB, Ubuntu 24.04.1 LTS, kernel 6.8.0-1021-aws), plus the Mac
+(macOS 26.6.2) for Verilator 5.044 lint. Every build2 run is a detached git worktree of the pushed commit
+(git -C ~/sigil worktree add --detach ...; scripts/worktree_setup.sh), dirty=0 recorded at start.
+Tools: Verilator 5.048 (deps/), 5.020 (Ubuntu 24.04 apt package verilator_5.020-1_amd64.deb, dpkg -x into
+~/opt, not installed system-wide; no Docker daemon on build2 or the Mac), 5.044 (Homebrew, Mac);
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0 (deps/); Yosys 0.33 (git sha1 2584903a060) + sv2v v0.0.13;
+Vivado v2025.2 (64-bit); Sail 0.15, riscv-arch-test 6af53584, mise 2026.10.17; Spike 1.1.1-dev 2c300cd9
+(riscv-isa-sim, softfloat submodule 32eb3295; dtc 1.7.0); riscv-dv 0d71c2b (8-riscv-dv flow at 84974af).
+"off" = default build (FPGA_TIMING=0); "on" = every Verilator harness built with +define+SIGIL_FPGA_TIMING
++define+SIGIL_VRF_OREG (an extra makefile appending both defines to sim/Makefile's VFLAGS and VFLAGS_FAST, so
+`make -C sim` builds every harness in the FPGA setting; the srammacro families then add their own defines on top).
+
+== Gate table (116c4a4)
+| Gate | off (default / ASIC configs) | on (FPGA setting) |
+|---|---|---|
+| make lint, Verilator 5.048 (build2) | PASS: 21 make-lint runs + 8 extra, 0 warnings | (same runs: 4 make-lint lines + 8 extra are FPGA_TIMING configs) |
+| make lint, Verilator 5.020 (CI parity) | PASS: 21 + 8 runs, 0 warnings | (same runs) |
+| make lint, Verilator 5.044 (Mac) | PASS: 21 + 8 runs, 0 warnings | (same runs) |
+| CI parity, 5.020, VJOBS=1 (core-regression.yml steps) | PASS: unit TBs incl. crypto 1332 s, make -C sim core 1121 s, riscv-tests 123/123 | csr/mmu _fpga TBs PASS (in the same unit step) |
+| make test | PASS (ALL PHASE-0 KATs PASS, 99 PASS lines) | PASS (crypto TBs rebuilt with the defines) |
+| make core-test (make -C sim all) | PASS: 251 TB/EXAMPLE PASS lines, 0 failures, 3693 s; per-line identical to main eeaa332 incl. cycle counts, plus 7 new FPGA_TIMING lines | PASS: 251 lines, 0 failures, 5435 s |
+| srammacro (fakeram45 sky130 oreg vrforeg fpga; I$/D$ oreg + fpga) | PASS: VEC TB, CORE TB 37 directed runs, SOC RTL TB per family (= main) | PASS: every family with FPGA_TIMING + VRF_OREG on top |
+| make -C sim socrtl | PASS: crypto 27,689,496 / ed25519 28,615,074 cycles (= main) | PASS |
+| examples (in core-test) | PASS: ALL 7 EXAMPLES on soc_rtl_tb (= main) | PASS: ALL 7 |
+| fpgatop-quick (in core-test) | PASS: FPGA SMOKE PASS x4 (64/512-bit, reset-mid, rerun), SOC HASH PASS; fpgaocl-quick PASS | PASS |
+| vec (in core-test) | PASS: VEC TB 61,743 checks; xinit seeds 1, 2 | PASS |
+| make riscv-tests | PASS 123/123, per-test cycles = main | PASS 123/123 |
+| ACT on the core (2,578 ELFs) | 2577/2578, only PMPSm_cfg_A_tor_zero-00; Vx 821/821, Vls 1051/1051, Vf 162/162; per-ELF cycles = main | 2577/2578, only PMPSm_cfg_A_tor_zero-00; Vx/Vls/Vf all pass |
+| riscv-dv vs Spike, seeds 1-5 x 20 tests | main eeaa332: 100/100 PASS | 116c4a4 FPGA setting: 100/100 PASS, same 100 programs |
+| Formal equivalence vs main, FPGA_TIMING=0 | EQUIVALENT: sigil_core (default and SRAM_OREG; core logic, and core with sigil_csr + sigil_mmu flattened in), sigil_csr, sigil_mmu, sigil_dcache, sigil_icache | n/a |
+| Yosys stat identity vs main | NOT MET as specified: flattened counts differ by at most 0.25%, and Yosys 0.33 counts also change for byte-identical RTL with what else is read (controls below), so they cannot show identity; per-module totals identical for sigil_core default | n/a |
+| Vivado F0, 10 ns (RTL changed in this round) | n/a | MET: WNS +0.614 ns, TNS 0, 0/92,083 failing, WHS +0.019 ns |
+
+== Lint
+build2, `make lint` then `make -f Makefile -f lintx.mk lint-fpga53` (8 extra lines, gate harness only):
+sigil_fpga_top (64- and 512-bit AXI), sigil_fpga_ocl, sigil_soc_top SRAM_OREG, each with FPGA_TIMING (+ VRF_OREG
+for the FPGA tops); sigil_csr and sigil_mmu with "-GFPGA_TIMING=1'b1"; sigil_dcache, sigil_icache with
+SIGIL_FPGA_TIMING. make lint itself already has soc_top FPGA_TIMING(+VRF_OREG), core and cpu FPGA_TIMING+VRF_OREG.
+  5.048: 29 runs, 0 warnings/errors (116c4a4, 51 s)
+  5.020: 29 runs, 0 warnings/errors (116c4a4, 49 s; CI-parity run also 21 + 8, 0)
+  5.044: 29 runs, 0 warnings/errors (Mac, 116c4a4)
+
+== CI parity (Verilator 5.020, VJOBS=1, 116c4a4; logs ~/wt/53-r2-ci/build/ci5020/)
+make lint; make -C sim alu muldiv muldiv_mc decoder regfile csr mmu fpu bext rvc vec icache dcache crypto;
+make -C sim core; make riscv-tests: all rc=0. CSR TB PASS (214 checks) [FPGA_TIMING], MMU TB PASS (74 checks)
+[FPGA_TIMING] built and run with 5.020; riscv-tests 123/123.
+
+== make test / make core-test / socrtl / riscv-tests (logs ~/wt/53-r2-{off,on}/build/gates53full/)
+off: make test 52 s; core-test 3693 s; socrtl 214 s; riscv-tests 22 s. on: 36 s; 5435 s; 718 s; 25 s. All rc=0.
+core-test, both settings: CSR TB / MMU TB PASS and [FPGA_TIMING]; DCACHE/ICACHE TB PASS [SRAM_OREG] and
+[FPGA_TIMING]; per srammacro family VEC TB PASS (61743 checks), CORE TB PASS 37 directed runs 0 FAIL, SOC RTL
+TB PASS (exit string at 27,689,496 cycles fakeram45 / 40,649,633 sky130 / 40,648,793 oreg / 27,689,496
+vrforeg / 27,689,496 fpga); 9 AXI BRIDGE TB PASS; FPGA SMOKE PASS x4 and SOC HASH PASS (fpgatop-quick);
+FPGA OCL TB PASS; ALL 7 EXAMPLES PASS on soc_rtl_tb; FPGATOP EXAMPLE PASS hello, timer_irq.
+off vs main eeaa332 (same host, same script; main run 2026-10-22T16:25Z): the core-test TB/EXAMPLE PASS lines,
+cycle counts included (wall seconds stripped), are identical except the 7 lines main does not have (CSR, MMU,
+DCACHE, ICACHE [FPGA_TIMING]; VEC/CORE/SOC RTL [SRAM macro fpga]); socrtl lines identical; riscv-tests per-test
+lines with cycles identical (123).
+on (FPGA setting) example cycles: sha256_accel 1,516,177, ed25519_verify 14,652,417, vector_dot 825,090 (off:
+1,465,841 / 14,630,075 / 811,390; the setting includes VRF_OREG); the others equal.
+
+== ACT (riscv-arch-test 6af53584 + Sail 0.15, 2,578 ELFs; sim/run_act_core_par.sh, 12 jobs)
+Generation on build2 (sw/act4-core/README.md steps 1-4 plus vector; the 34 Sail generation failures of
+act-vector-core-genfail-2026-10-14.csv parked before the vector link): 2,578 ELFs, per suite as on record
+(I 51, M 13, F 84, D 116, Vx8/16/32/64 215/218/220/168, Vls8/16/32/64 210/248/283/310, Vf32/64 100/62, ...).
+  core_tb (off):       2577/2578 PASS, FAIL only PMPSm_cfg_A_tor_zero-00; Vx 821/821, Vls 1051/1051, Vf 162/162 (410 s)
+  core_tb_fpga (on):   2577/2578 PASS, FAIL only PMPSm_cfg_A_tor_zero-00; Vx 821/821, Vls 1051/1051, Vf 162/162 (1426 s)
+Cycle comparison: off vs main eeaa332 core_tb: 0 verdict and 0 cycle differences in 2,578 ELFs. on vs main
+core_tb_vrforeg: 0 verdict differences; 2,040 ELFs cycle-identical; 538 differ, all in the classes the plan
+costs: 478 Vls (indexed elements), 60 paging suites (Sv*, Svnapot, Svadu*, SvPMP, ExceptionsSv*); total
+378,582,590 -> 379,444,838 cycles (+0.23%). Round-1 ACT at 3034a62: identical verdicts in both settings.
+
+== riscv-dv vs Spike (branch 8-riscv-dv 84974af, docs/VERIFICATION.md there)
+Spike built on build2 at the documented pin into ~/opt/spike. main: worktree of 84974af (= main eeaa332 + the
+riscv-dv flow), default core_tb. Branch: 116c4a4 merged with 84974af (no conflicts, not committed), core_tb built
+with SIGIL_FPGA_TIMING + SIGIL_VRF_OREG (+ SIGIL_COMMIT_TRACE). Same command on both:
+  scripts/riscv_dv_regress.sh --tests all --seeds 1-5 --jobs 12|14 --gen-mem-gb 90 --core-tb build/sim/core_tb
+  main:   100/100 PASS, 1,120,384 records compared, 0 MISMATCH/DUT_TIMEOUT/DUT_FAIL/GEN_FAIL/SPIKE_FAIL (3763 s)
+  branch: 100/100 PASS, 1,120,384 records compared, 0 non-PASS (2220 s)
+The 100 generated programs are identical (asm md5) on both sides. dut_cycles differ only for
+sigil_vector_test (5 seeds, +46..+53 cycles: VRF_OREG and indexed elements). No mismatch on either side, so
+nothing for #53 and nothing new for the verification track. Round 1 (3034a62 merge): also 100/100.
+
+== ASIC unchanged (SIGIL_FPGA_TIMING undefined), main eeaa332 vs 116c4a4
+Formal equivalence (Yosys 0.33 equiv_make / equiv_struct / equiv_simple / equiv_induct / equiv_status -assert,
+sv2v -DSYNTHESIS), SV2V=~/opt/sv2v scripts/fpga_timing_equiv.sh (db7e759 script, 116c4a4 RTL):
+  sigil_core, default config: EQUIVALENT, 12 paired submodules, 10535 are proven and 0 are unproven (155 s)
+  sigil_core, SRAM_OREG config: EQUIVALENT, 12 paired submodules, 10535 are proven and 0 are unproven (138 s)
+    The core module's own logic, flattened; its 12 submodule instances are black boxes paired by equiv_make
+    (inputs proven equal, outputs merged): the 10 leaves whose sources are byte-identical on both sides
+    (regfile, fpregfile, alu, muldiv_mc, fpu, bext, vregfile with its vrf_bank, vec, rvc, decoder) and sigil_csr /
+    sigil_mmu, whose FPGA_TIMING-only connections (wr_intent_i, dl_*_i) and parameter override are removed from
+    the gate instances, as the module proofs below delete those ports.
+    Changed RTL files on the branch: sigil_cache_pkg, sigil_core, sigil_csr, sigil_mmu, sigil_dcache, sigil_icache
+    (the script checks that no other rtl/core file differs from REF).
+    Sanity: a gate with "!mem_stall" removed from csr_we gives FAILED, 1 unproven ($equiv csr_we).
+  sigil_core with sigil_csr and sigil_mmu flattened in (no port edits; the 10 byte-identical leaves black boxes,
+  paired by equiv_make), ~/wt/g53/yosys53.sh equivh:
+    default config: EQUIVALENT, 18466 are proven and 0 are unproven (7887 s)
+    SRAM_OREG config: EQUIVALENT, 18466 are proven and 0 are unproven (8634 s)
+  A fully flattened run (all leaves flattened too, default config) was stopped after 4 h 15 min in equiv_induct
+  (46,693 $equiv cells, 11,240 proven by equiv_simple); the leaves it adds are byte-identical on both sides.
+  Module level (same script, 116c4a4):
+    sigil_csr EQUIVALENT, 3936 proven / 0 unproven (391 s); sigil_mmu EQUIVALENT, 5125 / 0 (4048 s);
+    sigil_dcache EQUIVALENT, 2077 / 0 (22 s); sigil_icache EQUIVALENT, 769 / 0 (2 s).
+  sigil_cpu, the SoC files and every other leaf are unchanged; sigil_cache_pkg only adds FPGA_TIMING.
+Simulation cycle identity (above): default core-test, socrtl, riscv-tests and all 2,578 ACT ELFs cycle-identical
+to main.
+
+Yosys stat (the requested check): sv2v -DSYNTHESIS [-DSIGIL_SRAM_OREG] of the rtl/sigil_soc_files.mk list,
+`read_verilog; hierarchy -check -top T; synth -flatten -top T; stat`, the same script on both sides.
+                              main      116c4a4
+  sigil_core default, full    351,884   351,636
+  sigil_core oreg, full       352,416   352,011
+  sigil_core default, coarse   28,850    28,846   (synth -run :fine: word-level cells before techmap/ABC)
+  sigil_core oreg, coarse      28,902    28,904
+  sigil_soc_top default, coarse 33,574   33,659
+  sigil_soc_top oreg, coarse   33,645    33,634
+  hierarchical (no -flatten), coarse, per-module cell totals:
+    sigil_core default: all 15 modules identical (total 29,110 both)
+    sigil_core oreg: only module sigil_core differs (1,521 vs 1,518)
+    sigil_soc_top default: only sigil_plic differs (1,141 vs 1,060); sigil_plic.sv is unchanged
+    sigil_soc_top oreg: sigil_core (1,521 vs 1,518), sigil_plic (1,150 vs 1,198)
+  hierarchical, full synth, sigil_soc_top: 15 module totals differ, among them unchanged sha512_block,
+    sha256_block, keccak_f1600, ec_field, sigil_uart16550, sigil_plic, sigil_vec.
+Controls, main eeaa332 only: the identical main RTL, read after an unrelated 300-wire module, gives
+  sigil_core flattened coarse 28,847 (vs 28,850) and full 351,689 (vs 351,884); hierarchical SoC coarse:
+  sigil_alu 58->46, sigil_fpu 798->791, sigil_plic 1,141->1,093, sigil_vec 1,592->1,596, sigil_core 1,505->1,502,
+  sigil_csr 2,176->2,178, ec_field 72->73. The same input gives the same numbers on repeated runs (3x).
+  sigil_mmu alone: main's file 35,462 cells in its own process, 35,477 inside the SoC file list, and 35,459 with
+  one unused input port added. Yosys 0.33 cell counts depend on the IdString order of everything read, so they
+  are not an identity test: two netlists of the same logic do not get the same counts. The check did catch a
+  real difference in round 1 (below); at 116c4a4 the remaining differences are of the size the controls show,
+  and the equivalence proofs above show the logic is main's.
+
+== Vivado F0, 10 ns, 116c4a4 (FPGA_TIMING + VRF_OREG, iter strategy; RTL changed in this round)
+F0_STRATEGY=iter vivado -mode batch -source fpga/f0/f0_ooc.tcl -tclargs build/f0-r2-iter-10ns 10 SIGIL_VRF_OREG SIGIL_FPGA_TIMING
+  WNS +0.614 ns (106.5 MHz), TNS 0.000, 0/92,083 failing endpoints, WHS +0.019 ns; 77,121 LUT, 33,313 FF,
+  9 BRAM tiles, 29 DSP; 33 min. Worst path csr vl_q -> u_mmu/g_dreg.mt_q[pa], 28 levels. Same numbers as
+  d7e8e41 (iteration 2); the mmu change only moved the FPGA_TIMING fetch lookup into g_ireg.
+  Reports: sigil-fpga-build2:~/wt/53-f0r2/build/f0-r2-iter-10ns/.
+
+== Failures found in this round and fixed
+1. CI break (Verilator 5.020). The gate harness's extra lint of sigil_csr/sigil_mmu with -GFPGA_TIMING=1
+   failed on 5.020: %Warning-WIDTHTRUNC (a 32-bit 1 for the bit parameter) under -Wall. sim/Makefile builds
+   csr_tb_fpga and mmu_tb_fpga the same way, and CI (core-regression.yml, apt 5.020) runs `make -C sim ... csr
+   mmu ...`, so CI would have failed. Fix 3034a62: "-GFPGA_TIMING=1'b1"; 5.020 then builds and passes both
+   (CI-parity run above). 5.048 and 5.044 never warned.
+2. Default/ASIC logic not main's (sigil_mmu). The FPGA_TIMING=0 branches g_ireg_off / g_dreg_off computed
+   main's port verdicts through the shared lookup_idx / port_result functions: equivalent (module proof) but a
+   different structure, visible in the coarse stat of sigil_mmu (19,174 cells vs main's 19,255, standalone
+   and inside the SoC file list). Fix 116c4a4: main's two always_comb blocks verbatim in the off branches, the one-hot fetch lookup
+   and its check moved into g_ireg. Coarse sigil_mmu stat then equals main's (19,255).
+Round-1 results before fix 2 (f4840f4 / 3034a62), all passing: lint 5.048 29/29; make test, core-test (off
+3928 s, on 6739 s), socrtl, riscv-tests 123/123 in both settings; CI parity 5.020 (3034a62); ACT 2577/2578 in
+both settings with the expected single failure; riscv-dv 100/100 on both sides.
+
+== Informational: the pushed head merged with origin/main d7fb9a2 (merge not committed, nothing pushed)
+Throwaway worktree of db7e759, git merge --no-commit origin/main: 0 conflicts. Then (Verilator 5.048, 19:40-19:46Z):
+  make lint: rc=0
+  make -C sim perf ITER=1 CONFIG="default fpga" MEM="soc axi": 712 runs valid, 0 failed (main's #56 perf counters,
+    which read sigil_core / cache signals hierarchically, build and cross-check on the #53 RTL, FPGA_TIMING off)
+  the same with CONFIG=fpga PERF_FAM_fpga=_fpga (the branch's srammacro family: FPGA_TIMING + VRF_OREG):
+    356 runs valid, 0 failed
+  Note for the merge: sim/perf.mk maps CONFIG fpga to the vrforeg family; once the F2 build defines
+  SIGIL_FPGA_TIMING, that becomes the fpga family.
+
+== Reproduce (build2)
+gates:   gates_run.sh <wt> off|on (make lint + lint-fpga53 with 5.048 and 5.020; make test; make core-test;
+         make -C sim socrtl; make riscv-tests; for on: make -C sim -f Makefile -f fpga53.mk <same targets>)
+ACT:     scripts/build_act4_core.sh per sw/act4-core/README.md; make -C sim ../build/sim/core_tb ../build/sim/core_tb_fpga;
+         bash sim/run_act_core_par.sh build/sim/<tb> <csv> third_party/riscv-arch-test/work/sigil-core/elfs 12
+equiv:   SV2V=~/opt/sv2v scripts/fpga_timing_equiv.sh   (csr, mmu, dcache, icache, then sigil_core in both configs)
+stat:    sv2v -DSYNTHESIS [-DSIGIL_SRAM_OREG] -Irtl/core <rtl/sigil_soc_files.mk list> > x.v (sensitivity lists
+         rewritten to @* for Yosys 0.33); yosys -p "read_verilog x.v; hierarchy -check -top T; synth -flatten -top T
+         [-run :fine]; stat -width"; hierarchical: the same without -flatten
+Scripts and logs (not committed): sigil-fpga-build2:~/wt/g53/, ~/wt/53-r2-{off,on,ci}/build/, ~/wt/53-act/build/,
+~/wt/rdv-main, ~/wt/rdv-53b, ~/wt/53-yosys/.

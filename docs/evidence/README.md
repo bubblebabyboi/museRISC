@@ -2015,6 +2015,29 @@ levels) — the next #53 step. Gates: core-test 234 PASS (incl. the new
 `vrforeg` srammacro family), riscv-tests 123/123, full ACT 2,577/2,578
 on `core_tb_vrforeg`, lint clean on Verilator 5.044/5.048/5.020.
 
+## #53 FPGA timing: full gates in both settings, round 1 (2026-10-22)
+
+[`fpga-timing-53-gates-2026-10-22.log`](fpga-timing-53-gates-2026-10-22.log):
+branch `53-mem-stage-pipeline` at `116c4a4`, with `SIGIL_FPGA_TIMING`
+off (default/ASIC) and on (FPGA: plus `SIGIL_VRF_OREG`), on clean
+worktrees of the pushed commit. Lint clean on Verilator 5.048, 5.020 and
+5.044 (29 configurations each), CI-parity unit/core/riscv-tests on
+5.020; `make test`, `make core-test` (all srammacro families, examples,
+`fpgatop-quick`, `vec`), `socrtl`, riscv-tests 123/123 and full ACT
+2,577/2,578 (only `PMPSm_cfg_A_tor_zero-00`; Vx/Vls/Vf all pass) in
+both settings; riscv-dv vs Spike 100/100 on `main` and on the branch in
+the FPGA setting. Off: core-test, `socrtl`, riscv-tests and all 2,578
+ACT ELFs cycle-identical to `main`, and `sigil_core` (default and
+SRAM_OREG), `sigil_csr`, `sigil_mmu`, `sigil_dcache`, `sigil_icache`
+formally equivalent to `main`. Yosys cell counts are not an identity
+test (they change for byte-identical RTL with what else is read;
+controls in the log). The round fixed a CI break (`-GFPGA_TIMING=1` on
+5.020) and a `sigil_mmu` off branch that was equivalent but not
+`main`'s code. Vivado F0 at 10 ns on `116c4a4`: WNS +0.614 ns.
+`main` moved to `d7fb9a2` during the round with simulation-only RTL
+changes; its synthesis view is byte-identical to `eeaa332`, so the ASIC
+results hold against it too.
+
 ## #53 FPGA timing baseline: all failing paths, by family (2026-10-22)
 
 [`fpga-timing-53-baseline-2026-10-22.md`](fpga-timing-53-baseline-2026-10-22.md):

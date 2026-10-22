@@ -12,6 +12,10 @@
   the F0 target and stay planned as margin for the CL build. Results
   per iteration:
   [`evidence/fpga-timing-53-iterations-2026-10-22.log`](evidence/fpga-timing-53-iterations-2026-10-22.log).
+  Step 15 gates, round 1 at `116c4a4`: lint, simulation, ACT, riscv-dv
+  and the equivalence proofs pass in both settings; Yosys cell counts
+  cannot serve as the identity test (see the log); F0 still +0.614 ns
+  ([`evidence/fpga-timing-53-gates-2026-10-22.log`](evidence/fpga-timing-53-gates-2026-10-22.log)).
 - Baseline: [`evidence/fpga-timing-53-baseline-2026-10-22.md`](evidence/fpga-timing-53-baseline-2026-10-22.md).
   `main` with `SIGIL_VRF_OREG` at 10 ns has WNS −4.226 ns and 18,180
   failing endpoints in 13 path families. Family letters (A–L, G1, G2)
@@ -901,7 +905,7 @@ the Status column.
 | 12 | K1 + K2 | K | 0 | ≈ −0.5 to −0.8 | L | planned |
 | 13 | SHA-512 window | L | 0 | ≈ −0.3 to 0 | exposed layers | planned |
 | 14 | `closure` strategy + residual fixes | residual | 0 | ≥ +0.1 (`closure`) | none | planned |
-| 15 | full gates, evidence | | | | | planned |
+| 15 | full gates, evidence | | | | | round 1 at `116c4a4`: all pass but the cell-count check |
 | 16 | redirect port (optional) | CPI | removes the cross-page redirect cost | stays ≥ +0.1 | | optional |
 
 ## CPI impact
@@ -957,8 +961,12 @@ this model), so it was stopped.
 ## ASIC impact and promotion candidates
 
 **ASIC impact.** None, by construction. The step-0 equivalence check
-runs at every RTL step. The flow changes touch only `fpga/f0`.
-Nothing needs to rerun on the sky130 or nangate45 flows.
+runs at every RTL step; since step 15 it covers `sigil_core` too
+(hierarchical, both the default and SRAM_OREG configs). Generic Yosys
+cell counts are not used as the identity test: they differ for
+byte-identical RTL depending on what else is read. The flow changes
+touch only `fpga/f0`. Nothing needs to rerun on the sky130 or nangate45
+flows.
 
 **Promotion candidates.** These are refactors that would also help
 ASIC timing. Making any of them unconditional needs an owner decision
