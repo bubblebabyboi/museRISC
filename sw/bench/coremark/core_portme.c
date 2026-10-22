@@ -96,14 +96,29 @@ void portable_init(core_portable *p, int *argc, char *argv[]) {
 #endif
 
 /* crcfinal (the CRC over every iteration's list results) depends on
- * the iteration count. Reference values from the unmodified sources
- * built natively for x86-64 with EEMBC's linux port (README.md). */
+ * the iteration count. Reference values: the same unmodified sources
+ * built natively for x86-64 with EEMBC's posix port (GCC 13.3 -O2) and
+ * run with the same seeds and counts (README.md). */
 static const struct {
   ee_u32 iterations;
   ee_u16 perf, valid;
 } cm_crcfinal_ref[] = {
     {1, 0xe714, 0xe3c1},
-    {10, 0xfcaf, 0x0000},
+    {2, 0x72be, 0xfe8c},
+    {3, 0x2e87, 0xbf76},
+    {5, 0xf24c, 0x6751},
+    {10, 0xfcaf, 0xc64e},
+    {15, 0x2d47, 0xbfcd},
+    {20, 0x4983, 0xad38},
+    {25, 0xa69a, 0xca44},
+    {30, 0xf8b3, 0xcda7},
+    {40, 0x65c5, 0xf006},
+    {50, 0x0158, 0x6bf4},
+    {100, 0x988c, 0x844d},
+    {200, 0x382f, 0xeccd},
+    {500, 0xa14c, 0x5e45},
+    {1000, 0xd340, 0x26c2},
+    {2000, 0x4983, 0x0cac},
 };
 
 static int cm_failures;

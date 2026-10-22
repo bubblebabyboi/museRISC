@@ -49,6 +49,7 @@ if [ -d "$dest" ]; then
 fi
 
 tmp=$(mktemp -d "$dest.tmp.XXXXXX")
+chmod 755 "$tmp"
 trap 'rm -rf "$tmp"' EXIT
 git -C "$tmp" init -q
 git -C "$tmp" remote add origin "$URL"
