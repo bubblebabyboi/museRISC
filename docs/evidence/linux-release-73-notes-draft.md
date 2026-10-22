@@ -19,7 +19,7 @@ Before publishing, in this order:
      SIGIL_LINUX_URL=file://$HOME/release-73 bash ~/sigil/fpga/scripts/sigil-linux
    boot, `sudo poweroff`, check "disk saved", then run it a second time from
    the saved disk. Commit that log under docs/evidence/.
-3. Fill every `<... pending>` placeholder from those two runs, in these notes
+3. Fill every placeholder that ends in "pending>" from those two runs, in these notes
    and in the docs (drop the hbm_touch one if it was not run). This must
    print nothing:
      git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/
