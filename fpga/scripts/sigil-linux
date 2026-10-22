@@ -21,12 +21,13 @@
 #   --fresh      start again from the release image (the old disk is
 #                renamed DISK.old)
 #   --disk PATH  use another disk file (default ~/sigil-disk.ext4)
-#   --tag TAG    boot another release (default below)
+#   --tag TAG    boot another release (default sigil-linux-f2-2026-10-22)
 #   -- ...       pass the rest to sigil_host (e.g. -- --log console.log)
 # Environment: SIGIL (checkout with fpga/host/sigil_host; ~/sigil),
-# SIGIL_AGFI, SIGIL_LINUX_TAG, SIGIL_LINUX_URL (download base; default
-# the GitHub release), SIGIL_LINUX_CACHE, SIGIL_LINUX_TMP (where the
-# window is saved before it replaces the disk file; default /dev/shm).
+# SIGIL_AGFI, SIGIL_LINUX_TAG, SIGIL_DISK, SIGIL_LINUX_URL (download
+# base; default the GitHub release), SIGIL_LINUX_CACHE, SIGIL_LINUX_TMP
+# (where the window is saved before it replaces the disk file; default
+# /dev/shm).
 set -euo pipefail
 
 TAG=${SIGIL_LINUX_TAG:-sigil-linux-f2-2026-10-22}
