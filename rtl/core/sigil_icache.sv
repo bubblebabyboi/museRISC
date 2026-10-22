@@ -290,10 +290,13 @@ module sigil_icache import sigil_cache_pkg::*; #(
   // Performance-counter tap, read hierarchically by the
   // simulation-only event counters in sigil_cpu (sigil_perf.svh):
   // the lookup of the current request missed (a refill follows).
+  // Excluded from coverage like the counters themselves.
+  /* verilator coverage_off */
   /* verilator lint_off UNUSEDSIGNAL */
   logic perf_miss;
   assign perf_miss = (state_q == S_LOOKUP) && !hit;
   /* verilator lint_on UNUSEDSIGNAL */
+  /* verilator coverage_on */
 `endif
 endmodule
 `default_nettype wire

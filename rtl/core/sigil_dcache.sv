@@ -425,10 +425,13 @@ module sigil_dcache import sigil_cache_pkg::*; #(
   // simulation-only event counters in sigil_cpu (sigil_perf.svh):
   // the lookup of the current request missed (write-back and/or
   // refill follow).
+  // Excluded from coverage like the counters themselves.
+  /* verilator coverage_off */
   /* verilator lint_off UNUSEDSIGNAL */
   logic perf_miss;
   assign perf_miss = (state_q == S_LOOKUP) && !hit;
   /* verilator lint_on UNUSEDSIGNAL */
+  /* verilator coverage_on */
 `endif
 endmodule
 `default_nettype wire

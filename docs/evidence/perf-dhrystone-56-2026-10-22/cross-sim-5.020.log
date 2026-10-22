@@ -1,7 +1,0 @@
-# Cross-simulator check (2026-10-22, sigil-verify): the baseline images on soc_rtl_tb built
-# with Ubuntu 24.04's Verilator 5.020 (CI version; .deb extracted locally, VJOBS=4) from a tree
-# whose rtl/ is byte-identical to the baseline head 623c576, vs the 5.048 baseline records.
-# Memory model: --mem-lat 1:1 --mem-gap 0 --mem-ready 100.
-rtl compare done
-Verilator 5.020 soc_rtl_tb, dhrystone [scalar] image sha256 b7173e4e26bda6dc: rc=0, SOC RTL TB PASS (exit string at 3406208 cycles), SIGIL_PERF record vs 5.048 baseline soc/default r0: identical record (91 fields)
-Verilator 5.020 soc_rtl_tb, dhrystone [sdk] image sha256 d15a6c7161f7cfdf: rc=0, SOC RTL TB PASS (exit string at 3818153 cycles), SIGIL_PERF record vs 5.048 baseline soc/default r0: identical record (91 fields)
