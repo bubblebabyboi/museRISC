@@ -1,0 +1,454 @@
+make: Entering directory '/home/ubuntu/oops/axi/sigil/sim'
+mkdir -p /home/ubuntu/oops/axi/sigil/build/soc-tests
+riscv64-unknown-elf-gcc -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+  -nostdlib -ffreestanding -fno-builtin -O1 \
+  -T ../sw/fpga-tests/link.ld \
+  ../sw/soc-tests/crt.S ../sw/fpga-tests/f2_platform_test.c -o /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.elf
+/home/ubuntu/rel73/sigil/deps/riscv-toolchain/riscv/riscv64-unknown-elf/bin/ld: warning: /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-objcopy -O binary /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.elf /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin
+mkdir -p /home/ubuntu/oops/axi/sigil/build/soc-tests
+riscv64-unknown-elf-gcc -march=rv64imafdc -mabi=lp64 -mcmodel=medany \
+  -nostdlib -ffreestanding -fno-builtin -O1 \
+  -T ../sw/soc-tests/link.ld \
+  ../sw/soc-tests/crt.S ../sw/hash-tests/hash_soc_test.c -o /home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.elf
+/home/ubuntu/rel73/sigil/deps/riscv-toolchain/riscv/riscv64-unknown-elf/bin/ld: warning: /home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-objcopy -O binary /home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.elf /home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.bin
+mkdir -p /home/ubuntu/oops/axi/sigil/build/soc-tests
+riscv64-unknown-elf-gcc -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+  -nostdlib -ffreestanding -fno-builtin -O1 \
+  -T ../sw/fpga-tests/link.ld \
+  ../sw/soc-tests/crt.S ../sw/fpga-tests/f2_memtest.c -o /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_memtest.elf
+riscv64-unknown-elf-objcopy -O binary /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_memtest.elf /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_memtest.bin
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 --engine-test --rtc-ns 1761091200000000000 \
+  --uart-pop 3 --check-bursts 64 --finisher \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+loaded 2296 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+engine mode 0 base 0xffffc000 size 0x8000: 1030 cycles (31.81 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 2 base 0xffffc000 size 0x8000: 1098 cycles (29.84 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 1 base 0xfffffc000 size 0x8000: 1000 cycles (32.77 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1089 cycles (30.09 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1078 cycles (30.40 B/cycle), mismatches 1 first 0x1000000238, resp errors 0, fail 1
+engine mode 0 base 0x0 size 0x0: 1 cycles (0.00 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+FPGA TOP TB engine checks PASS
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111ef80
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 897264 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 897264 cycles after reset release)
+UART bursts: 64 lines byte-exact
+reboots: 0
+AXI: 1103 AR (2615 R beats), 813 AW (1821 W beats, 813 B); stall cycles AW 537 W 1252 AR 750 R 0 B 0; rw races 0, stale reads 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 --rtc-ns 1761091200000000000 --finisher \
+  --poke 0x80080000=0x1 --expect-err 0x1480000000 \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+loaded 2296 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111ef40
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM: oob read done
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 896128 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 896128 cycles after reset release)
+bridge error capture: addr 0x1480000000 info 0xac000000 count 1
+reboots: 0
+AXI: 1079 AR (1079 R beats), 797 AW (797 W beats, 797 B); stall cycles AW 534 W 554 AR 721 R 0 B 0; rw races 0, stale reads 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 --rtc-ns 1761091200000000000 --finisher \
+  --poke 0x80080000=0x100 --expect-fin 0x2a3333 \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+loaded 2296 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111ef40
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM PASS
+
+finisher: 0x002a3333 (fail, code 42) at 891614 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 891614 cycles after reset release)
+reboots: 0
+AXI: 1079 AR (1079 R beats), 797 AW (797 W beats, 797 B); stall cycles AW 534 W 551 AR 725 R 0 B 0; rw races 0, stale reads 0
+printf 'PMEMDISK' > /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_pmem_marker.bin
+cd ../build/sim && ./fpga_top_tb_f2 40000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 --rtc-ns 1761091200000000000 --finisher \
+  --poke 0x80080000=0x202 --load 0xC80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_pmem_marker.bin \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+loaded 8 bytes at 0xc80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_pmem_marker.bin
+loaded 2296 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111ef40
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM PASS
+F2 PLATFORM: reboot
+
+finisher: reboot (0x00007777) at 940186 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da1f778a0
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM PASS
+F2 PLATFORM: pmem kept across the reboot
+F2 PLATFORM: rebooted once
+
+finisher: 0x00005555 (power off, code 0) at 945248 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 945248 cycles after reset release)
+reboots: 1
+AXI: 2177 AR (2177 R beats), 2083 AW (2083 W beats, 2083 B); stall cycles AW 1399 W 1404 AR 1425 R 0 B 0; rw races 0, stale reads 0
+cd ../build/sim && ./fpga_top_tb_f2 50000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.bin --exit-string "SOC HASH PASS"
+loaded 2104 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 106764 cycles after reset release)
+AXI: 53 AR (53 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 27 R 0 B 0; rw races 0, stale reads 0
+cd ../build/sim && ./fpga_top_tb_f2 200000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 5 --finisher --poke 0x80080000=0x0618 \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_memtest.bin --fail-string "F2 MEMTEST FAIL"
+loaded 1708 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_memtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 5 rw-race ooo, caches on
+F2 MEMTEST: start
+MEMTEST ddr points 4096 stride 16777216 errors 0 write_cycles 1509798 verify_cycles 1021028
+MEMTEST hbm points 1024 stride 16777216 errors 0 write_cycles 386074 verify_cycles 263369
+LATENCY ddr refill_cycles min 55 avg_x100 7339 max 143 n 64 hit_cycles 9 seq_read_4MiB_cycles 5289133 (1)
+LATENCY hbm refill_cycles min 55 avg_x100 7387 max 92 n 64 hit_cycles 9 seq_read_4MiB_cycles 5287058 (1)
+F2 MEMTEST PASS
+
+finisher: 0x00005555 (power off, code 0) at 14004610 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 14004610 cycles after reset release)
+reboots: 0
+AXI: 143328 AR (143328 R beats), 5086 AW (5086 W beats, 5086 B); stall cycles AW 3351 W 3503 AR 95583 R 0 B 0; rw races 0, stale reads 0
+make: Leaving directory '/home/ubuntu/oops/axi/sigil/sim'
+RC=0

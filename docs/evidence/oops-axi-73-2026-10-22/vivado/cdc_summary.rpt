@@ -1,0 +1,39 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date              : Thu Oct 22 11:27:49 2026
+| Host              : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command           : report_cdc -file /home/ubuntu/oops/axi/vivado/cdc_summary.rpt
+| Design            : top
+| Device            : xcvu47p-fsvh2892
+| Speed File        : -2  PRODUCTION 1.30 05-01-2022
+| Design State      : Routed
+| Temperature Grade : E
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+CDC Report
+
+Severity  Source Clock                                                           Destination Clock      CDC Type                 Exceptions               Endpoints  Safe  Unsafe  Unknown  No ASYNC_REG  
+--------  ---------------------------------------------------------------------  ---------------------  -----------------------  -----------------------  ---------  ----  ------  -------  ------------  
+Critical  clk_main_a0                                                            CLK_DIMM_DP            No Common Primary Clock  False Path                       1     0       1        0             0  
+Critical  WRAPPER/RL/RL_DEBUG_BRIDGE/inst/axi_jtag/inst/u_jtag_proc/tck_i_reg/Q  clk_core               User Ignored             False Path                       1     0       0        1             0  
+Critical  clk_core                                                               clk_hbm_ref            No Common Phase          False Path                       3     1       1        1             0  
+Critical  clk_core                                                               clk_main_a0            User Ignored             False Path                       1     0       1        0             0  
+Critical  clk_out2_clk_mmcm_b                                                    clk_main_a0            No Common Phase          Max Delay Datapath Only         18    17       1        0             0  
+Critical  mmcm_clkout0                                                           clk_main_a0            No Common Primary Clock  Asynch Clock Groups             50    41       9        0             0  
+Critical  clk_main_a0                                                            clk_out2_clk_mmcm_b    No Common Phase          Max Delay Datapath Only         18    17       1        0             0  
+Critical  clk_main_a0                                                            mmcm_clkout0           No Common Primary Clock  Asynch Clock Groups             53    51       2        0             0  
+Warning   clk_out1_clk_mmcm_hbm                                                  clk_main_a0            No Common Phase          Max Delay Datapath Only        517   517       0        0             0  
+Warning   clk_main_a0                                                            clk_out1_clk_mmcm_hbm  No Common Phase          Max Delay Datapath Only        665   665       0        0             0  
+Info      clk_main_a0                                                            clk_hbm_ref            No Common Phase          Max Delay Datapath Only          6     6       0        0             0  
+Info      clk_hbm_ref                                                            clk_main_a0            No Common Phase          Max Delay Datapath Only          8     8       0        0             0  
+Info      clk_hbm_ref                                                            clk_out1_clk_mmcm_hbm  User Ignored             False Path                       1     1       0        0             0  
+Info      clk_hbm_ref                                                            clk_out2_clk_mmcm_b    User Ignored             False Path                       1     1       0        0             0  
+Info      CLK_DIMM_DP                                                            mmcm_clkout0           User Ignored             False Path                       1     1       0        0             0  
+Info      mmcm_clkout6                                                           mmcm_clkout0           Safely Timed             Max Delay Datapath Only        133   133       0        0             0  
+Info      CLK_DIMM_DP                                                            mmcm_clkout6           User Ignored             False Path                       2     2       0        0             0  
+Info      mmcm_clkout0                                                           mmcm_clkout6           Safely Timed             None                            36    36       0        0             0  
+Info      mmcm_clkout0                                                           pll_clk[0]_DIV         Safely Timed             None                           448   448       0        0             0  
+Info      mmcm_clkout0                                                           pll_clk[1]_DIV         Safely Timed             None                           392   392       0        0             0  
+Info      mmcm_clkout0                                                           pll_clk[2]_DIV         Safely Timed             None                           448   448       0        0             0  
+

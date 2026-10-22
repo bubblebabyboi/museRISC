@@ -1,0 +1,78 @@
+make: Entering directory '/home/ubuntu/oops/axi/sigil/sim'
+mkdir -p /home/ubuntu/oops/axi/sigil/build/soc-tests
+riscv64-unknown-elf-gcc -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+  -nostdlib -ffreestanding -fno-builtin -O1 \
+  -T ../sw/fpga-tests/link.ld \
+  ../sw/soc-tests/crt.S ../sw/fpga-tests/f2_rawtest.c -o /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.elf
+/home/ubuntu/rel73/sigil/deps/riscv-toolchain/riscv/riscv64-unknown-elf/bin/ld: warning: /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-objcopy -O binary /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.elf /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+cd ../build/sim && ./fpga_top_tb_f2 100000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --finisher \
+  --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin --fail-string "F2 RAW FAIL"
+loaded 1440 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 8:40 B 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 RAW: start
+F2 RAW: evict/refill done
+F2 RAW: fence.i done
+F2 RAW: amo done
+F2 RAW PASS
+finisher: 0x00005555 (power off, code 0) at 5063242 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 5063242 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 5981 W 6143 AR 13110 R 0 B 0; rw races 0, stale reads 0
+cd ../build/sim && for s in 1 2 3; do ./fpga_top_tb_f2 200000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed $s \
+  --finisher --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin --fail-string "F2 RAW FAIL" || exit 1; done
+loaded 1440 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 1 rw-race ooo, caches on
+F2 RAW: start
+F2 RAW: evict/refill done
+F2 RAW: fence.i done
+F2 RAW: amo done
+F2 RAW PASS
+finisher: 0x00005555 (power off, code 0) at 7802431 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 7802431 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 9648 W 9562 AR 20112 R 0 B 0; rw races 0, stale reads 0
+loaded 1440 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 2 rw-race ooo, caches on
+F2 RAW: start
+F2 RAW: evict/refill done
+F2 RAW: fence.i done
+F2 RAW: amo done
+F2 RAW PASS
+finisher: 0x00005555 (power off, code 0) at 7780647 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 7780647 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 9403 W 9587 AR 20149 R 0 B 0; rw races 0, stale reads 0
+loaded 1440 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:300 gap 2 ready aw/w/ar 60/60/60% seed 3 rw-race ooo, caches on
+F2 RAW: start
+F2 RAW: evict/refill done
+F2 RAW: fence.i done
+F2 RAW: amo done
+F2 RAW PASS
+finisher: 0x00005555 (power off, code 0) at 7792023 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 7792023 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 9737 W 9608 AR 20305 R 0 B 0; rw races 0, stale reads 0
+make: Leaving directory '/home/ubuntu/oops/axi/sigil/sim'
+RAW_RC=0
+make: Entering directory '/home/ubuntu/oops/axi/sigil/sim'
+cd ../build/sim && if ./fpga_top_tb_f2 200000000 --axi-rlat 36:72 --axi-blat 1:4 --axi-early-b 2000 \
+  --finisher --load 0x80000000=/home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin --fail-string "F2 RAW FAIL"; then \
+  echo "positive control: f2_rawtest did NOT detect early B"; exit 1; \
+else echo "positive control OK: f2_rawtest detects a stale refill after an early B"; fi
+loaded 1440 bytes at 0x80000000 from /home/ubuntu/oops/axi/sigil/build/soc-tests/f2_rawtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat R 36:72 B 1:4 gap 0 ready aw/w/ar 100/100/100% seed 1 EARLY-B 2000, caches on
+F2 RAW: start
+AXI model: STALE READ: AR 0x463080 after the acknowledged write 0x463080 is visible only at AXI cycle 6225 (now 4339)
+F2 RAW FAIL 1 0x0000000080463080 0x0000000000000000 0x4a125e060a3ffa80
+
+FPGA TOP TB FAIL: fail string at 6253 cycles after release
+AXI: 25 AR (25 R beats), 1 AW (1 W beats, 1 B); stall cycles AW 0 W 0 AR 0 R 0 B 0; rw races 0, stale reads 1
+positive control OK: f2_rawtest detects a stale refill after an early B
+make: Leaving directory '/home/ubuntu/oops/axi/sigil/sim'
+EARLYB_RC=0
