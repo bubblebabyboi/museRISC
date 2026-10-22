@@ -581,10 +581,12 @@ fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 # and the DDR4/HBM boundary; f2_platform_test with the TX FIFO drained
 # slowly (back-pressure, every burst byte checked), then with an
 # out-of-window read (error capture), a fail code and a reboot through
-# the finisher; sochash on the 80 GiB window.
+# the finisher; sochash on the 80 GiB window; f2_memtest with a 16 MiB
+# stride (mailbox) over all of DDR4 and HBM.
 F2_RTC_NS := 1761091200000000000
 F2_MAILBOX := 0x80080000
-fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)/hash_soc_test.bin
+fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)/hash_soc_test.bin \
+		$(SOCFW)/f2_memtest.bin
 	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --engine-test --rtc-ns $(F2_RTC_NS) \
 	  --uart-pop 3 --check-bursts 64 --finisher \
 	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
@@ -599,6 +601,8 @@ fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)
 	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
 	cd $(BUILD) && ./fpga_top_tb_f2 50000000 $(FPGA_AXI_ARGS) \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+	cd $(BUILD) && ./fpga_top_tb_f2 200000000 $(FPGA_AXI_ARGS) --finisher --poke $(F2_MAILBOX)=0x0618 \
+	  --load 0x80000000=$(SOCFW)/f2_memtest.bin --fail-string "F2 MEMTEST FAIL"
 # SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
 # the same binaries and pass/fail strings as `examples`.
 FPGATOP_EXAMPLES ?= $(EXAMPLES)
