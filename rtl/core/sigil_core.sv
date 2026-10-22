@@ -111,7 +111,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        mmu_d_ok, mmu_d_fault, mmu_d_fault_page;
   logic        mmu_if_fault_guest, mmu_d_fault_guest;
   logic [63:0] mmu_if_fault_gpa, mmu_d_fault_gpa;
-  logic        walk_req, walk_we, walk_grant;
+  logic        walk_req, walk_we, walk_grant, walk_preempt;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
@@ -1555,7 +1555,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
         dq_drop_q <= 1'b0;
       end
       // MMU flush/abort kills the walk that owns the port.
-      if ((sfence_fire || trap_take) &&
+      if ((sfence_fire || trap_take || walk_preempt) &&
           ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
            (walk_issue && dreq_ready_i))) begin
         dq_drop_q <= 1'b1;
@@ -1928,6 +1928,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_fault_guest_o  (mmu_d_fault_guest),
       .d_fault_gpa_o    (mmu_d_fault_gpa),
       .walk_req_o       (walk_req),
+      .walk_preempt_o   (walk_preempt),
       .walk_addr_o      (walk_addr),
       .walk_we_o        (walk_we),
       .walk_wdata_o     (walk_wdata),

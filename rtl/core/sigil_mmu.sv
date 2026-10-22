@@ -67,6 +67,7 @@ module sigil_mmu (
     output logic [63:0] d_fault_gpa_o,
     // Walker memory port (muxed onto the core data port)
     output logic       walk_req_o,     // wants the port this cycle
+    output logic       walk_preempt_o, // EXPERIMENT: data miss preempts a fetch walk
     output logic [63:0] walk_addr_o,
     output logic       walk_we_o,      // A/D writeback (8-byte store)
     output logic [63:0] walk_wdata_o,
@@ -307,6 +308,8 @@ module sigil_mmu (
   logic        g_r_q, g_w_q, g_x_q, g_d_q;
 
   assign walk_req_o = (state_q != W_IDLE);
+  assign walk_preempt_o = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
+                          !req_is_data_q && miss_d;
   assign walk_addr_o = pte_addr_q;
   assign walk_we_o = (state_q == W_VS_UPD) || (state_q == W_G_UPD);
   assign walk_acc_o = walk_we_o ? 2'd1 : 2'd0;
