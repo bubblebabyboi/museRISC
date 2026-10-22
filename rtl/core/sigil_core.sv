@@ -1571,8 +1571,21 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign mem_port_done = mem_rsp && (!exmem_ctrl_q.amo || amo_wr_q);
   // Walker: PMP-denied PTE accesses complete at once with no
   // memory access (the MMU turns them into access faults).
+  // The data-port payload is MEM's when MEM issues. FPGA_TIMING (#53)
+  // step 6: it is MEM's whenever MEM holds a translated data access
+  // or FENCE.I (from flops), so the request address no longer waits
+  // for MEM's PMP verdict and port arbitration; the walker then waits
+  // a cycle while MEM holds an access it does not issue (PMP denial,
+  // misaligned element, failing SC), which leaves MEM that cycle.
+  logic mem_port_sel;
+  if (FPGA_TIMING) begin : g_port_sel
+    assign mem_port_sel = (data_access && mmu_d_ok) || mem_fencei;
+  end else begin : g_port_sel_off
+    assign mem_port_sel = mem_issue;
+  end
   assign walk_issue = walk_req && pmp_allow_walk && !dq_pend_q &&
-                      !mem_needs_port && !trap_fire && !freeze;
+                      !mem_needs_port && !trap_fire && !freeze &&
+                      !(FPGA_TIMING && mem_port_sel);
   assign walk_skip = walk_req && !pmp_allow_walk && !dq_pend_q &&
                      !mem_needs_port && !trap_fire && !freeze;
   assign walk_rsp = drsp_valid_i && dq_pend_q && dq_walk_q && !dq_drop_q;
@@ -1636,6 +1649,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   a_mem_kept: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       (dq_pend_q && !dq_walk_q) |-> (!trap_take && mem_needs_port))
     else $error("core: MEM data access abandoned in flight");
+  a_port_sel: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      dreq_valid_o |-> (mem_port_sel == mem_issue))
+    else $error("core: data-port payload owner differs from the issuing side");
   a_drsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       drsp_valid_i |-> dq_pend_q)
     else $error("core: data response with no request");
@@ -1738,7 +1754,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
         wdata = eff_store_data;
       end
     endcase
-    if (!mem_issue) begin
+    if (!mem_port_sel) begin
       // PTE read, or A/D writeback of the leaf PTE.
       dreq_addr_o = walk_addr;
       dreq_op_o = walk_we ? DOP_STORE : DOP_LOAD;

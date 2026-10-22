@@ -774,13 +774,23 @@ $(BUILD)/%cache_tb_oreg: $(ROOT)/tb/cpp/%cache_tb.cpp $(ROOT)/tb/cpp/mbus_model.
 	  -o $(abspath $@) $(CACHE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/$*cache_tb.cpp)
 
+# The same with the FPGA_TIMING structures (#53: idle-cycle array reads).
+$(BUILD)/%cache_tb_fpga: $(ROOT)/tb/cpp/%cache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/$*cache_fpga --top-module sigil_$*cache $(CACHE_TB_G) \
+	  $(SRAM_DEF_fpga) -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CACHE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/$*cache_tb.cpp)
+
 srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/core_tb_,$(SRAM_MACROS)) \
            $(addprefix $(BUILD)/soc_rtl_tb_,$(SRAM_MACROS)) \
            $(BUILD)/dcache_tb_oreg $(BUILD)/icache_tb_oreg \
+           $(BUILD)/dcache_tb_fpga $(BUILD)/icache_tb_fpga \
            $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS))) $(SOCFW)/crypto_soc_test.bin
 	cd $(BUILD) && for c in dcache icache; do \
 	  COV_FILE=nocov_$${c}_oreg.dat ./$${c}_tb_oreg > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
 	  tail -1 srammacro.log | sed "s/$$/ [SRAM_OREG]/"; \
+	  COV_FILE=nocov_$${c}_fpga.dat ./$${c}_tb_fpga > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [FPGA_TIMING]/"; \
 	done; \
 	for m in $(SRAM_MACROS); do \
 	  ./vec_tb_$$m > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \

@@ -213,7 +213,12 @@ module sigil_dcache import sigil_cache_pkg::*; #(
         req_ready_o = 1'b1;
         tag_addr = f_idx(req_addr_i);
         data_addr = {f_idx(req_addr_i), f_beat(req_addr_i)};
-        if (req_valid_i && req_cacheable && (req_op_i != DOP_CLEAN)) begin
+        // FPGA_TIMING (#53): read the arrays in every idle cycle, so
+        // the enables do not wait for the request and its PMA check
+        // (a read has no side effect; S_LOOKUP uses the read taken on
+        // the accept edge). Not for ASIC SRAM macros (read power).
+        if (FPGA_TIMING ||
+            (req_valid_i && req_cacheable && (req_op_i != DOP_CLEAN))) begin
           tag_en = '1;
           data_en = '1;
         end
@@ -292,13 +297,18 @@ module sigil_dcache import sigil_cache_pkg::*; #(
     end else begin
       unique case (state_q)
         S_IDLE: begin
-          if (req_valid_i) begin
+          // FPGA_TIMING (#53): the request registers load in every
+          // idle cycle (nothing reads them before an accept), so only
+          // state_q waits for req_valid_i.
+          if (FPGA_TIMING || req_valid_i) begin
             r_addr_q <= req_addr_i;
             r_op_q <= req_op_i;
             r_wdata_q <= req_wdata_i;
             r_be_q <= req_be_i;
             sc_set_q <= '0;
             sc_way_q <= '0;
+          end
+          if (req_valid_i) begin
             if (req_op_i == DOP_CLEAN) state_q <= S_CLEAN;
             else if (req_cacheable) state_q <= S_RD_NEXT;
             else state_q <= S_UNC_REQ;

@@ -170,7 +170,10 @@ module sigil_icache import sigil_cache_pkg::*; #(
         req_ready_o = 1'b1;
         tag_addr = f_idx(req_addr_i);
         data_addr = {f_idx(req_addr_i), f_beat(req_addr_i)};
-        if (req_valid_i && req_cacheable) begin
+        // FPGA_TIMING (#53): read the arrays in every idle cycle (as
+        // in the D$), so the enables do not wait for the fetch
+        // request, its translation/PMP verdict and the PMA check.
+        if (FPGA_TIMING || (req_valid_i && req_cacheable)) begin
           tag_en = '1;
           data_en = '1;
         end
@@ -214,10 +217,9 @@ module sigil_icache import sigil_cache_pkg::*; #(
     end else begin
       unique case (state_q)
         S_IDLE: begin
-          if (req_valid_i) begin
-            r_addr_q <= req_addr_i;
-            state_q <= req_cacheable ? S_RD_NEXT : S_UNC_REQ;
-          end
+          // FPGA_TIMING (#53): r_addr_q loads in every idle cycle.
+          if (FPGA_TIMING || req_valid_i) r_addr_q <= req_addr_i;
+          if (req_valid_i) state_q <= req_cacheable ? S_RD_NEXT : S_UNC_REQ;
         end
         S_LOOKUP: begin
           if (hit) begin
