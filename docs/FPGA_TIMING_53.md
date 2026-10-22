@@ -2,10 +2,15 @@
 
 - Date: 2026-10-22 (UTC). Branch `53-mem-stage-pipeline`. RTL base:
   `main` `eeaa332`.
-- Status: steps 1–3 implemented and measured (iteration 1), with the
-  `iter` flow of step 0b; steps 0a/0b in part (parameter, lint lines,
-  `fpga` srammacro family, F0 strategies, per-module equivalence
-  script). Results per iteration:
+- Status: steps 1–3 (iteration 1) and 5–7 (iteration 2) implemented
+  and measured with the `iter` flow of step 0b; steps 0a/0b in part
+  (parameter, lint lines, `fpga` srammacro family, F0 strategies,
+  per-module equivalence script). **Iteration 2 meets 10 ns** in the
+  F0 flow: WNS +0.614 ns (106.5 MHz) with `iter` and +0.828 ns
+  (109.0 MHz) with `closure`, 0 failing endpoints, at `d7e8e41`
+  (steps 1–3 and 5–7). Steps 4 and 8–13 are not needed for
+  the F0 target and stay planned as margin for the CL build. Results
+  per iteration:
   [`evidence/fpga-timing-53-iterations-2026-10-22.log`](evidence/fpga-timing-53-iterations-2026-10-22.log).
 - Baseline: [`evidence/fpga-timing-53-baseline-2026-10-22.md`](evidence/fpga-timing-53-baseline-2026-10-22.md).
   `main` with `SIGIL_VRF_OREG` at 10 ns has WNS −4.226 ns and 18,180
@@ -523,6 +528,29 @@ checks on from the first.
     - `vm_ctx_directed`.
   - Suites: riscv-tests `rv64*-v-*`; ACT priv/Sv39/PMP/misaligned/A;
     vector ACT; Linux boot; KVM smoke.
+- **Measured (iteration 2, `ab643d3` + `7ab4af3`):**
+  - As built, `mt_q` lives in `sigil_mmu` (`g_dreg`): the core drives a
+    new `dl_*` lookup port (EX or MEM, select from flops) and loads it
+    with `dl_ld`; the MMU's `d_*` outputs become the register, so every
+    MEM consumer keeps its code. The `d_*` inputs stay MEM's access and
+    feed the walker unchanged; a data walk starts from a live miss in
+    `mt_q` (the registered walk request).
+  - `chg_q` (a walker grant, flush, abort or data G-stage width fault
+    on the last edge) invalidates the capture for one cycle; MEM then
+    replays. No TLB update can land while MEM's own access is in
+    flight, so the replay never abandons an issued access (`a_mem_kept`).
+  - Indexed elements: the RD/RW capture is marked not valid
+    (`dl_vld`), so ACC replays once; no separate `VLS_XL` phase.
+  - A misaligned element can now be seen while its translation is
+    still pending. Main's sequencer resets on `vls_fault` even while
+    MEM stalls (it restarts at element 0); with the replay that
+    never ended (`vec_trap_directed` test 3), so under `FPGA_TIMING`
+    the sequence ends on a fault or trim only once the translation
+    resolves (`vls_end`).
+  - F0 `iter` at `ab643d3` (step 5 alone): **WNS +0.055 ns**, 0
+    failing; the worst paths are all fetch (`pc_r` → `pc_r`, I$ tag
+    WE), then VLS `vl` → port select → CAM → `mt_q` (+0.39) and PMP →
+    D$ BRAM enable (+0.40).
 - **Contingency** if the EX-port path fails:
   1. A carry-free (sum-addressed) VPN compare of rs1+imm against each
      entry, which takes the 64-bit AGU out of the CAM path.
@@ -558,6 +586,12 @@ checks on from the first.
   `dreq_addr`/`op`/`be` with a translation-only "MEM claims the port"
   term (`data_access && mt_q.ok`, or FENCE.I) [P3]. The walker then
   waits one cycle while MEM holds a PMP-denied access.
+- **Measured (iteration 2, `d7e8e41`):** built together with that
+  payload select (`mem_port_sel`), since the D$ BRAM address also
+  came through `mem_issue`. F0 `iter` with steps 5–7: **WNS +0.614
+  ns** (+0.401 without step 6); the D$/I$ enable sinks leave the
+  near-critical list. `dcache_tb_fpga`/`icache_tb_fpga` run in
+  `srammacro`.
 
 ### Step 7: fetch page register (`it_q`)
 
@@ -613,6 +647,15 @@ checks on from the first.
     `smc_fencei_directed`, `irq_exc_race_directed`, and the
     straddle cases in `vm_ctx_directed`.
   - Suites: ACT C, riscv-tests `-v-`, Linux boot, KVM smoke.
+- **Measured (iteration 2, `4e2b8d8`):** `it_q`, the one-shot fault
+  record (`ir_q`, which also carries misses for the walk start) and
+  the invalidation live in `sigil_mmu` (`g_ireg`); no core change.
+  Instead of explicit invalidation on satp/vsatp/hgatp writes and
+  xRET, `it_q` and `ir_q` are tagged with the TLB's own match key
+  (privilege, V, satp/vsatp mode and ASID, hgatp mode and VMID) and
+  dropped on SFENCE and traps. F0 `iter` with steps 5 and 7: **WNS
+  +0.401 ns**, 6 endpoints under +0.5 ns (all VLS `vl` → `mt_q`); the
+  fetch paths of step 5's run are gone from the list.
 - **Contingency** if B or D still fails: a registered `fetch_va`
   loaded from `pc_d` [P2]. Its D input is
   `straddle_enter ? (pc_q + 2 precomputed from flops) : {pc_d[63:2], 2'b00}`,
@@ -838,7 +881,8 @@ setting (`SIGIL_VRF_OREG` + `SIGIL_FPGA_TIMING`).
 
 ## Summary
 
-All WNS values are estimates in ns.
+All WNS values are estimates in ns, except the measured results in
+the Status column.
 
 | Step | Change | Families | Cycle cost with FPGA_TIMING | WNS after (`iter`) | Limited by | Status |
 |---|---|---|---|---:|---|---|
@@ -846,10 +890,10 @@ All WNS values are estimates in ns.
 | 1 | CSR write intent, FPU/M request | A tail | 0 | ≈ −3.75 | A | done: −4.052 (`base`) |
 | 2 | parallel PMP | A, B, D, F | 0 | ≈ −2.8 | A, B | done, with step 3 |
 | 3 | one-hot TLB lookup | A, B, C | 0 | ≈ −2.0 | A, B, G1 | done: −3.913 (`base`), −2.298 (`iter`) |
-| 4 | EX operand/result network | G1, G2 | 0 | ≈ −1.9 | A, B | planned |
-| 5 | `mt_q`, replay, walk port, VLS port | A, C | +1 per data walk, +1 per indexed VLS element | ≈ −1.6 | B | planned |
-| 6 | speculative cache reads | F, B/D/A enable sinks | 0 | ≈ −1.4 | B, H, E, I | planned |
-| 7 | `it_q` fetch page register | B, D | +1 per translated fetch page change | ≈ −1.4 | H, I, E | planned |
+| 4 | EX operand/result network | G1, G2 | 0 | ≈ −1.9 | A, B | planned (not needed for F0) |
+| 5 | `mt_q`, replay, walk port, VLS port | A, C | +1 per data walk, +1 per indexed VLS element | ≈ −1.6 | B | done: +0.055 (`iter`, steps 1–3 + 5) |
+| 6 | speculative cache reads | F, B/D/A enable sinks | 0 | ≈ −1.4 | B, H, E, I | done: +0.614 (`iter`, steps 1–3 + 5–7) |
+| 7 | `it_q` fetch page register | B, D | +1 per translated fetch page change | ≈ −1.4 | H, I, E | done: +0.401 (`iter`, steps 1–3 + 5 + 7) |
 | 8 | `fill_idx_q`, PTE capture | E, C residual | 0 | ≈ −1.3 | H, I | planned |
 | 9 | H (flow, then retiming) | H | 0 (fallback +1 per vector FP sub-step) | ≈ −1.27 | I | planned |
 | 10 | CSR read pre-decode | I | 0 | ≈ −1.0 | J | planned |
@@ -896,6 +940,19 @@ All WNS values are estimates in ns.
   accesses.
 - About +0.5–2 % on Linux before step 16, and under 0.2 % with it.
 - Clock: 70.3 → 100 MHz (×1.42).
+
+**Measured (iteration 2, `d7e8e41`, steps 1–3 and 5–7):** with
+random bus latency, every directed test and riscv-tests ELF runs
+cycle-identical to `main` in the default setting. In the `fpga`
+setting against `main` `vrforeg`: the riscv-tests `-p-` ELFs are
+identical except `rv64si-p-dirty` (+8, it turns paging on), and the
+directed tests are identical except `vm_directed` +26 (+0.13 %),
+`hyp_directed` +33 (+0.87 %), `vec_directed` +10 (indexed elements)
+and `ptw_drop_directed` +231 (+0.61 %). The Linux boot was not
+measured: in both settings the RTL `soc_tb` ran OpenSBI and was still
+in the kernel's silent early phase after 30–46 min (a boot needs more
+than 500M cycles; an earlier record measured about 17k cycles/s for
+this model), so it was stopped.
 
 ## ASIC impact and promotion candidates
 
