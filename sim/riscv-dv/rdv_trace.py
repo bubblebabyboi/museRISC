@@ -97,6 +97,11 @@ CSR_NAMES = {
     0x3A2: "pmpcfg2", 0xC20: "vl", 0xC21: "vtype",
 }
 CSR_NAMES.update({0x3B0 + i: "pmpaddr%d" % i for i in range(16)})
+# CSR bits whose value is implementation-defined and differs between the
+# two, left out of CSR-write comparisons (docs/VERIFICATION.md):
+# mideleg bit 12 (SGEIP) reads one on Spike with H even with no guest
+# external interrupts (GEILEN = 0); on Sigil (GEILEN = 0) it reads zero.
+CSR_IMPL_DEFINED = {0x303: 1 << 12}
 # RV64 sstatus view of mstatus: SIE SPIE UBE SPP VS FS XS SUM MXR UXL SD.
 SSTATUS_MASK = ((1 << 1) | (1 << 5) | (1 << 6) | (1 << 8) | (3 << 9) | (3 << 13) |
                 (3 << 15) | (1 << 18) | (1 << 19) | (3 << 32) | (1 << 63))
@@ -322,7 +327,8 @@ def _diff(ref, dut):
         fm = lambda l: "[%s]" % ", ".join("0x%x:%d=0x%x" % s for s in l)
         d.append("store: dut %s ref %s" % (fm(dut.m), fm(ref.m)))
     for a in sorted(set(ref.c) & set(dut.c)):
-        if ref.c[a] != dut.c[a]:
+        keep = ~CSR_IMPL_DEFINED.get(a, 0)
+        if ref.c[a] & keep != dut.c[a] & keep:
             d.append("csr 0x%03x (%s): dut 0x%x ref 0x%x" % (
                 a, CSR_NAMES.get(a, "?"), dut.c[a], ref.c[a]))
     # Spike logs an sstatus write as the mstatus write it performs.

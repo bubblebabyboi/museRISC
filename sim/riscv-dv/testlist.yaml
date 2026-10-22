@@ -256,6 +256,22 @@
   asm: directed/sigil_vector_test.S
   march: rv64gcv_zcb
 
+- test: sigil_priv_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    Random privileged architecture, 128 iterations: Sv39 test mappings
+    (random 4 KiB leaves, Svnapot 64 KiB groups, 2 MiB leaves incl.
+    misaligned ones, reserved PTE bits, hardware D updates with
+    menvcfg.ADUE), random PMP entries over the page tables and backing
+    pages, random medeleg/mideleg/mie and pending SSIP/STIP/SEIP,
+    random mstatus (MPP S/U, SUM, MXR, FS, SIE); each iteration one
+    random load, store, AMO, LR, FP load, fetch, EBREAK, S CSR access
+    or SFENCE.VMA in S or U, traps handled in M or S as delegated.
+  asm: directed/sigil_priv_test.S
+  march: rv64gc
+  # Spike's --instructions budget is charged up to 5,000 per trap.
+  spike_max_instr: 20000000
+
 # ---------------------------------------------------------------------
 # Excluded
 # ---------------------------------------------------------------------

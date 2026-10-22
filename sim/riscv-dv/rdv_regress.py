@@ -64,9 +64,11 @@ MABI = "lp64"
 # Reference model configured as Sigil (docs/VERIFICATION.md "Spike"):
 # misa reads 0x8000_0000_0034_11AF on both. Misaligned accesses trap
 # (no Zicclsm), 16 PMP entries with G=0 (4-byte grain), no triggers,
-# WFI completes like a NOP.
+# WFI completes like a NOP. Svadu: Sigil's walker always sets A/D in
+# hardware; Spike does so with menvcfg.ADUE=1 (sigil_priv_test sets it)
+# and otherwise raises page faults, as Svade.
 SPIKE_ISA = ("rv64imafdcbvh_zicsr_zifencei_zicntr_zbc_zbkb_zbkc_zbkx"
-             "_zkne_zknd_zknh_zicond_zcb_zvl512b_svnapot")
+             "_zkne_zknd_zknh_zicond_zcb_zvl512b_svnapot_svadu")
 SPIKE_ARGS = ["--isa=" + SPIKE_ISA, "--priv=msu", "--triggers=0",
               "--pmpregions=16", "--pmpgranularity=4", "--wfi-as-nop"]
 # Seeded random bus latency/backpressure, as in `make riscv-tests`.
