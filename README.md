@@ -182,7 +182,8 @@ Sigil comes with a small bare-metal SDK ([`sw/sdk/`](sw/sdk/)): startup
 code, one header (`sigil.h`) with the memory map, UART `printf`, timers
 and interrupts, cycle counters, and drivers for the hash engine, field
 arithmetic and Ed25519 verify. Programs run unchanged in simulation and on
-the F2 (except `hbm_touch`, which needs the F2's memory map).
+the F2 (except `hbm_touch`, which needs the F2's memory map; it has
+passed on the simulated F2 map but not yet run on the F2).
 
 ```sh
 cp -r sw/sdk/template myprog && cd myprog   # main.c + Makefile
@@ -214,7 +215,7 @@ part of the regression):
 | `ed25519_verify` | signature verification with the field unit |
 | `vector_dot` | RVV 1.0 vector code vs scalar |
 | `fp_math` | IEEE-754 double precision, rounding modes, FMA |
-| `hbm_touch` | F2 only: the 16 GiB of HBM and DDR4 beyond 128 MiB from bare-metal C ([`docs/PROGRAMMING.md` §8.1](docs/PROGRAMMING.md#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)) |
+| `hbm_touch` | F2 only: the 16 GiB of HBM and DDR4 beyond 128 MiB from bare-metal C ([`docs/PROGRAMMING.md` §8.1](docs/PROGRAMMING.md#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)); passes on `fpga_top_tb_f2`, not yet run on the F2 |
 
 The programmer's guide — toolchain, memory map, SDK API, running in
 simulation and on F2, interrupts, vector, performance counters and
@@ -225,12 +226,12 @@ gotchas — is [`docs/PROGRAMMING.md`](docs/PROGRAMMING.md).
 | Gate | Result | Evidence |
 |---|---:|---|
 | `make core-test` (unit TBs, directed suites, SRAM-macro builds, FPGA top, examples) | PASS | `tb/cpp/`, `sw/core-tests/`, `sw/examples/` |
-| riscv-tests | 123/123 | [`w0-stack-gates-2026-10-20.log`](docs/evidence/w0-stack-gates-2026-10-20.log) |
-| RISC-V ACT (scalar, priv, A/F/D/B/K/Zicond/C, Vx/Vls/Vf) | 2,577/2,578, 1 waiver | [`act-core-w0-stack-2026-10-20.csv`](docs/evidence/act-core-w0-stack-2026-10-20.csv) |
+| riscv-tests | 123/123 | [`linux-release-73-final-gates-2026-10-22.log`](docs/evidence/linux-release-73-final-gates-2026-10-22.log) |
+| RISC-V ACT (scalar, priv, A/F/D/B/K/Zicond/C, Vx/Vls/Vf) | 2,577/2,578, 1 waiver | [`act_summary.txt`](docs/evidence/linux-oops-fix-73-2026-10-22/act_summary.txt) |
 | On-core crypto (RTL SoC): secp256k1 + Ed25519 verify, tamper reject | PASS | [`soc-rtl-ed25519-4-2026-10-20.log`](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log) |
 | Streaming hash engine (70 KATs + SoC firmware) | PASS | [`hash-stream-make-test-2026-10-20.log`](docs/evidence/hash-stream-make-test-2026-10-20.log) |
 | Linux 6.6 (Verilator) | PASS to userspace | [`core-stage6-linux-boot-2026-10-14.log`](docs/evidence/core-stage6-linux-boot-2026-10-14.log) |
-| Linux 6.12 on the RTL SoC (`soc_rtl_tb`) | PASS, 261M cycles | [`soc-rtl-linux-6.12-boot.log`](docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log) |
+| Linux 6.12 on the RTL SoC (`soc_rtl_tb`) | PASS, 261M cycles | [`linux_boot.log`](docs/evidence/linux-oops-fix-73-2026-10-22/linux_boot.log) |
 | Debian 13 + Linux 6.12 in QEMU shaped like the F2 (gcc, NUMA/HBM, RVV, disk, power-off) | 23/23 | [`linux-debian-73-2026-10-22/`](docs/evidence/linux-debian-73-2026-10-22/qemu-check-summary.txt) |
 | **AWS F2 hardware**, first AFI: crypto, OpenSBI, **Linux 6.6 to userspace**, 62.5 MHz measured | PASS | [`f2-first-boot-55-2026-10-22/`](docs/evidence/f2-first-boot-55-2026-10-22/SUMMARY.md) |
 | **AWS F2 hardware**, platform AFI `agfi-0a1fd54ef68bdc754` (same CL as the current AFI except the core's walker-race fix and atomic A/D update, #74): full-range memory test of 64 GiB DDR4 + 16 GiB HBM, core sparse test, finisher, RTC, console, firmware + SDK examples | 0 errors, PASS | [`f2-platform-73-2026-10-22/`](docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md) |

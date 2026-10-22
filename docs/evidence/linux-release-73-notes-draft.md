@@ -138,7 +138,7 @@ Memory as Linux sees it on the F2:
 | `poweroff` → `sigil_host --save` → second boot from the saved disk | PASS: the file written in run 1 is there, `journalctl --list-boots` shows both boots |
 | `sigil-linux`: boot, `sudo poweroff`, save to `~/sigil-disk.ext4`, second boot from it | not yet run on an F2 (the runs above used the `sigil_host` command it wraps); 35/35 tests against a simulated `sigil_host` |
 
-22/22 acceptance checks plus the persistence check, [`linux-debian-73-2026-10-22/f2-boot-fixed/`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/f2-boot-fixed/) (full consoles, check summaries, instance and AFI info). F2 time for all of #73: about 3.9 instance-hours.
+22/22 acceptance checks plus the persistence check, [`linux-debian-73-2026-10-22/f2-boot-fixed/`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/f2-boot-fixed/) (full consoles, check summaries, instance and AFI info). F2 time for all of #73: about 3.8 instance-hours (2.97 h + 0.78 h).
 
 **The memory platform** (on the platform AFI `agfi-0a1fd54ef68bdc754`, the same CL without the core's walker-race fix and atomic A/D update (#74); not repeated on the new AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
 
@@ -172,7 +172,7 @@ FPGA build of the new AFI: Vivado 2025.2, aws-fpga v2.3.5, commit `31a1568`, all
 | `modules-6.12.114-sigil.tar.gz` | 280.6 kB | `975251423b8e4cc85326187da45ab4a142c97496b6c0c0c99fc647065618812d` | kernel modules (already in the image) |
 | `kernel-6.12.114-sigil.config` | 63.7 kB | `dfe19a27fb626f68aa2717ddb77ce0e97eb8d864a148dfe6fba7c6fa87c58bf8` | full kernel configuration |
 | `System.map-6.12.114-sigil` | 1.8 MB | `5c1b2e11bfb2153f0ec190a85ccaf1435eba6b970f0a2fd81fedce9fdf3d4ad3` | kernel symbol map |
-| `manifest.txt` | 7.9 kB | `09bdec60d5d446f09916628376a01947e21ff2612cf629282c40b724bdf19376` | Debian image manifest: snapshot, kernel, every package with its version |
+| `manifest.txt` | 7.9 kB | `09bdec60d5d446f09916628376a01947e21ff2612cf629282c40b724bdf19376` | Debian image manifest: every package (257) with its version and architecture |
 | `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar` | 110.2 MB | `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246` | unencrypted F2 design checkpoint the public AFI `agfi-0c8aa56fde1a48495` was created from (manifest `dcp_hash` `53eed162…11fe73`) — rebuild or modify it yourself |
 | `sigil_programs_2026-10-22b.tar.gz` | 34.5 kB | `f3ea5f9a60e08d3a45d76020989f61497ac546db40e2d13c714efdbe8afe4ec9` | prebuilt bare-metal firmware (crypto, Ed25519, hash, smoke, new F2 platform test and memory test) and the 8 SDK example binaries (new: `hbm_touch`, F2 memory map only, not yet run on the F2) |
 | `sigil_linux_evidence_2026-10-22.tar.gz` | 344.2 kB | `ffb97fd1fc993ca2ba1ecd50fbf1dbd23169e69528550eb67a9d37c4bd5b0b36` | #73 evidence: Vivado reports of both platform AFIs, every F2 host log and UART capture, QEMU and RTL boot logs, the F2 Debian consoles (the oopses on the old AFI and the 22/22 runs on the new one), the walker-race tests and gates, the release gate logs |
@@ -195,7 +195,7 @@ Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linu
 ## Claim boundaries
 
 - This is an **FPGA prototype** of the SoC on AWS F2 at an interim 62.5 MHz core clock. It is not silicon. The ASIC (GDS) results are in earlier releases and are not part of this one.
-- F2 results are measurements from one `f2.6xlarge` in us-east-1 on 2026-10-22. QEMU timings come from QEMU. Every estimate in these notes is labelled as one.
+- F2 results are measurements from two `f2.6xlarge` instances in us-east-1 on 2026-10-22: `i-0172708b8206bb63d` (memory-platform tests and the oops runs on the old AFI) and `i-0c58fa4d79908ae8b` (Debian on the new AFI). QEMU timings come from QEMU. Every estimate in these notes is labelled as one.
 - The Debian image is an **unofficial** image built with `mmdebstrap` from unmodified Debian packages, plus a small configuration overlay (`sw/linux/debian/overlay/`). It is not a Debian release, and Debian has not reviewed or endorsed it.
 - Sources: Linux 6.12.114 from kernel.org (tarball sha256 `7a8589912bd7a8adb07fed074283652cf482a35facef8954554654f0154b4af3`) with `sw/linux/kernel/sigil_defconfig`; OpenSBI v1.9 (`cbf9f673`) with `sw/linux/opensbi/*.patch`; Debian package sources from `snapshot.debian.org` at `20261020T000000Z`.
 - No security review of the core, the SoC or the crypto engine. Do not use it for production workloads or secrets.

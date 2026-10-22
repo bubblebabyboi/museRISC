@@ -169,7 +169,7 @@ F2) costs about $2/h On-Demand: stop it when you are done.
 > ([`evidence/linux-debian-73-2026-10-22/`](evidence/linux-debian-73-2026-10-22/)).
 > The F2 runs used the `sigil_host` command of §4.2 by hand; `sigil-linux`
 > wraps that command and passed its tests against a simulated `sigil_host`
-> and AFI tools ([`sigil-linux-tests.log`](evidence/linux-user-docs-73-2026-10-22/sigil-linux-tests.log)).
+> and AFI tools ([`sigil-linux-tests-agfi-0c8aa.log`](evidence/linux-user-docs-73-2026-10-22/sigil-linux-tests-agfi-0c8aa.log)).
 > The previous AFI `agfi-0a1fd54ef68bdc754` has the walker bug: Debian
 > oopses on it 35–130 s into systemd startup
 > ([`f2-oops-ab.txt`](evidence/linux-debian-73-2026-10-22/f2-oops-ab.txt)).
@@ -640,6 +640,12 @@ shows where the time goes.
   yet); a host-provided `/chosen/rng-seed` would make it instant.
 - The system clock of the F2 build is the core clock; a faster FPGA
   build (#53) changes `timebase-frequency` in `sigil-f2.dts`.
+- F2 platform quirk (#75, open): a `sigil_host` killed by a signal
+  (e.g. Ctrl-C outside `--console`, or `pkill`) leaves the SoC running,
+  and after that the console lost bytes until the AFI was reloaded:
+  `sudo fpga-clear-local-image -S 0 -H`, then
+  `sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H`. End
+  Debian sessions with `sudo poweroff`.
 
 ## 9. Files and versions
 

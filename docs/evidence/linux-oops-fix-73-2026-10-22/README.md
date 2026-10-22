@@ -20,7 +20,9 @@ the gate SHA. The 13 walker race tests fail 39/39 on the base RTL and pass
 39/39 on the fix. An AFI has been built from the gate SHA:
 afi-059766f9a85c6d39a / agfi-0c8aa56fde1a48495, evidence in
 [`f2-platform-73-oopsfix-2026-10-22/`](../f2-platform-73-oopsfix-2026-10-22/).
-Still to do: the Debian boot on F2 with that AFI.
+Debian on the F2 with that AFI: login prompt in 5 min 48 s, 22/22
+acceptance checks plus the persistence check, no oops in either boot
+([`linux-debian-73-2026-10-22/f2-boot-fixed/`](../linux-debian-73-2026-10-22/f2-boot-fixed/)).
 
 ## Root cause
 
@@ -168,7 +170,9 @@ the fixed RTL counts fetch-walk preemptions:
 Where both RTLs ran, the cycle counts are identical. In simulation these
 workloads do not reach the harmful case (a fetch-walk read in flight, or
 issued in the preempting cycle); the directed tests above do. The
-remaining check is the F2 Debian boot on an AFI built from this branch.
+F2 Debian boot on the AFI built from this branch (`agfi-0c8aa56fde1a48495`)
+passed 22/22 with no oops in two boots
+([`linux-debian-73-2026-10-22/f2-boot-fixed/`](../linux-debian-73-2026-10-22/f2-boot-fixed/)).
 
 ## Files
 
