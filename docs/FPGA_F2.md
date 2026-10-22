@@ -465,6 +465,12 @@ baremetal crypto, OpenSBI and Linux 6.6 to userspace at a measured 62.5 MHz.
    The host prints the UART, stops on a pass/fail marker, and reports the
    **measured core clock**. `--ignore-mem-err` is required with this AFI
    (#62: a spurious sticky AXI error flag; results are unaffected).
+**One-command playground:** on a fresh `f2.6xlarge` (FPGA Developer AMI),
+`curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash`
+installs the SDK and a RISC-V compiler, clones Sigil, builds `sigil_host`,
+loads the AFI and installs [`sigil-run`](../fpga/scripts/sigil-run)
+(`sigil-run main.c` compiles a program with the SDK and runs it on the FPGA).
+
 6. Rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on the FPGA
    Developer AMI (non-F2 instance), then `aws s3 cp` the tarball and
    `aws ec2 create-fpga-image` (see the F3 section).

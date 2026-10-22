@@ -1,0 +1,33 @@
+#!/bin/bash
+# sigil-run: build (if C) and run a program on the Sigil SoC in this F2's FPGA.
+#   sigil-run hello.c [more.c ...] [-- sigil_host options]
+#   sigil-run program.bin           [-- sigil_host options]
+#   sigil-run some/dir              (a folder with .c files)
+set -euo pipefail
+AGFI=agfi-035116450e0a0d093
+SIGIL=$HOME/sigil
+srcs=(); extra=()
+while [ $# -gt 0 ]; do
+  if [ "$1" = -- ]; then shift; extra=("$@"); break; fi
+  srcs+=("$1"); shift
+done
+[ ${#srcs[@]} -gt 0 ] || { echo "usage: sigil-run file.c|dir|file.bin [-- sigil_host options]"; exit 2; }
+# Load the Sigil AFI if this slot does not already have it.
+if ! sudo fpga-describe-local-image -S 0 -H 2>/dev/null | grep -q "$AGFI.*loaded"; then
+  echo "[sigil-run] loading $AGFI ..."
+  sudo fpga-load-local-image -S 0 -I "$AGFI" -H > /dev/null
+fi
+if [ ${#srcs[@]} -eq 1 ] && [[ "${srcs[0]}" == *.bin ]]; then
+  bin="${srcs[0]}"
+else
+  name=$(basename "${srcs[0]%.c}"); name=${name//[^A-Za-z0-9_]/_}
+  work=$(mktemp -d /tmp/sigil-run-XXXX)/$name
+  cp -r "$SIGIL/sw/sdk/template" "$work"; rm -f "$work"/*.c
+  for s in "${srcs[@]}"; do
+    if [ -d "$s" ]; then cp "$s"/*.c "$s"/*.h "$work"/ 2>/dev/null || true; else cp "$s" "$work"/; fi
+  done
+  make -s -C "$work" SIGIL_SDK="$SIGIL/sw/sdk" RISCV_PREFIX=riscv64-unknown-elf- >/dev/null
+  bin="$work/build/$name.bin"
+  echo "[sigil-run] built $bin ($(stat -c %s "$bin") bytes)"
+fi
+exec sudo "$SIGIL/fpga/host/sigil_host" --ignore-mem-err --bin "$bin" --timeout 60 "${extra[@]}"
