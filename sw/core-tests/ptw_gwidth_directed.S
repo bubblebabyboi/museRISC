@@ -29,6 +29,8 @@
 //     the B walk (n small: the preemption fix's own case, for a
 //     G-stage fetch walk) or starts after the width fault and takes
 //     G_ROOT[2] = 0 (load guest-page fault, cause 21).
+// PTW_GW_DATA_ONLY (ptw_gwidth_load_directed.S) skips phase 0, so a
+// failure shows the data-walk consumer.
 // With PTW_HYP_GOOD_B defined (ptw_preempt_hyp_directed.S) page B
 // is validly mapped instead (7-read G-stage fetch walk), which
 // isolates the preemption of W_G_READ / W_VS_READ fetch walks.
@@ -162,7 +164,11 @@ _start:
     or t1, t1, t2
     csrw vsatp, t1
     li s2, 0                      // passes done
+#ifdef PTW_GW_DATA_ONLY
+    li s4, 1                      // phase (data consumers only)
+#else
     li s4, 0                      // phase
+#endif
     li s6, 0                      // n (sled length) / phase-0 pass
     li s5, VA_D
     li s9, 1

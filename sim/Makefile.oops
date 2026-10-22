@@ -46,7 +46,7 @@ oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$
 # stale-walk and PTWINV reports, PTWCOV counters); exit 1 if any run
 # fails, times out or reports a PTWINV violation.
 OOPS_SKEPTIC_TESTS := ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed \
-                      ptw_preempt_hyp_directed ptw_gwidth_directed
+                      ptw_preempt_hyp_directed ptw_gwidth_directed ptw_gwidth_load_directed
 .PHONY: oops-ptw-skeptic
 oops-ptw-skeptic: $(BUILD)/oops_core_tb \
                   $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_PTW_TESTS) $(OOPS_SKEPTIC_TESTS)))
