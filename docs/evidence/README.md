@@ -2238,3 +2238,13 @@ on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
   64,648,560 vectors, "Multi-cycle synthesizable FPU" above),
   TestFloat level-2 mulAdd density on the in-house FPU is now
   claimed for the selections in the table.
+
+## #20: gates for branch `20-isa-followups` (2026-10-22)
+
+[`isa-followups-20-gates-2026-10-22.log`](isa-followups-20-gates-2026-10-22.log):
+at `0c46ae5` (the `core_tb` HTIF console mode and the `fpu_tb`
+coverage guard; RTL unchanged from `main` `eeaa332`), `make lint`
+clean, `make test` PASS, `make -C sim fpu` PASS (476,563 checks,
+coverage written), riscv-tests 123/123, `make core-test` rc 0
+(2,794 s). At `17aca6b`, the last code change, `make lint` clean
+and `make test` PASS.
