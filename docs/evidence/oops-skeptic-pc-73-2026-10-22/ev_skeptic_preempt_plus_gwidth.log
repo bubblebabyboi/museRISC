@@ -1,7 +1,7 @@
 # RTL: 73-linux-release + experiment-preempt-drop.patch + gwidth-ext.patch (this directory)
 # host sigil-fpga-build, Verilator 5.048, oops_core_tb = core_tb + sigil_oops_chk + sigil_ptw_inv (sim/Makefile.oops)
 # make -C sim -f Makefile.oops oops-ptw-skeptic : hunters' 3 tests + 7 skeptic tests x (--mem-lat 1 | 1:6 gap 2 ready 70 | 40:50)
-2026-10-22T12:44:20Z
+2026-10-22T12:49:11Z
 == ptw_preempt_directed --mem-lat 1
 CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
 PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
@@ -98,5 +98,5 @@ PTWINV violations=0
 CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles)
 PTWCOV pre=92 inflight=90 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=548 gw_issue=548
 PTWINV violations=0
-real	1m24.102s
+real	0m55.288s
 make-status=0

@@ -1,7 +1,7 @@
 # RTL: 73-linux-release + ../oops-dcache-73-2026-10-22/experiment-preempt-drop.patch
 # host sigil-fpga-build, Verilator 5.048, oops_core_tb = core_tb + sigil_oops_chk + sigil_ptw_inv (sim/Makefile.oops)
 # make -C sim -f Makefile.oops oops-ptw-skeptic : hunters' 3 tests + 7 skeptic tests x (--mem-lat 1 | 1:6 gap 2 ready 70 | 40:50)
-2026-10-22T12:44:20Z
+2026-10-22T12:49:11Z
 == ptw_preempt_directed --mem-lat 1
 CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
 PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
@@ -75,56 +75,52 @@ CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles)
 PTWCOV pre=329 inflight=313 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=8 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
 PTWINV violations=0
 == ptw_gwidth_directed --mem-lat 1
+OOPSCHK stale-walk-rsp cyc=67021 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=67019 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=67020 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-OOPSCHK stale-walk-rsp cyc=67021 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=67021 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=1
 CORE TB FAIL ptw_gwidth_directed.bin test 276 (67063 cycles)
 PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=1 gw_issue=1
 PTWINV violations=3
 == ptw_gwidth_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+OOPSCHK stale-walk-rsp cyc=86752 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=86747 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=86748 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=86749 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=86750 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=86751 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-OOPSCHK stale-walk-rsp cyc=86752 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
-PTWINV live-walk-req-abandoned cyc=86752 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=1
 CORE TB FAIL ptw_gwidth_directed.bin test 276 (86805 cycles)
+PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=1 gw_issue=1
+PTWINV violations=6
 == ptw_gwidth_directed --mem-lat 40:50
+OOPSCHK stale-walk-rsp cyc=361197 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=361150 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=361151 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=361152 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=361153 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=361154 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=361155 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=361156 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=361157 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=0 rsp=0
+CORE TB FAIL ptw_gwidth_directed.bin test 276 (361312 cycles)
+PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=1 gw_issue=1
+PTWINV violations=48
 == ptw_gwidth_load_directed --mem-lat 1
+OOPSCHK stale-walk-rsp cyc=67066 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=1 walker_va=0xc0000000 level=2 priv=1 fetch_va=0x80000fa8 mem_va=0xc0000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=67064 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=67065 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=1 rsp=0
-OOPSCHK stale-walk-rsp cyc=67066 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=1 walker_va=0xc0000000 level=2 priv=1 fetch_va=0x80000fa8 mem_va=0xc0000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=67066 req=0000000020020010 we=0 walker_state=3 walker_pte=0000000020020000 walker_we=0 data=1 rsp=1
 CORE TB FAIL ptw_gwidth_load_directed.bin test 4373 (67106 cycles)
 PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=1 gw_issue=1
 PTWINV violations=3
 == ptw_gwidth_load_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+OOPSCHK stale-walk-rsp cyc=88756 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=1 walker_va=0xc0000000 level=2 priv=1 fetch_va=0x80000fa8 mem_va=0xc0000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=88473 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=88474 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=88475 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=88476 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=88477 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=1
-PTWINV live-walk-req-abandoned cyc=88752 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=88753 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=88754 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
+CORE TB FAIL ptw_gwidth_load_directed.bin test 463125 (88785 cycles)
+PTWCOV pre=6 inflight=3 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=2 gw_issue=2
+PTWINV violations=10
 == ptw_gwidth_load_directed --mem-lat 40:50
+OOPSCHK stale-walk-rsp cyc=391195 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=1 walker_va=0xc0000000 level=2 priv=1 fetch_va=0x80000fa8 mem_va=0xc0000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
 PTWINV live-walk-req-abandoned cyc=391147 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=391148 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
 PTWINV live-walk-req-abandoned cyc=391149 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=391150 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=391151 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=391152 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=391153 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-PTWINV live-walk-req-abandoned cyc=391154 req=0000000020020010 we=0 walker_state=0 walker_pte=0000000020020010 walker_we=0 data=0 rsp=0
-real	0m59.651s
+CORE TB FAIL ptw_gwidth_load_directed.bin test 1642773 (391224 cycles)
+PTWCOV pre=25 inflight=25 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=1 gw_issue=1
+PTWINV violations=49
+real	0m35.107s
 make-status=2

@@ -54,6 +54,7 @@ oops-ptw-skeptic: $(BUILD)/oops_core_tb \
 	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
 	    echo "== $$t $$a"; \
 	    ./oops_core_tb $$t.bin 40000000 $$a > skeptic_run.log 2>&1 || rc=1; \
-	    grep -E "CORE TB|OOPSCHK stale|PTWINV|PTWCOV" skeptic_run.log | head -8; \
+	    grep -m1 -E "OOPSCHK stale" skeptic_run.log; grep -m3 -E "PTWINV live" skeptic_run.log; \
+	    grep -E "CORE TB|PTWCOV|PTWINV violations" skeptic_run.log; \
 	    if grep -qE "PTWINV live" skeptic_run.log; then rc=1; fi; \
 	  done; done; exit $$rc
