@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/random.h>
 #include <sys/stat.h>
 #include <termios.h>
 #include <time.h>
@@ -88,6 +89,9 @@ enum {
 #define DDR_SIZE 0x1000000000ull  // 64 GiB at AXI 0
 #define HBM_AXI 0x1000000000ull   // HBM at AXI 0x10_0000_0000
 #define HBM_SIZE 0x400000000ull   // 16 GiB
+// pmem disk window (docs/LINUX_PLATFORM.md): never reloaded on a reboot.
+#define PMEM_BASE 0xC80000000ull
+#define PMEM_END 0x1080000000ull
 #define MAX_LOADS 64
 #define MAX_SAVES 16
 #define MAX_MARKERS 16
@@ -310,7 +314,59 @@ static void check_range(const char *what, uint64_t addr, uint64_t len) {
         ") or not 64-byte aligned", what, addr, len, RAM_BASE, RAM_BASE + ram_size);
 }
 
-struct load { uint64_t addr; const char *path; };
+struct load { uint64_t addr; const char *path; bool dtb; };
+
+// Device tree: fill /chosen/rng-seed (if the DTB has one) with fresh
+// random bytes, so every boot gets its own kernel RNG seed. In-place:
+// the property keeps its size. Returns the number of bytes written.
+static uint32_t be32(const uint8_t *p) {
+  return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+static size_t fdt_fill_rng_seed(uint8_t *fdt, size_t len) {
+  if (len < 40 || be32(fdt) != 0xd00dfeedu) return 0;
+  const uint32_t off_struct = be32(fdt + 8), off_strings = be32(fdt + 12);
+  const uint32_t size_struct = be32(fdt + 36);
+  if ((size_t)off_struct + size_struct > len || off_strings >= len) return 0;
+  size_t p = off_struct;
+  const size_t end = (size_t)off_struct + size_struct;
+  int depth = 0, chosen_depth = -1;
+  while (p + 4 <= end) {
+    const uint32_t tok = be32(fdt + p);
+    p += 4;
+    if (tok == 1) {  // FDT_BEGIN_NODE
+      const char *name = (const char *)fdt + p;
+      const size_t n = strnlen(name, end - p);
+      depth++;
+      if (depth == 2 && chosen_depth < 0 && !strcmp(name, "chosen")) chosen_depth = depth;
+      p += (n + 4) & ~(size_t)3;
+    } else if (tok == 2) {  // FDT_END_NODE
+      if (depth == chosen_depth) chosen_depth = -1;
+      depth--;
+    } else if (tok == 3) {  // FDT_PROP
+      if (p + 8 > end) return 0;
+      const uint32_t plen = be32(fdt + p), nameoff = be32(fdt + p + 4);
+      p += 8;
+      if (p + plen > end) return 0;
+      const char *pname = (const char *)fdt + off_strings + nameoff;
+      if (depth == chosen_depth && off_strings + nameoff < len && !strcmp(pname, "rng-seed")) {
+        size_t got = 0;
+#ifndef SV_TEST
+        while (got < plen) {
+          ssize_t r = getrandom(fdt + p + got, plen - got, 0);
+          if (r <= 0) break;
+          got += (size_t)r;
+        }
+#endif
+        return got;
+      }
+      p += (plen + 3) & ~(size_t)3;
+    } else if (tok == 4) {  // FDT_NOP
+    } else {
+      break;  // FDT_END or garbage
+    }
+  }
+  return 0;
+}
 struct save { uint64_t addr; uint64_t size; const char *path; };
 
 // Map (or read) a file; length rounded up to whole 64-byte lines with
@@ -355,6 +411,10 @@ static void load_image(const struct load *l, bool verify_all) {
   bool mapped = false;
   uint8_t *buf = map_file(l->path, &n, &maplen, &mapped);
   const size_t n64 = (n + 63) & ~(size_t)63;
+  if (l->dtb && !mapped) {
+    const size_t k = fdt_fill_rng_seed(buf, n);
+    if (k) info("%s: /chosen/rng-seed filled with %zu fresh random bytes", l->path, k);
+  }
   check_range(l->path, l->addr, n64);
   const uint64_t off = l->addr - RAM_BASE;
   const double dt = bar_copy(off, buf, n64, false);
@@ -520,7 +580,8 @@ static void usage(const char *p) {
 "                     5 = 100 MHz) instead of keeping the AFI's build recipe\n"
 "  --linux            OpenSBI fw_jump (--fw) at 0x80000000, Linux --image at\n"
 "                     0x80200000, --dtb at --dtb-addr (0x83000000) [--initrd F\n"
-"                     at --initrd-addr (0x84000000)]\n"
+"                     at --initrd-addr (0x84000000)]; a /chosen/rng-seed in the\n"
+"                     DTB is filled with fresh random bytes\n"
 "  --bin F            baremetal image at 0x80000000 (boot ROM jumps there)\n"
 "  --load 0xADDR=F    image at SoC address ADDR (repeatable; DDR4 0x80000000..\n"
 "                     0x107FFFFFFF, HBM 0x1080000000..0x147FFFFFFF)\n"
@@ -542,8 +603,9 @@ static void usage(const char *p) {
 "  --log F            also write the UART stream to F\n"
 "  --verify           read every loaded byte back (default: head/tail)\n"
 "  --keep-running     leave the SoC running on exit (default: hold in reset)\n"
-"  --on-reboot MODE   finisher reboot (0x7777): rerun (reload the images and\n"
-"                     release again; default) or exit (status 5)\n"
+"  --on-reboot MODE   finisher reboot (0x7777): rerun (reload the boot images --\n"
+"                     not those in the pmem window 0xC80000000..0x107FFFFFFF --\n"
+"                     and release again; default) or exit (status 5)\n"
 "  --scrub MODE       auto (default: zero all DDR4 once per AFI load -- the\n"
 "                     DDR4 has ECC, reading never-written memory is an error),\n"
 "                     always, never; --scrub-hbm also zeroes the 16 GiB HBM\n"
@@ -595,12 +657,12 @@ int main(int argc, char **argv) {
     else if (!strcmp(a, "--bin")) {
       NEXT();
       if (nloads == MAX_LOADS) usage(argv[0]);
-      loads[nloads++] = (struct load){RAM_BASE, v};
+      loads[nloads++] = (struct load){RAM_BASE, v, false};
     } else if (!strcmp(a, "--load")) {
       NEXT();
       const char *eq = strchr(v, '=');
       if (!eq || nloads == MAX_LOADS) usage(argv[0]);
-      loads[nloads++] = (struct load){strtoull(v, NULL, 0), eq + 1};
+      loads[nloads++] = (struct load){strtoull(v, NULL, 0), eq + 1, false};
     } else if (!strcmp(a, "--save")) {
       NEXT();
       const char *eq = strchr(v, '='), *colon = strrchr(v, ':');
@@ -643,10 +705,10 @@ int main(int argc, char **argv) {
   }
   if (linux_mode) {
     if (!fw || !image || !dtb || nloads + 4 > MAX_LOADS) usage(argv[0]);
-    loads[nloads++] = (struct load){0x80000000ull, fw};
-    loads[nloads++] = (struct load){0x80200000ull, image};
-    loads[nloads++] = (struct load){dtb_addr, dtb};
-    if (initrd) loads[nloads++] = (struct load){initrd_addr, initrd};
+    loads[nloads++] = (struct load){0x80000000ull, fw, false};
+    loads[nloads++] = (struct load){0x80200000ull, image, false};
+    loads[nloads++] = (struct load){dtb_addr, dtb, true};
+    if (initrd) loads[nloads++] = (struct load){initrd_addr, initrd, false};
   }
   if (nloads == 0 && !memtest_what) usage(argv[0]);
   if (nexit == 0) {
@@ -790,7 +852,17 @@ int main(int argc, char **argv) {
 
 run_again:
   // ---- load, release ---------------------------------------------------
-  for (int k = 0; k < nloads; k++) load_image(&loads[k], verify_all);
+  // After a finisher reboot only the boot images are reloaded (Linux
+  // reused that memory); anything in the pmem disk window keeps what the
+  // guest wrote (OpenSBI writes the D$ back before the finisher).
+  for (int k = 0; k < nloads; k++) {
+    if (reboots && loads[k].addr >= PMEM_BASE && loads[k].addr < PMEM_END) {
+      info("reboot: %s at 0x%" PRIx64 " (pmem window) kept, not reloaded", loads[k].path,
+           loads[k].addr);
+      continue;
+    }
+    load_image(&loads[k], verify_all);
+  }
   if (have_mailbox) {
     uint8_t line[64] = {0};
     memcpy(line, &mailbox, 8);
