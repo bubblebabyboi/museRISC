@@ -12,29 +12,29 @@
 
 #include "kernels.h"
 
-void vadd_i32_c(int32_t *c, const int32_t *a, const int32_t *b, size_t n) {
+KERNEL_FN void vadd_i32_c(int32_t *c, const int32_t *a, const int32_t *b, size_t n) {
   for (size_t i = 0; i < n; i++) c[i] = a[i] + b[i];
 }
 
-void vadd_i64_c(int64_t *c, const int64_t *a, const int64_t *b, size_t n) {
+KERNEL_FN void vadd_i64_c(int64_t *c, const int64_t *a, const int64_t *b, size_t n) {
   for (size_t i = 0; i < n; i++) c[i] = a[i] + b[i];
 }
 
-void daxpy_c(size_t n, double a, const double *x, double *y) {
+KERNEL_FN void daxpy_c(size_t n, double a, const double *x, double *y) {
   for (size_t i = 0; i < n; i++) y[i] = a * x[i] + y[i];
 }
 
-void saxpy_c(size_t n, float a, const float *x, float *y) {
+KERNEL_FN void saxpy_c(size_t n, float a, const float *x, float *y) {
   for (size_t i = 0; i < n; i++) y[i] = a * x[i] + y[i];
 }
 
-double ddot_c(size_t n, const double *x, const double *y) {
+KERNEL_FN double ddot_c(size_t n, const double *x, const double *y) {
   double s = 0.0;
   for (size_t i = 0; i < n; i++) s += x[i] * y[i];
   return s;
 }
 
-uint64_t idot_c(size_t n, const int32_t *x, const int32_t *y) {
+KERNEL_FN uint64_t idot_c(size_t n, const int32_t *x, const int32_t *y) {
   uint64_t s = 0;
   for (size_t i = 0; i < n; i++) s += (uint64_t)((int64_t)x[i] * y[i]);
   return s;
@@ -42,10 +42,10 @@ uint64_t idot_c(size_t n, const int32_t *x, const int32_t *y) {
 
 /* The SDK's library routines (sw/sdk/lib/runtime.c): what a program
  * calls for memcpy/memset. */
-void memcpy_c(void *d, const void *s, size_t n) { memcpy(d, s, n); }
-void memset_c(void *d, int c, size_t n) { memset(d, c, n); }
+KERNEL_FN void memcpy_c(void *d, const void *s, size_t n) { memcpy(d, s, n); }
+KERNEL_FN void memset_c(void *d, int c, size_t n) { memset(d, c, n); }
 
-void dgemm_c(size_t n, const double *a, const double *b, double *c) {
+KERNEL_FN void dgemm_c(size_t n, const double *a, const double *b, double *c) {
   for (size_t i = 0; i < n; i++)
     for (size_t j = 0; j < n; j++) {
       double s = 0.0;
@@ -54,7 +54,7 @@ void dgemm_c(size_t n, const double *a, const double *b, double *c) {
     }
 }
 
-void sgemm_c(size_t n, const float *a, const float *b, float *c) {
+KERNEL_FN void sgemm_c(size_t n, const float *a, const float *b, float *c) {
   for (size_t i = 0; i < n; i++)
     for (size_t j = 0; j < n; j++) {
       float s = 0.0f;
@@ -63,7 +63,7 @@ void sgemm_c(size_t n, const float *a, const float *b, float *c) {
     }
 }
 
-void fir_f32_c(size_t n, size_t taps, const float *h, const float *x, float *y) {
+KERNEL_FN void fir_f32_c(size_t n, size_t taps, const float *h, const float *x, float *y) {
   for (size_t i = 0; i < n; i++) {
     float s = 0.0f;
     for (size_t k = 0; k < taps; k++) s += h[k] * x[i + k];
@@ -71,13 +71,13 @@ void fir_f32_c(size_t n, size_t taps, const float *h, const float *x, float *y) 
   }
 }
 
-uint32_t mac_i8_c(size_t n, const int8_t *x, const int8_t *y) {
+KERNEL_FN uint32_t mac_i8_c(size_t n, const int8_t *x, const int8_t *y) {
   uint32_t s = 0;
   for (size_t i = 0; i < n; i++) s += (uint32_t)((int32_t)x[i] * y[i]);
   return s;
 }
 
-uint32_t mac_i16_c(size_t n, const int16_t *x, const int16_t *y) {
+KERNEL_FN uint32_t mac_i16_c(size_t n, const int16_t *x, const int16_t *y) {
   uint32_t s = 0;
   for (size_t i = 0; i < n; i++) s += (uint32_t)((int32_t)x[i] * y[i]);
   return s;

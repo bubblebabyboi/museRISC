@@ -28,6 +28,12 @@
 #define KN_TAPS 16  /* FIR taps                */
 #define KN_AXPY_A 0.375 /* axpy scalar a       */
 
+/* Every measured kernel starts on a 64-byte boundary (an I$ line), so
+ * its code placement, and with it which 32-bit instructions straddle a
+ * 4-byte fetch word (an extra fetch each on this core), depends only on
+ * its own code and not on the size of whatever is linked before it. */
+#define KERNEL_FN __attribute__((aligned(64)))
+
 /* 1. c = a + b (int32), 2. (int64) */
 void vadd_i32_c(int32_t *c, const int32_t *a, const int32_t *b, size_t n);
 void vadd_i32_rvv(int32_t *c, const int32_t *a, const int32_t *b, size_t n);

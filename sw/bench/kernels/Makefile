@@ -18,6 +18,9 @@ KERNELS_SCALAR_MARCH ?= rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zk
 # 16 auto-vectorizes them (at -O2 it vectorizes only the FIR inner loop).
 KERNELS_C_MARCH ?= $(KERNELS_SCALAR_MARCH)
 KERNELS_C_OPT   ?= -O2
+# Extra flags for kern_c.c only (experiments, e.g.
+# -fpatchable-function-entry=1 shifts every C kernel by one c.nop).
+KERNELS_C_EXTRA ?=
 
 # main.c and kern_rvv.c are compiled and linked by sdk.mk with the SDK
 # flags and -march (with V). kern_c.c and ref.c are compiled to objects
@@ -27,7 +30,8 @@ EXTRA_CFLAGS += -DKERNELS_ITERATIONS=$(BENCH_ITERATIONS)
 
 include $(SIGIL_SDK)/sdk.mk
 
-C_OBJ_CFLAGS   = $(filter-out -march=% $(OPT),$(CFLAGS)) -march=$(KERNELS_C_MARCH) $(KERNELS_C_OPT)
+C_OBJ_CFLAGS   = $(filter-out -march=% $(OPT),$(CFLAGS)) -march=$(KERNELS_C_MARCH) $(KERNELS_C_OPT) \
+                 $(KERNELS_C_EXTRA)
 # Reference: scalar ISA, -O1, no vectorization, no loop -> memcpy/memset
 # call conversion, no FMA contraction.
 REF_OBJ_CFLAGS = $(filter-out -march=% $(OPT),$(CFLAGS)) -march=$(KERNELS_SCALAR_MARCH) -O1 \
