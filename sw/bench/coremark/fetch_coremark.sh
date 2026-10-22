@@ -10,7 +10,8 @@
 # next and last commit, 1f483d5, only fixes a comment typo in
 # coremark.h, which makes upstream's `make check` fail). Every file the
 # build uses is checked against the sha256 below; an existing tree that
-# does not match is left alone and the script fails.
+# does not match is left alone and the script fails. An existing tree
+# that matches is not written to (only a missing stamp is added).
 set -euo pipefail
 
 COMMIT=b56889a7bd9d5624fbeff2a73ba69878e6a9c146
@@ -39,7 +40,11 @@ sha256_check() { # dir: checks $SUMS in dir
 
 if [ -d "$dest" ]; then
   if sha256_check "$dest" >/dev/null 2>&1; then
-    echo "$COMMIT" > "$dest/.sigil-fetched"
+    # Write the stamp only if it is missing or stale: the tree may be
+    # the main checkout's, symlinked into a worktree (AGENTS.md).
+    if [ "$(cat "$dest/.sigil-fetched" 2>/dev/null)" != "$COMMIT" ]; then
+      echo "$COMMIT" > "$dest/.sigil-fetched"
+    fi
     echo "coremark: $dest verified (eembc/coremark $COMMIT)"
     exit 0
   fi

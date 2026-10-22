@@ -40,20 +40,24 @@ include $(SIGIL_SDK)/sdk.mk
 COREMARK_FLAGS_STR := $(filter-out -D% -I% -W% -g,$(CFLAGS))
 CFLAGS += -DFLAGS_STR='"$(COREMARK_FLAGS_STR)"'
 
-# Fetch the pinned sources on first use. The script checks every file's
-# sha256 before it writes the stamp; it runs again (and then only
-# verifies) whenever the script or a fetched file is newer than the
-# stamp, so an edited third_party/coremark fails the build.
+# Fetch the pinned sources on first use. fetch_coremark.sh checks every
+# file's sha256 (it only verifies a tree that exists, and never writes to
+# one that matches). It runs again whenever the script or a fetched file
+# is newer than the per-build stamp in $(OUT), so an edited
+# third_party/coremark fails the build.
 COREMARK_FILES := $(COREMARK_SRCS) $(COREMARK_DIR)/coremark.h
-COREMARK_STAMP := $(COREMARK_DIR)/.sigil-fetched
+COREMARK_OK := $(OUT)/coremark-sources.ok
 COREMARK_MISSING := $(filter-out $(wildcard $(COREMARK_FILES)),$(COREMARK_FILES))
-$(COREMARK_STAMP): fetch_coremark.sh $(wildcard $(COREMARK_FILES))
+$(COREMARK_OK): fetch_coremark.sh $(wildcard $(COREMARK_FILES)) | $(OUT)
 	bash $(CURDIR)/fetch_coremark.sh $(COREMARK_DIR)
+	touch $@
 ifneq ($(COREMARK_MISSING),)
-$(COREMARK_MISSING): | $(COREMARK_STAMP)
+# Sources missing (first use, or the tree was removed): always fetch.
+.PHONY: $(COREMARK_OK)
+$(COREMARK_MISSING): | $(COREMARK_OK)
 endif
 
-$(ELF): $(COREMARK_STAMP) $(COREMARK_DIR)/coremark.h core_portme.h
+$(ELF): $(COREMARK_OK) $(COREMARK_DIR)/coremark.h core_portme.h
 
 .PHONY: fetch
-fetch: $(COREMARK_STAMP)
+fetch: $(COREMARK_OK)
