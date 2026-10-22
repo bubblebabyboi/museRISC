@@ -37,7 +37,7 @@
 .equ IDX_T,   60             // L0A[60]: VA_T -> PT_L0A (RW A D)
 .equ VA_T,    VA_BASE + IDX_T * 0x1000
 .equ NDLY,    34
-.equ NOPS,    3
+.equ NOPS,    4              // ops: 0 SD, 1 AMOOR, 2 LR/SC, 3 load+SD
 .equ ITERS,   4
 .equ MARK,    0x100          // PTE RSW bit 8
 
@@ -79,7 +79,7 @@ _start:
     add t2, t2, t4
     sd t1, 0(t2)
     addi t3, t3, 1
-    li t4, 3
+    li t4, NOPS
     bltu t3, t4, 2b
     li t1, PT_L0A
     srli t1, t1, 2
@@ -181,7 +181,7 @@ enter:
     li t2, VA_BASE + 7*0x1000 + 0x1000 - 8
     add t1, t1, t2
     li t2, 2
-    bne s4, t2, 6f
+    bltu s4, t2, 6f               // ops 2,3 have 3 insns in page A
     addi t1, t1, -4
 6:  csrw mepc, t1
     li t2, (3 << 11)
@@ -232,6 +232,14 @@ code_pages:
     lr.d t6, (s8)
     div t1, a1, a2
     sc.d t3, s9, (s8)
+    ld a0, 0(s8)
+    ecall
+    .skip 0x1000 - 8
+// op 3: A3 / B3 -- plain SD with a leading load (LR-like timing, no reservation)
+    .skip 0x1000 - 12
+    ld t6, 0(s8)
+    div t1, a1, a2
+    sd s9, 0(s8)
     ld a0, 0(s8)
     ecall
     .skip 0x1000 - 8
