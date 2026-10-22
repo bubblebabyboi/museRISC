@@ -212,6 +212,25 @@
     +directed_instr_1=riscv_jal_instr,4
 
 # ---------------------------------------------------------------------
+# Directed programs (Sigil additions, like riscv-dv's --asm_test): the
+# extensions pygen cannot generate, through the same Spike comparison.
+# The seed only changes the DUT's bus timing.
+# ---------------------------------------------------------------------
+- test: sigil_bitmanip_crypto_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    PRNG-driven Zba/Zbb/Zbs (RV64 W forms), Zbkb/Zbkc/Zbkx, Zkne/Zknd/Zknh
+    and Zicond, 300 iterations.
+  asm: directed/sigil_bitmanip_crypto_test.S
+  march: rv64gc_zba_zbb_zbc_zbs_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zcb
+
+- test: sigil_vector_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: RVV integer, mask, permutation, FP and reductions at e8/e32/e64, LMUL 1/2/8.
+  asm: directed/sigil_vector_test.S
+  march: rv64gcv_zcb
+
+# ---------------------------------------------------------------------
 # Excluded
 # ---------------------------------------------------------------------
 - test: riscv_rand_jump_test

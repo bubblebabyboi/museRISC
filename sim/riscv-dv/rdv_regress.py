@@ -146,17 +146,23 @@ def run_one(entry, seed, a):
             row["first_divergence"] = why
         return row
 
-    # 1. Generate (pygen) and assemble.
-    cmd = [a.venv_py, "pygen/pygen_src/test/riscv_instr_base_test.py",
-           "--target=sigil", "--gen_test=%s" % entry.get("gen_test", "riscv_instr_base_test"),
-           "--num_of_tests=1", "--start_idx=0", "--seed=%d" % seed,
-           "--asm_file_name=%s" % os.path.join(d, test),
-           "--log_file_name=%s" % os.path.join(d, "gen.log")] + gen_opts(entry, a.instr_cnt)
-    rc, row["gen_s"] = run_cmd(cmd, os.path.join(d, "gen.out"), cwd=a.gen_dir,
-                               timeout=a.gen_timeout)
-    if rc != 0 or not os.path.exists(p["asm"]):
-        return done("GEN_FAIL", "pygen %s: %s" % (
-            "timeout" if rc is None else "rc=%d" % rc, tail(os.path.join(d, "gen.out"), 2)))
+    # 1. Generate (pygen) and assemble. A directed entry ('asm:', like
+    #    riscv-dv's --asm_test) skips generation; its seed only varies
+    #    the DUT bus timing.
+    if "asm" in entry:
+        shutil.copyfile(os.path.join(HERE, entry["asm"]), p["asm"])
+        row["gen_s"] = 0
+    else:
+        cmd = [a.venv_py, "pygen/pygen_src/test/riscv_instr_base_test.py",
+               "--target=sigil", "--gen_test=%s" % entry.get("gen_test", "riscv_instr_base_test"),
+               "--num_of_tests=1", "--start_idx=0", "--seed=%d" % seed,
+               "--asm_file_name=%s" % os.path.join(d, test),
+               "--log_file_name=%s" % os.path.join(d, "gen.log")] + gen_opts(entry, a.instr_cnt)
+        rc, row["gen_s"] = run_cmd(cmd, os.path.join(d, "gen.out"), cwd=a.gen_dir,
+                                   timeout=a.gen_timeout)
+        if rc != 0 or not os.path.exists(p["asm"]):
+            return done("GEN_FAIL", "pygen %s: %s" % (
+                "timeout" if rc is None else "rc=%d" % rc, tail(os.path.join(d, "gen.out"), 2)))
     cmd = [a.gcc, "-march=" + entry.get("march", MARCH), "-mabi=" + MABI, "-static", "-mcmodel=medany",
            "-fvisibility=hidden", "-nostdlib", "-nostartfiles", p["asm"],
            "-I", USER_EXT, "-T", LINK_LD, "-o", p["elf"]]
@@ -238,7 +244,7 @@ def main():
     supported, excluded = load_testlist(TESTLIST)
     if a.list:
         for e in supported:
-            print("%-40s %s" % (e["test"], " ".join(gen_opts(e, 0))))
+            print("%-40s %s" % (e["test"], e["asm"] if "asm" in e else " ".join(gen_opts(e, 0))))
         for e in excluded:
             print("%-40s EXCLUDED: %s" % (e["test"], " ".join(e["excluded"].split())))
         return 0

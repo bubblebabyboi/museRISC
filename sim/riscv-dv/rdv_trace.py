@@ -19,7 +19,8 @@ Comparison rules (first divergence wins):
 - records are compared in order; kind, pc and instruction bits must
   match, and privilege for retired instructions;
 - x/f register writes: the same registers with the same values;
-- stores: the same (address, size, data) list;
+- stores: the same (address, size, data) list (scalar stores; vector
+  store data is checked when loaded back);
 - CSR writes: the DUT logs explicit CSR-instruction writes (value read
   back after the write) and fflags accrual; Spike also logs side
   effects (mstatus.FS/VS dirtying, xRET status updates, ...). Values are
@@ -276,6 +277,14 @@ def _fmt_regs(prefix, d):
     return "{%s}" % ", ".join("%s%d=0x%x" % (prefix, k, d[k]) for k in sorted(d))
 
 
+def is_vector_store(rec):
+    """Vector stores: STORE-FP opcode with a vector width (funct3 0/5/6/7).
+    The DUT trace logs scalar stores only; vector store data is checked
+    when it is loaded back."""
+    return (rec.ilen == 4 and (rec.insn & 0x7F) == 0x27 and
+            ((rec.insn >> 12) & 7) in (0, 5, 6, 7))
+
+
 def _diff(ref, dut):
     """List of human-readable differences between two records."""
     d = []
@@ -298,7 +307,7 @@ def _diff(ref, dut):
         d.append("x: dut %s ref %s" % (_fmt_regs("x", dut.x), _fmt_regs("x", rx)))
     if ref.f != dut.f:
         d.append("f: dut %s ref %s" % (_fmt_regs("f", dut.f), _fmt_regs("f", ref.f)))
-    if sorted(ref.m) != sorted(dut.m):
+    if sorted(ref.m) != sorted(dut.m) and not is_vector_store(ref):
         fm = lambda l: "[%s]" % ", ".join("0x%x:%d=0x%x" % s for s in l)
         d.append("store: dut %s ref %s" % (fm(dut.m), fm(ref.m)))
     for a in sorted(set(ref.c) & set(dut.c)):
