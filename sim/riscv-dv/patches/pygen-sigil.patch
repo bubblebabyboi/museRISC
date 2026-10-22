@@ -109,6 +109,11 @@ AD riscv_instr_gen_config.py ra_c: the return-address register differs
    from the configured sp/tp registers (pygen compared with the literal
    x2/x4, so "jal t6" could overwrite the kernel stack pointer t6 and the
    next trap handler trapped forever).
+AE riscv_asm_program_gen.py: a misaligned load or store/AMO exception
+   resumes after the 2- or 4-byte access (misaligned_handler, like the
+   ebreak handler) instead of ending the test in test_done. Sigil traps
+   every misaligned access, so riscv_unaligned_load_store_test ended at
+   its first one (about 240 records and one trap per run).
 
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
 --- a/pygen/pygen_src/isa/riscv_b_instr.py
@@ -443,7 +448,16 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
  
      # Setup EPC before entering target privileged mode
      def setup_epc(self, hart):
-@@ -760,6 +775,15 @@
+@@ -740,6 +755,8 @@
+         self.gen_ebreak_handler(hart)
+         # Illegal instruction handler
+         self.gen_illegal_instr_handler(hart)
++        # Sigil patch: misaligned load/store/AMO handler
++        self.gen_misaligned_handler(hart)
+         # Generate page table fault handling routine
+         # Page table fault is always handled in machine mode, as virtual address translation may be
+         # broken when page fault happens.
+@@ -760,6 +777,15 @@
                                        privileged_reg_t.MEPC, privileged_reg_t.MSCRATCH,
                                        privileged_reg_t.MSTATUS, privileged_reg_t.MIE,
                                        privileged_reg_t.MIP)
@@ -459,7 +473,7 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
  
      # Generate the interrupt and trap handler for different privileged mode.
      # The trap handler checks the xCAUSE to determine the type of the exception and jumps to
-@@ -813,11 +837,23 @@
+@@ -813,16 +839,37 @@
          instr.extend(("csrr x{}, {} # {}".format(cfg.gpr[0], hex(epc), epc.name),
                        "csrr x{}, {} # {}".format(cfg.gpr[0], hex(cause), cause.name),
                        # Check if it's an ECALL exception. Jump to ECALL exception handler
@@ -484,7 +498,21 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
                        # Illegal instruction exception
                        "li x{}, {} # ILLEGAL_INSTRUCTION".format(
                        cfg.gpr[1], hex(exception_cause_t.ILLEGAL_INSTRUCTION)),
-@@ -890,8 +926,21 @@
+                       "beq x{}, x{}, {}illegal_instr_handler".format(
+                       cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
++                      # Sigil patch: misaligned load/store/AMO -> resume after it
++                      "li x{}, {} # LOAD_ADDRESS_MISALIGNED".format(
++                      cfg.gpr[1], hex(exception_cause_t.LOAD_ADDRESS_MISALIGNED)),
++                      "beq x{}, x{}, {}misaligned_handler".format(
++                      cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
++                      "li x{}, {} # STORE_AMO_ADDRESS_MISALIGNED".format(
++                      cfg.gpr[1], hex(exception_cause_t.STORE_AMO_ADDRESS_MISALIGNED)),
++                      "beq x{}, x{}, {}misaligned_handler".format(
++                      cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
+                       # Skip checking tval for illegal instruction as it's implementation specific
+                       "csrr x{}, {} # {}".format(cfg.gpr[1], hex(tval), tval.name),
+                       # use JALR to jump to test_done.
+@@ -890,8 +937,41 @@
      # TODO: Support ebreak exception delegation
      # TODO: handshake the correct Xcause CSR based on delegation privil. mode
      def gen_ebreak_handler(self, hart):
@@ -505,6 +533,26 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
 +                                          cfg.mstatus_mprv, cfg.sp, cfg.tp, instr)
 +        instr.append("mret")
 +        self.gen_section(pkg_ins.get_label("ebreak_handler", hart), instr)
++
++    # Sigil patch: misaligned load/store/AMO handler. The core traps
++    # every misaligned access (no Zicclsm); skip the 2- or 4-byte
++    # instruction at mepc and resume (satp is Bare, so mepc is a
++    # physical address M-mode can read), like the ebreak handler.
++    def gen_misaligned_handler(self, hart):
++        instr = []
++        g0, g1 = cfg.gpr[0], cfg.gpr[1]
++        instr.extend(("csrr  x{}, {}".format(g0, hex(privileged_reg_t.MEPC)),
++                      "lhu   x{}, 0(x{})".format(g1, g0),
++                      "andi  x{}, x{}, 3".format(g1, g1),
++                      "addi  x{}, x{}, -3".format(g1, g1),
++                      "addi  x{}, x{}, 2".format(g0, g0),
++                      "bnez  x{}, 1f".format(g1),
++                      "addi  x{}, x{}, 2".format(g0, g0),
++                      "1: csrw  {}, x{}".format(hex(privileged_reg_t.MEPC), g0)))
++        pkg_ins.pop_gpr_from_kernel_stack(privileged_reg_t.MSTATUS, privileged_reg_t.MSCRATCH,
++                                          cfg.mstatus_mprv, cfg.sp, cfg.tp, instr)
++        instr.append("mret")
++        self.gen_section(pkg_ins.get_label("misaligned_handler", hart), instr)
  
      # Illegal instruction handler
      # Note: Save the illegal instruction to MTVAL is optional in the spec, and mepc could be

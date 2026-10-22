@@ -18,6 +18,11 @@
 #   riscv_mem_region_stress_test.
 # - satp is Bare (no page tables in pygen), see riscv_core_setting.py.
 #
+# spike_max_instr (optional): Spike's --instructions budget for the test
+# (default: the driver's --max-instr, 2,000,000). Spike charges it in
+# steps of 5,000 and every trap ends a step, so a trap can cost up to
+# 5,000: trap-heavy tests need a budget far above their length.
+#
 # gen_mem_gb (optional): the test's pygen peak memory in GiB, rounded up.
 # The driver starts a generation only while the estimates of the running
 # ones fit in its memory budget (--gen-mem-gb); tests without the key
@@ -99,7 +104,10 @@
   source: yaml/base_testlist.yaml
   description: >
     Unaligned loads/stores. Sigil (and the Spike config) trap them; the
-    generated handler skips the access.
+    generated handler skips the access and resumes (patch AE), so a run
+    takes about 2,000 misaligned-access traps.
+  # Spike's --instructions budget is charged up to 5,000 per trap.
+  spike_max_instr: 40000000
   gen_opts: >
     +instr_cnt=6000
     +num_of_sub_program=0

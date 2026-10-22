@@ -121,6 +121,15 @@ def gen_opts(entry, instr_cnt):
     return out
 
 
+def spike_max_instr(entry, default):
+    """Spike --instructions budget for a test: its spike_max_instr in
+    testlist.yaml, else the driver default (--max-instr). Spike charges
+    the budget in steps of 5,000 (sim_t::INTERLEAVE) and a trap ends a
+    step early, so every trap can cost up to 5,000 of it: trap-heavy
+    tests need a budget far above their instruction count."""
+    return int(entry.get("spike_max_instr", default))
+
+
 def gen_mem_gb(entry):
     """Estimated pygen peak memory for a test (GB): its gen_mem_gb in
     testlist.yaml, else DEFAULT_GEN_MEM_GB."""
@@ -305,8 +314,9 @@ def run_one(entry, seed, a):
         return done("GEN_FAIL", "gcc rc=%s: %s" % (rc, tail(os.path.join(d, "gcc.out"), 2)))
 
     # 2. Reference.
+    max_instr = spike_max_instr(entry, a.max_instr)
     cmd = [a.spike] + SPIKE_ARGS + ["-l", "--log-commits", "--log=" + p["spike_log"],
-                                    "--instructions=%d" % a.max_instr, p["elf"]]
+                                    "--instructions=%d" % max_instr, p["elf"]]
     rc, row["spike_s"] = run_cmd(cmd, os.path.join(d, "spike.out"), timeout=a.sim_timeout)
     if rc != 0:
         return done("SPIKE_FAIL", "spike %s: %s" % (
@@ -315,8 +325,9 @@ def run_one(entry, seed, a):
     # problem) is a SPIKE_FAIL; do not spend the DUT cycle budget on it.
     tohost = rdv_trace.elf_symbols(p["elf"]).get("tohost")
     if tohost is None or not spike_wrote_tohost(p["spike_log"], tohost):
-        return done("SPIKE_FAIL", "reference did not write tohost within %d instructions"
-                    % a.max_instr)
+        return done("SPIKE_FAIL", "reference did not write tohost within its --instructions "
+                    "budget %d (Spike charges up to 5000 per trap; see spike_max_instr)"
+                    % max_instr)
 
     # 3. DUT.
     cmd = [a.core_tb, p["elf"], str(a.max_cycles), "--drain", "64",
@@ -368,7 +379,8 @@ def main():
     ap.add_argument("--max-cycles", type=int, default=5_000_000,
                     help="core_tb cycle limit (DUT_TIMEOUT beyond)")
     ap.add_argument("--max-instr", type=int, default=2_000_000,
-                    help="Spike instruction limit (SPIKE_FAIL beyond)")
+                    help="Spike --instructions budget for tests without spike_max_instr "
+                    "(SPIKE_FAIL beyond; Spike charges up to 5000 per trap)")
     ap.add_argument("--gen-timeout", type=int, default=1800)
     ap.add_argument("--gen-mem-gb", type=float, default=None,
                     help="memory budget (GB) shared by concurrent pygen runs, each "
