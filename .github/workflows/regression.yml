@@ -18,7 +18,10 @@ env:
   VJOBS: "1"
 
 concurrency:
-  group: rtl-regression-${{ github.ref }}
+  # PRs: one group per branch (superseded runs cancelled). main: one group
+  # per commit, so no run is queued behind or replaced by a later push
+  # (GitHub keeps only one pending run per group).
+  group: rtl-regression-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Cancel superseded runs only for PRs; every commit on main gets a full result.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
