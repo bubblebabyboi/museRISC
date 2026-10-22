@@ -2311,3 +2311,23 @@ Simulation: Verilator (`fpgatop-f2-quick` with an 80 GiB sparse model,
 `make test`, `make lint`; CI-parity Verilator 5.020 lint + FPGA targets) and
 HDK XSIM (`test_sigil_regs`, `test_sigil_platform`, `test_sigil_hash`,
 `test_sigil_host_cosim`) — logs in `sim/` and `xsim/`.
+
+## #73 Linux release branch: gates (2026-10-22)
+
+[`linux-release-73-gates-2026-10-22.log`](linux-release-73-gates-2026-10-22.log)
+(`73-linux-release` at `a6051cd`, the merge of `73-f2-memory-platform` and
+`73-linux-debian`; fresh clone on `sigil-fpga-build`): lint clean on Verilator
+5.048, CI's 5.020 and 5.044; `make core-test` (241 TB PASS, 0 fail, including
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick`), riscv-tests
+**123/123**, `make test`, and `socrtl`, `sochash`, `examples` (7/7),
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick` run explicitly.
+The released OS artifacts match the branch's `SHA256SUMS` (12/12).
+`soc_rtl_tb` built from the release RTL boots Linux 6.12 (`Image-initramfs`,
+`sigil-sim.dtb`) to `SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** (17.5
+min). All 825 kernel console lines are intact. The same boot on main's RTL
+had 4 lines corrupted by #63. The QEMU acceptance run of the Debian image
+passes 23/23. Full ACT was not rerun because `rtl/core` is byte-identical to
+`main` (tree `f573234a`, the tree of the #53 ACT run, 2,577/2,578). Later
+commits up to `ce9fe97` change no RTL; at that commit lint and
+`fpgatop-f2-examples` (`hbm_touch`) pass. Pending: the first Debian boot on a
+real F2, `<F2 boot time: pending>`.

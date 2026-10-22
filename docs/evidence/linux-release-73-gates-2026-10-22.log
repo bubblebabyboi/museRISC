@@ -1,0 +1,148 @@
+Gates for the Linux release branch 73-linux-release (#73: 73-f2-memory-platform + 73-linux-debian merged), 2026-10-22
+Commit: a6051cd9029310c24cc87ebb00e5180ad335da55 (fresh clone from GitHub, detached at that SHA, `git status --porcelain` empty)
+Host: sigil-fpga-build (AWS r7iz.8xlarge, 32 vCPU, Ubuntu 24.04.1), at most 12 parallel jobs (VJOBS=8 main chain, VJOBS=4 boot chain)
+       plus macOS for the Verilator 5.044 lint
+
+== Tools
+Verilator 5.048 2026-04-26 rev v5.048          deps/ (the scripts/install_deps.sh build)
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1) CI parity: Ubuntu 24.04 apt package verilator_5.020-1_amd64.deb, unpacked (no Docker on this host)
+Verilator 5.044 2026-01-01 (Homebrew)           macOS
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0      riscv-gnu-toolchain 2026.08.27 riscv64-elf-ubuntu-24.04-gcc.tar.xz (install_deps.sh pin)
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, Python 3.12.3, pexpect 4.9.0, zstd 1.5.5
+QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+third_party: riscv-tests eeacd5507db7a0f50ca8c4f27aff220fcbb60bdf, berkeley-softfloat-3 a0c6494cdc11865811dec815d5c0049fba9d82a8
+
+== Results
+gate                                             result  wall
+make lint, Verilator 5.048                       PASS    16s     19 lint runs, 0 warnings
+make lint, Verilator 5.020 (CI parity)           PASS    13s     19 lint runs, 0 warnings (see note 1)
+make lint, Verilator 5.044 (macOS)               PASS    9s      19 lint runs, 0 warnings
+make core-test                                   PASS    2012s   241 "TB PASS" lines, 0 failures (incl. fpgatop-quick, fpgatop-f2-quick, fpgaocl-quick, axibridge, srammacro, 7 examples)
+make riscv-tests                                 PASS    21s     rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+make test                                        PASS    23s     ALL PHASE-0 KATs PASS
+make -C sim socrtl sochash examples \
+  fpgatop-quick fpgatop-f2-quick fpgaocl-quick   PASS    516s    details below
+OS artifacts vs the branch's SHA256SUMS          PASS    -       12/12 OK (docs/evidence/linux-debian-73-2026-10-22/SHA256SUMS)
+Linux RTL boot (soc_rtl_tb, Linux 6.12)          PASS    1052s   SIGIL_LINUX_BOOT_OK at 261,247,447 cycles
+QEMU acceptance (scripts/qemu_sigil_check.py)    PASS    92s     23/23 checks, QEMU SIGIL DEBIAN CHECK PASS
+Full ACT                                         not run -       rtl/core unchanged, proof below
+
+== rtl/core unchanged: full ACT not rerun
+$ git diff --stat eeaa332 a6051cd -- rtl/core          (eeaa332 = origin/main, also the merge base)
+(empty)
+$ git rev-parse eeaa332:rtl/core a6051cd:rtl/core
+f573234a35008f1ea184a49442c320eba6862f84
+f573234a35008f1ea184a49442c320eba6862f84
+rtl/core last changed on main in 4dd3243 (#53 VRF_OREG). The #53 evidence commit ef0b5b4 has the same
+tree (ef0b5b4:rtl/core = f573234a); its full ACT run (fpga-vrf-oreg-53-2026-10-21.log) was 2,577/2,578,
+only the PA0 waiver failing. Also unchanged against main: tb/cpp/core_tb.cpp, tb/cpp/mbus_model.h,
+sim/run_riscv_tests.sh, sim/run_directed.sh and the ACT scripts (build_act4_*.sh, run_compliance.sh); the
+scripts/ diff is limited to
+build_debian_rootfs.sh, build_dtbs.sh, build_linux_kernel.sh, build_opensbi.sh, qemu_reference_boot.sh,
+qemu_sigil_boot.sh, qemu_sigil_check.py.
+RTL that did change against main: rtl/soc (sigil_uart16550, sigil_soc_top, new sigil_test_finisher and
+sigil_rtc_goldfish), rtl/fpga (sigil_axi_memeng, sigil_fpga_top, sigil_mbus_axi4, sigil_ocl_regs,
+sigil_fpga_ocl), rtl/sigil_soc_files.mk. These are covered by the lint runs, socrtl / sochash / examples
+(soc_rtl_tb), the Linux RTL boot, and axibridge / fpgatop-quick / fpgatop-f2-quick / fpgaocl-quick.
+
+== make -C sim socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick (Verilator 5.048)
+socrtl          SOC RTL TB PASS (exit string at 27689639 cycles)      crypto_soc_test
+                SOC RTL TB PASS (exit string at 28615218 cycles)      ed25519_soc_test
+sochash         SOC HASH PASS; SOC RTL TB PASS (exit string at 104422 cycles)
+examples        hello 54050, timer_irq 51458, sha256_accel 1465990, hash_stream 261426,
+                ed25519_verify 14630219, vector_dot 811531, fp_math 47541 cycles: ALL 7 EXAMPLES PASS on soc_rtl_tb
+fpgatop-quick   FPGA SMOKE PASS x4 (64- and 512-bit AXI, reset mid-traffic, two runs each):
+                runs at 12391961 / 12391803 / 11795853 / 11787989 cycles after reset release;
+                SOC HASH PASS through the FPGA top with the engine test (105491 cycles)
+fpgatop-f2-quick
+                f2_platform_test, UART back-pressure + every burst byte checked: F2 PLATFORM PASS, finisher at 762007 cycles
+                out-of-window read, error capture 0x1480000000: F2 PLATFORM PASS, finisher at 766699 cycles
+                fail code via the finisher (0x2a3333 expected): F2 PLATFORM PASS, finisher at 762193 cycles
+                reboot through the finisher, pmem-window image kept: F2 PLATFORM PASS twice, finisher at 785007 cycles
+                sochash on the 80 GiB window: SOC HASH PASS (105316 cycles)
+                f2_memtest, 16 MiB stride over all DDR4 and HBM: F2 MEMTEST PASS, finisher at 9035396 cycles
+fpgaocl-quick   SOC HASH PASS, UART drained with 14 TX_DATA and 42 TX_DATA3 reads;
+                FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+Lines reporting a failure: 0
+
+== make core-test (Verilator 5.048, `make -C sim` = all)
+rc=0; 241 "TB PASS" lines; 0 result lines with FAIL. Includes CORE TB PASS: 37 directed runs, 0 FAIL for the
+fakeram45, sky130, oreg and vrforeg srammacro families; AXI BRIDGE TB PASS at 64/128/512-bit AXI (3 configs each);
+FPGA SMOKE PASS x4; F2 PLATFORM PASS x5; F2 MEMTEST PASS; FPGA OCL TB PASS; ALL 7 EXAMPLES PASS on soc_rtl_tb;
+FPGATOP EXAMPLE PASS hello / timer_irq.
+Coverage annotation summary: lines with all attached points covered: 55.00% (3491/6252)
+
+== OS artifacts (sigil-fpga-build:~/os-artifacts) against docs/evidence/linux-debian-73-2026-10-22/SHA256SUMS
+Image, Image-initramfs, System.map-6.12.114-sigil, fw_jump.bin, fw_jump.elf, kernel-6.12.114-sigil.config,
+manifest.txt, modules-6.12.114-sigil.tar.gz, sigil-debian-13-riscv64.ext4.zst, sigil-f2.dtb, sigil-qemu.dtb,
+sigil-sim.dtb: OK (12/12)
+Unpacked sigil-debian-13-riscv64.ext4: 8589934592 bytes,
+sha256 c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632 = the raw-image hash in build-versions.txt
+
+== Linux RTL boot: soc_rtl_tb at a6051cd (second fresh worktree, Verilator 5.048, VFLAGS_FAST)
+$ make -C sim ../build/sim/soc_rtl_tb VJOBS=4                         (13 s)
+$ build/sim/soc_rtl_tb 6000000000 --load 0x80000000=fw_jump.bin --load 0x80200000=Image-initramfs \
+    --load 0x83000000=sigil-sim.dtb --uart-log linux-boot-uart.log --exit-string SIGIL_LINUX_BOOT_OK
+loaded 277840 bytes at 0x80000000 from fw_jump.bin
+loaded 15470592 bytes at 0x80200000 from Image-initramfs
+loaded 6187 bytes at 0x83000000 from sigil-sim.dtb
+...
+[   20.509676] Freeing unused kernel image (initmem) memory: 2460K
+[   20.523710] Run /init as init process
+sigil init: userspace alive
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 17:31.61 (user 1051 s), max RSS 151516 KiB
+Console: 825 kernel lines, all well-formed. The 73-linux-debian reference boot on main's RTL
+(soc-rtl-linux-6.12-boot.log: 261,246,160 cycles) has 818 well-formed and 4 corrupted lines from the
+#63 UART TX-FIFO drops; the release RTL carries the #63 fix and drops none.
+UART log (not committed) sha256 a14fee2df1bf7f13ff56167b5c660d2fdf4df4eaa9c1fa6a567ed081c1f3d061
+
+== QEMU acceptance (python3 ./scripts/qemu_sigil_check.py --fresh; qemu_sigil_boot.sh, sigil-qemu.dtb)
+QEMU timings, not FPGA timings:
+  11.8 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 9.08 s)
+  14.5 s  login prompt
+  16.2 s  logged in as sigil
+  PASS: kernel 6.12 + Debian 13                       PASS: cpu isa has zve64d
+  PASS: systemd running, no failed units              PASS: root on /dev/pmem0 (ext4, rw)
+  PASS: nodes 0-1 online                              PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+  PASS: gcc hello.c && ./a.out                        PASS: gcc 14 / binutils / glibc versions
+  PASS: make examples                                 PASS: malloc test
+  PASS: numa_hbm (libnuma onnode 0 and 1)             PASS: default malloc lands in node 0
+  PASS: numactl --membind=1 lands in node 1           PASS: numactl --interleave=0,1 splits
+  PASS: RVV Zve64d user program                       PASS: gcc auto-vectorized Zve64d program
+  PASS: sudo                                          PASS: python3
+  PASS: GNU tools present                             PASS: systemd-analyze
+  PASS: write file on pmem disk
+  70.0 s  reboot requested
+  85.4 s  boot marker: SIGIL_LINUX_BOOT_OK (second boot)
+  89.7 s  PASS: file survived reboot
+  92.2 s  PASS: poweroff
+23/23 checks passed
+QEMU SIGIL DEBIAN CHECK PASS
+
+== Later commits on the branch (not part of the a6051cd gate)
+d96d45c..ce9fe97 add sw/examples/hbm_touch, the sim target fpgatop-f2-examples (now in `all`),
+fpga/scripts/sigil-linux and docs; no RTL change (git diff a6051cd ce9fe97 -- rtl tb: empty).
+Delta check at ce9fe973c85be485d4c86c1f19e7215131c325c6, same host and clone:
+  make lint (5.048)                                    PASS
+  make -C sim examples-bins fpgatop-f2-examples        PASS  FPGATOP-F2 EXAMPLE PASS hbm_touch (at 5370652 cycles);
+                                                             ALL 1 F2-MAP EXAMPLES PASS on fpga_top_tb_f2
+
+== Notes
+1. The first 5.020 attempt (rc=2, 0 s) never reached the RTL: the wrapper set VERILATOR_ROOT to the unpacked
+   deb's share/verilator, where the 5.020 driver looks for bin/verilator_bin. After linking
+   share/verilator/bin/verilator_bin to the unpacked usr/bin/verilator_bin the lint ran: rc=0, 0 warnings.
+   No repository change was involved.
+2. sigil-fpga-build had no deps/ of its own. The clean clone got a project-local deps/: the Verilator 5.048
+   install from the scripts/install_deps.sh build on sigil-fpga-build2, the pinned toolchain downloaded from
+   GitHub, third_party clones at the install_deps.sh pins.
+3. No gate failed. No fixes were needed.
+
+== Not covered here
+- First Debian boot on a real F2 with agfi-0a1fd54ef68bdc754: <F2 boot time, reset to login prompt: pending>,
+  <F2 acceptance checks: pending>. That run happens separately on sigil-f2-test; its result lands on 73-linux-debian.
+- Vivado build / HDK XSIM of the CL: not rerun. The AFI was built from 73-f2-memory-platform; see
+  f2-platform-73-2026-10-22/ (post-route timing, XSIM logs, F2 hardware results).
+- Full ACT (rtl/core unchanged, above).
