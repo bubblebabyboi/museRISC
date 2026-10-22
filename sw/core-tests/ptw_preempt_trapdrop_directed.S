@@ -1,12 +1,18 @@
 // Fetch-walk preemption next to traps and already-dropped requests
 // (issue #73 skeptic review of the preemption fix).
 //
-// Step 1: page A ends with  ecall ; ld a0, 0(VA_D)  and IF runs on
-// into cold page B (fetch walk F1, root read R1 in flight). The
-// ecall reaches WB (trap_take) in the same cycle the load sits in
-// MEM with a data-TLB miss, i.e. the cycle in which sigil_mmu would
-// preempt F1: the trap must win (abort), R1 is dropped and the load
-// is squashed.
+// Step 1: page A ends with
+//     ld t4, 0(VA_Y)     uncached load, TLB hit: holds MEM a while
+//     ld t5, 1(VA_D)     misaligned: excepts in EX (cause 4)
+//     ld a0, 0(VA_D)     data-TLB miss
+// and IF runs on into cold page B (fetch walk F1, root read R1 in
+// flight). IF delivers one word every other cycle, so instructions
+// normally travel with a bubble between them; the first load's
+// mem_stall lets the fetch of the third catch up, so the misaligned
+// load reaches WB (trap_take) in the same cycle the data-missing
+// load sits in MEM, i.e. the cycle in which sigil_mmu would preempt
+// F1. The trap must win (abort), R1 is dropped and the load is
+// squashed.
 // Step 2: the M handler waits d loop iterations and returns to the
 // last word of page A2 (pre-loaded), ld a0, 0(VA_D); IF runs into
 // cold page B2 and starts fetch walk F2. While R1 (dropped) is still
@@ -30,6 +36,8 @@
 .equ VA_A,    0x200000       // L0A[0]; page B = L0A[1]
 .equ VA_A2,   0x202000       // L0A[2]; page B2 = L0A[3]
 .equ VA_D,    0x40000000     // root[1]
+.equ VA_Y,    0x204000       // L0A[4] -> PT_Y (uncached scratch)
+.equ PT_Y,    0x20025000
 .equ MAGIC,   0x5a5a1234
 .equ ITERS,   3
 .equ NDLY,    64
@@ -44,7 +52,7 @@ _start:
     slli t1, t1, 56
     csrw pmpcfg2, t1
     li t1, PT_ROOT
-    li t2, PT_ROOT + 0x5000
+    li t2, PT_ROOT + 0x6000
 1:  sd x0, 0(t1)
     addi t1, t1, 8
     bltu t1, t2, 1b
@@ -68,6 +76,10 @@ _start:
     addi t2, t2, 8
     addi t3, t3, -1
     bnez t3, 2b
+    li t1, PT_Y
+    srli t1, t1, 2
+    ori t1, t1, 0xC7              // RW A D
+    sd t1, 0(t2)                  // L0A[4]: VA_Y -> PT_Y (uncached)
     li t1, PT_L1D
     srli t1, t1, 2
     ori t1, t1, 0x01
@@ -89,35 +101,38 @@ _start:
     or t1, t1, t2
     csrw satp, t1
     li s2, 0                      // iteration
-    li s4, 0                      // step (0: expect page-A ecall, 1: page-B2 ecall)
+    li s4, 0                      // step (0: expect the page-A trap, 1: page-B2 ecall)
     li s6, 0                      // d
     li s5, VA_D
+    li s7, VA_Y
+    li s8, VA_A2 + 0x1000 - 4     // step-2 entry (page-A2 load)
     j enter
 
 m_handler:
-    csrr t1, mcause
-    li t2, 9
-    bne t1, t2, m_fail
+    // Step 1 trap (misaligned load on page A), fast path so that the
+    // page-A2 load arrives while R1 is still in flight: record cause
+    // and epc (checked at step 2), wait d iterations, return to the
+    // last word of page A2 (MPP is already S; the TLB is not flushed,
+    // A2 stays loaded).
     bnez s4, 6f
-    // Step 1 trap (ecall on page A): wait d iterations, then run
-    // the page-A2 load. The TLB is not flushed (A2 stays loaded).
-    csrr t1, mepc
-    li t2, VA_A + 0x1000 - 8
-    bne t1, t2, m_badpc
+    csrr s11, mcause
+    csrr s3, mepc
+    csrw mepc, s8
     li s4, 1
-    li t1, VA_A2 + 0x1000 - 4
-    csrw mepc, t1
-    li t2, (3 << 11)
-    csrc mstatus, t2
-    li t2, (1 << 11)
-    csrs mstatus, t2
     mv t3, s6
     beqz t3, 8f
 7:  addi t3, t3, -1
     bnez t3, 7b
 8:  mret
-    // Step 2 trap (ecall on page B2): check the load.
-6:  li t2, MAGIC
+    // Step 2 trap (ecall on page B2): check step 1 and the load.
+6:  li t1, 4
+    bne s11, t1, 9f
+    li t2, VA_A + 0x1000 - 8
+    bne s3, t2, m_badpc
+    csrr t1, mcause
+    li t2, 9
+    bne t1, t2, m_fail
+    li t2, MAGIC
     bne a0, t2, m_bad
     li s4, 0
     addi s6, s6, 1
@@ -132,6 +147,9 @@ m_handler:
 1:  j 1b
 m_badpc:
     li t1, 0xFE
+    j m_fail
+9:  mv t1, s11                    // step-1 trap had the wrong cause
+    li s4, 0
     j m_fail
 m_bad:
     li t1, 0xFF
@@ -150,7 +168,7 @@ m_fail:
 enter:
     sfence.vma
     li a0, 0
-    li t1, VA_A + 0x1000 - 8
+    li t1, VA_A + 0x1000 - 12
     csrw mepc, t1
     li t2, (3 << 11)
     csrc mstatus, t2
@@ -162,13 +180,15 @@ enter:
     lw t3, 0(t1)
     li t1, VA_A2
     lw t3, 0(t1)
+    ld t3, 0(s7)                  // VA_Y
     csrc mstatus, t2
     mret
 
     .balign 4096
 code_pages:
-    .skip 0x1000 - 8              // page A
-    ecall
+    .skip 0x1000 - 12             // page A
+    ld t4, 0(s7)
+    ld t5, 1(s5)                  // misaligned: cause 4 at WB
     ld a0, 0(s5)
     ecall                         // page B (never executed)
     .skip 0x1000 - 4
