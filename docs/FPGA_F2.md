@@ -620,6 +620,12 @@ Proven on hardware 2026-10-22 (#73,
 full-range memory tests of both memories, firmware, SDK examples, Linux,
 console, finisher, bulk load/save, at a measured 62.5 MHz.
 
+**To boot Debian on it, see [`LINUX.md` §4](LINUX.md#4-boot-debian-on-your-f2)**:
+after the playground setup below, `~/bin/sigil-linux` downloads the
+release's OpenSBI, kernel, device tree and Debian disk, loads this AFI
+and boots to a login prompt, keeping your disk across sessions. For
+bare-metal programs see [`PROGRAMMING.md`](PROGRAMMING.md#8-running-on-aws-f2).
+
 | | |
 |---|---|
 | AGFI | **`agfi-0a1fd54ef68bdc754`** (AFI `afi-035809e576d7ea8d5`, us-east-1) |
@@ -664,12 +670,19 @@ The first public AFI (`agfi-035116450e0a0d093`, #55: 128 MiB, needs
    ```
    The host prints the UART, stops on the test finisher or a pass/fail
    marker, and reports the **measured core clock**. The first run after an
-   AFI load zeroes all DDR4 once (≈17 s; DDR4 has ECC, #62).
+   AFI load zeroes all DDR4 once (≈17 s; DDR4 has ECC, #62). The Linux
+   files are assets of the release `sigil-linux-f2-2026-10-22`; the full
+   Linux command, the disk and what a power-off saves are in
+   [`LINUX.md` §4.2](LINUX.md#42-by-hand-the-sigil_host-command-reference).
+
 **One-command playground:** on a fresh `f2.6xlarge` (FPGA Developer AMI),
 `curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash`
-installs the SDK and a RISC-V compiler, clones Sigil, builds `sigil_host`,
-loads the AFI and installs [`sigil-run`](../fpga/scripts/sigil-run)
-(`sigil-run main.c` compiles a program with the SDK and runs it on the FPGA).
+installs the SDK, a RISC-V compiler, `zstd` and `tmux`, clones Sigil,
+builds `sigil_host`, loads the AFI and installs two helpers in `~/bin`:
+[`sigil-run`](../fpga/scripts/sigil-run) (`sigil-run main.c` compiles a
+program with the SDK and runs it on the FPGA) and
+[`sigil-linux`](../fpga/scripts/sigil-linux) (boots Debian with a
+persistent disk, [`LINUX.md` §4.1](LINUX.md#41-one-command-sigil-linux)).
 
 6. Rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on the FPGA
    Developer AMI (non-F2 instance), then `aws s3 cp` the tarball and
