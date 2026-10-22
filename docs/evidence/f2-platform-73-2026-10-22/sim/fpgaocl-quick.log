@@ -1,0 +1,8 @@
+cd ../build/sim && ./fpga_ocl_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASSUART drained with 14 TX_DATA and 42 TX_DATA3 reads
+
+AXI: 85 AR (2101 R beats), 32 AW (2048 W beats, 32 B); stall cycles AW 13 W 869 AR 37 R 0 B 0
+FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
