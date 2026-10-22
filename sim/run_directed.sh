@@ -114,3 +114,6 @@ run ptw_gwidth_redirect ptw_gwidth_redirect_directed.bin 4000000
 run ptw_ad_store_race ptw_ad_store_race_directed.bin 4000000
 run ptw_svadu_race ptw_svadu_race_directed.bin 4000000
 run ptw_svadu_race_hyp ptw_svadu_race_hyp_directed.bin 4000000
+# A FENCE.I in MEM while a fetch walk holds the A/D lock (#53 merge:
+# with FPGA_TIMING the walker must still get the port).
+run ptw_lock_fencei ptw_lock_fencei_directed.bin 4000000

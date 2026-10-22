@@ -1586,6 +1586,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // The walker's A/D lock (walk_lock, from MMU state flops) overrides
   // it: MEM waits for the write-back (mem_issue), so the payload is
   // the walker's for the whole lock and the walker never waits on MEM.
+  // Unmasked, a FENCE.I in MEM during the lock hangs the core (a
+  // translated access leaves the walker the replay cycle after each
+  // grant; FENCE.I has no translation): ptw_lock_fencei_directed.
   logic mem_port_sel;
   if (FPGA_TIMING) begin : g_port_sel
     assign mem_port_sel = ((data_access && mmu_d_ok) || mem_fencei) &&

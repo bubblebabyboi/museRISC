@@ -70,13 +70,15 @@ oops-ptw-preempt: $(BUILD)/$(OOPS_CORE_TB) $(addprefix $(BUILD)/,$(addsuffix .bi
 # both checkers at the same three bus timings: the hunters' three,
 # the review's adversarial preemption tests (back-to-back, with a
 # trap, two-stage), the G-stage GPA-width-fault exits (fetch, data
-# and redirect consumers) and the Svadu A/D atomicity tests. Each
+# and redirect consumers), the Svadu A/D atomicity tests and a
+# FENCE.I waiting in MEM during the A/D lock. Each
 # run's log is build/sim/oops_<test>_<n>.log; exit 1 on any FAIL,
 # stale walker response or PTWINV violation.
 OOPS_WALKER_TESTS := $(OOPS_PTW_TESTS) ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed \
                      ptw_preempt_hyp_directed ptw_preempt_guest_directed ptw_gwidth_directed \
                      ptw_gwidth_load_directed ptw_gwidth_redirect_directed \
-                     ptw_ad_store_race_directed ptw_svadu_race_directed ptw_svadu_race_hyp_directed
+                     ptw_ad_store_race_directed ptw_svadu_race_directed ptw_svadu_race_hyp_directed \
+                     ptw_lock_fencei_directed
 .PHONY: oops-ptw-walker
 oops-ptw-walker: $(BUILD)/$(OOPS_CORE_TB) $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_WALKER_TESTS)))
 	cd $(BUILD) && rc=0; for t in $(OOPS_WALKER_TESTS); do n=0; \
