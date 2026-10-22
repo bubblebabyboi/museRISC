@@ -161,7 +161,11 @@ F2) costs about $2/h On-Demand: stop it when you are done.
 > ([`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md))
 > and this Debian passed 23/23 acceptance checks in QEMU
 > ([`evidence/linux-debian-73-2026-10-22/`](evidence/linux-debian-73-2026-10-22/)).
+> `sigil-linux` passed its tests against a simulated `sigil_host` and
+> AFI tools ([`sigil-linux-tests.log`](evidence/linux-user-docs-73-2026-10-22/sigil-linux-tests.log)).
 > First Debian boot on the F2: `<F2 Debian boot evidence: pending>`.
+> First `sigil-linux` run on the F2 (boot, `poweroff`, save, second boot
+> from the saved disk): `<sigil-linux on F2: pending>`.
 
 ### 4.1 One command: `sigil-linux`
 
@@ -174,7 +178,13 @@ tmux                 # recommended: if SSH drops, Debian and your work survive i
 ~/bin/sigil-linux    # downloads, unpacks your disk, loads the AFI, boots to the login prompt
 ```
 
-The setup script runs once per instance. It installs the AWS FPGA
+(The short names `sigil-linux` and `sigil-run` work in new shells,
+including the `tmux` one; in the shell that ran the setup, use
+`~/bin/...` or `source ~/.bashrc` first.)
+
+The setup script runs once per instance (rerun it to update `~/sigil`,
+`sigil_host` and the helpers; it keeps `~/hello` and does not reload
+an AFI that is already loaded). It installs the AWS FPGA
 runtime SDK (aws-fpga v2.3.5), a bare-metal RISC-V GCC, `zstd` and
 `tmux`, clones Sigil into `~/sigil`, builds `sigil_host`, loads the
 AFI, and puts `sigil-run` (bare-metal programs,
@@ -214,7 +224,7 @@ How a session ends:
 | You | Debian | Your disk |
 |---|---|---|
 | `sudo poweroff` | shuts down; OpenSBI writes back the L1 D$ and powers off through the test finisher | **saved**: `sigil-linux` reads the 16 GiB window back, trims it to the file system and replaces `~/sigil-disk.ext4` |
-| `sudo reboot` | restarts on the same disk: `sigil_host` reloads OpenSBI, the kernel and the DTB, not the disk | the session goes on |
+| `sudo reboot` | restarts on the same disk: `sigil_host` reloads OpenSBI, the kernel and the DTB, not the disk | the session goes on (after 16 reboots in one session `sigil_host` stops with exit status 5, and `sigil-linux` saves the disk as after a power-off) |
 | Ctrl-] | keeps running on the FPGA, but nothing can reattach to it | **not saved**: `~/sigil-disk.ext4` stays as it was; the window at that moment is kept as `~/sigil-disk.ext4.unclean` (`e2fsck -f` it before use) |
 | SSH drops, outside tmux | `sigil_host` ends with your shell | **not saved** |
 
@@ -264,8 +274,10 @@ sudo ~/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb s
   status 4, the SoC keeps running).
 - `--save 0xC80000000=FILE:8G` writes the first 8 GiB of the window to
   `FILE` when the run ends: the whole file system unless you grew it
-  (then `:16G`). `sigil_host` saves however the run ended; only a save
-  after `poweroff` (exit status 0) is a consistent disk. Next time,
+  (then `:16G`). `sigil_host` saves whenever its run loop ends
+  (power-off, fail code, `--on-reboot exit`, Ctrl-], timeout), but not
+  when it stops on a setup or load error or is killed (e.g. SSH drops);
+  only a save after `poweroff` (exit status 0) is a consistent disk. Next time,
   `--load 0xC80000000=sigil-disk-saved.ext4`. Saving straight to the
   root EBS volume is disk-bound (≈ 130 MB/s); `/dev/shm` or the
   instance NVMe is not.
@@ -273,14 +285,19 @@ sudo ~/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb s
   §4.1; `--on-reboot exit` ends the run instead (exit status 5).
 
 The QEMU acceptance run drives the F2 the same way (timeouts × 40, no
-reboot round; a second run checks the saved disk):
+reboot round; a second run checks the saved disk). Run it from `~/sigil`
+with `D` set to the directory of the downloads and the unpacked image
+above:
 
 ```sh
-H="sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb --console --on-reboot exit"
+sudo apt-get install -y python3-pexpect
+D=$PWD          # the directory you downloaded and unpacked into above
+cd ~/sigil
+H="sudo fpga/host/sigil_host --linux --fw $D/fw_jump.bin --image $D/Image --dtb $D/sigil-f2.dtb --console --on-reboot exit"
 python3 scripts/qemu_sigil_check.py --label F2 --scale 40 --no-reboot --stamp 1 --log f2-check.log \
-  --cmd "$H --load 0xC80000000=sigil-debian-13-riscv64.ext4 --save 0xC80000000=saved.ext4:8G"
+  --cmd "$H --load 0xC80000000=$D/sigil-debian-13-riscv64.ext4 --save 0xC80000000=$D/saved.ext4:8G"
 python3 scripts/qemu_sigil_check.py --label F2 --scale 40 --persist-check 1 --log f2-persist.log \
-  --cmd "$H --load 0xC80000000=saved.ext4"
+  --cmd "$H --load 0xC80000000=$D/saved.ext4"
 ```
 
 **Power-off, reboot and the disk.** Sigil's L1 D$ is write-back and the
@@ -539,8 +556,26 @@ state.
   resize2fs /dev/pmem0` grows it online to 16 GiB (then the saved image
   is 16 GiB too).
 - **More packages:** the F2 has no network yet (#72). Boot the same disk
-  in QEMU with `--net`, then `sudo sigil-qemu-net && sudo apt update &&
-  sudo apt install ...`, power off, and use that disk on the F2.
+  in QEMU with networking, install there, and boot it on the F2 again.
+  On the F2 host, while `sigil-linux` is not running:
+
+  ```sh
+  sudo apt-get install -y qemu-system-misc
+  D=~/.cache/sigil-linux/sigil-linux-f2-2026-10-22     # sigil-linux's downloads
+  curl -fLo $D/sigil-qemu.dtb https://github.com/bubblebabyboi/sigil/releases/download/sigil-linux-f2-2026-10-22/sigil-qemu.dtb
+  SIGIL_LINUX_DIR=$D bash ~/sigil/scripts/qemu_sigil_boot.sh --disk ~/sigil-disk.ext4 --net
+  # in Debian (QEMU boots in about 20 s, §7), logged in as sigil:
+  sudo sigil-qemu-net && sudo apt update && sudo apt install <packages>
+  sudo poweroff
+  ```
+
+  QEMU writes straight into the disk file, so there is nothing to save;
+  leave with `sudo poweroff` (Ctrl-A X is no clean shutdown). The file
+  grows to 16 GiB apparent size, still sparse; `sigil-linux` trims it to
+  the file system again on its next save. `SIGIL_LINUX_DIR` is the
+  directory with `fw_jump.bin`, `Image` and `sigil-qemu.dtb` (default: a
+  build's `build/linux`). On another Ubuntu 24.04 machine: clone Sigil,
+  download those three files from the release and copy the disk over.
 - **Files in and out:** §5.6 (loop mount or `debugfs` on the disk file
   while nothing is running on it).
 
