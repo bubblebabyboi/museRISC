@@ -1,0 +1,28 @@
+# Issue #73 oops hunt: core_tb / soc_rtl_tb builds with the
+# simulation-only memory-consistency checker (tb/sv/sigil_oops_chk.sv
+# + tb/cpp/oops_chk_dpi.cpp) bound into sigil_cpu.
+#   make -C sim -f Makefile.oops oops-core-tb oops-soc-rtl-tb
+include Makefile
+
+OOPS_CHK := $(ROOT)/tb/sv/sigil_oops_chk.sv
+OOPS_DPI := $(ROOT)/tb/cpp/oops_chk_dpi.cpp
+OOPS_VFLAGS := -Wno-UNUSEDSIGNAL -Wno-SYNCASYNCNET
+
+.PHONY: oops-core-tb oops-soc-rtl-tb
+oops-core-tb: $(BUILD)/oops_core_tb
+oops-soc-rtl-tb: $(BUILD)/oops_soc_rtl_tb
+
+$(BUILD)/oops_core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
+                       $(OOPS_CHK) $(OOPS_DPI) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/oops_core $(OOPS_VFLAGS) --top-module sigil_cpu \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CPU_RTL) $(OOPS_CHK) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp) $(abspath $(OOPS_DPI))
+
+$(BUILD)/oops_soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
+                          $(OOPS_CHK) $(OOPS_DPI) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/oops_socrtl $(OOPS_VFLAGS) --top-module sigil_soc_top \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(SOC_RTL) $(OOPS_CHK) \
+	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp) $(abspath $(OOPS_DPI))
