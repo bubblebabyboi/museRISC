@@ -2338,7 +2338,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   endfunction
   logic [31:0] tr_w_rows_next;
   assign tr_w_rows_next = tr_m_vregs_q | tr_vls_row;
-  logic [63:0] tr_w_vsnap_q [256];
+  // Packed: Verilator 5.020 rejects delayed assignments to an
+  // unpacked array inside a for loop (BLKLOOPINIT).
+  logic [255:0][63:0] tr_w_vsnap_q;
   initial for (int i = 0; i < 256; i++) tr_w_vsnap_q[i] = 64'd0;
   always @(posedge clk_i) begin
     if (tr_adv && (tr_w_rows_next != 32'd0)) begin
