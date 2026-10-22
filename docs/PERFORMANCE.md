@@ -79,8 +79,11 @@ simulation `cycles` and `instret` equal the `mcycle` and `minstret`
 deltas between the two markers. The record carries both values, and the
 harness checks that they agree. The program's own `SIGIL PERF` window
 lies a few instructions inside the marker window: its reads come after
-the begin marker and before the end marker. The difference is a small
-constant per binary, reported as `HW-counter cycles` next to `cycles`.
+the begin marker and before the end marker. The difference is a few
+tens of cycles and about ten instructions. It is fixed for a given
+binary, configuration and memory model: a load of the saved start
+values can fall between the end read and the end marker. The report
+shows it as `HW-counter cycles` next to `cycles`.
 
 ## 3. The simulation event counters
 
