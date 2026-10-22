@@ -717,16 +717,20 @@ int main(int argc, char **argv) {
   unsigned stale = 0;
   while (rd(R_TX_DATA) & 0x80000000u) stale++;
   if (stale) info("discarded %u UART bytes from a previous run", stale);
+  bool hbm_ok = has_hbm;
   {
     const double t0 = now_s();
     uint32_t st;
     while (!((st = rd(R_STATUS)) & ST_DDR_READY) || (has_hbm && !(st & ST_HBM_READY))) {
-      if (now_s() - t0 > 10) die(3, "memory not ready (STATUS 0x%08x: DDR4 %s, HBM %s)", st,
-                                  st & ST_DDR_READY ? "ready" : "not ready",
-                                  st & ST_HBM_READY ? "ready" : "not ready");
+      if (now_s() - t0 > 10) {
+        if (!(st & ST_DDR_READY)) die(3, "DDR4 not ready (STATUS 0x%08x)", st);
+        info("WARNING: HBM not ready after 10 s (STATUS 0x%08x); DDR4 only", st);
+        hbm_ok = false;
+        break;
+      }
       sigil_usleep(1000);
     }
-    info("DDR4 ready%s (STATUS 0x%08x)", has_hbm ? ", HBM ready" : "", st);
+    info("DDR4 ready%s (STATUS 0x%08x)", hbm_ok ? ", HBM ready" : "", st);
   }
   if (v4) wr(R_CTRL, ctrl_run | CTRL_RESET_REQ | CTRL_ERR_CLR);  // clear the error capture
   int rc_mem = 0;
@@ -738,7 +742,7 @@ int main(int argc, char **argv) {
         rc_mem |= memtest("ddr", 0, ddr_axi);
         hf |= HF_DDR_SCRUBBED;  // written by the test
       }
-      if (has_hbm && strcmp(memtest_what, "ddr")) {
+      if (hbm_ok && strcmp(memtest_what, "ddr")) {
         rc_mem |= memtest("hbm", HBM_AXI, HBM_SIZE);
         hf |= HF_HBM_SCRUBBED;
       }
@@ -749,7 +753,7 @@ int main(int argc, char **argv) {
       hf |= HF_DDR_SCRUBBED;
       wr(R_HOST_FLAGS, hf);
     }
-    if (has_hbm && scrub_hbm && (scrub_mode == 1 || !(hf & HF_HBM_SCRUBBED))) {
+    if (hbm_ok && scrub_hbm && (scrub_mode == 1 || !(hf & HF_HBM_SCRUBBED))) {
       scrub("HBM", HBM_AXI, HBM_SIZE);
       hf |= HF_HBM_SCRUBBED;
       wr(R_HOST_FLAGS, hf);
