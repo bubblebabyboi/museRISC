@@ -2246,6 +2246,52 @@ and reboot via SBI SRST with the D$ write-back; optional host-written
 `/chosen/rng-seed`; later: Svnapot/Svadu in the ISA string (`misa`
 reports V although the unit is Zve64d — harmless, Linux uses the DT).
 
+## #73 user path: `sigil-linux`, the Sigil Linux user guide, `hbm_touch` (2026-10-22, branch `73-linux-release`)
+
+Logs and harness in [`linux-user-docs-73-2026-10-22/`](linux-user-docs-73-2026-10-22/),
+behind `fpga/scripts/sigil-linux`, `docs/LINUX.md` §4–§5 and
+`docs/PROGRAMMING.md` §8.1. All on `sigil-fpga-build` (Ubuntu 24.04,
+e2fsprogs 1.47.0, zstd 1.5.5, QEMU 8.2.2) with the release files of
+`~/os-artifacts/` (sha256 as in `linux-debian-73-2026-10-22/SHA256SUMS`).
+**No F2 instance was used; nothing here is an FPGA measurement.**
+
+- **`sigil-linux` logic, 35/35** ([`sigil-linux-tests.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests.log),
+  `harness/run_tests.sh`): the real script against a fake `sigil_host`
+  (copies the `--load` disk into a 16 GiB window file, changes the ext4
+  in it with `debugfs` or `resize2fs`, writes the `--save` file, exits
+  with a chosen status) and fake AFI tools, real `sudo`, downloads from a
+  `file://` copy of the release. First run (5 downloads, `SHA256SUMS`
+  verified, sparse unpack: 917 MiB allocated of 8 GiB, AFI loaded, the
+  exact `sigil_host` arguments, guest change saved, `e2fsck -fn` clean);
+  rerun with Ctrl-] (exit 4: no download or AFI load, disk unchanged,
+  `DISK.unclean` has the change); guest `resize2fs` to 16 GiB (disk file
+  follows; superblock size = `dumpe2fs`); `--fresh` with garbage beyond
+  the file system (trimmed to 8 GiB, old disk kept); setup error, no ext4
+  in the window, unpublished tag (disk untouched); corrupted cache
+  (re-downloaded); concurrent run (locked out); a 16 GiB fully written
+  window file in `/dev/shm` → sparse copy of the 8 GiB file system in
+  8.2 s, 969 MiB allocated, byte-identical. Fixed while testing: `zstd -d
+  -f` wrote a fully allocated 8 GiB file (now `--sparse`); a root-owned
+  save file may be unreadable for the user (now `chown`ed).
+- **User-guide commands in QEMU, 10/10** ([`qemu-docs-check.log`](linux-user-docs-73-2026-10-22/qemu-docs-check.log),
+  console [`qemu-docs-check-console.log.gz`](linux-user-docs-73-2026-10-22/qemu-docs-check-console.log.gz),
+  `harness/docs_check.py`): files in with `debugfs -w` (owned by root;
+  `sudo chown` fixes it) and a loop mount (`chown -R 1000:1000`); the
+  `LINUX.md` §5.4 `numa_alloc_onnode` program (`harness/hbm.c`) built with
+  `-lnuma`, run plain and under `numactl --membind=1`; `numa_hbm`,
+  `numactl --membind=1 ./memwhere 64` → `node 1: 64 MiB`; RVV intrinsics
+  with `-march=rv64gc_zve64d`, auto-vectorization with
+  `-march=rv64gc_zve64d_zvl512b`; `sudo poweroff`; files out with
+  `debugfs` `cat` / `rdump` and a read-only loop mount; `e2fsck -fn` clean.
+- **`hbm_touch` on the F2 memory map** (`make -C sim fpgatop-f2-examples`,
+  `fpga_top_tb_f2`, Verilator 5.048): `SIGIL TEST PASS hbm_touch` at
+  5,370,652 cycles built with GCC 16.1 ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log))
+  and at 6,153,385 cycles with Ubuntu's GCC 13.2, the compiler `sigil-run`
+  uses ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc13.fpgatop-f2.log)):
+  256 KiB at HBM `0x10_8000_0000`, at the last 256 KiB of HBM and at DDR4
+  `0x8_8000_0000`, 0 bad words, first buffer intact after the others.
+  Cycle counts reflect the simulated AXI timing. Not yet run on the F2.
+
 ## #73 Linux platform on F2: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63, 2026-10-22)
 
 [`f2-platform-73-2026-10-22/SUMMARY.md`](f2-platform-73-2026-10-22/SUMMARY.md).
