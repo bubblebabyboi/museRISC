@@ -19,7 +19,9 @@
 //          [--engine-test] [--rtc-ns N] [--finisher] [--expect-fin V]
 //          [--expect-err 0xADDR] [--check-bursts N] [--poke 0xADDR=0xVAL]
 //          [--axi-lat A:B] [--axi-gap N] [--axi-ready PCT]
-//          [--axi-seed S]
+//          [--axi-seed S] [--axi-rlat A:B] [--axi-blat A:B]
+//          [--axi-rw-race] [--axi-ooo] [--axi-early-b N]
+//   (AXI slave model options: tb/cpp/axi4_slave_model.h)
 //   --tohost: riscv-tests HTIF exit -- the first nonzero write to
 //     that RAM address seen on the AXI W channel ends the run (1 =
 //     pass). Needs --no-cache (with the L1 on, tohost may never be
@@ -601,6 +603,15 @@ int main(int argc, char** argv) {
   }
   if (rc == 0 && finisher) std::fprintf(stderr, "reboots: %d\n", reboots);
   std::fprintf(stderr, "%s\n", axi.Stats().c_str());
+  // The mbus is one transaction at a time and a write is acknowledged
+  // only after its B, so the bridge must never issue a read that
+  // overlaps a write still waiting for its B (--axi-rw-race counts
+  // them; AXI itself gives no read/write channel ordering).
+  if (axi.rw_races() != 0) {
+    std::fprintf(stderr, "FPGA TOP TB FAIL: %llu AXI reads overtook an unacknowledged write\n",
+                 U(axi.rw_races()));
+    if (rc == 0) rc = 1;
+  }
   if (uart_log) std::fclose(uart_log);
   dut->final();
   return rc;

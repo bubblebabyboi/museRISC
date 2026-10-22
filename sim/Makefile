@@ -608,6 +608,28 @@ fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
 	cd $(BUILD) && ./fpga_top_tb_f2 200000000 $(FPGA_AXI_ARGS) --finisher --poke $(F2_MAILBOX)=0x0618 \
 	  --load 0x80000000=$(SOCFW)/f2_memtest.bin --fail-string "F2 MEMTEST FAIL"
+# Issue #73 (F2 oops hunt, AXI lens): f2_rawtest (evict-then-refill of
+# the same line, FENCE.I + execute, AMOs on just-evicted lines) on the F2
+# map with an adversarial AXI slave: F2-like read latency (DDR4 refill
+# measured at 42..78 core cycles), independent and long write-response
+# latency, read/write channels unordered (a write visible only at its B,
+# reads may overtake it), responses reordered across IDs. Must pass with
+# no rw race. fpgatop-f2-raw-earlyb is the positive control: a
+# NON-compliant slave that returns B 2000 cycles before the write is
+# visible must make f2_rawtest fail (expected exit 1).
+F2_ADV_ARGS ?= --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 \
+               --axi-rw-race --axi-ooo
+fpgatop-f2-raw: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_rawtest.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 100000000 $(FPGA_AXI_ARGS) --finisher \
+	  --load 0x80000000=$(SOCFW)/f2_rawtest.bin --fail-string "F2 RAW FAIL"
+	cd $(BUILD) && for s in 1 2 3; do ./fpga_top_tb_f2 200000000 $(F2_ADV_ARGS) --axi-seed $$s \
+	  --finisher --load 0x80000000=$(SOCFW)/f2_rawtest.bin --fail-string "F2 RAW FAIL" || exit 1; done
+fpgatop-f2-raw-earlyb: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_rawtest.bin
+	cd $(BUILD) && if ./fpga_top_tb_f2 200000000 --axi-rlat 36:72 --axi-blat 1:4 --axi-early-b 2000 \
+	  --finisher --load 0x80000000=$(SOCFW)/f2_rawtest.bin --fail-string "F2 RAW FAIL"; then \
+	  echo "positive control: f2_rawtest did NOT detect early B"; exit 1; \
+	else echo "positive control OK: f2_rawtest detects a stale refill after an early B"; fi
+
 # SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
 # the same binaries and pass/fail strings as `examples`.
 FPGATOP_EXAMPLES ?= $(EXAMPLES)
