@@ -99,10 +99,12 @@ module sigil_csr (
     input  wire [63:0] pmp_addr_b_i,
     input  wire [1:0]  pmp_acc_b_i,
     input  wire [1:0]  pmp_priv_b_i,
+    input  wire        pmp_wide_b_i,  // 8-byte access: two 4-byte PMP words
     output logic       pmp_allow_b_o,
     input  wire [63:0] pmp_addr_c_i,
     input  wire [1:0]  pmp_acc_c_i,
     input  wire [1:0]  pmp_priv_c_i,
+    input  wire        pmp_wide_c_i,
     output logic       pmp_allow_c_o
 );
   localparam logic [1:0] PRIV_U = 2'b00, PRIV_S = 2'b01, PRIV_M = 2'b11;
@@ -802,36 +804,62 @@ module sigil_csr (
   // PMP compares in the pmpaddr domain (PA[55:2], 54 bits); the
   // unused input bits (byte offsets, cfg permission bits consumed
   // by the caller) are inherent to the interface.
+  // Returns {m1, m0}: whether the entry matches the 4-byte word at
+  // addr (m0) and the word after it (m1). Only 8-byte accesses use
+  // m1, and they are 8-byte aligned (misaligned accesses trap), so
+  // the second word is {addr[55:3], 1}. A NAPOT region (at least 8
+  // bytes, naturally aligned) matches both words or neither; NA4
+  // and TOR boundaries can split an 8-byte access.
   /* verilator lint_off UNUSEDSIGNAL */
-  function automatic logic pmp_match(
+  function automatic logic [1:0] pmp_match(
       input logic [63:0] addr,
       input logic [7:0]  cfg,
       input logic [63:0] pmpaddr,
       input logic [63:0] prev_pmpaddr);
-    logic [53:0] a54, enc, prev, napot_mask;
+    logic [53:0] a54, a54o, enc, prev, napot_mask;
+    logic lo, hi, m;
     a54 = addr[55:2];
+    a54o = {addr[55:3], 1'b1};
     enc = pmpaddr[53:0];
     prev = prev_pmpaddr[53:0];
     napot_mask = enc ^ (enc + 54'd1);  // trailing-ones span, incl. the 0 above
     unique case (cfg[4:3])
-      2'b00:   pmp_match = 1'b0;                                    // OFF
-      2'b01:   pmp_match = (a54 >= prev) && (a54 < enc);            // TOR
-      2'b10:   pmp_match = (a54 == enc);                            // NA4
-      default: pmp_match = ((a54 ^ enc) & ~napot_mask) == 54'd0;    // NAPOT
+      2'b00:   pmp_match = 2'b00;                                   // OFF
+      2'b01: begin                                                  // TOR
+        lo = (a54 >= prev);
+        hi = (a54 < enc);
+        // a54o = a54 + 1: a54o >= prev iff lo or prev == a54o, and
+        // a54o < enc iff hi and enc != a54o.
+        pmp_match = {(lo || (prev == a54o)) && hi && (enc != a54o), lo && hi};
+      end
+      2'b10:   pmp_match = {a54o == enc, a54 == enc};               // NA4
+      default: begin                                                // NAPOT
+        m = ((a54 ^ enc) & ~napot_mask) == 54'd0;
+        pmp_match = {m, m};
+      end
     endcase
   endfunction
   /* verilator lint_on UNUSEDSIGNAL */
 
+  // The lowest-numbered entry that matches any byte of the access
+  // decides; if it does not match all of its bytes, the access
+  // fails whatever the privilege, L, R, W and X (priv. spec,
+  // "Priority and Matching Logic").
   function automatic logic pmp_check(
       input logic [63:0] addr,
       input logic [1:0]  acc,
-      input logic [1:0]  priv);
+      input logic [1:0]  priv,
+      input logic        wide);
     logic allow;
+    logic [1:0] m;
     allow = (priv == PRIV_M);
     for (int i = 15; i >= 0; i--) begin
-      if (pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
-                    (i == 0) ? 64'd0 : pmpaddr_q[i-1])) begin
-        if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
+      m = pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
+                    (i == 0) ? 64'd0 : pmpaddr_q[i-1]);
+      if (m[0] || (wide && m[1])) begin
+        if (wide && (m[0] != m[1])) begin
+          allow = 1'b0;
+        end else if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
           allow = 1'b1;
         end else if (acc == 2'd0) begin
           allow = pmpcfg_q[i][0];
@@ -847,9 +875,10 @@ module sigil_csr (
     return allow;
   endfunction
 
-  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
-  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
-  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
+  // Fetch: one 4-byte word per check.
+  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i, 1'b0);
+  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i, pmp_wide_b_i);
+  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i, pmp_wide_c_i);
 
   // PMP write locking: an entry is locked by its own L bit, and
   // pmpaddr[i] is also locked when entry i+1 is a locked TOR entry

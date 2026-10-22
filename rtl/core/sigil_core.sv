@@ -1722,12 +1722,17 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign sc_success = res_valid_q && (res_pa_q == mmu_d_pa) &&
                       (res_is_d_q || (exmem_ctrl_q.funct3 == 3'b010));
 
+  // Size of the MEM access (0: 1 byte .. 3: 8 bytes): the vector
+  // element width or the scalar funct3; also the PMP check width.
+  logic [1:0] mem_size_code;
+  assign mem_size_code = vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0];
+
   // Data-port request payload. be names the accessed lanes for
   // loads too (an uncached I/O load sees its exact width).
   always_comb begin
     logic [7:0]  be;
     logic [63:0] wdata;
-    unique case (vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0])
+    unique case (mem_size_code)
       2'b00: begin
         be = 8'h01 << mem_va[2:0];
         wdata = {8{eff_store_data[7:0]}};
@@ -1942,10 +1947,12 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .pmp_acc_b_i   (exmem_ctrl_q.hlvx ? 2'd3 :
                       exmem_ctrl_q.mem_write ? 2'd1 : 2'd0),
       .pmp_priv_b_i  (eff_priv_mem),
+      .pmp_wide_b_i  (mem_size_code == 2'b11),
       .pmp_allow_b_o (pmp_allow_data),
       .pmp_addr_c_i  (walk_addr),
       .pmp_acc_c_i   (walk_acc),
       .pmp_priv_c_i  (2'b01),  // implicit PTE accesses check as S
+      .pmp_wide_c_i  (1'b1),   // 8-byte PTE read / A/D write-back
       .pmp_allow_c_o (pmp_allow_walk)
   );
 
