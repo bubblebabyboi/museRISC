@@ -2,7 +2,8 @@
 DRAFT release notes for tag sigil-linux-f2-2026-10-22 (epic #73). Remove this
 comment before publishing.
 
-Suggested title: "Sigil 2026-10-22b: Debian 13 on AWS F2 with 64 GiB DDR4 + 16 GiB HBM (public AFI)"
+Suggested title (only if the F2 Debian boot passed): "Sigil 2026-10-22b:
+Debian 13 on AWS F2 with 64 GiB DDR4 + 16 GiB HBM (public AFI)"
 
 Assets are staged on sigil-fpga-build:~/release-73/ by
 ~/rel73-work/stage_release73.sh (checks the DCP against the evidence, the OS
@@ -10,51 +11,70 @@ artifacts against ~/os-artifacts/SHA256SUMS, the programs against
 fw/SHA256SUMS; reproducible tarballs; no file over 2 GiB).
 
 Before publishing:
+00. sigil-linux has only run against a simulated host. On an F2 with a
+   checkout of this branch (sigil_host built) and the staged assets copied to
+   ~/release-73, run inside tmux
+     SIGIL_LINUX_URL=file://$HOME/release-73 bash ~/sigil/fpga/scripts/sigil-linux
+   then boot, `sudo poweroff`, check "disk saved", and run it a second time
+   from the saved disk. Commit that log under docs/evidence/ and fill
+   `<sigil-linux on F2: pending>` from it.
+0. Merge 73-linux-release into main first (or in the same minute): the setup
+   one-liner, sigil-linux and every guide link below use main. Publish the
+   release with the tag sigil-linux-f2-2026-10-22 exactly: sigil-linux
+   downloads from that tag by default (fpga/scripts/sigil-linux line 33).
+   Then, on a fresh f2.6xlarge, run the three commands of "Boot Debian on
+   your own F2" once against the published assets.
 1. Fill every `<... pending>` placeholder from the first F2 Debian boot
-   (evidence on 73-linux-debian). Do not publish with a placeholder left:
-   grep -nE 'pending>|restage after' docs/evidence/linux-release-73-notes-draft.md
+   (evidence on 73-linux-debian) and the first sigil-linux run on the F2, in
+   these notes and in the docs; drop the hbm_touch one if it was not run.
+   This must print nothing:
+   git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/
+   Replace the "about 9 min" estimate with the measured F2 boot time in
+   fpga/scripts/sigil-linux (the "login prompt takes minutes" line), README
+   "Boot Debian on your own F2", docs/LINUX.md 4.1, 5.1, 5.8 and the 7 table,
+   and the opening paragraph of these notes (keep "on a real AWS F2 FPGA" only
+   if the F2 boot passed).
 2. Copy the new F2 boot evidence directory into ~/rel73-work/evidence/ and
    rerun the stage script: sigil_linux_evidence_2026-10-22.tar.gz and
    SHA256SUMS change, so update their rows in the assets table.
-3. If the boot run changes the sigil_host command (docs/LINUX.md section 4),
-   update "Boot Debian on your own F2" to match.
 -->
 
-The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now runs **Debian 13 "trixie" with gcc and glibc on a real AWS F2 FPGA**, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
+The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now boots **Debian 13 "trixie" with gcc and glibc** `<on a real AWS F2 FPGA: pending, keep only if the F2 boot passed>`, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
 
 ## Boot Debian on your own F2
 
 Public AFI **`agfi-0a1fd54ef68bdc754`** (AFI `afi-035809e576d7ea8d5`, us-east-1, Small Shell `0x10212415`, PCI `0x1D0F:0xF054`), core clock **62.5 MHz** (interim; 100 MHz is #53), HBM AXI 250 MHz.
 
 ```sh
-# on an f2.6xlarge (FPGA Developer AMI, us-east-1)
-git clone -b v2.3.5 https://github.com/aws/aws-fpga ~/aws-fpga && (cd ~/aws-fpga && source sdk_setup.sh)
-sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H
-git clone https://github.com/bubblebabyboi/sigil ~/sigil && make -C ~/sigil/fpga/host SDK_DIR=$HOME/aws-fpga/sdk
-
-# the boot payloads and the Debian disk from this release
-R=https://github.com/bubblebabyboi/sigil/releases/download/sigil-linux-f2-2026-10-22
-mkdir -p ~/sigil-linux && cd ~/sigil-linux
-for f in SHA256SUMS fw_jump.bin Image sigil-f2.dtb sigil-debian-13-riscv64.ext4.zst; do curl -fsSLO "$R/$f"; done
-sha256sum -c --ignore-missing SHA256SUMS
-zstd -d sigil-debian-13-riscv64.ext4.zst            # 8 GiB ext4 image
-
-sudo ~/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
-     --load 0xC80000000=sigil-debian-13-riscv64.ext4 \
-     --save 0xC80000000=sigil-disk-saved.ext4:8G \
-     --console --on-reboot exit
+# on a new f2.6xlarge (FPGA Developer AMI, us-east-1), logged in as ubuntu
+curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash
+tmux                  # recommended: keeps the session alive if SSH drops
+~/bin/sigil-linux     # downloads this release, loads the AFI, boots to the login prompt
 ```
 
-The console is your terminal. The login prompt appears after **`<F2 boot time, reset to login prompt: pending>`** (QEMU-based estimate: about 9 minutes at 62.5 MHz). Log in as **`sigil` / `sigil`** (sudo) or `root` / `sigil`, then for example:
+The console is your terminal. The login prompt appears after **`<F2 boot time, reset to login prompt: pending>`** (QEMU-based estimate: about 9 minutes at 62.5 MHz). First `sigil-linux` run on the F2: `<sigil-linux on F2: pending>`. Log in as **`sigil` / `sigil`** (sudo) or `root` / `sigil`, then for example:
 
 ```sh
 gcc hello.c && ./a.out                          # native gcc 14 / glibc 2.41
 numactl --hardware                              # node 0 = DDR4 48 GiB, node 1 = HBM 16 GiB
 numactl --membind=1 ~/examples/memwhere 1024    # 1 GiB placed in HBM
-sudo poweroff                                   # host saves the disk to sigil-disk-saved.ext4
+sudo poweroff                                   # saves your disk (~/sigil-disk.ext4) for the next sigil-linux
 ```
 
-After `poweroff` the host saves the file system, so the next boot can start from it with `--load 0xC80000000=sigil-disk-saved.ext4`. Ctrl-] detaches without saving a consistent disk. The first run after an AFI load zeroes all DDR4 once, which takes about 17 s.
+`sigil-linux` copies the disk back after `poweroff`; Ctrl-] leaves without saving (the window is kept as `~/sigil-disk.ext4.unclean`); `sudo reboot` keeps the session going on the same disk. The first run after an AFI load zeroes all DDR4 once, which takes about 17 s. Rerunning the setup one-liner updates `~/sigil`, `sigil_host` and the helpers.
+
+By hand (`sigil_host`), as in [`docs/LINUX.md` §4.2](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#42-by-hand-the-sigil_host-command-reference):
+
+```sh
+R=https://github.com/bubblebabyboi/sigil/releases/download/sigil-linux-f2-2026-10-22
+for f in SHA256SUMS fw_jump.bin Image sigil-f2.dtb sigil-debian-13-riscv64.ext4.zst; do curl -fsSLO "$R/$f"; done
+sha256sum -c --ignore-missing SHA256SUMS
+zstd -d --sparse sigil-debian-13-riscv64.ext4.zst     # 8 GiB ext4 image
+sudo ~/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
+     --load 0xC80000000=sigil-debian-13-riscv64.ext4 \
+     --save 0xC80000000=sigil-disk-saved.ext4:8G \
+     --console
+```
 
 Guides: [`docs/LINUX.md`](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md) (build it, QEMU, F2, NUMA, vector code, the disk), [`docs/LINUX_PLATFORM.md`](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX_PLATFORM.md) (memory map and devices), [`docs/FPGA_F2.md`](https://github.com/bubblebabyboi/sigil/blob/main/docs/FPGA_F2.md#flash-sigil-on-your-own-f2) (the AFI and `sigil_host`). Bare-metal programs still work as before: [`docs/PROGRAMMING.md`](https://github.com/bubblebabyboi/sigil/blob/main/docs/PROGRAMMING.md), `sudo fpga/host/sigil_host --bin prog.bin` (no `--ignore-mem-err` needed any more).
 
@@ -89,7 +109,8 @@ Memory as Linux sees it on the F2:
 | `numactl --membind=1` memory lands in HBM | `<pending>` |
 | `gcc hello.c && ./a.out`, time | `<pending>` |
 | RVV Zve64d user program (`rvv_vadd`) | `<pending>` |
-| `poweroff` → host save → second boot from the saved disk | `<pending>` |
+| `poweroff` → `sigil_host --save` → second boot from the saved disk | `<pending>` |
+| `sigil-linux`: boot, `sudo poweroff`, save to `~/sigil-disk.ext4`, second boot from it | `<sigil-linux on F2: pending>` |
 
 **The memory platform** (same AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
 
@@ -104,7 +125,7 @@ Memory as Linux sees it on the F2:
 | Test finisher, RTC | power off / fail code / reboot keeping the disk window; RTC at the host's wall clock, alarm on PLIC source 11 |
 | Firmware + all 7 SDK examples, OpenSBI to S-mode | PASS without `--ignore-mem-err` |
 
-Before the hardware run, the same OS was brought up in QEMU shaped like the platform (**23/23 acceptance checks**, [`linux-debian-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/)), and the all-RTL SoC model booted Linux 6.12 to `SIGIL_LINUX_BOOT_OK` in 261 M cycles.
+Before the F2 Debian boot, the same OS was brought up in QEMU shaped like the platform (**23/23 acceptance checks**, [`linux-debian-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/)), and the all-RTL SoC model booted Linux 6.12 to `SIGIL_LINUX_BOOT_OK` in 261 M cycles.
 
 FPGA build: Vivado 2025.2, aws-fpga v2.3.5, commit `e641930`, all timing constraints met (WNS +0.150 ns; core clock +0.635 ns at 16 ns; HBM AXI +0.336 ns at 4 ns); 131,694 LUTs (10.1 % of the VU47P) for the full CL, 82,676 for the SoC.
 
@@ -112,7 +133,7 @@ FPGA build: Vivado 2025.2, aws-fpga v2.3.5, commit `e641930`, all timing constra
 
 | File | Size | sha256 | What |
 |---|---:|---|---|
-| `sigil-debian-13-riscv64.ext4.zst` | 221.9 MB | `a9cfcbc977fad8968f07200d595b37ed3df51f7877b7fc0ec26d985e5fb5bf33` | Debian 13 root disk; `zstd -d` gives the 8 GiB ext4 (sha256 `c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632`), loaded at `0xC_8000_0000` |
+| `sigil-debian-13-riscv64.ext4.zst` | 221.9 MB | `a9cfcbc977fad8968f07200d595b37ed3df51f7877b7fc0ec26d985e5fb5bf33` | Debian 13 root disk; `zstd -d --sparse` gives the 8 GiB ext4 (sha256 `c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632`), loaded at `0xC_8000_0000` |
 | `fw_jump.bin` | 277.8 kB | `d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf` | OpenSBI v1.9 `fw_jump`, loaded at `0x8000_0000` |
 | `fw_jump.elf` | 2.3 MB | `c60350fb9bc5cd9ce02f3053bfa0172cbc49adda051da019c11d1ac99291ce3d` | the same with symbols |
 | `Image` | 15.5 MB | `0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790` | Linux 6.12.114 kernel, loaded at `0x8020_0000` |
@@ -134,10 +155,10 @@ Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linu
 ## Known issues
 
 - **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs about **13 cycles per instruction** running Linux, at an interim 62.5 MHz. Booting takes minutes and `gcc hello.c` takes about a minute (estimate; `<F2 measured: pending>`). Performance work is epic #61; 100 MHz is #53.
-- **No network on the F2** (#72). To install more packages, boot the same disk in QEMU with `--net`, `apt install` there, and use that disk on the F2 (`docs/LINUX.md` §9).
+- **No network on the F2** (#72). To install more packages, boot your disk in QEMU with networking on the F2 host, `apt install` there, and boot it on the F2 again (commands in [`docs/LINUX.md` §6](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#6-the-disk-pmem-saving-it-back-adding-packages)).
 - **The crypto engine has not had a side-channel or fault-injection review.** Do not use real keys.
 - One hart (no SMP). The vector unit is **Zve64d with VLEN 512, not full V**: build with `-march=rv64gc_zve64d` (add `_zvl512b` for auto-vectorization), never `rv64gcv`.
-- The disk lives in DDR4. It survives `reboot` but not the end of a run unless `sigil_host --save` copies it back after `poweroff`. Saving 8 GiB to the root EBS volume is limited by the disk (≈130 MB/s); `/dev/shm` or the instance NVMe is faster.
+- The disk lives in DDR4; `sigil-linux` saves it to `~/sigil-disk.ext4` after `sudo poweroff`; Ctrl-] or a dropped SSH session outside tmux loses changes since boot. It survives `reboot` within a session.
 - The image is a development system with **public passwords** (`sigil`/`sigil`, `root`/`sigil`); change them with `passwd`.
 - No hardware RNG: early boot entropy comes from timer jitter.
 
