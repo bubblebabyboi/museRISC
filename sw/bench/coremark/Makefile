@@ -44,7 +44,7 @@ CFLAGS += -DFLAGS_STR='"$(COREMARK_FLAGS_STR)"'
 # file's sha256 before writing the stamp.
 COREMARK_STAMP := $(COREMARK_DIR)/.sigil-fetched
 $(COREMARK_STAMP): fetch_coremark.sh
-	$(SHELL) $(CURDIR)/fetch_coremark.sh $(COREMARK_DIR)
+	bash $(CURDIR)/fetch_coremark.sh $(COREMARK_DIR)
 $(COREMARK_SRCS) $(COREMARK_DIR)/coremark.h: | $(COREMARK_STAMP)
 
 $(ELF): $(COREMARK_DIR)/coremark.h core_portme.h
