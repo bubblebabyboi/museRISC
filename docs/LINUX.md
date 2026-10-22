@@ -296,7 +296,7 @@ reboot discards everything written since boot. `sigil_host --on-reboot
 rerun` does exactly that: checked on the F2 with the platform test
 firmware (`platform-reboot` in the platform evidence), and Debian's
 `reboot` keeps the disk in QEMU; Debian `reboot` on the F2:
-`<pending>`.
+`<F2 Debian reboot: pending>`.
 
 ## 5. Using Sigil Linux
 
