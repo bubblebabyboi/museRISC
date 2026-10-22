@@ -1,0 +1,137 @@
+== 1. first run: download, verify, unpack, load AFI, power off -> saved
+[sigil-linux] downloading SHA256SUMS
+######################################################################## 100.0%
+[sigil-linux] downloading fw_jump.bin
+######################################################################## 100.0%
+[sigil-linux] downloading Image
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2.dtb
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-debian-13-riscv64.ext4.zst
+######################################################################## 100.0%
+[sigil-linux] unpacking the Debian image into /home/ubuntu/docs73/test/disk/d.ext4 (8 GiB file system, sparse)
+[sigil-linux] loading the Sigil AFI agfi-0c8aa56fde1a48495
+[sigil-linux] (the first boot after an AFI load also zeroes the 64 GiB of DDR4: about 17 s)
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.HxeiRE/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/docs73/test/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0 time=5.080004351
+PASS: rc 0
+PASS: AFI loaded
+PASS: disk has run1
+PASS: disk is 8 GiB
+PASS: release sidecar
+PASS: e2fsck clean
+PASS: args
+PASS: tmp cleaned
+8.0G	/home/ubuntu/docs73/test/disk/d.ext4
+969M	/home/ubuntu/docs73/test/disk/d.ext4
+== 2. rerun: no download, AFI kept, Ctrl-] (rc 4) -> disk unchanged, .unclean kept
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.a4nRhl/pmem.ext4:17179869184 --console --on-reboot rerun --log /home/ubuntu/docs73/test/console.log
+[sigil-linux] left the console (Ctrl-]): Debian keeps running on the FPGA, but nothing can reattach to it
+[sigil-linux] /home/ubuntu/docs73/test/disk/d.ext4 is unchanged; the pmem window as it was at that moment is /home/ubuntu/docs73/test/disk/d.ext4.unclean (check it with e2fsck -f; boot it with --disk)
+PASS: rc 4
+PASS: no download
+PASS: no AFI load
+PASS: extra args passed
+PASS: disk unchanged (run1, no run2)
+PASS: unclean has run2
+== 3. power off after resize2fs to 16 GiB -> disk 16 GiB
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.ujm3sU/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/docs73/test/disk/d.ext4 (16384 MiB file system, 993M on this volume)
+PASS: rc 0
+PASS: disk 16 GiB
+PASS: resized file
+PASS: dumpe2fs agrees
+PASS: e2fsck clean
+== 4. garbage beyond the file system (fresh 8 GiB disk) is trimmed
+[sigil-linux] --fresh: the previous disk is now /home/ubuntu/docs73/test/disk/d.ext4.old
+[sigil-linux] unpacking the Debian image into /home/ubuntu/docs73/test/disk/d.ext4 (8 GiB file system, sparse)
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.1hEr5o/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/docs73/test/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+PASS: rc 0
+PASS: old kept
+PASS: disk 8 GiB again
+PASS: fresh disk lacks run1
+== 5. setup error (rc 3): nothing saved
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.Weyo85/pmem.ext4:17179869184 --console --on-reboot rerun
+[fake] setup error
+[sigil-linux] sigil_host exit 3, nothing saved: /home/ubuntu/docs73/test/disk/d.ext4 is unchanged
+PASS: rc 3
+PASS: message
+== 6. power off but window wiped (no ext4): disk unchanged
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.NGrl5O/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] the pmem window no longer holds an ext4 file system
+[sigil-linux] /home/ubuntu/docs73/test/disk/d.ext4 is unchanged; the pmem window as it was at that moment is /home/ubuntu/docs73/test/disk/d.ext4.unclean (check it with e2fsck -f; boot it with --disk)
+PASS: disk unchanged
+PASS: message
+== 7. corrupted cache file is downloaded again
+[sigil-linux]   Image: FAILED
+[sigil-linux]   sha256sum: WARNING: 1 computed checksum did NOT match
+[sigil-linux] checksum mismatch: downloading sigil-linux-f2-2026-10-22 again
+[sigil-linux] downloading SHA256SUMS
+######################################################################## 100.0%
+[sigil-linux] downloading fw_jump.bin
+######################################################################## 100.0%
+[sigil-linux] downloading Image
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2.dtb
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-debian-13-riscv64.ext4.zst
+######################################################################## 100.0%
+[sigil-linux] booting Debian from /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/docs73/test/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/docs73/test/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.Wtnabl/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/docs73/test/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/docs73/test/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+PASS: rc 0
+PASS: redownloaded
+== 8. a tag that is not published fails before touching anything
+[sigil-linux] downloading SHA256SUMS
+curl: (37) Couldn't open file /home/ubuntu/docs73/test/nonexistent/SHA256SUMS
+[sigil-linux] error: cannot download file:///home/ubuntu/docs73/test/nonexistent/SHA256SUMS (is bogus-tag a published release?)
+PASS: rc 1
+PASS: disk unchanged
+== 9. lock
+[sigil-linux] error: another sigil-linux is running on this instance
+PASS: locked out
+== 10. --help
+sigil-linux: boot Sigil's Debian on this F2's FPGA, with a disk that
+persists from one session to the next (docs/LINUX.md section 4).
+
+  sigil-linux [--fresh] [--disk PATH] [--tag TAG] [-- sigil_host options]
+
+PASS: help rc 0
+== 11. save path at full size: 16 GiB written in /dev/shm (as sigil_host does), sparse copy to the disk volume
+window file 16G allocated; file system 8589934592 bytes; sparse copy 2.405094353 s -> 969M allocated
+PASS: ext4_bytes = dumpe2fs
+PASS: copy identical
+RESULT: 35 passed, 0 failed

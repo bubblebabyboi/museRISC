@@ -2201,6 +2201,10 @@ on the F2 that line came at kernel time 385.36 s with a 10 MHz DT timebase
 while `mtime` ran at 62.5 MHz, i.e. 61.7 s = 3.85 G cycles: **≈ 13 cycles
 per instruction**. Scaled: login prompt **≈ 9 min** after reset, `gcc
 hello.c` ≈ 1 min, `python3` start ≈ 15 s at 62.5 MHz, until measured.
+Measured on the F2 later (AFI `agfi-0c8aa56fde1a48495`, section "Debian on
+the F2 with the walker-race fix" below): login prompt 5 min 48 s after the
+SoC release, `gcc hello.c && ./a.out` 22.9 s, `python3 -c` 9.9 s, about 5
+cycles per instruction.
 
 **Tuning from the icount runs.** Before it
 ([`qemu-icount-before-tuning.log`](linux-debian-73-2026-10-22/qemu-icount-before-tuning.log))
@@ -2273,6 +2277,12 @@ e2fsprogs 1.47.0, zstd 1.5.5, QEMU 8.2.2) with the release files of
   8.2 s, 969 MiB allocated, byte-identical. Fixed while testing: `zstd -d
   -f` wrote a fully allocated 8 GiB file (now `--sparse`); a root-owned
   save file may be unreadable for the user (now `chown`ed).
+  Rerun after `sigil-linux` and the harness were pointed at
+  `agfi-0c8aa56fde1a48495` (script sha256 `5044eed2…a0c175c`): **35/35**
+  ([`sigil-linux-tests-agfi-0c8aa.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests-agfi-0c8aa.log));
+  the output differs from the first log only in the AGFI, the boot-time
+  message (measured 5 min 48 s instead of the estimate), temporary names
+  and timings.
 - **User-guide commands in QEMU, 10/10** ([`qemu-docs-check.log`](linux-user-docs-73-2026-10-22/qemu-docs-check.log),
   console [`qemu-docs-check-console.log.gz`](linux-user-docs-73-2026-10-22/qemu-docs-check-console.log.gz),
   `harness/docs_check.py`): files in with `debugfs -w` (owned by root;
@@ -2295,7 +2305,9 @@ e2fsprogs 1.47.0, zstd 1.5.5, QEMU 8.2.2) with the release files of
 ## #73 Linux platform on F2: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63, 2026-10-22)
 
 [`f2-platform-73-2026-10-22/SUMMARY.md`](f2-platform-73-2026-10-22/SUMMARY.md).
-Public AFI **`agfi-0a1fd54ef68bdc754`** (`afi-035809e576d7ea8d5`), core
+Public AFI **`agfi-0a1fd54ef68bdc754`** (`afi-035809e576d7ea8d5`; superseded by
+`agfi-0c8aa56fde1a48495`, the same CL with the core's walker-race fix #74,
+below; do not use it for Linux), core
 62.5 MHz (B1), HBM AXI 250 MHz (H0); post-route WNS +0.150 ns, core clock
 +0.635 ns. On a real `f2.6xlarge`: full-range engine memory test of DDR4
 (64 GiB) and HBM (16 GiB), two seeds, 0 errors; sparse core test over both
@@ -2329,8 +2341,10 @@ had 4 lines corrupted by #63. The QEMU acceptance run of the Debian image
 passes 23/23. Full ACT was not rerun because `rtl/core` is byte-identical to
 `main` (tree `f573234a`, the tree of the #53 ACT run, 2,577/2,578). Later
 commits up to `ce9fe97` change no RTL; at that commit lint and
-`fpgatop-f2-examples` (`hbm_touch`) pass. Pending: the first Debian boot on a
-real F2, `<F2 boot time: pending>`.
+`fpgatop-f2-examples` (`hbm_touch`) pass. The first Debian boot on a real F2
+came later (sections below): it oopsed on `agfi-0a1fd54ef68bdc754` (MMU walker
+race #74); on `agfi-0c8aa56fde1a48495` with the fix it reached the login
+prompt 5 min 48 s after the SoC release and passed 22/22 checks.
 
 ## #73 Linux release branch: re-check of the review fixes (2026-10-22)
 
@@ -2457,11 +2471,43 @@ oops PC is the second of two dependent loads.
 `stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
 counts. In simulated Linux there was at most one fetch-walk preemption per
 run, in the benign same-cycle-response corner, so simulation does not reach
-the harmful case. The F2 boot with an AFI
-built from this branch is still to come.
+the harmful case. The F2 boot with an AFI built from this branch
+(`agfi-0c8aa56fde1a48495`, next two sections) passed: no oops, 22/22 checks.
 
 Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
 runs).
+
+## #73 F2 AFI with the MMU walker-race fix: `agfi-0c8aa56fde1a48495` (2026-10-22, branch `73-oops-fix`)
+
+[`f2-platform-73-oopsfix-2026-10-22/vivado/`](f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)
+(build steps, manifest, `afi.json`, post-route timing and utilization).
+
+- **Public AFI `afi-059766f9a85c6d39a` / AGFI `agfi-0c8aa56fde1a48495`**,
+  us-east-1, shell `0x10212415`, PCI `0x1D0F:0xF054`, available 16:23 UTC;
+  `loadPermission` group `all` and `Public: true` checked with
+  `aws ec2 describe-fpga-image-attribute` / `describe-fpga-images`.
+- Built from `73-oops-fix` commit **`31a1568`** with the script, flow and
+  recipes of the platform AFI above: core 62.5 MHz (B1), HBM AXI 250 MHz
+  (H0), unencrypted. Its RTL differs from the platform AFI's (`e641930`)
+  only in `rtl/core/sigil_core.sv` and `rtl/core/sigil_mmu.sv` (the
+  walker-race fix #74 and an atomic Svadu A/D update).
+- Post-route: all constraints met, WNS **+0.095 ns** (core clock, 16 ns),
+  HBM AXI +0.198 ns, WHS +0.010 ns; **131,259 LUTs (10.08 %)**, 117,030
+  FFs, 75 RAMB36, 32 DSP for the CL, 82,201 LUTs for the SoC + OCL block.
+  BuildAll 1 h 16 min on the r7iz.8xlarge (16 Vivado threads); a first
+  attempt failed in `opt_design` when the build volume filled up.
+- DCP tarball `2026_10_22-143914.Developer_CL.tar`, 110,192,640 bytes,
+  sha256 `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246`
+  (`s3://sigil-fpga-afi-891612553438/dcp/`, downloaded again and checked);
+  its routed DCP hashes to the manifest `dcp_hash` `53eed162…11fe73`.
+  Release asset `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar`.
+- The release branch ships this RTL: `git diff 31a15689 73-linux-release
+  -- rtl/ fpga/cl_sigil/` is empty; under `fpga/` only the host helper
+  scripts differ (`sigil-linux`, `sigil-run`, `f2_playground_setup.sh`
+  name the new AGFI and the measured boot time), which are not part of the
+  CL.
+- The memory-platform hardware tests ran on the platform AFI and were not
+  repeated on this one; Debian on this AFI is the next section.
 
 ## #73 Debian on the F2 with the walker-race fix: login, 22/22 checks, disk persists (2026-10-22, AFI `agfi-0c8aa56fde1a48495`, branch `73-linux-debian`)
 

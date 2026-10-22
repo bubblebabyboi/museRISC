@@ -141,8 +141,10 @@ Delta check at ce9fe973c85be485d4c86c1f19e7215131c325c6, same host and clone:
 3. No gate failed. No fixes were needed.
 
 == Not covered here
-- First Debian boot on a real F2 with agfi-0a1fd54ef68bdc754: <F2 boot time, reset to login prompt: pending>,
-  <F2 acceptance checks: pending>. That run happens separately on sigil-f2-test; its result lands on 73-linux-debian.
+- First Debian boot on a real F2: run separately; its result landed on 73-linux-debian (added after this gate):
+  on agfi-0a1fd54ef68bdc754 the kernel oopsed (MMU walker race #74, linux-debian-73-2026-10-22/f2-oops-ab.txt);
+  on agfi-0c8aa56fde1a48495 (fix, 31a1568) login prompt 347.9 s after SoC release, 22/22 checks
+  (linux-debian-73-2026-10-22/f2-boot-fixed/).
 - Vivado build / HDK XSIM of the CL: not rerun. The AFI was built from 73-f2-memory-platform; see
   f2-platform-73-2026-10-22/ (post-route timing, XSIM logs, F2 hardware results).
 - Full ACT (rtl/core unchanged, above).
