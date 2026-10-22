@@ -94,7 +94,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
 
   logic [11:0] csr_addr;
   logic [63:0] csr_rdata, csr_rmw_rdata, csr_wdata, csr_src;
-  logic        csr_illegal, csr_we;
+  logic        csr_illegal, csr_we, csr_wr_intent;
   logic        sys_illegal;
   logic [2:0]  sys_op;
   logic [63:0] xret_pc;
@@ -347,7 +347,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic [63:0] alu_a, alu_b, alu_result, muldiv_result;
   logic [63:0] ex_result;
   logic        branch_taken;
-  logic        ex_misalign, ex_illegal;
+  logic        ex_misalign, ex_illegal, fp_illegal;
   logic        ex_exc, ex_gva;
   logic [63:0] ex_cause, ex_tval, ex_gpa;
   logic        ex_ret, ex_serialize;
@@ -510,12 +510,23 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // the unit (kill). See docs/CORE.md "EX-stage multi-cycle
   // units". A new unit adds its req && !done term to
   // ex_mc_busy and uses the same ack/kill.
-  assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
-                   !ex_illegal;
   // M unit (sigil_muldiv_mc): MUL* 3 EX cycles, DIV*/REM*
   // 2 (x/0, overflow) or 3..35 (operand-dependent).
-  assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q &&
-                      !ex_illegal;
+  // FPGA_TIMING (#53): the requests drop ex_illegal. For an FP op it
+  // equals fp_illegal and for an M op it is 0 (the CSR, system,
+  // vector, FP and M decode classes are disjoint), but the netlist
+  // form also carries the CSR checks and, through them, MEM's
+  // exception/stall verdict into the FPU and M unit.
+  if (FPGA_TIMING) begin : g_mc_req
+    assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                     !fp_illegal;
+    assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q;
+  end else begin : g_mc_req_off
+    assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                     !ex_illegal;
+    assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q &&
+                        !ex_illegal;
+  end
   assign ex_mc_busy = (fpu_req && !fpu_done) ||
                       (muldiv_req && !muldiv_done);
   // EX holds for a busy multi-cycle unit or the vector unit.
@@ -558,7 +569,6 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   );
   // FP instructions need FS != Off; dynamic rounding mode must
   // name a real mode (static bad rms are illegal at decode).
-  logic fp_illegal;
   assign fp_illegal = (idex_ctrl_q.fp && (csr_fs == 2'b00)) ||
                       (idex_ctrl_q.fp_rm &&
                        (idex_ctrl_q.funct3 == 3'b111) &&
@@ -672,6 +682,29 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       if (chk_armed && (|u_muldiv.g_mc.state_q) &&
           (fpu_req || vec_busy || (u_fpu.state_q != u_fpu.S_IDLE)))
         $error("sigil_core: M unit in flight with the FPU/vector unit");
+    end
+  end
+  // FPGA_TIMING (#53) step 1: the FP/M requests equal main's form,
+  // and a CSR op whose read-only check saw the write intent without
+  // csr_we leaves EX only ahead of an older trap (an exception in
+  // MEM), which flushes it the next cycle.
+  if (FPGA_TIMING) begin : g_fpga_req_chk
+    logic csr_intent_only_q;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) csr_intent_only_q <= 1'b0;
+      else csr_intent_only_q <= ex_advance && idex_valid_q &&
+                                idex_ctrl_q.csr && !idex_exc_q &&
+                                csr_wr_intent && !csr_we;
+    end
+    always_ff @(posedge clk_i) begin
+      if (chk_armed &&
+          ((fpu_req != (idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                        !ex_illegal)) ||
+           (muldiv_req != (idex_valid_q && idex_ctrl_q.muldiv &&
+                           !idex_exc_q && !ex_illegal))))
+        $error("sigil_core: FP/M request differs from the ex_illegal form");
+      if (chk_armed && csr_intent_only_q && !trap_fire)
+        $error("sigil_core: CSR op left EX on its write intent without a trap");
     end
   end
 `endif
@@ -1084,10 +1117,11 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   end
   // !mem_stall: a CSR write must not commit while an older
   // instruction is parked in MEM (it could still page-fault).
+  assign csr_wr_intent = (idex_ctrl_q.funct3[1:0] == 2'b01) ||
+                         (idex_rs1_addr_q != 5'd0);
   assign csr_we = idex_valid_q && idex_ctrl_q.csr && !idex_exc_q &&
                   !trap_fire && !mem_exc && !mem_stall && !vec_ex_stall &&
-                  ((idex_ctrl_q.funct3[1:0] == 2'b01) ||
-                   (idex_rs1_addr_q != 5'd0));
+                  csr_wr_intent;
   assign sfence_fire = idex_valid_q &&
                        (idex_ctrl_q.sfence || idex_ctrl_q.hfence) &&
                        !idex_exc_q && !sys_illegal && !mem_stall;
@@ -1796,7 +1830,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // CSR / privileged unit
   // ------------------------------------------------------------
-  sigil_csr u_csr (
+  sigil_csr #(.FPGA_TIMING(FPGA_TIMING)) u_csr (
       .clk_i         (clk_i),
       .rst_ni        (rst_ni),
       .addr_i        (csr_addr),
@@ -1804,6 +1838,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .rmw_rdata_o   (csr_rmw_rdata),
       .illegal_o     (csr_illegal),
       .wr_en_i       (csr_we),  // module itself suppresses illegal writes
+      .wr_intent_i   (csr_wr_intent),
       .frm_o         (csr_frm),
       .fs_o          (csr_fs),
       .fflags_we_i   (csr_fflags_we || vec_fflags_we),

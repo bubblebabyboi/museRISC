@@ -12,7 +12,11 @@
 //   privilege of every instruction currently in flight.
 // - satp is stored here; translation itself lives in the MMU.
 `default_nettype none
-module sigil_csr (
+module sigil_csr #(
+    // FPGA timing structures (#53, sigil_cache_pkg::FPGA_TIMING):
+    // read-only check from the write intent.
+    parameter bit FPGA_TIMING = 1'b0
+) (
     input  wire        clk_i,
     input  wire        rst_ni,
     // CSR read/write port (EX)
@@ -25,6 +29,11 @@ module sigil_csr (
     output logic [63:0] rmw_rdata_o,
     output logic       illegal_o,     // access faults as illegal-instr
     input  wire        wr_en_i,       // commit wdata_i at the next edge
+    // The EX op writes if it commits (CSRRW, or a nonzero source):
+    // wr_en_i without its commit conditions. Read with FPGA_TIMING.
+    /* verilator lint_off UNUSEDSIGNAL */
+    input  wire        wr_intent_i,
+    /* verilator lint_on UNUSEDSIGNAL */
     input  wire [63:0] wdata_i,
     // Privileged-instruction legality helpers (EX)
     output logic       sys_illegal_o, // mret/sret/wfi/sfence not allowed now
@@ -421,7 +430,16 @@ module sigil_csr (
   assign csr_priv_ok = (priv_rank >= addr_i[9:8]);
   // The core only asserts wr_en_i for actual writes; read-only
   // CSRs (addr[11:10]==2'b11) fault on any write attempt.
-  assign csr_write_attempt = wr_en_i;
+  // FPGA_TIMING (#53): the attempt is the static write intent, so
+  // illegal_o no longer waits for wr_en_i's commit conditions (MEM's
+  // exception/stall verdict). The two differ only while the op
+  // cannot leave EX or is flushed by an older trap; the write itself
+  // still commits on wr_en_i.
+  if (FPGA_TIMING) begin : g_wr_attempt
+    assign csr_write_attempt = wr_intent_i;
+  end else begin : g_wr_attempt_off
+    assign csr_write_attempt = wr_en_i;
+  end
   // Counter access control: mcounteren gates S and U reads of
   // the unprivileged counters (0xC00-0xC1F), scounteren gates U.
   logic counter_blocked, counter_virt;

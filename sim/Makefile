@@ -140,8 +140,16 @@ $(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/csr_tb) $(RTL)/sigil_csr.sv \
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
-csr: $(BUILD)/csr_tb
+# FPGA_TIMING form (#53).
+$(BUILD)/csr_tb_fpga: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/csr_fpga --top-module sigil_csr -GFPGA_TIMING=1 \
+	  -o $(abspath $(BUILD)/csr_tb_fpga) $(RTL)/sigil_csr.sv \
+	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
+
+csr: $(BUILD)/csr_tb $(BUILD)/csr_tb_fpga
 	cd $(BUILD) && COV_FILE=cov_csr.dat ./csr_tb
+	cd $(BUILD) && { COV_FILE=nocov_csr_fpga.dat ./csr_tb_fpga > csr_fpga.log 2>&1 || { cat csr_fpga.log; exit 1; }; } && \
+	  tail -1 csr_fpga.log | sed 's/$$/ [FPGA_TIMING]/'
 
 ## ---- RTL PLIC unit test (claim arbitration vs a reference model) ----
 $(BUILD)/plic_tb: $(ROOT)/tb/cpp/plic_tb.cpp $(ROOT)/rtl/soc/sigil_plic.sv | $(BUILD) $(OBJ)
