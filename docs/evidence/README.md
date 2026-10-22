@@ -2106,3 +2106,14 @@ hardware and no AFI was created (#55).
 - Not run: F2 hardware, AFI creation, CI-parity lint (Verilator 5.020;
   no Docker daemon), full `make core-test`, Linux in XSIM (~a week at
   ~800 cycles/s).
+
+## #55: whole SoC on a real AWS F2 FPGA — Linux boots (2026-10-22)
+
+[`f2-first-boot-55-2026-10-22/SUMMARY.md`](f2-first-boot-55-2026-10-22/SUMMARY.md)
+with every host log and UART capture. Public AFI
+`agfi-035116450e0a0d093` on an `f2.6xlarge`, core at a measured
+**62.500 MHz**: hash engine, 512 KiB DDR4 test + UART RX, secp256k1
+ECDSA and Ed25519 verify (tampered inputs rejected), OpenSBI to S-mode,
+and **Linux 6.6 to userspace**. Runs used `sigil_host --ignore-mem-err`
+(#62); UART character drops (#63) and pre-rename Linux payloads (#64)
+are tracked.

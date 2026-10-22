@@ -1,0 +1,19 @@
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded fw/ed25519_soc_test.bin: 5977 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 120 s
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+........
+stage3 ed25519 RFC8032 TEST1 verify ok
+........
+stage4 ed25519 RFC8032 TEST2 verify ok
+........
+stage5 ed25519 tampered S rejected
+stage6 ed25519 non-canonical S rejected
+ED25519 VERIFY OK
+SOC CRYPTO PASS
+[sigil_host] result: PASS (SOC CRYPTO PASS) after 0.458 s, 28618172 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000002 pc 0x000000008000542a, STATUS 0x00000062

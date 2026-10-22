@@ -1,0 +1,4 @@
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+.

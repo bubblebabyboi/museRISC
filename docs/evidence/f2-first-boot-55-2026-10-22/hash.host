@@ -1,0 +1,10 @@
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 106440 core cycles
+[sigil_host] measured core clock: 62.498 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x00000042

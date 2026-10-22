@@ -1,0 +1,14 @@
+AFI          0       agfi-035116450e0a0d093  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+Model name:                           AMD EPYC 7R13 Processor
+6.8.0-1021-aws
+f9b77ac9c8b5a4abf77892dada7e3f423a60e7f489e82ac9e7c3bfc74530e14b  fw/crypto_soc_test.bin
+cc494f66fe31e075a324b61b52eea5a0ee8ca70542b363738c2185b657bf6fa4  fw/ed25519_soc_test.bin
+3200f93a68693dc770d6040f24bc2333d15335690d08550b32753a5cb69c27f0  fw/fpga_smoke_test.bin
+266545400aa0a1fe7f8d5c02e4aa1614db2795361dc4970f338f639ef994386b  fw/fpga_smoke_uart_in.txt
+b7ce72ad2833cf073a98fd3559ff07b3bc3696b81f027137f575e6515dece7af  fw/hash_soc_test.bin
+7ae803a1439111e2a24674b4f7b36a94a5d0a714a309443657ac88668a7866dd  linux/fw_jump.bin
+4a98e0787a11d019c91931708ceba8815a454d76098d381c81f15f9611eb05a7  linux/Image
+679fdfe0e82c0604a2044e837a168358e5f927b1620d5e49e09d69719d7787d3  linux/muserisc.dtb
+8b7fa6816d9dd3ece0ef6fb6801a3f2990cb2d508d4f4e8730178f5ae8fad19b  linux/s_hello.bin

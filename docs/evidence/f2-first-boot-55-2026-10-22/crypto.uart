@@ -1,0 +1,4 @@
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok

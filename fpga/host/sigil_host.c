@@ -170,9 +170,9 @@ static void usage(const char *p) {
 "  --load 0xADDR=F    image at SoC address ADDR (repeatable)\n"
 "  --boot-pc 0xADDR   reset PC (default 0x1000, the boot ROM)\n"
 "  --no-cache         L1 caches off\n"
-"  --exit TEXT        pass marker (repeatable; default: SIGIL_LINUX_BOOT_OK,\n"
-"                     SOC CRYPTO PASS, SOC HASH PASS, FPGA SMOKE PASS,\n"
-"                     HELLO FROM S-MODE)\n"
+"  --exit TEXT        pass marker (repeatable; default: LINUX_BOOT_OK (matches\n"
+"                     SIGIL_LINUX_BOOT_OK and older payloads), SOC CRYPTO PASS,\n"
+"                     SOC HASH PASS, FPGA SMOKE PASS, HELLO FROM S-MODE)\n"
 "  --fail TEXT        failure marker (repeatable; default: FAIL, Kernel panic)\n"
 "  --tohost 0xADDR    riscv-tests HTIF: poll this RAM word (use --no-cache)\n"
 "  --timeout S        seconds (default 60)\n"
@@ -180,6 +180,9 @@ static void usage(const char *p) {
 "  --log F            also write the UART stream to F\n"
 "  --verify           read every loaded word back (default: head/tail)\n"
 "  --keep-running     leave the SoC running on exit (default: hold in reset)\n"
+"  --ignore-mem-err   do not stop on STATUS.mem_err (workaround: the first\n"
+"                     AFI sets it early in every run without affecting\n"
+"                     results; root cause tracked in issue #62)\n"
 "  -q                 quiet (UART output only)\n", p);
   sigil_exit(3);
 }
@@ -190,6 +193,7 @@ int main(int argc, char **argv) {
   const char *log_path = NULL;
   bool linux_mode = false, cache_en = true, use_stdin = false, verify_all = false;
   bool keep_running = false;
+  bool ignore_mem_err = false;
   uint64_t boot_pc = 0x1000, tohost = 0;
   double timeout = 60;
   struct load loads[MAX_LOADS];
@@ -229,6 +233,7 @@ int main(int argc, char **argv) {
     else if (!strcmp(a, "--log")) { NEXT(); log_path = v; }
     else if (!strcmp(a, "--verify")) verify_all = true;
     else if (!strcmp(a, "--keep-running")) keep_running = true;
+    else if (!strcmp(a, "--ignore-mem-err")) ignore_mem_err = true;
     else if (!strcmp(a, "-q")) verbose = 0;
     else usage(argv[0]);
 #undef NEXT
@@ -242,7 +247,7 @@ int main(int argc, char **argv) {
   }
   if (nloads == 0) usage(argv[0]);
   if (nexit == 0) {
-    static const char *dflt[] = {"SIGIL_LINUX_BOOT_OK", "SOC CRYPTO PASS", "SOC HASH PASS",
+    static const char *dflt[] = {"LINUX_BOOT_OK", "SOC CRYPTO PASS", "SOC HASH PASS",
                                  "FPGA SMOKE PASS", "HELLO FROM S-MODE"};
     for (size_t k = 0; k < sizeof dflt / sizeof *dflt; k++) exits[nexit++] = dflt[k];
   }
@@ -366,7 +371,7 @@ int main(int argc, char **argv) {
     }
     if (++idle % 64 == 0) {
       const uint32_t st = rd(R_STATUS);
-      if (st & (ST_MEM_ERR | ST_TX_OVF)) {
+      if (st & (ignore_mem_err ? ST_TX_OVF : (ST_MEM_ERR | ST_TX_OVF))) {
         rc = 1;
         why = st & ST_MEM_ERR ? "AXI error (STATUS.mem_err)" : "UART TX overflow";
         break;

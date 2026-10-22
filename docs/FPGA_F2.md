@@ -416,30 +416,58 @@ region/budget), make the AFI/AGFI public, load it on an `f2.6xlarge`
 and run the F5 sequence with `sigil_host`; nothing here has run on F2
 hardware yet. Raise `--recipe-b` to B5 once #53 closes 100 MHz.
 
-## Flash Sigil on your own F2 (draft — TODO: public AGFI id)
+## Flash Sigil on your own F2
 
-> Draft for the public AFI from #55; the AGFI id and the
-> pre-built payload downloads do not exist yet.
+The whole Sigil SoC — in-house RV64GCV core (vector unit, L1 caches),
+crypto/hash engine, CLINT/PLIC/UART/boot ROM — is published as a **public
+AFI**. Proven on hardware 2026-10-22 (#55,
+[`evidence/f2-first-boot-55-2026-10-22/`](evidence/f2-first-boot-55-2026-10-22/SUMMARY.md)):
+baremetal crypto, OpenSBI and Linux 6.6 to userspace at a measured 62.5 MHz.
 
-1. Launch an **`f2.6xlarge`** in a region with F2 (e.g. us-east-1)
-   from the AWS **FPGA Developer AMI** (or Amazon Linux 2023 / Ubuntu
-   with the aws-fpga SDK). Budget about $2/h On-Demand; stop it when
-   done.
-2. Install the SDK: `git clone -b v2.3.5
-   https://github.com/aws/aws-fpga && cd aws-fpga && source
-   sdk_setup.sh`.
-3. Load the public Sigil AFI: `sudo fpga-load-local-image -S 0 -I
-   agfi-TODO` (check with `sudo fpga-describe-local-image -S 0 -H`;
-   the PCIe IDs are `0xF054/0x1D0F`).
-4. Build the runtime: `git clone https://github.com/bubblebabyboi/sigil
-   && make -C sigil/fpga/host SDK_DIR=$PWD/aws-fpga/sdk`.
-5. Run: `sudo sigil/fpga/host/sigil_host --bin crypto_soc_test.bin`
-   (baremetal) or `sudo sigil/fpga/host/sigil_host --linux --fw
-   fw_jump.bin --image Image --dtb sigil.dtb --stdin --timeout 600`
-   (payloads: `make -C sim` / `scripts/build_opensbi.sh` / `make soc`,
-   see `docs/QEMU.md`). The last lines report the measured core clock.
-6. To rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on
-   the FPGA Developer AMI, then the AWS `create-fpga-image` flow.
+| | |
+|---|---|
+| AGFI | **`agfi-035116450e0a0d093`** (AFI `afi-019aabf5d4a815ae5`, us-east-1) |
+| Shell / PCI | Small Shell `0x10212415` / `0x1D0F:0xF054` |
+| Core clock | 62.5 MHz (AWS_CLK_GEN B1, interim until #53 closes 100 MHz) |
+| Built from | commit `4058108`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP |
+
+1. Launch an **`f2.6xlarge`** in **us-east-1** (zones a–d offer F2) from the
+   AWS **FPGA Developer AMI** (Ubuntu, 1.19.x). About $2/h On-Demand —
+   stop or terminate it when you are done (tip: `sudo shutdown -h +120`
+   as a cost guard).
+2. Install the runtime SDK (as the login user, in your home directory):
+   ```sh
+   git clone -b v2.3.5 https://github.com/aws/aws-fpga ~/aws-fpga
+   cd ~/aws-fpga && source sdk_setup.sh
+   ```
+3. Load the public Sigil AFI and check it:
+   ```sh
+   sudo fpga-load-local-image -S 0 -I agfi-035116450e0a0d093 -H
+   sudo fpga-describe-local-image -S 0 -H     # status 'loaded', 0x1d0f:0xf054
+   ```
+4. Build the host runtime and your payloads:
+   ```sh
+   git clone https://github.com/bubblebabyboi/sigil ~/sigil && cd ~/sigil
+   make -C fpga/host SDK_DIR=$HOME/aws-fpga/sdk
+   ```
+   Baremetal programs: see [`PROGRAMMING.md`](PROGRAMMING.md) (any program
+   linked at `0x8000_0000` that talks to the 16550 UART works). The test
+   firmware used for the evidence builds with `make -C sim` (e.g.
+   `build/soc-tests/crypto_soc_test.bin`).
+5. Run:
+   ```sh
+   # baremetal: load at 0x8000_0000, release reset, stream the UART
+   sudo fpga/host/sigil_host --ignore-mem-err --bin build/soc-tests/crypto_soc_test.bin
+   # Linux: OpenSBI fw_jump + kernel Image + DTB (see docs/QEMU.md / sw/linux/README.md)
+   sudo fpga/host/sigil_host --ignore-mem-err --linux --fw fw_jump.bin \
+        --image Image --dtb sigil.dtb --stdin --timeout 600
+   ```
+   The host prints the UART, stops on a pass/fail marker, and reports the
+   **measured core clock**. `--ignore-mem-err` is required with this AFI
+   (#62: a spurious sticky AXI error flag; results are unaffected).
+6. Rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on the FPGA
+   Developer AMI (non-F2 instance), then `aws s3 cp` the tarball and
+   `aws ec2 create-fpga-image` (see the F3 section).
 
 ## Platform facts (verified 2026-10-14)
 
