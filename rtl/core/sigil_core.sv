@@ -114,6 +114,10 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        walk_req, walk_we, walk_grant;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
+  // MMU data lookup port (FPGA_TIMING, #53; see g_dl)
+  logic [63:0] dl_va, dl_satp;
+  logic [1:0]  dl_priv;
+  logic        dl_write, dl_exec, dl_virt, dl_sum, dl_mxr, dl_ld, dl_vld;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
   logic        mem_port_done; // MEM's data-port access completes this cycle
   logic        fpu_req, fpu_done;
@@ -1930,6 +1934,67 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // MMU (Sv39 + Svnapot TLB and walker)
   // ------------------------------------------------------------
+  // FPGA_TIMING (#53) step 5: registered data translation. The MMU's
+  // D outputs (mmu_d_*) are its register of a lookup on the dl_* port,
+  // so MEM's PMP check, request and exception logic start from flops.
+  // The port serves, by a select from flops only:
+  // - MEM, while its access waits for a usable translation (miss,
+  //   walk in progress, or a capture invalidated by a TLB update):
+  //   the register reloads with MEM's own lookup every cycle (replay;
+  //   +1 cycle per data walk);
+  // - MEM, for a vector load/store element about to be accessed (RD
+  //   with elements left, RW): the element address comes from flops,
+  //   so non-indexed elements cost no cycle. An indexed element's
+  //   address needs the index read, so its RD/RW capture is not
+  //   valid and ACC replays once (+1 cycle per active element);
+  // - otherwise EX: its address from a dedicated adder (equal to
+  //   alu_result for every memory op) in EX's translation context,
+  //   captured on the EX->MEM edge. Context is unchanged until MEM
+  //   is done with it: CSR writes (EX) wait for !mem_stall, xRET and
+  //   SFENCE flush younger instructions, and traps flush everything.
+  // A port that served MEM always holds MEM (mem_stall), so the EX
+  // capture is never lost.
+  if (FPGA_TIMING) begin : g_dl
+    logic        dl_mem, dl_hlv;
+    logic [63:0] agu;
+    assign agu = ex_rs1 + idex_imm_q;
+    assign dl_mem = (data_access && !mmu_d_ok && !mmu_d_fault) ||
+                    (vls_is && (((vls_ph == VLS_RD) && vls_in_range) ||
+                                (vls_ph == VLS_RW)));
+    assign dl_hlv = dl_mem ? exmem_ctrl_q.hlv : idex_ctrl_q.hlv;
+    assign dl_va = dl_mem ? mem_va : agu;
+    assign dl_write = dl_mem ? exmem_ctrl_q.mem_write : idex_ctrl_q.mem_write;
+    assign dl_exec = dl_mem ? exmem_ctrl_q.hlvx : idex_ctrl_q.hlvx;
+    assign dl_priv = dl_hlv ? (csr_spvp ? 2'b01 : 2'b00) : eff_priv_data;
+    assign dl_virt = dl_hlv ? 1'b1 : dvirt;
+    assign dl_satp = dl_hlv ? csr_vsatp : csr_satp;
+    assign dl_sum = dl_hlv ? csr_vs_sum : csr_sum;
+    assign dl_mxr = dl_hlv ? (csr_vs_mxr || csr_hs_mxr) : csr_mxr;
+    assign dl_ld = dl_mem || (!trap_take && !freeze && !mem_stall);
+    assign dl_vld = !(dl_mem && vls_is && vls_indexed && (vls_ph != VLS_ACC));
+`ifndef SYNTHESIS
+    always_ff @(posedge clk_i) begin
+      if (chk_armed && idex_valid_q &&
+          (idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) &&
+          (agu != alu_result))
+        $error("sigil_core: memory-op AGU differs from alu_result");
+      if (chk_armed && dl_mem && !trap_take && !freeze && !mem_stall)
+        $error("sigil_core: MEM moved on while the D port served it");
+    end
+`endif
+  end else begin : g_dl_off
+    assign dl_va = 64'd0;
+    assign dl_write = 1'b0;
+    assign dl_exec = 1'b0;
+    assign dl_priv = 2'd0;
+    assign dl_virt = 1'b0;
+    assign dl_satp = 64'd0;
+    assign dl_sum = 1'b0;
+    assign dl_mxr = 1'b0;
+    assign dl_ld = 1'b0;
+    assign dl_vld = 1'b0;
+  end
+
   sigil_mmu #(.FPGA_TIMING(FPGA_TIMING)) u_mmu (
       .clk_i            (clk_i),
       .rst_ni           (rst_ni),
@@ -1962,6 +2027,16 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_fault_page_o   (mmu_d_fault_page),
       .d_fault_guest_o  (mmu_d_fault_guest),
       .d_fault_gpa_o    (mmu_d_fault_gpa),
+      .dl_va_i          (dl_va),
+      .dl_write_i       (dl_write),
+      .dl_exec_i        (dl_exec),
+      .dl_priv_i        (dl_priv),
+      .dl_virt_i        (dl_virt),
+      .dl_satp_i        (dl_satp),
+      .dl_sum_i         (dl_sum),
+      .dl_mxr_i         (dl_mxr),
+      .dl_ld_i          (dl_ld),
+      .dl_vld_i         (dl_vld),
       .walk_req_o       (walk_req),
       .walk_addr_o      (walk_addr),
       .walk_we_o        (walk_we),

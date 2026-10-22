@@ -166,9 +166,10 @@ $(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/mmu_tb) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
 
-# FPGA_TIMING form (#53): one-hot port lookups.
+# FPGA_TIMING form (#53): one-hot port lookups, registered data port.
 $(BUILD)/mmu_tb_fpga: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu_fpga --top-module sigil_mmu -GFPGA_TIMING=1 \
+	  -CFLAGS -DMMU_TB_DREG \
 	  -o $(abspath $(BUILD)/mmu_tb_fpga) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
 

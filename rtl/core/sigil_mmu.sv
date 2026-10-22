@@ -33,7 +33,8 @@
 `default_nettype none
 module sigil_mmu #(
     // FPGA timing structures (#53, sigil_cache_pkg::FPGA_TIMING):
-    // one-hot port lookups.
+    // one-hot port lookups; registered data translation (the dl_*
+    // lookup port below).
     parameter bit FPGA_TIMING = 1'b0
 ) (
     input  wire        clk_i,
@@ -69,6 +70,27 @@ module sigil_mmu #(
     output logic       d_fault_page_o,
     output logic       d_fault_guest_o,
     output logic [63:0] d_fault_gpa_o,
+    // Registered data translation (FPGA_TIMING only, #53). The d_*
+    // inputs above stay MEM's access (walk requests, A/D class) and
+    // d_valid_i its data_access, but the d_* outputs become a
+    // register: the lookup of the dl_* port (EX's access, or MEM's
+    // own while it waits for a translation or sequences a vector
+    // load/store) captured when dl_ld_i, usable when dl_vld_i was
+    // set with it and no TLB or walk-fault update has landed since.
+    // A data walk then starts from that register (miss) instead of
+    // the combinational lookup, and a walk end costs a replay cycle.
+    /* verilator lint_off UNUSEDSIGNAL */
+    input  wire [63:0] dl_va_i,
+    input  wire        dl_write_i,
+    input  wire        dl_exec_i,
+    input  wire [1:0]  dl_priv_i,
+    input  wire        dl_virt_i,
+    input  wire [63:0] dl_satp_i,
+    input  wire        dl_sum_i,
+    input  wire        dl_mxr_i,
+    input  wire        dl_ld_i,
+    input  wire        dl_vld_i,
+    /* verilator lint_on UNUSEDSIGNAL */
     // Walker memory port (muxed onto the core data port)
     output logic       walk_req_o,     // wants the port this cycle
     output logic [63:0] walk_addr_o,
@@ -198,13 +220,13 @@ module sigil_mmu #(
       input logic [63:0] va, input logic [15:0] asid,
       input logic guest, input logic [15:0] vmid, input logic g_on,
       input logic vs_on, input logic [1:0] priv, input logic [1:0] acc,
-      input logic write);
+      input logic write, input logic sum, input logic mxr);
     logic [5:0] f;
     lookup_t    r;
     f = find_entry(va, asid, guest, vmid, g_on, vs_on);
     r.hit = f[5];
     r.e = tlb_q[f[4:0]];
-    r.perm = perm_ok(r.e, priv, acc, sum_i, mxr_i);
+    r.perm = perm_ok(r.e, priv, acc, sum, mxr);
     r.gok = g_perm_ok(r.e, acc, hs_mxr_i) && r.e.a && (!write || r.e.d);
     return r;
   endfunction
@@ -220,13 +242,13 @@ module sigil_mmu #(
       input logic [63:0] va, input logic [15:0] asid,
       input logic guest, input logic [15:0] vmid, input logic g_on,
       input logic vs_on, input logic [1:0] priv, input logic [1:0] acc,
-      input logic write);
+      input logic write, input logic sum, input logic mxr);
     logic [31:0] m, sel, perm_v, gok_v, col;
     logic [$bits(tlb_entry_t)-1:0] e;
     lookup_t     r;
     for (int i = 0; i < 32; i++) begin
       m[i] = entry_match(tlb_q[i], va, asid, guest, vmid, g_on, vs_on);
-      perm_v[i] = perm_ok(tlb_q[i], priv, acc, sum_i, mxr_i);
+      perm_v[i] = perm_ok(tlb_q[i], priv, acc, sum, mxr);
       gok_v[i] = g_perm_ok(tlb_q[i], acc, hs_mxr_i) && tlb_q[i].a &&
                  (!write || tlb_q[i].d);
     end
@@ -266,34 +288,24 @@ module sigil_mmu #(
   /* verilator lint_on UNUSEDSIGNAL */
   if (FPGA_TIMING) begin : g_lookup_1h
     assign if_lk = lookup_1h(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
-                             if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
-    assign d_lk = lookup_1h(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
-                            d_g_trans, d_vs_trans, d_priv_i,
-                            d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
-                            d_write_i);
+                             if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0,
+                             sum_i, mxr_i);
 `ifndef SYNTHESIS
     // Every cycle: a one-hot hit is an index hit with the same entry
-    // and verdicts.
-    lookup_t if_ref, d_ref;
+    // and verdicts (the D port's check is in g_dreg).
+    lookup_t if_ref;
     assign if_ref = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
-                               if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
-    assign d_ref = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
-                              d_g_trans, d_vs_trans, d_priv_i,
-                              d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
-                              d_write_i);
+                               if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0,
+                               sum_i, mxr_i);
     always_ff @(posedge clk_i) begin
-      if ((if_lk.hit != if_ref.hit) || (if_lk.hit && (if_lk != if_ref)) ||
-          (d_lk.hit != d_ref.hit) || (d_lk.hit && (d_lk != d_ref)))
+      if ((if_lk.hit != if_ref.hit) || (if_lk.hit && (if_lk != if_ref)))
         $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
     end
 `endif
   end else begin : g_lookup_1h_off
     assign if_lk = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
-                              if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0);
-    assign d_lk = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
-                             d_g_trans, d_vs_trans, d_priv_i,
-                             d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0,
-                             d_write_i);
+                              if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0,
+                              sum_i, mxr_i);
   end
 
   always_comb begin
@@ -328,39 +340,51 @@ module sigil_mmu #(
     end
   end
 
-  always_comb begin
-    d_pa_o = d_va_i;
-    d_ok_o = 1'b0;
-    d_fault_o = 1'b0;
-    d_fault_page_o = 1'b1;
-    d_fault_guest_o = 1'b0;
-    d_fault_gpa_o = 64'd0;
-    if (!d_trans) begin
-      d_ok_o = 1'b1;
-    end else if (d_vs_trans && !canonical(d_va_i)) begin
-      d_fault_o = d_valid_i;
-    end else if (!d_vs_trans && d_g_trans && |d_va_i[63:41]) begin
-      d_fault_o = d_valid_i;
-      d_fault_guest_o = 1'b1;
-      d_fault_gpa_o = d_va_i;
-    end else if (wf_valid_q && wf_is_data_q && (wf_va_q == d_va_i)) begin
-      d_fault_o = d_valid_i;
-      d_fault_page_o = wf_page_q;
-      d_fault_guest_o = wf_guest_q;
-      d_fault_gpa_o = wf_gpa_q;
-    end else if (d_lk.hit) begin
-      d_pa_o = entry_pa(d_lk.e, d_va_i);
-      if (!d_lk.perm) begin
-        d_fault_o = d_valid_i;
-      end else if (d_lk.gok) begin
-        d_ok_o = 1'b1;
+  // The data port's verdict for one access (fault gated by valid).
+  typedef struct packed {
+    logic [63:0] pa;
+    logic        ok, fault, page, guest;
+    logic [63:0] gpa;
+  } dres_t;
+
+  /* verilator lint_off UNUSEDSIGNAL */  // only the PA fields of .e are read
+  function automatic dres_t d_result(
+      input logic [63:0] va, input logic valid, input logic trans,
+      input logic vs_trans, input logic g_trans, input lookup_t lk);
+    dres_t r;
+    r.pa = va;
+    r.ok = 1'b0;
+    r.fault = 1'b0;
+    r.page = 1'b1;
+    r.guest = 1'b0;
+    r.gpa = 64'd0;
+    if (!trans) begin
+      r.ok = 1'b1;
+    end else if (vs_trans && !canonical(va)) begin
+      r.fault = valid;
+    end else if (!vs_trans && g_trans && |va[63:41]) begin
+      r.fault = valid;
+      r.guest = 1'b1;
+      r.gpa = va;
+    end else if (wf_valid_q && wf_is_data_q && (wf_va_q == va)) begin
+      r.fault = valid;
+      r.page = wf_page_q;
+      r.guest = wf_guest_q;
+      r.gpa = wf_gpa_q;
+    end else if (lk.hit) begin
+      r.pa = entry_pa(lk.e, va);
+      if (!lk.perm) begin
+        r.fault = valid;
+      end else if (lk.gok) begin
+        r.ok = 1'b1;
       end
     end
-  end
+    return r;
+  endfunction
+  /* verilator lint_on UNUSEDSIGNAL */
 
   logic miss_f, miss_d;
   assign miss_f = if_trans && !if_ok_o && !if_fault_o;
-  assign miss_d = d_valid_i && d_trans && !d_ok_o && !d_fault_o;
   logic [1:0]  d_acc;
   logic [63:0] d_root_pte;
   assign d_acc = d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0;
@@ -493,6 +517,98 @@ module sigil_mmu #(
     end else begin
       g_leaf_spa = {8'd0, pte[53:10], g_gpa_q[11:0]};
     end
+  end
+
+  // Data port. Main: the d_* outputs are the combinational lookup of
+  // MEM's access. FPGA_TIMING (#53): they are mt_q, the lookup of the
+  // dl_* port registered on dl_ld_i, so MEM's PMP check, request and
+  // exception logic start from flops. mt_q is live while dl_vld_i was
+  // set with it and no update that can change a data lookup (TLB
+  // write, flush, abort, data walk fault: chg_q) has landed since its
+  // capture; otherwise the core replays MEM's access on the port. A
+  // data walk starts from a live miss in mt_q, so a just-filled entry
+  // or a just-recorded fault never starts a second walk.
+  if (FPGA_TIMING) begin : g_dreg
+    logic  dl_vs_trans, dl_g_trans, chg_d, chg_q, mt_valid_q, mt_live;
+    dres_t dl_res, mt_q;
+    assign dl_vs_trans = (dl_satp_i[63:60] == 4'd8) && (dl_priv_i != 2'b11);
+    assign dl_g_trans = dl_virt_i && hgatp_sv39x4;
+    assign d_lk = lookup_1h(dl_va_i, dl_satp_i[59:44], dl_virt_i, hgatp_vmid,
+                            dl_g_trans, dl_vs_trans, dl_priv_i,
+                            dl_exec_i ? 2'd2 : dl_write_i ? 2'd1 : 2'd0,
+                            dl_write_i, dl_sum_i, dl_mxr_i);
+    assign dl_res = d_result(dl_va_i, 1'b1, dl_vs_trans || dl_g_trans,
+                             dl_vs_trans, dl_g_trans, d_lk);
+    // Every TLB write is on a walker grant; a data walk fault is on a
+    // grant or a G-stage GPA width fault.
+    assign chg_d = flush_i || abort_i ||
+                   ((state_q != W_IDLE) && walk_grant_i) ||
+                   ((state_q == W_G_READ) && req_is_data_q && g_width_fault);
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mt_q <= '0;
+        mt_valid_q <= 1'b0;
+        chg_q <= 1'b0;
+      end else begin
+        chg_q <= chg_d;
+        if (dl_ld_i) begin
+          mt_q <= dl_res;
+          mt_valid_q <= dl_vld_i;
+        end
+      end
+    end
+    assign mt_live = mt_valid_q && !chg_q;
+    assign d_pa_o = mt_q.pa;
+    assign d_ok_o = mt_live && mt_q.ok;
+    assign d_fault_o = d_valid_i && mt_live && mt_q.fault;
+    assign d_fault_page_o = mt_q.page;
+    assign d_fault_guest_o = mt_q.guest;
+    assign d_fault_gpa_o = mt_q.gpa;
+    assign miss_d = d_valid_i && mt_live && !mt_q.ok && !mt_q.fault;
+`ifndef SYNTHESIS
+    // Every cycle: the one-hot D lookup equals find_entry, and
+    // whenever MEM uses mt_q it equals the lookup of MEM's own access
+    // in MEM's context (d_*), so the port's EX lookup saw MEM's
+    // translation context. A capture that matched a recorded walk
+    // fault is exempt: the record may drop before MEM uses it, and a
+    // faulting translation may be held until SFENCE.
+    lookup_t dl_ref, s_lk;
+    dres_t   s_res;
+    logic    mt_wf_q, chk_live_q;
+    assign dl_ref = lookup_idx(dl_va_i, dl_satp_i[59:44], dl_virt_i,
+                               hgatp_vmid, dl_g_trans, dl_vs_trans, dl_priv_i,
+                               dl_exec_i ? 2'd2 : dl_write_i ? 2'd1 : 2'd0,
+                               dl_write_i, dl_sum_i, dl_mxr_i);
+    assign s_lk = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
+                             d_g_trans, d_vs_trans, d_priv_i, d_acc,
+                             d_write_i, sum_i, mxr_i);
+    assign s_res = d_result(d_va_i, 1'b1, d_trans, d_vs_trans, d_g_trans,
+                            s_lk);
+    initial chk_live_q = 1'b0;
+    always @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) chk_live_q <= 1'b0;
+      else chk_live_q <= 1'b1;
+    end
+    always_ff @(posedge clk_i) begin
+      if (dl_ld_i) mt_wf_q <= wf_valid_q && wf_is_data_q && (wf_va_q == dl_va_i);
+      if ((d_lk.hit != dl_ref.hit) || (d_lk.hit && (d_lk != dl_ref)))
+        $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
+      if (chk_live_q && d_valid_i && mt_live && !mt_wf_q &&
+          ((mt_q.ok != s_res.ok) || (mt_q.fault != s_res.fault) ||
+           (mt_q.ok && (mt_q.pa != s_res.pa)) ||
+           (mt_q.fault && ({mt_q.page, mt_q.guest, mt_q.gpa} !=
+                           {s_res.page, s_res.guest, s_res.gpa}))))
+        $error("sigil_mmu: registered data translation differs from MEM's lookup");
+    end
+`endif
+  end else begin : g_dreg_off
+    assign d_lk = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
+                             d_g_trans, d_vs_trans, d_priv_i, d_acc,
+                             d_write_i, sum_i, mxr_i);
+    assign {d_pa_o, d_ok_o, d_fault_o, d_fault_page_o, d_fault_guest_o,
+            d_fault_gpa_o} = d_result(d_va_i, d_valid_i, d_trans, d_vs_trans,
+                                      d_g_trans, d_lk);
+    assign miss_d = d_valid_i && d_trans && !d_ok_o && !d_fault_o;
   end
 
   // Fill target: reuse an existing (A/D-stale) entry for this VA
