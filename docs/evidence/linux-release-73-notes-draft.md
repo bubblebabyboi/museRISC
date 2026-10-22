@@ -10,33 +10,41 @@ Assets are staged on sigil-fpga-build:~/release-73/ by
 artifacts against ~/os-artifacts/SHA256SUMS, the programs against
 fw/SHA256SUMS; reproducible tarballs; no file over 2 GiB).
 
-Before publishing:
-00. sigil-linux has only run against a simulated host. On an F2 with a
+Before publishing, in this order:
+1. Merge the latest origin/73-linux-debian (with the first F2 Debian boot
+   evidence) into 73-linux-release.
+2. sigil-linux has only run against a simulated host. On an F2 with a
    checkout of this branch (sigil_host built) and the staged assets copied to
    ~/release-73, run inside tmux
      SIGIL_LINUX_URL=file://$HOME/release-73 bash ~/sigil/fpga/scripts/sigil-linux
-   then boot, `sudo poweroff`, check "disk saved", and run it a second time
-   from the saved disk. Commit that log under docs/evidence/ and fill
-   `<sigil-linux on F2: pending>` from it.
-0. Merge 73-linux-release into main first (or in the same minute): the setup
-   one-liner, sigil-linux and every guide link below use main. Publish the
-   release with the tag sigil-linux-f2-2026-10-22 exactly: sigil-linux
-   downloads from that tag by default (fpga/scripts/sigil-linux line 33).
-   Then, on a fresh f2.6xlarge, run the three commands of "Boot Debian on
-   your own F2" once against the published assets.
-1. Fill every `<... pending>` placeholder from the first F2 Debian boot
-   (evidence on 73-linux-debian) and the first sigil-linux run on the F2, in
-   these notes and in the docs; drop the hbm_touch one if it was not run.
-   This must print nothing:
-   git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/
+   boot, `sudo poweroff`, check "disk saved", then run it a second time from
+   the saved disk. Commit that log under docs/evidence/.
+3. Fill every `<... pending>` placeholder from those two runs, in these notes
+   and in the docs (drop the hbm_touch one if it was not run). This must
+   print nothing:
+     git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/
    Replace the "about 9 min" estimate with the measured F2 boot time in
    fpga/scripts/sigil-linux (the "login prompt takes minutes" line), README
    "Boot Debian on your own F2", docs/LINUX.md 4.1, 5.1, 5.8 and the 7 table,
    and the opening paragraph of these notes (keep "on a real AWS F2 FPGA" only
    if the F2 boot passed).
-2. Copy the new F2 boot evidence directory into ~/rel73-work/evidence/ and
-   rerun the stage script: sigil_linux_evidence_2026-10-22.tar.gz and
-   SHA256SUMS change, so update their rows in the assets table.
+4. Copy the new F2 evidence directories into ~/rel73-work/evidence/ on
+   sigil-fpga-build and rerun ~/rel73-work/stage_release73.sh:
+   sigil_linux_evidence_2026-10-22.tar.gz and SHA256SUMS change, so update
+   their rows in the assets table.
+5. Merge 73-linux-release into main and push, and wait for CI on main to
+   pass. Do this before (or in the same minute as) the release: the setup
+   one-liner, sigil-linux and every guide link below use main.
+6. Publish with the tag sigil-linux-f2-2026-10-22 exactly: sigil-linux
+   downloads from that tag by default (fpga/scripts/sigil-linux line 33).
+     sed '1,/^-->$/d' docs/evidence/linux-release-73-notes-draft.md > notes.md
+     gh release create sigil-linux-f2-2026-10-22 --repo bubblebabyboi/sigil \
+       --target main --title "<title above>" --notes-file notes.md ~/release-73/*
+   (all 16 files of ~/release-73, about 369 MB; none over 2 GiB).
+7. On a fresh f2.6xlarge, run the three commands of "Boot Debian on your own
+   F2" once against the published release.
+8. Delete the merged branches 73-f2-memory-platform, 73-linux-debian and
+   73-linux-release.
 -->
 
 The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now boots **Debian 13 "trixie" with gcc and glibc** `<on a real AWS F2 FPGA: pending, keep only if the F2 boot passed>`, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
