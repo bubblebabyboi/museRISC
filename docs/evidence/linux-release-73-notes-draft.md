@@ -5,13 +5,20 @@ comment before publishing.
 Title: "Sigil 2026-10-22b: Debian 13 on AWS F2 with 64 GiB DDR4 + 16 GiB HBM
 (public AFI)"
 
-Assets are staged on sigil-fpga-build:~/release-73/ by
-~/rel73-work/stage_release73.sh (checks the DCP against the evidence, the OS
-artifacts against ~/os-artifacts/SHA256SUMS, the programs against
-fw/SHA256SUMS; reproducible tarballs; no file over 2 GiB). The DCP is now the
-one of the public AFI agfi-0c8aa56fde1a48495 (31a1568, walker-race fix #74);
-the evidence tarball holds every docs/evidence/*-73-2026-10-22 directory of
-73-linux-release.
+Assets are staged on sigil-fpga-build:~/release-73/ from 73-linux-release
+1d72210 by ~/rel73-work/stage_release73.sh (log ~/rel73-work/stage-1d72210.log):
+it checks the DCP's size and sha256 against the AFI evidence, the OS artifacts
+against ~/os-artifacts/SHA256SUMS, the programs against fw/SHA256SUMS and
+against the earlier release's programs, and that every file sigil-linux
+downloads is staged with one SHA256SUMS line; reproducible tarballs; no file
+over 2 GiB. The DCP is the one of the public AFI agfi-0c8aa56fde1a48495
+(s3://sigil-fpga-afi-891612553438/dcp/2026_10_22-143914.Developer_CL.tar,
+31a1568, walker-race fix #74). The programs were rebuilt from 1d72210 with
+riscv64-elf-gcc 16.2.0: the 12 files of sigil_programs_2026-10-22.tar.gz are
+byte-identical, new are f2_platform_test, f2_memtest and hbm_touch. The
+evidence tarball holds every docs/evidence/*-73-2026-10-22 directory of
+1d72210 plus the release gate logs (linux-release-73-*-2026-10-22.log; not
+this draft).
 
 Before publishing, in this order (steps 1, 3 and 4 are done):
 1. Done: origin/73-oops-fix (31a1568 RTL + evidence) and origin/73-linux-debian
@@ -30,11 +37,14 @@ Before publishing, in this order (steps 1, 3 and 4 are done):
 3. Done: every placeholder is filled from the F2 runs on agfi-0c8aa56fde1a48495
    (the hbm_touch one says "not yet run on the F2"). This must print nothing:
      git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/ docs/evidence/
-4. Done: the F2 evidence directories were copied into ~/rel73-work/evidence/
-   on sigil-fpga-build and ~/rel73-work/stage_release73.sh was rerun with the
-   new DCP; the DCP, evidence and SHA256SUMS rows below are the restaged ones.
-   If evidence changes again, copy it and rerun the script, then update those
-   rows.
+4. Done: restaged from 1d72210 (the #73 evidence of that commit in
+   ~/rel73-work/evidence-1d72210, the programs built from it in
+   ~/rel73-work/programs-1d72210, its sigil-linux in
+   ~/rel73-work/sigil-linux-1d72210); the DCP, programs, evidence and
+   SHA256SUMS rows below are the restaged ones. If evidence or programs
+   change again, put the new commit's copies in ~/rel73-work/*-<rev>, rerun
+   `REV=<rev> ~/rel73-work/stage_release73.sh`, then update those rows and
+   the SHA256SUMS sha256 in step 6.
 5. Merge 73-linux-release into main and push, and wait for CI on main to
    pass. Do this before (or in the same minute as) the release: the setup
    one-liner, sigil-linux and every guide link below use main.
@@ -44,7 +54,7 @@ Before publishing, in this order (steps 1, 3 and 4 are done):
      gh release create sigil-linux-f2-2026-10-22 --repo bubblebabyboi/sigil \
        --target main --title "<title above>" --notes-file notes.md ~/release-73/*
    (all 16 files of ~/release-73, about 368 MB; none over 2 GiB; SHA256SUMS
-   sha256 2e7f2e0bb7a7e33d8e2e773fac5ae4dd48ad8e812776824b2b7e05acca9711a8).
+   sha256 b62d3e35dad6f436636f8503c9f26c3d69fe1d4a158f7454bf1173072ac2813c).
 7. On a fresh f2.6xlarge, run the three commands of "Boot Debian on your own
    F2" once against the published release.
 8. Delete the merged branches 73-f2-memory-platform, 73-linux-debian,
@@ -164,8 +174,8 @@ FPGA build of the new AFI: Vivado 2025.2, aws-fpga v2.3.5, commit `31a1568`, all
 | `System.map-6.12.114-sigil` | 1.8 MB | `5c1b2e11bfb2153f0ec190a85ccaf1435eba6b970f0a2fd81fedce9fdf3d4ad3` | kernel symbol map |
 | `manifest.txt` | 7.9 kB | `09bdec60d5d446f09916628376a01947e21ff2612cf629282c40b724bdf19376` | Debian image manifest: snapshot, kernel, every package with its version |
 | `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar` | 110.2 MB | `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246` | unencrypted F2 design checkpoint the public AFI `agfi-0c8aa56fde1a48495` was created from (manifest `dcp_hash` `53eed162…11fe73`) — rebuild or modify it yourself |
-| `sigil_programs_2026-10-22b.tar.gz` | 33.4 kB | `dde6adc16bc409fefb94159f91dcdae0aeaa7e31cd57ed7c67829fd01b6cded3` | prebuilt bare-metal firmware (crypto, Ed25519, hash, smoke, new F2 platform test and memory test) and the 7 SDK example binaries |
-| `sigil_linux_evidence_2026-10-22.tar.gz` | 338.3 kB | `3b15b6dd994648851c84ccfd159281d9a95b42fbeaa5fff983040a25172f9b24` | #73 evidence: Vivado reports of both platform AFIs, every F2 host log and UART capture, QEMU and RTL boot logs, the F2 Debian consoles (the oopses on the old AFI and the 22/22 runs on the new one), the walker-race tests and gates |
+| `sigil_programs_2026-10-22b.tar.gz` | 34.5 kB | `f3ea5f9a60e08d3a45d76020989f61497ac546db40e2d13c714efdbe8afe4ec9` | prebuilt bare-metal firmware (crypto, Ed25519, hash, smoke, new F2 platform test and memory test) and the 8 SDK example binaries (new: `hbm_touch`, F2 memory map only, not yet run on the F2) |
+| `sigil_linux_evidence_2026-10-22.tar.gz` | 344.2 kB | `ffb97fd1fc993ca2ba1ecd50fbf1dbd23169e69528550eb67a9d37c4bd5b0b36` | #73 evidence: Vivado reports of both platform AFIs, every F2 host log and UART capture, QEMU and RTL boot logs, the F2 Debian consoles (the oopses on the old AFI and the 22/22 runs on the new one), the walker-race tests and gates, the release gate logs |
 | `SHA256SUMS` | 1.3 kB | | checksums of all of the above |
 
 Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linux_kernel.sh`, `build_debian_rootfs.sh` (versions, checksums and the Debian snapshot are pinned), `fpga/scripts/build_cl_sigil.sh` for the CL.
