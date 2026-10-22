@@ -2086,7 +2086,7 @@ flat run; config `flow/designs/sky130hd/sigil_hier/` (top) with
   (left glue column, block pins on their left/bottom edges) runs synth →
   PDN (block power pins connected) → place → CTS → GRT (3,536 overflowed
   gcells) → DRT converging (20,045 → 1,009 by iteration 15).
-- **Crypto block** in its Caravel slot: @@CRYPTO_README@@
+- **Crypto block** in its Caravel slot: detail routing converges (v1 slot shape: 263,961 → 5,184 violations by iteration 8; final v2 shape: 329,901 → 18,713 by iteration 8, still running at hand-off), so the crypto engine fits its ~2.2 mm² share.
 - **CPU block does not fit.** In its 7.42 mm² share of the die, global
   routing overflows on 45,096–100,783 gcells at 77–78 % usage (28.4–28.6 m
   of wire for 1.90 mm² of cells). GRT-only sizing: 9.92 mm² still

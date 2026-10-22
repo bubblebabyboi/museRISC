@@ -61,8 +61,9 @@ the Caravel user area.
   v1 floorplan: CPU 2900 x 2560 (7.42 mm^2) at the bottom, crypto
   2590 x 850 (2.20 mm^2) at the top, glue in a 90 um channel between
   them. v2 (current): 130 um glue column on the left die edge, CPU
-  2770 x 2680 (7.42 mm^2), crypto 2770 x 810 (2.24 mm^2), all pins on the
-  blocks' left edges and the SoC pins on the left die edge.
+  2770 x 2680 (7.42 mm^2) with pins on its left edge, crypto
+  2770 x 780 (2.16 mm^2) above it with pins on its bottom edge (reached
+  through a 40 um gap), SoC pins on the left die edge.
   Std-cell density this leaves: crypto 49 % of its core (55 % after
   placement repair/CTS); CPU 1.90 mm^2 in the 7.42 mm^2 block of which
   3.70 mm^2 is macros + 40 um halos (~51 %).
@@ -145,7 +146,38 @@ the Caravel user area.
   global-route wire 11.00 m vs 8.90 m, 7,873 overflowed gcells at
   74.9 % usage. With the pins on the bottom edge (v3): 0 overflow,
   68.3 % usage, 9.43 m.
-@@CRYPTO_V3@@
+  DRT (11 threads, restarted from the GRT result; earlier 2- and
+  5-thread attempts were stopped for speed): 329,901 / 258,127 / 242,189 /
+  111,676 / 62,001 / 40,519 / 30,200 / 24,469 / 18,713 (iteration 8,
+  ~10 min per iteration), still falling ~20 % per iteration. Not
+  finished when this log was written: the run (container
+  pnr-hier-crypto-v3c, target generate_abstract) was left going on the
+  host and records its end in ~/sigil-hier/build/STATUS; its route
+  DRC / antenna / timing are therefore not reported here.
+
+== Wall times (host, UTC 2026-10-22 01:35-15:05, ~13.5 h)
+  synthesis: crypto 249 s, CPU 2,904 s, top 22 s
+  crypto r1 (slot, to DRT iteration 1) 4,407 s; crypto-s (DRT resumed,
+    iterations 0-8, 3 threads) 15,768 s; d35/d42 3,907 s; m42 1,967 s;
+    h30 3,613 s; u30 4,923 s; v3 DRT to iteration 8 (11 threads) ~2.3 h
+  CPU r1 (to GRT) 5,706 s; cpu-s (GRT stage only) 11,315 s; cpu-v2
+    (floorplan..GRT) 9,598 s; L 5,550 s; v2/10 3,771 s; z99/z112 3,583 s
+  top dry runs: v1 1,300 s (to GRT); v2 1,263 s (GRT + 15 DRT iterations)
+  aes calibration 4,909 s (1 thread)
+  Global routing of the CPU block is the slow step: FastRoute's
+  congestion iterations are single-threaded, and with overflow the
+  GRT stage (with repair_design, repair_timing and the incremental
+  re-routes) took 2.5-3+ h.
+
+== Reproduce (ORFS image above; design dirs mounted as in the flat run,
+   plus flow/designs/sky130hd/sigil_hier at designs/sky130hd/sigil_hier)
+  make DESIGN_CONFIG=designs/sky130hd/sigil_hier/sigil_crypto_top/config.mk FLOW_VARIANT=v2 generate_abstract
+  make DESIGN_CONFIG=designs/sky130hd/sigil_hier/sigil_cpu/config.mk FLOW_VARIANT=v2 generate_abstract
+  SIGIL_TOP_SYNTH=1 make DESIGN_CONFIG=designs/sky130hd/sigil_hier/config.mk FLOW_VARIANT=v2 synth
+  make DESIGN_CONFIG=designs/sky130hd/sigil_hier/config.mk FLOW_VARIANT=v2 finish
+  (block FLOW_VARIANT must match the top's: the top reads
+  results/sky130hd/sigil_hier_<block>/$(FLOW_VARIANT)/.) Sizing runs
+  override DIE_AREA/CORE_AREA on the make command line.
 
 == Host disk
   The host disk filled up once during these runs (0 bytes free while

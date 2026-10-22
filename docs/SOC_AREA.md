@@ -502,7 +502,7 @@ Caravel die (`flow/designs/sky130hd/sigil_hier/`). Per-block synthesis:
 | Block | Std cells | Macros | Caravel share | Global route in that share |
 |---|---:|---:|---:|---|
 | `sigil_cpu` | 1.896 mm² | 2.914 mm² | 7.42 mm² | 45k–101k overflowed gcells, 77–78 % usage |
-| `sigil_crypto_top` | 1.074 mm² | — | 2.2 mm² | 0 overflow, 63–68 % usage; @@CRYPTO_AREA@@ |
+| `sigil_crypto_top` | 1.074 mm² | — | 2.2 mm² | 0 overflow, 63–68 % usage; detail routing converging (not finished) |
 | top glue (fabric, CLINT, PLIC, UART, ROM, bridge) | 0.060 mm² | — | 0.47 mm² column | works (dry run) |
 
 The CPU block global-routes cleanly only at about **11.2 mm²** (9.9 mm²
