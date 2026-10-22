@@ -11,6 +11,8 @@
 #   TF_DIR=/path/to/berkeley-testfloat-3 ./scripts/testfloat_fpu_vectors.sh
 #
 # TF_DIR is cloned (a9c849f1) if missing. Outputs: build/testfloat-fpu/.
+# TF_BUILD_ONLY=1 stops after building testfloat_gen (used by
+# scripts/testfloat_fpu_l2.sh).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
@@ -19,7 +21,7 @@ OUT=build/testfloat-fpu
 SF_LIB=$ROOT/build/softfloat-host/softfloat.a
 SF_DIR=$ROOT/third_party/berkeley-softfloat-3
 mkdir -p "$OUT"
-[ -f "$SF_LIB" ] || make -C sim "$ROOT/build/softfloat-host/softfloat.a"
+[ -f "$SF_LIB" ] || make -C sim ../build/softfloat-host/softfloat.a
 if [ ! -d "$TF_DIR" ]; then
   git clone -q https://github.com/ucb-bar/berkeley-testfloat-3.git "$TF_DIR"
   git -C "$TF_DIR" checkout -q a9c849f1
@@ -41,6 +43,7 @@ if [ ! -x "$GEN" ]; then
   make -C "$B" -j8 testfloat_gen >"$OUT/build.log" 2>&1
 fi
 [ -x "$GEN" ] || { echo "testfloat_gen build failed (see $OUT/build.log)"; exit 1; }
+[ "${TF_BUILD_ONLY:-0}" = 1 ] && exit 0
 
 OPS="f32_add f32_sub f32_mul f32_div f32_sqrt f32_mulAdd f64_add f64_sub
 f64_mul f64_div f64_sqrt f64_mulAdd f32_to_i32 f32_to_ui32 f32_to_i64
@@ -57,5 +60,5 @@ for rm in near_even minMag min max near_maxMag; do
   done
 done
 echo "vectors: $(wc -l < "$OUT/vectors.txt")"
-make -C sim "$ROOT/build/sim/fpu_tb" >/dev/null
+make -C sim ../build/sim/fpu_tb >/dev/null
 build/sim/fpu_tb --testfloat "$OUT/vectors.txt" | tee "$OUT/run.log" | tail -4

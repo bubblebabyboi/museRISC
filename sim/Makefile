@@ -181,6 +181,18 @@ $(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
 fpu: $(BUILD)/fpu_tb
 	cd $(BUILD) && COV_FILE=cov_fpu.dat ./fpu_tb
 
+# Same TB without coverage instrumentation (about 2x faster): for
+# long TestFloat vector runs (scripts/testfloat_fpu_l2.sh).
+$(BUILD)/fpu_tb_fast: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
+                 $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
+                 $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpu_fast --top-module sigil_fpu \
+	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
+	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
+	  -o $(abspath $(BUILD)/fpu_tb_fast) $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
+	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
+
 # Same TB on the FPU_DS_BITS=1 configuration (one div/sqrt step
 # per cycle: the shorter-critical-path alternative).
 $(BUILD)/fpu_tb_ds1: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
