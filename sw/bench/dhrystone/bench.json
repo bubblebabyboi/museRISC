@@ -1,0 +1,10 @@
+{
+  "name": "dhrystone",
+  "description": "Dhrystone 2.1 (Weicker, netlib dhry-c), ground rules: separate compilation, -fno-inline",
+  "iterations": 2000,
+  "max_cycles": 200000000,
+  "region": 0,
+  "expect": ["DHRYSTONE CHECK OK runs={iterations}"],
+  "metrics": ["dmips_per_mhz"],
+  "units": "Dhrystones (one run through the main loop per iteration)"
+}
