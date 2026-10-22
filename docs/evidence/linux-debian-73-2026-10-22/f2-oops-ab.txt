@@ -41,8 +41,13 @@ SLUB red-zoning is off (no SLUB_DEBUG_ON / slub_debug=, no KFENCE).
              kernel prints "ASID allocator disabled")      filemap_fault
 11 11:14     low-PA + transparent_hugepage=never           OOPS t=100.5 s folio_lruvec_    exp-nothp.log
                                                            lock @ffffffd601f5e0c8 (valid)
-12 11:16     execstress v2 (progress every 25 iters),      (running)                       exp-execstress-v2.log
-             low-PA DTB, no disk
+12 11:16     execstress v2 (progress every 25 iters),      NO OOPS: 50 iterations x 6      exp-execstress-v2.log
+             low-PA DTB, no disk (initramfs only)          workers (1,200 fork/execs) in
+                                                           ~705 s; stopped at 11:28
+13 11:28     pmemstress: initramfs mounts /dev/pmem0 ext4  (running)                       exp-pmemstress.log
+             ro, 3 md5sum readers + drop_caches, 3 loops
+             chroot-exec'ing Debian ls/sort/true (ld.so +
+             libc from pmem), low-PA DTB + small.ext4
 
 Platform side notes (for a platform issue, not fixed here):
 - UART garbling after interrupted runs. Sequence: run 1 (sigil_host --console
