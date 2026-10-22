@@ -26,3 +26,15 @@ $(BUILD)/oops_soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_mode
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(SOC_RTL) $(OOPS_CHK) \
 	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp) $(abspath $(OOPS_DPI))
+
+# The fetch-walk preemption tests (issue #73 oops hunt). Each must
+# PASS on fixed RTL; on the RTL of 73-linux-release all three FAIL
+# (stale walker response consumed by the preempting data walk).
+OOPS_PTW_TESTS := ptw_preempt_directed ptw_preempt_cached_directed ptw_preempt_twoload_directed
+.PHONY: oops-ptw-preempt
+oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_PTW_TESTS)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_PTW_TESTS); do \
+	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
+	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 4000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
+	    ./oops_core_tb $$t.bin 4000000 $$a > /dev/null || rc=1; \
+	  done; done; exit $$rc

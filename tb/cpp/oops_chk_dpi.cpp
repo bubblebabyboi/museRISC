@@ -25,7 +25,7 @@ struct Page {
 std::unordered_map<uint64_t, std::unique_ptr<Page>> g_pages;
 uint64_t g_epoch = 0;
 uint64_t g_loads = 0, g_stores = 0, g_fetches = 0, g_walk_rsp_stale = 0;
-uint64_t g_dmism = 0, g_imism = 0;
+uint64_t g_dmism = 0, g_imism = 0, g_walk_rsp_harm = 0;
 long g_max = -1;
 int g_fatal = -1;
 
@@ -129,31 +129,43 @@ extern "C" void oops_stale_walk(long long cyc, long long req_pa, int req_we,
                                 int is_data, long long va, int level, int priv,
                                 long long fva, long long dva) {
   ++g_walk_rsp_stale;
-  if (static_cast<long>(g_walk_rsp_stale) <= MaxReports()) {
+  // Would the walker have read something else at its own address?
+  // (shadow value of walker_pa, if known; "same" = benign).
+  Word& w = W(static_cast<uint64_t>(walker_pa));
+  const char* verdict = "unknown";
+  if (w.known == 0xFF) {
+    verdict = (w.val == static_cast<uint64_t>(data)) ? "same" : "DIFFERENT";
+  }
+  if (verdict[0] == 'D') ++g_walk_rsp_harm;
+  if (static_cast<long>(g_walk_rsp_stale) <= MaxReports() ||
+      (verdict[0] == 'D' && static_cast<long>(g_walk_rsp_harm) <= MaxReports())) {
     std::printf("OOPSCHK stale-walk-rsp cyc=%llu req_pa=0x%llx req_we=%d "
                 "walker_pa=0x%llx walker_we=%d data=0x%016llx walker_is_data=%d "
-                "walker_va=0x%llx level=%d priv=%d fetch_va=0x%llx mem_va=0x%llx\n",
+                "walker_va=0x%llx level=%d priv=%d fetch_va=0x%llx mem_va=0x%llx "
+                "pte_at_walker_pa=0x%016llx verdict=%s\n",
                 static_cast<unsigned long long>(cyc),
                 static_cast<unsigned long long>(req_pa), req_we,
                 static_cast<unsigned long long>(walker_pa), walker_we,
                 static_cast<unsigned long long>(data), is_data,
                 static_cast<unsigned long long>(va), level, priv,
                 static_cast<unsigned long long>(fva),
-                static_cast<unsigned long long>(dva));
+                static_cast<unsigned long long>(dva),
+                static_cast<unsigned long long>(w.val), verdict);
     std::fflush(stdout);
   }
-  MaybeFatal();
+  if (verdict[0] == 'D' || std::getenv("OOPSCHK_FATAL_ANY") != nullptr) MaybeFatal();
 }
 
 extern "C" void oops_summary() {
   std::printf("OOPSCHK summary: d-loads %llu d-stores %llu fetches %llu fencei %llu | "
-              "d-load-mismatch %llu i-fetch-stale %llu stale-walk-rsp %llu\n",
+              "d-load-mismatch %llu i-fetch-stale %llu stale-walk-rsp %llu (different %llu)\n",
               static_cast<unsigned long long>(g_loads),
               static_cast<unsigned long long>(g_stores),
               static_cast<unsigned long long>(g_fetches),
               static_cast<unsigned long long>(g_epoch),
               static_cast<unsigned long long>(g_dmism),
               static_cast<unsigned long long>(g_imism),
-              static_cast<unsigned long long>(g_walk_rsp_stale));
+              static_cast<unsigned long long>(g_walk_rsp_stale),
+              static_cast<unsigned long long>(g_walk_rsp_harm));
   std::fflush(stdout);
 }
