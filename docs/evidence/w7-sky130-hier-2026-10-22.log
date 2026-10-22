@@ -6,7 +6,17 @@ openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8
 sky130 configuration as the flat run (w7-sky130-pnr-2026-10-21.log):
 SIGIL_SRAM_SKY130, 4 KiB direct-mapped L1s, 7 OpenRAM macros. RTL unchanged.
 
-RESULT: @@RESULT@@
+RESULT: DOES NOT FIT THE CARAVEL USER AREA; NO GDS. The hierarchical
+flow works (blocks harden to LEF/LIB abstracts with met4 power pins,
+the top synthesizes against block stubs, connects block power with
+met5, places, runs CTS and detail-routes; top-level DRT converged to
+1,009 violations by iteration 15 on provisional abstracts). The
+crypto block detail-routes in its Caravel slot (converging, see
+below). The CPU block does not: in its 7.42 mm^2 share of the
+2920 x 3520 um die, global routing overflows on 45k-101k gcells at
+77-78 % usage; it routes cleanly in global routing only at ~11.2 mm^2
+(9.9 mm^2 still overflows). Whole SoC on sky130hd: ~14 mm^2, ~1.4x
+the Caravel user area.
 
 == Partition
   sigil_cpu         core + vector unit + FPU + L1 I$/D$ + bus arbiter + the
