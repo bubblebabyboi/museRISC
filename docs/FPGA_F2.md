@@ -623,7 +623,9 @@ console, finisher, bulk load/save, at a measured 62.5 MHz.
 **To boot Debian on it, see [`LINUX.md` §4](LINUX.md#4-boot-debian-on-your-f2)**:
 after the playground setup below, `~/bin/sigil-linux` downloads the
 release's OpenSBI, kernel, device tree and Debian disk, loads this AFI
-and boots to a login prompt, keeping your disk across sessions. For
+and boots to a login prompt, keeping your disk across sessions (Debian
+passed 23/23 checks in QEMU and `sigil-linux` its tests against a
+simulated host; first F2 run: `<sigil-linux on F2: pending>`). For
 bare-metal programs see [`PROGRAMMING.md`](PROGRAMMING.md#8-running-on-aws-f2).
 
 | | |
@@ -679,10 +681,11 @@ The first public AFI (`agfi-035116450e0a0d093`, #55: 128 MiB, needs
 `curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash`
 installs the SDK, a RISC-V compiler, `zstd` and `tmux`, clones Sigil,
 builds `sigil_host`, loads the AFI and installs two helpers in `~/bin`:
-[`sigil-run`](../fpga/scripts/sigil-run) (`sigil-run main.c` compiles a
-program with the SDK and runs it on the FPGA) and
+[`sigil-run`](../fpga/scripts/sigil-run) (`sigil-run ~/hello/hello.c`
+compiles a program with the SDK and runs it on the FPGA) and
 [`sigil-linux`](../fpga/scripts/sigil-linux) (boots Debian with a
 persistent disk, [`LINUX.md` §4.1](LINUX.md#41-one-command-sigil-linux)).
+Rerun the one-liner to update `~/sigil`, `sigil_host` and the helpers.
 
 6. Rebuild the AFI yourself: `fpga/scripts/build_cl_sigil.sh` on the FPGA
    Developer AMI (non-F2 instance), then `aws s3 cp` the tarball and

@@ -158,7 +158,7 @@ The same map is used by the RTL SoC (`rtl/soc/sigil_soc_top.sv`),
 | Address | Size | Device | SDK constant |
 |---|---|---|---|
 | `0x0000_1000` | 4 KiB | boot ROM (jumps to `0x8000_0000`) | `SIGIL_BOOTROM_BASE` |
-| `0x0010_0000` | 4 KiB | test finisher (32-bit write: `0x5555` power off, `0x7777` reboot, `(code << 16) \| 0x3333` fail); on the F2 `sigil_host` ends the run on it | — |
+| `0x0010_0000` | 4 KiB | test finisher (32-bit write: `0x5555` power off, `0x7777` reboot, `(code << 16) \| 0x3333` fail); on the F2 `sigil_host` ends the run on power off (exit 0) or fail (exit 1); a reboot reloads the boot images and restarts (`--on-reboot rerun`, the default) or exits 5 (`--on-reboot exit`) | — |
 | `0x0010_1000` | 4 KiB | RTC (`google,goldfish-rtc` registers; set to the host's wall clock by `sigil_host`) | — |
 | `0x0200_0000` | 64 KiB | CLINT: `msip` +0x0, `mtimecmp` +0x4000, `mtime` +0xBFF8 | `SIGIL_CLINT_*` |
 | `0x0C00_0000` | 64 MiB | PLIC | `SIGIL_PLIC_BASE` |
@@ -338,7 +338,7 @@ The quickest start is the playground setup on a new `f2.6xlarge`
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash
-~/bin/sigil-run main.c            # build with the SDK template, run on the FPGA
+~/bin/sigil-run ~/hello/hello.c   # build with the SDK template, run on the FPGA
 ~/bin/sigil-run prog.bin          # or run an image you built
 ```
 
@@ -353,7 +353,7 @@ make -C fpga/host SDK_DIR=<aws-fpga>/sdk
 To run an SDK program:
 
 ```sh
-sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H     # once per instance
+sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H     # if the slot does not have it (fpga-describe-local-image -S 0 -H)
 sudo fpga/host/sigil_host --bin build/myprog.bin --timeout 30
 ```
 
@@ -362,7 +362,8 @@ What `sigil_host` does:
 1. Loads the AFI if you pass `--afi agfi-...`. Leave it out when the AFI
    is already loaded: every load resets the FPGA, and the next run zeroes
    DDR4 again (step 4).
-2. Sets the clock recipe.
+2. Releases the CL resets with the AFI's build clock recipe (B1 =
+   62.5 MHz); `--recipe-b N` programs another recipe instead.
 3. Holds the SoC in reset and waits for DDR4 and HBM.
 4. Zeroes all 64 GiB of DDR4 once per AFI load (about 17 s). DDR4 has
    ECC, and reading memory that was never written is an error
@@ -457,7 +458,7 @@ timing, which says nothing about F2 latency; built with GCC 16.1 and
 with Ubuntu's GCC 13.2, which `sigil-run` uses;
 [`evidence/linux-user-docs-73-2026-10-22/`](evidence/linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log)). It needs the F2 map, so
 it does not run on `soc_rtl_tb` or `fpga_top_tb` (128 MiB). On the F2:
-`sigil-run sw/examples/hbm_touch/hbm_touch.c`; result:
+`~/bin/sigil-run ~/sigil/sw/examples/hbm_touch/hbm_touch.c`; result:
 `<hbm_touch on F2: pending>`. The same kinds of accesses from the core
 (`sw/fpga-tests/f2_memtest.c`, a sparse test over all of DDR4 and HBM)
 passed on the F2 with 0 errors.
