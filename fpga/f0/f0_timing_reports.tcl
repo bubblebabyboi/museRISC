@@ -2,7 +2,7 @@
 # path. Sourced by f0_ooc.tcl after route_design (uses its $out), or run
 # standalone on a checkpoint from the repo root:
 #   vivado -mode batch -source fpga/f0/f0_timing_reports.tcl \
-#     -tclargs <dcp> <out_dir> [<cuts.tcl>]
+#     -tclargs <dcp> <out_dir> [<cuts.tcl>, e.g. fpga/f0/f0_cuts.tcl]
 # Writes into <out_dir>:
 #   impl_fail_paths.rpt      worst path to each failing endpoint (first 500)
 #   impl_fail_endpoints.tsv  every failing endpoint: slack, levels, delays,
@@ -20,10 +20,13 @@
 # and writes the reports again into <out_dir>/cut<N>-<name>: what would
 # still fail once those paths are fixed, before changing any RTL.
 
-# Register group of a start/end cell: drop bit/entry indices and the
-# replication / RAM-slice suffixes synthesis and phys_opt add.
+# Register group of a start/end cell: drop bit/entry indices, LUTRAM
+# primitives and the replication / RAM-slice suffixes synthesis and
+# phys_opt add.
 proc f0_reg_group {cell} {
+  regsub {/(SP|DP|RAM[A-H](_D1)?)$} $cell {} cell
   regsub {(_rep(__[0-9]+)?|_replica(_[0-9]+)?|__[0-9]+)$} $cell {} cell
+  regsub -all {_reg(\[[0-9]+\])+} $cell {_reg} cell
   regsub {(\[[0-9]+\])+$} $cell {} cell
   regsub {(_bram_[0-9]+|(_r[0-9]+)?(_[0-9]+){4})$} $cell {} cell
   return $cell
