@@ -333,9 +333,21 @@ def markdown(data, clocks=()):
         ev("I$ fetch accesses per instr", "I$ acc/i", lambda c: f"{c['ic_access'] / c['instret']:.3f}"),
         ev("I$ misses (per 1000 instr)", "I$ miss (/ki)",
            lambda c: f"{c['ic_miss']:,} ({1000.0 * c['ic_miss'] / c['instret']:.3f})"),
+        # Hits are derived: an uncached access never looks up the
+        # arrays, and every lookup that misses is counted once.
+        ev("I$ hits (% of cacheable fetches)", "I$ hit (%)",
+           lambda c: f"{c['ic_access'] - c['ic_miss'] - c['ic_unc']:,} "
+                     f"({pct(c['ic_access'] - c['ic_miss'] - c['ic_unc'], c['ic_access'] - c['ic_unc'])})"),
+        ev("I$ miss-outstanding cycles (% of cycles)", "I$ miss cyc %",
+           lambda c: pct(c["ic_miss_cyc"], c["cycles"])),
         ev("D$ loads / stores", "D$ ld / st", lambda c: f"{c['dc_load']:,} / {c['dc_store']:,}"),
         ev("D$ misses (% of accesses)", "D$ miss (%)",
            lambda c: f"{c['dc_miss']:,} ({pct(c['dc_miss'], c['dc_load'] + c['dc_store'])})"),
+        ev("D$ hits (% of cacheable accesses)", "D$ hit (%)",
+           lambda c: f"{c['dc_load'] + c['dc_store'] - c['dc_miss'] - c['dc_unc']:,} "
+                     f"({pct(c['dc_load'] + c['dc_store'] - c['dc_miss'] - c['dc_unc'], c['dc_load'] + c['dc_store'] - c['dc_unc'])})"),
+        ev("D$ miss-outstanding cycles (% of cycles)", "D$ miss cyc %",
+           lambda c: pct(c["dc_miss_cyc"], c["cycles"])),
         ev("D$ write-backs", "D$ wb", lambda c: f"{c['bus_dwb']:,}"),
         ev("uncached D accesses", "D unc", lambda c: f"{c['dc_unc']:,}"),
         ev("bus transactions (I fill / D fill / D wb / uncached)", "bus if/df/wb/unc",

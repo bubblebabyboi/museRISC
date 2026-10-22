@@ -235,6 +235,20 @@ These counters are not exclusive. They count raw events or busy cycles:
 | D$ (data port: MEM + walker) | `dc_load`, `dc_store`, `dc_clean`, `dc_miss`, `dc_unc`, `dc_miss_cyc`, `dc_unc_cyc` |
 | Memory bus (`sigil_cpu` master port) | `bus_ifill`, `bus_iunc`, `bus_dfill`, `bus_dwb` (write-back bursts), `bus_dunc` (single beats); `bus_busy_cyc` (transaction in flight or offered), `bus_req_wait` (valid && !ready), `bus_rsp_wait` (in flight, no request beat, no response beat) |
 
+Two items of the #56 counter list have no counter of their own:
+
+- **Cache hits are derived.** An uncached access never looks up the
+  arrays, and each lookup that misses is counted once, so I$ hits =
+  `ic_access − ic_miss − ic_unc` and D$ hits = `dc_load + dc_store −
+  dc_miss − dc_unc`. The report prints both, with the miss-outstanding
+  cycles (§8).
+- **There are no CSR flushes.** On this core a CSR instruction never
+  flushes the pipeline: `flush` in `sigil_core.sv` covers only taken
+  branches, `jal`, `jalr`, xRET, FENCE.I and SFENCE/HFENCE. CSR
+  instructions are counted by `ret_csr`, the serializing flushes by
+  `xret_flush`, `fencei_flush` and `sfence_flush`, and traps by
+  `trap_exc` and `trap_irq`.
+
 ## 4. Configurations and memory models
 
 `CONFIG` selects the RTL build. All of them are the same RTL as the
@@ -436,8 +450,8 @@ scripts/perf_report.py --diff build/perf/base build/perf/new      # A vs B, run 
   iterations/s and bytes/s or work/s;
 - *Where the cycles go*: every `stk_*` category as a percentage of
   cycles;
-- *Events*: instruction mix, redirect rate, I$/D$ and bus activity,
-  unit busy time.
+- *Events*: instruction mix, redirect rate, I$/D$ accesses, hits,
+  misses and miss-outstanding cycles, bus activity, unit busy time.
 
 The last two have one column per run when there are at most 8 runs,
 and one row per run otherwise. `results.csv` has one row per run with
