@@ -67,8 +67,8 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
-        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgatop-f2-quick fpgaocl-quick \
+        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgatop-f2-quick fpgatop-f2-examples fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
@@ -457,21 +457,25 @@ sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
 # Independent per-example targets, so `make -j` runs them in parallel.
 # Logs: build/examples/<name>.log.
 EXAMPLES     := hello timer_irq sha256_accel hash_stream ed25519_verify vector_dot fp_math
+# Examples that need the F2 memory map (DDR4 64 GiB + HBM 16 GiB): built
+# by examples-bins, run on fpga_top_tb_f2 (fpgatop-f2-examples), not on
+# the 128 MiB window of soc_rtl_tb / fpga_top_tb.
+F2_EXAMPLES  := hbm_touch
 EXDIR        := $(abspath $(ROOT)/build/examples)
 EXAMPLE_MAX_CYCLES ?= 60000000
 EXAMPLES_ARGS ?= $(CORE_RAND_ARGS)
 
 # Always delegate to the example's Makefile (it knows its sources and
 # rebuilds only when something changed).
-.PHONY: $(addprefix example-bin-,$(EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
-        $(addprefix fpgatop-example-,$(EXAMPLES))
-$(addprefix example-bin-,$(EXAMPLES)): example-bin-%: | $(EXDIR)
+.PHONY: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
+        $(addprefix fpgatop-example-,$(EXAMPLES)) $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+$(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)): example-bin-%: | $(EXDIR)
 	@$(MAKE) --no-print-directory -s -C $(ROOT)/sw/examples/$* OUT=$(EXDIR)/$* \
 	  RISCV_PREFIX=$(RISCV_PREFIX) > $(EXDIR)/$*.build.log 2>&1 || \
 	  { cat $(EXDIR)/$*.build.log; exit 1; }
 $(EXDIR):
 	mkdir -p $@
-examples-bins: $(addprefix example-bin-,$(EXAMPLES))
+examples-bins: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES))
 
 $(addprefix example-,$(EXAMPLES)): example-%: example-bin-% $(BUILD)/soc_rtl_tb
 	@start=$$(date +%s); \
@@ -619,6 +623,19 @@ $(addprefix fpgatop-example-,$(EXAMPLES)): fpgatop-example-%: example-bin-% $(BU
 	fi
 fpgatop-examples: $(addprefix fpgatop-example-,$(FPGATOP_EXAMPLES))
 	@echo "ALL $(words $(FPGATOP_EXAMPLES)) EXAMPLES PASS on fpga_top_tb"
+# F2-map examples (in `all`): fpga_top_tb_f2, same pass/fail strings.
+$(addprefix fpgatop-f2-example-,$(F2_EXAMPLES)): fpgatop-f2-example-%: example-bin-% $(BUILD)/fpga_top_tb_f2
+	@start=$$(date +%s); \
+	if $(BUILD)/fpga_top_tb_f2 $(EXAMPLE_MAX_CYCLES) $(FPGA_AXI_ARGS) \
+	    --load 0x80000000=$(EXDIR)/$*/$*.bin \
+	    --exit-string "SIGIL TEST PASS $*" --fail-string "SIGIL TEST FAIL" \
+	    > $(EXDIR)/$*.fpgatop-f2.log 2>&1; then \
+	  echo "FPGATOP-F2 EXAMPLE PASS $* ($$(grep -o 'at [0-9]* cycles' $(EXDIR)/$*.fpgatop-f2.log), $$(( $$(date +%s) - start )) s)"; \
+	else \
+	  tail -30 $(EXDIR)/$*.fpgatop-f2.log; echo "FPGATOP-F2 EXAMPLE FAIL $* (log: $(EXDIR)/$*.fpgatop-f2.log)"; exit 1; \
+	fi
+fpgatop-f2-examples: $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+	@echo "ALL $(words $(F2_EXAMPLES)) F2-MAP EXAMPLES PASS on fpga_top_tb_f2"
 
 fpgatop: fpgatop-quick fpgatop-examples
 	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
