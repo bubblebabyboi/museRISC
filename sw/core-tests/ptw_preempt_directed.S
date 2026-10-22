@@ -15,16 +15,22 @@
 // must return MAGIC every time. ptw_preempt_control.S builds the
 // same test with the load first in the 16-word block (no overlap of
 // the two walks): it passes, so the tables and checks are right.
+// ptw_preempt_cached.S puts the page tables in cacheable RAM (PTE
+// reads through the D$, hits after the first pass), as Linux has them.
 // t0 = phase; exit store 0 = pass, 3 = wrong value seen, 4 = trap.
     .option norvc
     .text
     .globl _start
 
+#ifdef PTW_PREEMPT_CACHED_PT
+.equ PT_ROOT, 0x00100000     // cacheable RAM: PTE reads go through the D$
+#else
 .equ PT_ROOT, 0x20020000     // uncached RAM in core_tb's map
-.equ PT_L1A,  0x20021000
-.equ PT_L0A,  0x20022000
-.equ PT_L1C,  0x20023000
-.equ PT_L0C,  0x20024000
+#endif
+.equ PT_L1A,  PT_ROOT + 0x1000
+.equ PT_L0A,  PT_ROOT + 0x2000
+.equ PT_L1C,  PT_ROOT + 0x3000
+.equ PT_L0C,  PT_ROOT + 0x4000
 .equ VA_CODE, 0x200000       // code region (L1A[1] -> L0A)
 .equ VA_D,    0x40000800     // data (root[1] -> L1C[0] -> L0C[0])
 .equ NV,      4              // code layouts
