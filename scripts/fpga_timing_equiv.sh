@@ -36,7 +36,7 @@ mods=("$@")
 extra_ports() {
   case $1 in
     sigil_csr) echo "wr_intent_i" ;;
-    sigil_mmu) echo "dl_va_i dl_write_i dl_exec_i dl_priv_i dl_virt_i dl_satp_i dl_sum_i dl_mxr_i dl_ld_i dl_vld_i" ;;
+    sigil_mmu) echo "dl_va_i dl_write_i dl_exec_i dl_priv_i dl_virt_i dl_satp_i dl_sum_i dl_mxr_i dl_mem_i dl_ld_i dl_vld_i" ;;
   esac
 }
 rc=0

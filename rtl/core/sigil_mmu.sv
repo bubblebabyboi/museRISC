@@ -82,6 +82,7 @@ module sigil_mmu #(
     // own while it waits for a translation or sequences a vector
     // load/store) captured when dl_ld_i, usable when dl_vld_i was
     // set with it and no TLB or walk-fault update has landed since.
+    // dl_mem_i: the access is MEM's own (not EX's).
     // A data walk then starts from that register (miss) instead of
     // the combinational lookup, and a walk end costs a replay cycle.
     /* verilator lint_off UNUSEDSIGNAL */
@@ -93,6 +94,7 @@ module sigil_mmu #(
     input  wire [63:0] dl_satp_i,
     input  wire        dl_sum_i,
     input  wire        dl_mxr_i,
+    input  wire        dl_mem_i,
     input  wire        dl_ld_i,
     input  wire        dl_vld_i,
     /* verilator lint_on UNUSEDSIGNAL */
@@ -550,22 +552,29 @@ module sigil_mmu #(
     assign if_ok_o = !if_trans || it_hit;
     assign if_fault_o = if_trans && !it_hit && ir_live && ir_q.fault;
     assign if_fault_page_o = ir_q.page;
-    assign if_fault_guest_o = ir_q.guest;
+    // The guest flag only with the fault, as main: the core takes the
+    // GPA (mtval2/htval) for any fetch fault that has it set.
+    assign if_fault_guest_o = if_fault_o && ir_q.guest;
     assign if_fault_gpa_o = ir_q.gpa;
     assign miss_f = if_trans && !it_hit && ir_live && !ir_q.ok && !ir_q.fault;
 `ifndef SYNTHESIS
     // Every cycle: a one-hot hit is an index hit with the same entry
     // and verdicts (the D port's check is in g_dreg). Every cycle IF
     // uses it_q, the full lookup of the fetch VA is a miss or the same
-    // page (no SFENCE since, no PTE was re-read).
+    // page (no SFENCE since), unless it_q was loaded before the last
+    // TLB write: a re-walk may have re-read a PTE changed without
+    // SFENCE, and either translation is then legal.
     lookup_t if_ref;
+    logic    it_old_q;
     assign if_ref = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
                                if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0,
                                sum_i, mxr_i);
     always_ff @(posedge clk_i) begin
+      if (ichg_d) it_old_q <= 1'b1;
+      else if (if_trans && if_res.ok) it_old_q <= 1'b0;
       if ((if_lk.hit != if_ref.hit) || (if_lk.hit && (if_lk != if_ref)))
         $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
-      if (chk_live_q && if_trans && it_hit &&
+      if (chk_live_q && if_trans && it_hit && !it_old_q &&
           (if_res.fault || (if_res.ok && (if_res.pa[63:12] != it_pa_q))))
         $error("sigil_mmu: fetch page register differs from the I-port lookup");
     end
@@ -618,9 +627,12 @@ module sigil_mmu #(
   // write, flush, abort, data walk fault: chg_q) has landed since its
   // capture; otherwise the core replays MEM's access on the port. A
   // data walk starts from a live miss in mt_q, so a just-filled entry
-  // or a just-recorded fault never starts a second walk.
+  // or a just-recorded fault never starts a second walk. A capture of
+  // EX's access that matches the recorded walk fault is not valid:
+  // main applies the record to MEM's access only while MEM presents
+  // its VA, so MEM replays its own lookup then (+1 cycle).
   if (FPGA_TIMING) begin : g_dreg
-    logic  dl_vs_trans, dl_g_trans, chg_d, chg_q, mt_valid_q, mt_live;
+    logic  dl_vs_trans, dl_g_trans, dl_wf, chg_d, chg_q, mt_valid_q, mt_live;
     dres_t dl_res, mt_q;
     /* verilator lint_off UNUSEDSIGNAL */  // only the PA fields of .e are read
     lookup_t d_lk;
@@ -633,6 +645,7 @@ module sigil_mmu #(
                             dl_write_i, dl_sum_i, dl_mxr_i);
     assign dl_res = port_result(dl_va_i, 1'b1, 1'b1, dl_vs_trans || dl_g_trans,
                                 dl_vs_trans, dl_g_trans, d_lk);
+    assign dl_wf = wf_valid_q && wf_is_data_q && (wf_va_q == dl_va_i);
     // Every TLB write is on a walker grant; a data walk fault is on a
     // grant or a G-stage GPA width fault.
     assign chg_d = flush_i || abort_i ||
@@ -647,7 +660,7 @@ module sigil_mmu #(
         chg_q <= chg_d;
         if (dl_ld_i) begin
           mt_q <= dl_res;
-          mt_valid_q <= dl_vld_i;
+          mt_valid_q <= dl_vld_i && (dl_mem_i || !dl_wf);
         end
       end
     end
@@ -663,12 +676,14 @@ module sigil_mmu #(
     // Every cycle: the one-hot D lookup equals find_entry, and
     // whenever MEM uses mt_q it equals the lookup of MEM's own access
     // in MEM's context (d_*), so the port's EX lookup saw MEM's
-    // translation context. A capture that matched a recorded walk
-    // fault is exempt: the record may drop before MEM uses it, and a
-    // faulting translation may be held until SFENCE.
+    // translation context. Only a capture of MEM's own access that
+    // matched the recorded walk fault is exempt, once the record no
+    // longer applies to MEM's VA (it may drop, e.g. at a fetch walk
+    // start, before MEM uses the capture); EX's such capture is not
+    // valid.
     lookup_t dl_ref, s_lk;
     dres_t   s_res;
-    logic    mt_wf_q;
+    logic    mt_wf_q, mt_mem_q, wf_mem;
     assign dl_ref = lookup_idx(dl_va_i, dl_satp_i[59:44], dl_virt_i,
                                hgatp_vmid, dl_g_trans, dl_vs_trans, dl_priv_i,
                                dl_exec_i ? 2'd2 : dl_write_i ? 2'd1 : 2'd0,
@@ -678,11 +693,16 @@ module sigil_mmu #(
                              d_write_i, sum_i, mxr_i);
     assign s_res = port_result(d_va_i, 1'b1, 1'b1, d_trans, d_vs_trans,
                                d_g_trans, s_lk);
+    assign wf_mem = wf_valid_q && wf_is_data_q && (wf_va_q == d_va_i);
     always_ff @(posedge clk_i) begin
-      if (dl_ld_i) mt_wf_q <= wf_valid_q && wf_is_data_q && (wf_va_q == dl_va_i);
+      if (dl_ld_i) begin
+        mt_wf_q <= dl_wf;
+        mt_mem_q <= dl_mem_i;
+      end
       if ((d_lk.hit != dl_ref.hit) || (d_lk.hit && (d_lk != dl_ref)))
         $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
-      if (chk_live_q && d_valid_i && mt_live && !mt_wf_q &&
+      if (chk_live_q && d_valid_i && mt_live &&
+          !(mt_wf_q && mt_mem_q && !wf_mem) &&
           ((mt_q.ok != s_res.ok) || (mt_q.fault != s_res.fault) ||
            (mt_q.ok && (mt_q.pa != s_res.pa)) ||
            (mt_q.fault && ({mt_q.page, mt_q.guest, mt_q.gpa} !=

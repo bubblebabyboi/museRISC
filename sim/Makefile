@@ -67,7 +67,13 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed ptw_preempt_hyp_directed \
             ptw_preempt_guest_directed ptw_gwidth_directed ptw_gwidth_load_directed \
             ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
-            ptw_svadu_race_hyp_directed ptw_lock_fencei_directed
+            ptw_svadu_race_hyp_directed ptw_lock_fencei_directed \
+            vm_ctx_directed vm_fetch_directed vm_vec_directed vm_satp_fetch_directed \
+            vm_irq_directed hlv_ctx_directed hlv_wf_directed \
+            mem53_wf_sum_directed mem53_wf_hlv_directed mem53_ifault_gpa_directed \
+            mem53_itlb_remap_directed mem53_ctx_directed mem53_walk_contend_directed \
+            vm_ctx_switch_directed fetch_page_directed hyp_ctx_directed hyp_fetch_directed \
+            vec_vm_directed vm_walk_overlap_directed csr_intent_directed vm_stale_fetch_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
