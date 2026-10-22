@@ -144,7 +144,8 @@ has the MMU walker race,
 [#74](https://github.com/bubblebabyboi/sigil/issues/74)); the first
 public AFI `agfi-035116450e0a0d093` (128 MiB of DDR4, needs
 `--ignore-mem-err`) still runs bare-metal programs with the current
-`sigil_host`.
+`sigil_host`; its core also has the walker race (#74), so use it for
+bare-metal programs only.
 
 ## Boot Debian on your own F2
 
@@ -232,7 +233,7 @@ gotchas — is [`docs/PROGRAMMING.md`](docs/PROGRAMMING.md).
 | Linux 6.12 on the RTL SoC (`soc_rtl_tb`) | PASS, 261M cycles | [`soc-rtl-linux-6.12-boot.log`](docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log) |
 | Debian 13 + Linux 6.12 in QEMU shaped like the F2 (gcc, NUMA/HBM, RVV, disk, power-off) | 23/23 | [`linux-debian-73-2026-10-22/`](docs/evidence/linux-debian-73-2026-10-22/qemu-check-summary.txt) |
 | **AWS F2 hardware**, first AFI: crypto, OpenSBI, **Linux 6.6 to userspace**, 62.5 MHz measured | PASS | [`f2-first-boot-55-2026-10-22/`](docs/evidence/f2-first-boot-55-2026-10-22/SUMMARY.md) |
-| **AWS F2 hardware**, platform AFI `agfi-0a1fd54ef68bdc754` (same CL as the current AFI except the core's walker fix): full-range memory test of 64 GiB DDR4 + 16 GiB HBM, core sparse test, finisher, RTC, console, firmware + SDK examples | 0 errors, PASS | [`f2-platform-73-2026-10-22/`](docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md) |
+| **AWS F2 hardware**, platform AFI `agfi-0a1fd54ef68bdc754` (same CL as the current AFI except the core's walker-race fix and atomic A/D update, #74): full-range memory test of 64 GiB DDR4 + 16 GiB HBM, core sparse test, finisher, RTC, console, firmware + SDK examples | 0 errors, PASS | [`f2-platform-73-2026-10-22/`](docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md) |
 | **AWS F2 hardware**, current AFI `agfi-0c8aa56fde1a48495`: **Debian 13 to a login prompt in 5 min 48 s**, gcc, NUMA (DDR4 node 0, HBM node 1), RVV, sudo, python3, power-off, saved disk boots again | 22/22 + persistence, PASS | [`linux-debian-73-2026-10-22/f2-boot-fixed/`](docs/evidence/linux-debian-73-2026-10-22/f2-boot-fixed/) |
 | MMU walker race ([#74](https://github.com/bubblebabyboi/sigil/issues/74)), the cause of the kernel oopses in the first F2 Debian boots: fixed in the core, in the current AFI | race tests 0/39 → 39/39; core-test, riscv-tests, ACT rerun | [`linux-oops-fix-73-2026-10-22/`](docs/evidence/linux-oops-fix-73-2026-10-22/README.md) |
 | FPGA utilization (Vivado, VU47P), current AFI: full CL / SoC + OCL block | 131,259 (10.08%) / 82,201 LUTs | [`f2-platform-73-oopsfix-2026-10-22/vivado/`](docs/evidence/f2-platform-73-oopsfix-2026-10-22/vivado/) |

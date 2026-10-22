@@ -399,7 +399,8 @@ Other useful options:
 `--ignore-mem-err` is no longer needed with this AFI (#62 is fixed by
 the DDR4 zeroing); it only matters for the first public AFI,
 `agfi-035116450e0a0d093` (#55, 128 MiB, no HBM), which still works with
-the current `sigil_host`.
+the current `sigil_host`; its core also has the walker race (#74), so
+use it for bare-metal programs only.
 
 `sigil_host` recognises `SIGIL TEST PASS` (and the older `SOC CRYPTO
 PASS`, ... markers) by default, and its default fail marker `FAIL`
@@ -410,7 +411,7 @@ Status: on a real `f2.6xlarge` at a measured 62.5 MHz, the platform AFI
 without `--ignore-mem-err`, and full-range memory tests of DDR4 and HBM
 (2026-10-22, [`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md)).
 The current AFI `agfi-0c8aa56fde1a48495` is the same CL with the core's
-walker fix (#74); on it Debian passed 22/22 checks
+walker-race fix and atomic A/D update (#74); on it Debian passed 22/22 checks
 ([`evidence/linux-debian-73-2026-10-22/f2-boot-fixed/`](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/));
 the first AFI ran the 7 examples too
 ([`evidence/f2-sdk-examples-2026-10-22/`](evidence/f2-sdk-examples-2026-10-22/SUMMARY.md):

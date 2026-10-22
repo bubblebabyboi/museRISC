@@ -652,8 +652,9 @@ Earlier AFIs, kept as history:
   do not use it for Linux**: its core has the MMU walker race (#74), and
   Debian oopses on it 35–130 s into systemd startup.
 - `agfi-035116450e0a0d093` (#55, the first public AFI: 128 MiB, needs
-  `--ignore-mem-err`): still works with the current `sigil_host` for
-  bare-metal programs.
+  `--ignore-mem-err`): still works with the current `sigil_host`; its
+  core also has the walker race (#74), so use it for bare-metal
+  programs only.
 
 1. Launch an **`f2.6xlarge`** in **us-east-1** (zones a–d offer F2) from the
    AWS **FPGA Developer AMI** (Ubuntu, 1.19.x). About $2/h On-Demand —

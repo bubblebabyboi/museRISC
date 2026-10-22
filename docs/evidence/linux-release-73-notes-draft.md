@@ -63,7 +63,7 @@ Before publishing, in this order (steps 1, 3 and 4 are done):
 
 The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now boots **Debian 13 "trixie" with gcc and glibc on a real AWS F2 FPGA**, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. On an `f2.6xlarge` it reaches the login prompt **5 min 48 s** after the SoC starts and passes **22/22 acceptance checks**. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
 
-The first Debian boots on the F2 found a bug in the core: a data-TLB miss that preempted an instruction-fetch page walk could take that walk's page-table response as its own, which made the kernel oops ([#74](https://github.com/bubblebabyboi/sigil/issues/74)). The new AFI has the fix.
+The first Debian boots on the F2 found a bug in the core: a data-TLB miss that preempted an instruction-fetch page walk could take that walk's page-table response as its own: a page fault on a valid address, or wrong data without a trap. It made the kernel oops ([#74](https://github.com/bubblebabyboi/sigil/issues/74)). The race is in every earlier Sigil core, including the first public AFI `agfi-035116450e0a0d093` and the `sigil-soc-2026-10-22` release. It needs address translation, so bare-metal M-mode programs are not affected. The new AFI has the fix, plus an atomic Svadu A/D-bit update found in the same review.
 
 ## Boot Debian on your own F2
 
@@ -140,7 +140,7 @@ Memory as Linux sees it on the F2:
 
 22/22 acceptance checks plus the persistence check, [`linux-debian-73-2026-10-22/f2-boot-fixed/`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/f2-boot-fixed/) (full consoles, check summaries, instance and AFI info). F2 time for all of #73: about 3.9 instance-hours.
 
-**The memory platform** (on the platform AFI `agfi-0a1fd54ef68bdc754`, the same CL without the core's walker fix; not repeated on the new AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
+**The memory platform** (on the platform AFI `agfi-0a1fd54ef68bdc754`, the same CL without the core's walker-race fix and atomic A/D update (#74); not repeated on the new AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
 
 | Test | Result |
 |---|---|
