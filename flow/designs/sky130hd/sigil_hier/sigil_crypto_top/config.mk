@@ -20,11 +20,26 @@ export VERILOG_FILES = \
 export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_crypto_top/constraint.sdc
 
-export DIE_AREA  ?= 0 0 2770 780
-export CORE_AREA ?= 5 5 2765 775
+# 3400 x 780 (non-Caravel die; ../config.mk): 44 % std-cell utilization
+# routes clean in one detailed-route pass (14 iterations, run w34);
+# the 2770 x 780 Caravel slot (53 %) was still at ~1,300 violations
+# after 20 iterations (run v3).
+export DIE_AREA  ?= 0 0 3400 780
+export CORE_AREA ?= 5 5 3395 775
 export MAX_ROUTING_LAYER = met4
 export PLACE_DENSITY_LB_ADDON ?= 0.05
 export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_crypto_top/io.tcl
 export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/block_pdn.tcl
 export PRE_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/grt_layers.tcl
 export GLOBAL_ROUTE_ARGS ?= -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
+# Max slew / max cap: the flow's last repair_design (global-route stage)
+# times with global-route parasitic estimates. In w34 the routed
+# block's OpenRCX SPEF gave 1.02-1.64x the estimated slew on the
+# violating drivers (median 1.25), and 1,079 max-slew pins (202 nets)
+# / 210 max-cap pins at TT after routing against 14 / 2 in the
+# estimate. A 40 % margin (fix to 0.6 x the limit) covers the 1.64x.
+export SLEW_MARGIN ?= 40
+export CAP_MARGIN ?= 40
+# Post-detailed-route antenna rounds (platform default 5): w34's five
+# rounds went 400 -> 79 -> 25 -> 7 -> 1 -> 3 nets and stopped there.
+export MAX_REPAIR_ANTENNAS_ITER_DRT ?= 10

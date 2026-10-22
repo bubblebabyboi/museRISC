@@ -30,7 +30,7 @@
 #                     fabric, CLINT, PLIC, UART, boot ROM, crypto
 #                     bridge; all SoC pins on the left die edge
 #   sigil_cpu         (200, 10)    3400 x 3420, pins on its left edge
-#   sigil_crypto_top  (200, 3470)  2770 x 780,  pins on its bottom edge,
+#   sigil_crypto_top  (200, 3470)  3400 x 780,  pins on its bottom edge,
 #                     reached through the 40 um gap above the CPU
 #   die               3610 x 4260 = 15.38 mm^2
 # With the CPU block's 3400 x 3680 variant: SIGIL_CRYPTO_XY="200 3730"
