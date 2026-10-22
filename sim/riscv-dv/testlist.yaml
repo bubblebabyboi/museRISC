@@ -18,7 +18,7 @@
 #   riscv_mem_region_stress_test.
 # - satp is Bare (no page tables in pygen), see riscv_core_setting.py.
 #
-# gen_mem_gb (optional): the test's pygen peak memory in GB, rounded up.
+# gen_mem_gb (optional): the test's pygen peak memory in GiB, rounded up.
 # The driver starts a generation only while the estimates of the running
 # ones fit in its memory budget (--gen-mem-gb); tests without the key
 # count DEFAULT_GEN_MEM_GB from rdv_regress.py. Measured peaks are in
@@ -163,8 +163,8 @@
 - test: riscv_amo_test
   source: target/rv64gc/testlist.yaml
   description: LR/SC and AMO streams.
-  # pygen peaks at 8.1-8.8 GB RSS (randomizing the LR/SC and AMO
-  # streams); ten at once were OOM-killed on the 61 GB machine.
+  # pygen peaks at 7.8-8.4 GiB RSS, every other test below 2; ten at
+  # once were OOM-killed on the 61 GiB machine (docs/VERIFICATION.md).
   gen_mem_gb: 9
   gen_opts: >
     +instr_cnt=5000

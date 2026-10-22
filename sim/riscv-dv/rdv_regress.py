@@ -77,9 +77,10 @@ FIELDS = ["test", "seed", "gen_seed", "status", "first_divergence", "ref_records
           "dut_records", "dut_cycles", "gen_s", "spike_s", "dut_s", "gen_rss_mb", "dir",
           "asm", "elf", "spike_log", "dut_trace", "ref_csv", "dut_csv", "report"]
 
-# Estimated pygen peak memory (GB) for a test without gen_mem_gb in
-# testlist.yaml; see docs/VERIFICATION.md for the measured values.
-DEFAULT_GEN_MEM_GB = 3.0
+# Estimated pygen peak memory (GB = GiB) for a test without gen_mem_gb in
+# testlist.yaml: the other generated tests peak at 0.9-1.9 GB
+# (docs/VERIFICATION.md).
+DEFAULT_GEN_MEM_GB = 2.5
 # Default --gen-mem-gb: this fraction of MemAvailable at start.
 GEN_MEM_FRACTION = 0.75
 
