@@ -171,7 +171,8 @@ static void usage(const char *p) {
 "  --boot-pc 0xADDR   reset PC (default 0x1000, the boot ROM)\n"
 "  --no-cache         L1 caches off\n"
 "  --exit TEXT        pass marker (repeatable; default: LINUX_BOOT_OK (matches\n"
-"                     SIGIL_LINUX_BOOT_OK and older payloads), SOC CRYPTO PASS,\n"
+"                     SIGIL_LINUX_BOOT_OK and older payloads), SIGIL TEST PASS\n"
+"                     (SDK programs), SOC CRYPTO PASS,\n"
 "                     SOC HASH PASS, FPGA SMOKE PASS, HELLO FROM S-MODE)\n"
 "  --fail TEXT        failure marker (repeatable; default: FAIL, Kernel panic)\n"
 "  --tohost 0xADDR    riscv-tests HTIF: poll this RAM word (use --no-cache)\n"
@@ -247,7 +248,7 @@ int main(int argc, char **argv) {
   }
   if (nloads == 0) usage(argv[0]);
   if (nexit == 0) {
-    static const char *dflt[] = {"LINUX_BOOT_OK", "SOC CRYPTO PASS", "SOC HASH PASS",
+    static const char *dflt[] = {"LINUX_BOOT_OK", "SIGIL TEST PASS", "SOC CRYPTO PASS", "SOC HASH PASS",
                                  "FPGA SMOKE PASS", "HELLO FROM S-MODE"};
     for (size_t k = 0; k < sizeof dflt / sizeof *dflt; k++) exits[nexit++] = dflt[k];
   }

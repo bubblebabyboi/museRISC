@@ -250,7 +250,7 @@ The harnesses detect these markers:
 | Harness | Pass | Fail |
 |---|---|---|
 | `soc_rtl_tb`, `fpga_top_tb` | `--exit-string "SIGIL TEST PASS <name>"`: exit 0 | `--fail-string "SIGIL TEST FAIL"`: exit 1 (after the rest of that line) |
-| `sigil_host` (F2) | `--exit "SIGIL TEST PASS"`: exit 0 | `--fail "SIGIL TEST FAIL"`: exit 1. Its default fail marker, `FAIL`, also matches. |
+| `sigil_host` (F2) | `SIGIL TEST PASS` is a default pass marker: exit 0 | its default fail marker `FAIL` matches `SIGIL TEST FAIL`: exit 1 |
 
 Neither simulator harness recognizes a halted hart, so a program that
 hangs instead of printing a marker ends at the cycle limit (exit 2,
@@ -321,9 +321,9 @@ reads and writes through the OCL register BAR. The core clock is
 interim: **62.5 MHz** (`AWS_CLK_GEN` recipe B1) until timing closes at
 100 MHz.
 
-The host runtime is `fpga/host/sigil_host.c`. It is on branch
-`54-fpga-cl` until that branch is merged. Build it on the F2 instance
-against the aws-fpga SDK:
+The host runtime is `fpga/host/sigil_host.c`. Build it on the F2
+instance against the aws-fpga SDK (setup steps in
+[`FPGA_F2.md`](FPGA_F2.md#flash-sigil-on-your-own-f2)):
 
 ```sh
 make -C fpga/host SDK_DIR=<aws-fpga>/sdk
@@ -332,9 +332,8 @@ make -C fpga/host SDK_DIR=<aws-fpga>/sdk
 To run an SDK program:
 
 ```sh
-sudo fpga/host/sigil_host --afi agfi-XXXXXXXX \
-    --bin build/myprog.bin \
-    --exit "SIGIL TEST PASS" --fail "SIGIL TEST FAIL" --timeout 30
+sudo fpga/host/sigil_host --afi agfi-035116450e0a0d093 --ignore-mem-err \
+    --bin build/myprog.bin --timeout 30
 ```
 
 What `sigil_host` does:
@@ -359,15 +358,16 @@ Other useful options:
 | `--no-cache` | runs with the L1 caches off |
 | `--keep-running` | leaves the SoC running when the tool exits |
 | `-q` | prints only the UART output |
+| `--ignore-mem-err` | required with the current public AFI: it sets a spurious sticky AXI error flag early in every run without affecting results ([#62](https://github.com/bubblebabyboi/sigil/issues/62)) |
 
-Without `--exit`, `sigil_host` only knows the older markers (`SOC
-CRYPTO PASS`, ...), so pass `--exit "SIGIL TEST PASS"` for SDK
-programs.
+`sigil_host` recognises `SIGIL TEST PASS` (and the older `SOC CRYPTO
+PASS`, ... markers) by default, and its default fail marker `FAIL`
+matches `SIGIL TEST FAIL`; `--exit` / `--fail` override them.
 
-Status: the host runtime and the CL have run the existing firmware in
-the HDK XSIM co-simulation (`docs/FPGA_F2.md` on `54-fpga-cl`).
-**Nothing has run on F2 hardware yet**, and the public AFI ID is not
-published. The examples have passed on `fpga_top_tb`, the closest
+Status: the public AFI `agfi-035116450e0a0d093` ran the existing
+firmware, OpenSBI and Linux 6.6 to userspace on a real `f2.6xlarge` at a
+measured 62.5 MHz (2026-10-22, `docs/evidence/f2-first-boot-55-2026-10-22/`).
+The SDK examples have passed on `fpga_top_tb`, the closest
 simulation of the F2 top. At 62.5 MHz, 1M cycles take 16 ms. The
 slowest example (`ed25519_verify`, ~15M cycles) would take about
 0.25 s.

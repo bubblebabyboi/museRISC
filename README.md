@@ -1,296 +1,269 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/sigil-logo-dark.svg">
-    <img src="docs/assets/sigil-logo.svg" alt="Sigil — RV64GCV crypto accelerator SoC" width="760">
+    <img src="docs/assets/sigil-logo.svg" alt="Sigil — RV64GCV signature and hash SoC" width="760">
   </picture>
 </p>
 
 <p align="center">
   <a href="https://github.com/bubblebabyboi/sigil/actions/workflows/regression.yml"><img alt="RTL regression" src="https://github.com/bubblebabyboi/sigil/actions/workflows/regression.yml/badge.svg"></a>
-  <img alt="In-house core riscv-tests: 123/123" src="https://img.shields.io/badge/in--house%20core%20riscv--tests-123%2F123-brightgreen">
-  <img alt="In-house core ACT: 543/544, one waiver" src="https://img.shields.io/badge/in--house%20core%20ACT-543%2F544%20(1%20waiver)-yellowgreen">
-  <img alt="Linux 6.6 boot: pass" src="https://img.shields.io/badge/Linux%206.6%20boot-PASS-brightgreen">
-  <img alt="Crypto KATs: pass" src="https://img.shields.io/badge/crypto%20KATs-PASS-brightgreen">
+  <a href="https://github.com/bubblebabyboi/sigil/actions/workflows/core-regression.yml"><img alt="Core regression" src="https://github.com/bubblebabyboi/sigil/actions/workflows/core-regression.yml/badge.svg"></a>
+  <img alt="riscv-tests: 123/123" src="https://img.shields.io/badge/riscv--tests-123%2F123-brightgreen">
+  <img alt="ACT: 2577/2578, one waiver" src="https://img.shields.io/badge/ACT-2577%2F2578%20(1%20waiver)-yellowgreen">
+  <img alt="AWS F2: Linux boots" src="https://img.shields.io/badge/AWS%20F2-Linux%20boots-brightgreen">
+  <img alt="nangate45 whole-SoC GDS" src="https://img.shields.io/badge/nangate45-whole--SoC%20GDS-blue">
   <a href="LICENSE"><img alt="Licence: GPLv3" src="https://img.shields.io/badge/licence-GPLv3-57D0B8"></a>
 </p>
 
 # Sigil
 
-Sigil is an open RISC-V project building a Linux-capable
-processor and crypto accelerator in the open, one verified stage
-at a time. The processor is now a clean-slate, in-house
-SystemVerilog core: a 5-stage in-order RV64 design with
-M/S/U privilege, Sv39 virtual memory, atomics, IEEE-754
-floating point, compressed instructions, bit manipulation,
-Zicond, scalar cryptography, and the H hypervisor extension
-(HS/VS/VU modes with two-stage Sv39x4 translation). It boots
-OpenSBI and Linux 6.6 in a Verilator platform model, and
-Linux KVM on the core creates a VM and runs a tiny guest to
-an MMIO exit. The companion crypto RTL
-covers SHA-256, SHA-512, Keccak-f1600, and elliptic-curve
-field arithmetic; the `sigil_crypto` macro has a published
-OpenROAD-generated GDS, but it is not attached to the core yet
-and no chip has been taped out.
+Sigil is an open, from-scratch RISC-V system-on-chip built to **hash and
+verify signatures in hardware**. It pairs an in-house 64-bit RISC-V
+application core with a crypto/hash engine, boots Linux, runs on a real
+FPGA in the cloud, and has a placed-and-routed GDS — with every claim
+backed by a reproducible gate and a dated log in
+[`docs/evidence/`](docs/evidence/README.md).
 
-Third-party CVA6 and Ara were useful verification reference
-points early in the project. They are no longer the product
-core: current CPU claims refer to the in-house core under
-`rtl/core/` and the evidence in `docs/evidence/`.
+**What works today**
+
+- **In-house RV64GCV core** — 5-stage in-order pipeline, RV64IMAFDC + B +
+  Zicond + scalar crypto (Zbk*/Zkn*), RVV 1.0 vector (Zve64d, VLEN 512),
+  M/S/U + H hypervisor, Sv39/Sv39x4, PMP, L1 I$/D$. riscv-tests 123/123,
+  RISC-V ACT 2,577/2,578 (one documented waiver).
+- **Crypto/hash engine on the SoC** — SHA-256, streaming SHA-512 /
+  SHA3-256 / Keccak-256 / SHAKE256 with hardware padding, and 256-bit
+  field arithmetic for **Ed25519 and secp256k1** signature verification.
+- **Linux** — OpenSBI v1.9 + Linux 6.6 boot to userspace, in simulation
+  and **on real AWS F2 FPGA hardware**.
+- **FPGA** — the whole SoC runs on an AWS EC2 F2 (AMD VU47P) at a measured
+  62.5 MHz from a **public AFI anyone can load**:
+  `agfi-035116450e0a0d093`.
+- **Silicon flow** — the whole SoC is placed and routed on nangate45 to a
+  GDS, timing met at 100 MHz (fmax 107.9 MHz), route DRC 0. A sky130
+  (Caravel-sized) implementation is in progress.
 
 ## Architecture
 
 ```text
-                         Sigil in-house core
-  +----------------------------------------------------------------+
-  |  5-stage in-order pipeline  IF -> ID -> EX -> MEM -> WB       |
-  |  RV64 IMABC + F/D + B/Zicond/scalar crypto + H                 |
-  |  M/HS/VS/VU/U, Sv39 + Sv39x4 MMU, PMP, traps and interrupts    |
-  +-----------------------------+----------------------------------+
-                                | L1 I$ 8K + D$ 16K (write-back), one memory bus
-          +---------------------+----------------------+
-          |                                            |
-  +-------v------------------+              +----------v-----------+
-  | core_tb                  |              | soc_tb platform      |
-  | directed asm, riscvtests |              | RAM, CLINT, PLIC,    |
-  | and ACT compliance gates |              | UART, DTB, OpenSBI   |
-  +--------------------------+              | and Linux 6.6        |
-                                            +----------------------+
-
-  +----------------------------------------------------------------+
-  | sigil_crypto macro (currently separate)                         |
-  | SHA-256 | SHA-512 | Keccak-f1600 | EC field arithmetic         |
-  | KAT-verified RTL; OpenROAD place-and-route complete; GDS made  |
-  +----------------------------------------------------------------+
-                       - - - future SoC attach (B4, #4) - - -
+ +----------------------------------------------------------------------+
+ | sigil_soc_top                                                         |
+ |                                                                       |
+ |  +------------------------------------------+   +------------------+  |
+ |  | sigil_cpu                                |   | sigil_crypto_top |  |
+ |  |  5-stage core  IF ID EX MEM WB           |   |  SHA-256         |  |
+ |  |  RV64IMAFDC B Zicond Zbk*/Zkn* H         |   |  hash stream:    |  |
+ |  |  RVV 1.0 (Zve64d, VLEN 512) on a         |   |   SHA-512, SHA3, |  |
+ |  |   multi-cycle shared FPU                 |   |   Keccak, SHAKE  |  |
+ |  |  Sv39/Sv39x4 MMU, PMP, CSRs, traps       |   |  EC field unit   |  |
+ |  |  L1 I$ + D$ (write-back)                 |   |  (Ed25519 /      |  |
+ |  +---------------------+--------------------+   |   secp256k1)     |  |
+ |                        | memory bus             +--------+---------+  |
+ |  +---------------------v-----------------------+  AXI-Lite|            |
+ |  | fabric: boot ROM 0x1000 | CLINT 0x0200_0000 |<--------+            |
+ |  | PLIC 0x0C00_0000 | UART 16550 0x1000_0000   |                      |
+ |  | crypto 0x2000_0000 | RAM 0x8000_0000 (ext.) |                      |
+ |  +---------------------------------------------+                      |
+ +----------------------------------------------------------------------+
+        |                         |                          |
+   Verilator sims          AWS F2 FPGA (VU47P)        OpenROAD / ORFS
+   (soc_rtl_tb, core_tb)   CL wrapper, DDR4 RAM,       nangate45 GDS,
+                           virtual UART, host tool     sky130 (in progress)
 ```
 
-Key implementation files are
-[`rtl/core/sigil_core.sv`](rtl/core/sigil_core.sv),
-[`sigil_csr.sv`](rtl/core/sigil_csr.sv),
-[`sigil_mmu.sv`](rtl/core/sigil_mmu.sv), and
-[`sigil_decoder.sv`](rtl/core/sigil_decoder.sv). See
-[`docs/CORE.md`](docs/CORE.md) for the staged design record.
+Key files: [`rtl/core/sigil_core.sv`](rtl/core/sigil_core.sv),
+[`rtl/soc/sigil_soc_top.sv`](rtl/soc/sigil_soc_top.sv),
+[`rtl/crypto/sigil_crypto_top.sv`](rtl/crypto/sigil_crypto_top.sv),
+[`rtl/fpga/sigil_fpga_top.sv`](rtl/fpga/sigil_fpga_top.sv),
+[`fpga/cl_sigil/`](fpga/cl_sigil/). Design records:
+[`docs/CORE.md`](docs/CORE.md) · [`docs/SPEC.md`](docs/SPEC.md) ·
+[`docs/SOC_AREA.md`](docs/SOC_AREA.md) · [`docs/FPGA_F2.md`](docs/FPGA_F2.md).
 
-## Current status
+## Run it yourself
 
-- **On `main`:** Stages 1–5 (scalar core, privilege, Sv39,
-  A/F/D/B/C), Stage 6 (OpenSBI/Linux boot), and Stage 7
-  (H hypervisor) are merged.
-- **Linux:** OpenSBI v1.9 and Linux 6.6 boot on one hart to
-  an embedded initramfs `/init`; the run reaches
-  `SIGIL_LINUX_BOOT_OK` and `SOC TB PASS` at 508,905,040
-  cycles.
-- **KVM smoke:** Linux KVM on the core reports the
-  hypervisor extension with Sv39x4, creates a VM/vCPU, and
-  a four-instruction VS-mode guest exits via `KVM_EXIT_MMIO`
-  with the expected data (`SOC TB PASS`, 502,972,620
-  cycles). This is an entry/exit smoke, not a guest-OS boot.
-- **Integer V vector:** RVV 1.0 integer subset
-  (Zve32x/Zve64x, VLEN 512) passes the ACT Vx/Vls vector
-  suites, 1872/1872 generated self-checking ELFs
-  ([#23](https://github.com/bubblebabyboi/sigil/issues/23));
-  43 tests were not generated/selected (documented in
-  the evidence index).
-- **Floating-point V vector:** Zve32f/Zve64f/Zve64d
-  executes per element on the core's multi-cycle scalar
-  FPU (`sigil_fpu`, shared with the vector unit; the
-  `vfrec7`/`vfrsqrt7` estimates run in the vector unit),
-  including widening/narrowing
-  forms, FMA, conversions (incl. `vfncvt.rod`),
-  reductions, and the `vfrec7`/`vfrsqrt7` estimates. It
-  passes the ACT Vf32+Vf64 suites, 162/162 generated
-  self-checking ELFs
-  ([#29](https://github.com/bubblebabyboi/sigil/issues/29)).
-  Full V and FP16 (Zvfh/Vf16) are not claimed.
-- **L1 caches:** the core's memory ports are request/response
-  with blocking L1 I$/D$ (SRAM-macro/BRAM-friendly arrays) in
-  `sigil_cpu` behind one AXI4-mappable memory bus; the core
-  gates re-run with caches on and random bus latency, and with
-  caches off ([evidence](docs/evidence/README.md), `docs/CORE.md`).
-- **Crypto:** KATs pass and the standalone macro is
-  place-and-route complete with GDS generated. On the RTL SoC
-  (B4, [#4](https://github.com/bubblebabyboi/sigil/issues/4)),
-  C firmware on the in-house core verifies secp256k1 ECDSA and
-  Ed25519 (RFC 8032 TEST 1/2) with every field op on the
-  accelerator, and rejects tampered signatures. SHA-512 for
-  Ed25519 still runs in software on the core
-  ([evidence](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log)).
-  This is a functional result only: the firmware is not
-  constant-time.
+### 1. In simulation (any Linux or macOS machine)
 
-## Supported features and coverage
-
-“Covered” below means the result is reproduced by a repository
-gate and recorded under `docs/evidence/`. The core target is
-RV64GCV, built in stages; unchecked items are not claims.
-
-### In-house core ISA
-
-- [x] **RV64I + M** — base integer and multiply/divide
-- [x] **A** — atomics, LR/SC and AMOs
-- [x] **F/D** — single/double-precision floating point
-- [x] **C** — compressed instructions (Zca/Zcb/Zcd),
-      IALIGN=16, fetch realignment and page-straddle handling
-- [x] **B + Zicond + scalar crypto** — Zba/Zbb/Zbc/Zbs,
-      Zicond, Zbkb/Zbkc/Zkne/Zknd/Zknh
-- [x] **Privilege M/S/U** — CSRs, precise traps, delegation,
-      interrupts, PMP
-- [x] **Sv39** — virtual memory, page faults, SFENCE.VMA
-- [x] **H hypervisor** — HS/VS/VU modes, hypervisor CSRs,
-      HLV/HSV/HLVX, HFENCE, and two-stage Sv39x4 (GEILEN=0)
-      ([#22](https://github.com/bubblebabyboi/sigil/issues/22))
-- [x] **V vector (integer)** — RVV 1.0 Zve32x/Zve64x,
-      VLEN 512/ELEN 64
-      ([#23](https://github.com/bubblebabyboi/sigil/issues/23))
-- [x] **V vector (floating point)** — Zve32f/Zve64f/Zve64d
-      ([#29](https://github.com/bubblebabyboi/sigil/issues/29));
-      full V and FP16 not claimed
-
-### Tests and platform gates
-
-- [x] Fast C++ Verilator unit testbenches for core modules —
-      `make core-test`
-- [x] Directed self-checking assembly suites —
-      `sw/core-tests/`
-- [x] Upstream `riscv-tests` on the in-house core —
-      **123/123 PASS**
-- [x] RISC-V ACT/arch-tests on the in-house core —
-      **543/544 PASS**, one documented platform waiver
-      (`PMPSm_cfg_A_tor_zero-00`)
-- [x] OpenSBI boot smoke in `soc_tb`
-- [x] **Linux boot smoke** — Linux 6.6 to embedded
-      initramfs `/init`,
-      [`SIGIL_LINUX_BOOT_OK`](docs/evidence/core-stage6-linux-boot-2026-10-14.log)
-- [x] Crypto RTL KATs — `make test`
-      (`ALL PHASE-0 KATs PASS`)
-- [x] Verilator lint — `make lint`
-- [x] Standalone `sigil_crypto` OpenROAD closure and GDS
-      (GDS generated / place-and-route complete; not taped out)
-- [x] H/KVM guest smoke — VM/vCPU creation and a tiny
-      guest's MMIO exit under Linux KVM
-      ([#22](https://github.com/bubblebabyboi/sigil/issues/22));
-      no ACT H suite exists in the pinned ACT tree yet
-- [x] ACT vector suite — **1872/1872** generated
-      self-checking ELFs (Vx8/16/32/64 + Vls8/16/32/64);
-      43 ordered-indexed / full-V-required tests not
-      generated by Sail/ACT selection, listed in
-      [`docs/evidence/`](docs/evidence/act-vector-core-genfail-2026-10-14.csv)
-      ([#23](https://github.com/bubblebabyboi/sigil/issues/23))
-- [x] Core-attached crypto end-to-end test (B4,
-      [#4](https://github.com/bubblebabyboi/sigil/issues/4)):
-      secp256k1 ECDSA + Ed25519 verify and tamper rejects on the
-      RTL SoC, `make -C sim socrtl`
-      ([log](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log))
-- [ ] Random-instruction riscv-dv regression in CI
-      ([#8](https://github.com/bubblebabyboi/sigil/issues/8))
-
-### Current evidence snapshot
-
-| Gate | Result | Evidence |
-|---|---:|---|
-| `make core-test` | PASS | `tb/cpp/`, `sw/core-tests/` |
-| `riscv-tests` | 123/123 | [`riscv-tests-core-stage7-2026-10-14.csv`](docs/evidence/riscv-tests-core-stage7-2026-10-14.csv) |
-| ACT | 543/544, 1 waiver | [`act-core-stage7-2026-10-14.csv`](docs/evidence/act-core-stage7-2026-10-14.csv) |
-| ACT vector (integer) | 1872/1872 run, 43 not generated | [`act-core-stage8-2026-10-14.csv`](docs/evidence/act-core-stage8-2026-10-14.csv) |
-| OpenSBI | PASS | [`core-stage6a-opensbi-2026-10-14.log`](docs/evidence/core-stage6a-opensbi-2026-10-14.log) |
-| Linux 6.6 | PASS to `/init` | [`core-stage6-linux-boot-2026-10-14.log`](docs/evidence/core-stage6-linux-boot-2026-10-14.log) |
-| L1 caches (random bus latency): riscv-tests / ACT | 123/123 · 2577/2578 (1 waiver) | [`act-core-l1cache-upstream-2026-10-16.csv`](docs/evidence/act-core-l1cache-upstream-2026-10-16.csv), [`l1cache-upstream-2026-10-16.log`](docs/evidence/l1cache-upstream-2026-10-16.log) |
-| Linux KVM smoke | PASS (MMIO exit) | [`core-stage7-kvm-smoke-2026-10-14.log`](docs/evidence/core-stage7-kvm-smoke-2026-10-14.log) |
-| Crypto KATs | PASS | `make test` |
-| On-core crypto (RTL SoC): ECDSA + Ed25519 verify, tamper reject | PASS, cached and uncached | [`soc-rtl-ed25519-4-2026-10-20.log`](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log) |
-
-The ACT waiver is a harness/platform-model mismatch at
-physical address 0, documented in
-[`docs/evidence/README.md`](docs/evidence/README.md); it is
-not hidden in the count above.
-
-## Quick start
-
-Prerequisites for the fast gates are Verilator, a RISC-V ELF
-toolchain (`riscv64-elf-gcc` or compatible), and Python 3.
-The setup script checks tools and fetches pinned third-party sources.
+You need Verilator (5.044+ recommended), a bare-metal RISC-V GCC
+(`riscv64-elf-gcc` or `riscv64-unknown-elf-gcc`) and Python 3.
+`./scripts/install_deps.sh` installs them (Homebrew on macOS, apt on
+Ubuntu/Debian; on Linux it builds the pinned Verilator into `deps/`).
 
 ```sh
 git clone https://github.com/bubblebabyboi/sigil.git
-cd Sigil
-./scripts/setup.sh
+cd sigil
+./scripts/install_deps.sh          # once; then in every shell on Linux: source deps/env.sh
 
-make core-test   # in-house core: C++ TBs + directed asm + coverage
-make test        # crypto RTL KATs and Python golden models
-make lint        # Verilator lint on RTL
+make lint                          # Verilator lint of all RTL
+make test                          # crypto/hash engine known-answer tests
+make -C sim examples               # build the example C programs and run each on the RTL SoC
+make core-test                     # full core + SoC regression (~30 min)
 ```
 
-Run the upstream core gates after setup and a core build:
+Run the signature-verify firmware on the full RTL SoC:
 
 ```sh
-bash sim/run_riscv_tests.sh
-bash scripts/build_act4_core.sh
-bash sim/run_act_core.sh
+make -C sim socrtl                 # secp256k1 ECDSA + Ed25519 verify -> "SOC CRYPTO PASS"
 ```
 
-Reproduce the Linux boot with the commands in
-[`sw/linux/README.md`](sw/linux/README.md). The boot is a
-long Verilator run (about 509M cycles), not a per-commit gate.
+Upstream compliance and the Linux boot are longer runs:
+[`sim/run_riscv_tests.sh`](sim/run_riscv_tests.sh),
+[`sw/act4-core/README.md`](sw/act4-core/README.md) (ACT), and
+[`sw/linux/README.md`](sw/linux/README.md) (~509M cycles in Verilator).
+
+### 2. On a real FPGA (AWS EC2 F2)
+
+The whole SoC is published as a public Amazon FPGA Image. On an
+`f2.6xlarge` (us-east-1, ~$2/h — stop it when done):
+
+```sh
+# AWS FPGA runtime SDK
+git clone -b v2.3.5 https://github.com/aws/aws-fpga ~/aws-fpga
+cd ~/aws-fpga && source sdk_setup.sh
+
+# load Sigil onto the FPGA
+sudo fpga-load-local-image -S 0 -I agfi-035116450e0a0d093 -H
+
+# build the host tool and run a program (or Linux)
+git clone https://github.com/bubblebabyboi/sigil ~/sigil && cd ~/sigil
+make -C fpga/host SDK_DIR=$HOME/aws-fpga/sdk
+sudo fpga/host/sigil_host --ignore-mem-err --bin path/to/program.bin
+```
+
+`sigil_host` loads your image into the FPGA's DDR4, releases the SoC,
+streams its UART to your terminal (`--stdin` sends your keyboard to it),
+stops on a pass/fail marker, and reports the **measured core clock**.
+`--linux --fw fw_jump.bin --image Image --dtb sigil.dtb` boots
+OpenSBI + Linux. Full walkthrough:
+[`docs/FPGA_F2.md` → Flash Sigil on your own F2](docs/FPGA_F2.md#flash-sigil-on-your-own-f2).
+`--ignore-mem-err` is needed with the current AFI
+([#62](https://github.com/bubblebabyboi/sigil/issues/62)).
+
+## Write code for Sigil
+
+Sigil comes with a small bare-metal SDK ([`sw/sdk/`](sw/sdk/)): startup
+code, one header (`sigil.h`) with the memory map, UART `printf`, timers
+and interrupts, cycle counters, and drivers for the hash engine, field
+arithmetic and Ed25519 verify. Programs run unchanged in simulation and on
+the F2.
+
+```sh
+cp -r sw/sdk/template myprog && cd myprog   # main.c + Makefile
+make            # -> build/myprog.elf, .bin (flat image), .dis (disassembly)
+make run        # run on the RTL SoC simulator
+```
+
+```c
+#include "sigil.h"
+
+int main(void) {
+  uint64_t t0 = sigil_rdcycle();
+  uint8_t digest[64];
+  sigil_hash(SIGIL_HASH_SHA512, "hello, sigil", 12, digest, 64);
+  sigil_printf("sha512 took %lu cycles\n", sigil_rdcycle() - t0);
+  return 0;                     // prints "SIGIL TEST PASS <name>"
+}
+```
+
+Worked examples ([`sw/examples/`](sw/examples/), each self-checking and
+part of the regression):
+
+| Example | Shows |
+|---|---|
+| `hello` | UART output, `misa`, cycle/instret counters |
+| `timer_irq` | CLINT timer + software interrupts, `wfi` |
+| `sha256_accel` | SHA-256 on the engine vs plain C vs Zknh instructions |
+| `hash_stream` | SHA-512 / SHA3-256 / SHAKE256 of any length |
+| `ed25519_verify` | signature verification with the field unit |
+| `vector_dot` | RVV 1.0 vector code vs scalar |
+| `fp_math` | IEEE-754 double precision, rounding modes, FMA |
+
+The programmer's guide — toolchain, memory map, SDK API, running in
+simulation and on F2, interrupts, vector, performance counters and
+gotchas — is [`docs/PROGRAMMING.md`](docs/PROGRAMMING.md).
+
+## Status and evidence
+
+| Gate | Result | Evidence |
+|---|---:|---|
+| `make core-test` (unit TBs, directed suites, SRAM-macro builds, FPGA top, examples) | PASS | `tb/cpp/`, `sw/core-tests/`, `sw/examples/` |
+| riscv-tests | 123/123 | [`w0-stack-gates-2026-10-20.log`](docs/evidence/w0-stack-gates-2026-10-20.log) |
+| RISC-V ACT (scalar, priv, A/F/D/B/K/Zicond/C, Vx/Vls/Vf) | 2,577/2,578, 1 waiver | [`act-core-w0-stack-2026-10-20.csv`](docs/evidence/act-core-w0-stack-2026-10-20.csv) |
+| On-core crypto (RTL SoC): secp256k1 + Ed25519 verify, tamper reject | PASS | [`soc-rtl-ed25519-4-2026-10-20.log`](docs/evidence/soc-rtl-ed25519-4-2026-10-20.log) |
+| Streaming hash engine (70 KATs + SoC firmware) | PASS | [`hash-stream-make-test-2026-10-20.log`](docs/evidence/hash-stream-make-test-2026-10-20.log) |
+| Linux 6.6 (Verilator) | PASS to userspace | [`core-stage6-linux-boot-2026-10-14.log`](docs/evidence/core-stage6-linux-boot-2026-10-14.log) |
+| **AWS F2 hardware**: crypto, OpenSBI, **Linux 6.6 to userspace**, 62.5 MHz measured | PASS | [`f2-first-boot-55-2026-10-22/`](docs/evidence/f2-first-boot-55-2026-10-22/SUMMARY.md) |
+| FPGA utilization (Vivado, VU47P): SoC / full CL | 6.0% / 9.4% LUTs | [`fpga-f0-2026-10-21/`](docs/evidence/fpga-f0-2026-10-21/), [`fpga-cl-54-2026-10-21.log`](docs/evidence/fpga-cl-54-2026-10-21.log) |
+| **Whole-SoC GDS, nangate45**: 100 MHz met, route DRC 0, antenna 0 | GDS generated | [`soc-pnr-nangate45-11-2026-10-21/`](docs/evidence/soc-pnr-nangate45-11-2026-10-21/summary.log) |
+| Whole-SoC sky130 (Caravel area) | in progress (hierarchical) | [`w7-sky130-pnr-2026-10-21.log`](docs/evidence/w7-sky130-pnr-2026-10-21.log), [#11](https://github.com/bubblebabyboi/sigil/issues/11) |
+
+The ACT waiver (`PMPSm_cfg_A_tor_zero-00`) is a harness/platform
+mismatch at physical address 0, documented in the evidence index.
+
+### ISA coverage
+
+- [x] **RV64I + M**, **A** (LR/SC, AMOs), **F/D**, **C** (Zca/Zcb/Zcd)
+- [x] **B + Zicond + scalar crypto** — Zba/Zbb/Zbc/Zbs, Zicond, Zbkb/Zbkc/Zbkx, Zkne/Zknd/Zknh
+- [x] **Privilege M/S/U**, precise traps, interrupts, PMP, **Sv39**
+- [x] **H hypervisor** — HS/VS/VU, two-stage Sv39x4; Linux KVM entry/exit smoke
+- [x] **V vector** — RVV 1.0 Zve32x/Zve64x/Zve32f/Zve64f/Zve64d, VLEN 512 (full V and FP16 not claimed)
 
 ## Roadmap
 
-All major work is tracked as GitHub epics with native
-sub-issues. Each milestone lands on an issue branch and is
-merged to `main` only with its gates and evidence.
+All work is tracked as GitHub epics with sub-issues; each change lands
+on a branch and merges to `main` only with its gates and evidence.
 
-| Epic | Ordered work | Status |
-|---|---|---|
-| [#18 Core + software](https://github.com/bubblebabyboi/sigil/issues/18) | [#21 Linux](https://github.com/bubblebabyboi/sigil/issues/21) → [#22 H hypervisor](https://github.com/bubblebabyboi/sigil/issues/22) → [#23 V vector](https://github.com/bubblebabyboi/sigil/issues/23) | Linux + H + integer V done |
-| [#24 Verification + CI](https://github.com/bubblebabyboi/sigil/issues/24) | [#20 ISA follow-ups](https://github.com/bubblebabyboi/sigil/issues/20) · [#8 riscv-dv/CI](https://github.com/bubblebabyboi/sigil/issues/8) · [#19 SV/cocotb](https://github.com/bubblebabyboi/sigil/issues/19) | Supports #18 |
-| [#25 Crypto + security](https://github.com/bubblebabyboi/sigil/issues/25) | [#6 streaming](https://github.com/bubblebabyboi/sigil/issues/6) · [#5 scalar-mul](https://github.com/bubblebabyboi/sigil/issues/5) · [#12 security review](https://github.com/bubblebabyboi/sigil/issues/12) · [#10 benchmark](https://github.com/bubblebabyboi/sigil/issues/10) | Security review gates key use |
-| [#26 SoC + physical](https://github.com/bubblebabyboi/sigil/issues/26) | [#4 B4 SoC attach](https://github.com/bubblebabyboi/sigil/issues/4) → [#11 OpenROAD](https://github.com/bubblebabyboi/sigil/issues/11) → [#13 MPW](https://github.com/bubblebabyboi/sigil/issues/13) | Deferred |
+| Epic | Status |
+|---|---|
+| [#32 FPGA on AWS F2](https://github.com/bubblebabyboi/sigil/issues/32) | Whole SoC + Linux on hardware at 62.5 MHz; next: 100 MHz ([#53](https://github.com/bubblebabyboi/sigil/issues/53)), [#62](https://github.com/bubblebabyboi/sigil/issues/62)–[#64](https://github.com/bubblebabyboi/sigil/issues/64) |
+| [#26 SoC + physical](https://github.com/bubblebabyboi/sigil/issues/26) | nangate45 GDS done; sky130 hierarchical in progress ([#11](https://github.com/bubblebabyboi/sigil/issues/11)) → MPW go/no-go ([#13](https://github.com/bubblebabyboi/sigil/issues/13)) |
+| [#61 Performance + microarchitecture](https://github.com/bubblebabyboi/sigil/issues/61) | Next track: performance harness, then branch prediction, superscalar, multithreading, multicore |
+| [#25 Crypto + security](https://github.com/bubblebabyboi/sigil/issues/25) | Streaming hashes and on-core verify done; constant-time scalar-mul ([#5](https://github.com/bubblebabyboi/sigil/issues/5)); security review deferred ([#12](https://github.com/bubblebabyboi/sigil/issues/12)) |
+| [#24 Verification + CI](https://github.com/bubblebabyboi/sigil/issues/24) | riscv-dv + branch protection ([#8](https://github.com/bubblebabyboi/sigil/issues/8)), ISA follow-ups ([#20](https://github.com/bubblebabyboi/sigil/issues/20)) |
+| [#18 Core + software](https://github.com/bubblebabyboi/sigil/issues/18) | RV64GCV feature set complete |
 
-More detail: [`docs/ROADMAP.md`](docs/ROADMAP.md) ·
-[`docs/SPEC.md`](docs/SPEC.md) ·
-[`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) ·
-[`docs/CORE.md`](docs/CORE.md)
+More: [`docs/REMAINING-WORK-PLAN.md`](docs/REMAINING-WORK-PLAN.md) ·
+[`docs/ROADMAP.md`](docs/ROADMAP.md) · [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md)
 
 ## Repository layout
 
 ```text
-rtl/core/     In-house SystemVerilog RV64 core
-rtl/crypto/   SystemVerilog SHA-256/512, Keccak, EC-field RTL
-rtl/soc/      SystemVerilog standalone crypto/SoC top
-tb/cpp/       C++ Verilator unit, core, platform, crypto KAT TBs
-sw/core-tests/ Directed assembly suites for the in-house core
-sw/linux/     DT, boot stub, OpenSBI/Linux build inputs, init
-sim/          Core/platform runners and upstream-suite scripts
-scripts/      Setup, ACT/OpenSBI/Linux/OpenROAD build scripts
-docs/         Specs, roadmap, compliance notes, and evidence/
-flow/         OpenROAD designs for the crypto macro
-third_party/  Pinned external sources (fetched, not the product core)
+rtl/core/      In-house RV64GCV core: pipeline, FPU, vector unit, MMU, L1 caches
+rtl/crypto/    SHA-256/512, Keccak, streaming hash engine, EC field unit
+rtl/soc/       SoC top, fabric, CLINT, PLIC, UART, boot ROM, crypto bridge
+rtl/fpga/      FPGA top, memory-bus -> AXI4 bridge, OCL registers
+fpga/          AWS F2 Custom Logic (cl_sigil), build scripts, host runtime (sigil_host)
+sw/sdk/        Bare-metal SDK (sigil.h, startup, drivers, template)
+sw/examples/   Self-checking example programs
+sw/            Firmware tests, Linux/OpenSBI inputs, ACT configs, golden models
+tb/            Verilator C++ testbenches and SV harnesses
+sim/           Simulation targets and suite runners
+flow/          OpenROAD (ORFS) designs: nangate45 / sky130hd SoC and crypto macro
+scripts/       Setup, builds, synthesis helpers
+docs/          Specs, guides, plans, and evidence/
 ```
 
 ## Claim boundaries
 
-- “Linux boots” means the recorded single-hart Verilator run
-  reaches the embedded initramfs `/init`. It is not a distro,
-  SMP, block/network, or hardware claim. The separate KVM
-  result is a one-vCPU entry/exit smoke with a
-  four-instruction guest, not a guest-OS boot.
-- “GDS generated / place-and-route complete” describes the
-  standalone crypto macro flow. It does not mean taped out,
-  fabricated, or silicon-verified.
-- ACT and riscv-tests results apply to the configurations
-  and evidence files linked above; unchecked ISA items are
-  future work.
-- Phase-0 crypto is a functional reference, not
-  side-channel-hardened production key hardware.
+- "GDS generated / place-and-route complete" describes the nangate45
+  whole-SoC flow and the earlier crypto macro. Nothing has been taped
+  out, fabricated or silicon-verified; nangate45 is an open research PDK.
+- "Runs on F2" means the published AFI on an AWS F2 FPGA, at the
+  interim 62.5 MHz clock, with the evidence linked above.
+- "Linux boots" means single-hart OpenSBI + Linux 6.6 to an initramfs
+  userspace — not a distro, SMP, block or network claim. The KVM result
+  is an entry/exit smoke with a tiny guest.
+- ACT and riscv-tests results apply to the configurations and evidence
+  files linked above; unchecked items are future work.
+- The crypto engine is a functional implementation. It has **not** had a
+  side-channel or fault-injection review and must not be used with real
+  keys.
 
 ## Licence
 
-Original Sigil code and documentation are licensed under
-the **GNU General Public License v3.0** — see
-[LICENSE](LICENSE). External cores and tools under
-`third_party/` keep their own licences.
+Original Sigil code and documentation are licensed under the **GNU
+General Public License v3.0** — see [LICENSE](LICENSE). External cores and
+tools under `third_party/` keep their own licences.
 
-The Sigil logo is an original project mark, not an
-official RISC-V logo. Its lettering is UnifrakturMaguntia and Cinzel
-(both SIL Open Font License 1.1), converted to outlines by
-`docs/assets/src/gen_sigil_logo.py`. “RISC-V” is used descriptively
-for the instruction-set target.
+The Sigil logo is an original project mark, not an official RISC-V logo.
+Its lettering is UnifrakturMaguntia and Cinzel (both SIL Open Font License
+1.1), converted to outlines by `docs/assets/src/gen_sigil_logo.py`.
+"RISC-V" is used descriptively for the instruction-set target.
