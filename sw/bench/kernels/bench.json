@@ -56,9 +56,10 @@
       "make": {}
     },
     "autovec": {
-      "description": "C kernels with the SDK -march (with V), -O2: C = GCC auto-vectorization",
+      "description": "C kernels with the SDK -march (with V) at -O3: C = GCC 16 auto-vectorization (at -O2 it vectorizes only the FIR inner loop)",
       "make": {
-        "KERNELS_C_MARCH": "rv64gcv_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh"
+        "KERNELS_C_MARCH": "rv64gcv_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh",
+        "KERNELS_C_OPT": "-O3"
       }
     }
   },

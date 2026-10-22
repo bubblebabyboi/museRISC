@@ -14,8 +14,8 @@ BENCH_ITERATIONS ?= 4
 # Dhrystone's headline build).
 KERNELS_SCALAR_MARCH ?= rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh
 # The C kernels (kern_c.c): the scalar ISA by default, the scalar
-# baseline. The "autovec" variant sets the SDK -march (with V) so GCC
-# auto-vectorizes them.
+# baseline. The "autovec" variant sets the SDK -march (with V) and -O3 so GCC
+# 16 auto-vectorizes them (at -O2 it vectorizes only the FIR inner loop).
 KERNELS_C_MARCH ?= $(KERNELS_SCALAR_MARCH)
 KERNELS_C_OPT   ?= -O2
 

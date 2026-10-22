@@ -4,7 +4,7 @@
  * intrinsics. The Makefile compiles this file on its own with
  * KERNELS_C_MARCH (default: the scalar ISA, no V) and KERNELS_C_OPT
  * (default -O2), so in the default build these are the scalar
- * baseline; the "autovec" variant builds the same source with V for
+ * baseline; the "autovec" variant builds the same source with V at -O3 for
  * GCC's auto-vectorizer. Floating-point expressions contract to fused
  * multiply-adds (GCC's default -ffp-contract=fast for GNU C), like the
  * RVV vfmacc forms. */
