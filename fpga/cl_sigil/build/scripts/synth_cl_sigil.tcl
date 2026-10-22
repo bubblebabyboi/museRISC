@@ -32,6 +32,15 @@ if {![regexp {^H([0-9])$} $clock_recipe_hbm -> hbm_recipe]} {
   error "unknown clock_recipe_hbm $clock_recipe_hbm"
 }
 print "Sigil HBM AXI clock: clk_hbm_axi, recipe $clock_recipe_hbm"
+# Extra Verilog defines from build_cl_sigil.sh (SIGIL_CL_DEFINES; with
+# --fpga-timing: SIGIL_FPGA_TIMING SIGIL_VRF_OREG, #53).
+set sigil_defines {}
+if {[info exists ::env(SIGIL_CL_DEFINES)]} {
+  set sigil_defines [string trim $::env(SIGIL_CL_DEFINES)]
+}
+set sigil_define_args {}
+foreach d $sigil_defines { lappend sigil_define_args -verilog_define $d }
+print "Sigil extra Verilog defines: [expr {[llength $sigil_defines] ? $sigil_defines : {none}}]"
 
 print "Reading Sigil SoC RTL from ${rtl_dir}"
 set fh [open ${rtl_dir}/sigil_soc_files.mk r]; set mk [read $fh]; close $fh
@@ -109,6 +118,7 @@ synth_design -mode out_of_context \
              -verilog_define SYNTHESIS \
              -verilog_define SIGIL_CORE_CLK_KHZ=${core_khz} \
              -verilog_define SIGIL_HBM_RECIPE=${hbm_recipe} \
+             {*}$sigil_define_args \
              -include_dirs [list ${rtl_dir}/core ${src_post_enc_dir}] \
              -part ${DEVICE_TYPE} \
              -keep_equivalent_registers

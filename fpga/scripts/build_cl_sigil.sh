@@ -4,6 +4,7 @@
 #
 #   fpga/scripts/build_cl_sigil.sh [--recipe-b B1] [--recipe-hbm H0] [--tag YYYY_MM_DD-HHMMSS]
 #                                  [--flow BuildAll|SynthCL|ImplCL]
+#                                  [--fpga-timing] [--define NAME[=VALUE]]...
 #
 # Needs AWS_FPGA_REPO_DIR (an aws-fpga checkout at tag v2.3.5) or
 # ~/src/project_data/aws-fpga, and Vivado on PATH (the Developer AMI's
@@ -13,6 +14,10 @@
 # Core clock = AWS_CLK_GEN clk_extra_b1, frequency by group-B recipe:
 #   B1 (default) 62.5 MHz  -- interim label until #53 closes 100 MHz
 #   B4 75 MHz, B5 100 MHz  (B0 125, B2 225, B3 62.5)
+# 100 MHz (B5) needs the #53 FPGA timing structures: --fpga-timing
+# defines SIGIL_FPGA_TIMING and SIGIL_VRF_OREG for CL synthesis (the
+# FPGA setting of docs/FPGA_TIMING_53.md; without it the SoC is the
+# default configuration). --define adds any other Verilog define.
 # Groups A/C are unused (HDK defaults A1, C0). HBM group: clk_hbm_axi
 # for the HBM AXI port, recipe H0 = 250 MHz by default (one port at
 # 32 B x 250 MHz is twice what the core-clock memory engine can use; the
@@ -29,18 +34,26 @@ RECIPE_B=B1
 RECIPE_HBM=H0
 TAG=""
 FLOW=BuildAll
+DEFINES=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --recipe-b) RECIPE_B="$2"; shift 2 ;;
     --recipe-hbm) RECIPE_HBM="$2"; shift 2 ;;
     --tag) TAG="$2"; shift 2 ;;
     --flow) FLOW="$2"; shift 2 ;;
+    --fpga-timing) DEFINES+=(SIGIL_FPGA_TIMING SIGIL_VRF_OREG); shift ;;
+    --define)
+      [[ "$2" =~ ^[A-Za-z_][A-Za-z0-9_]*(=[A-Za-z0-9_]+)?$ ]] ||
+        { echo "--define takes NAME or NAME=VALUE" >&2; exit 2; }
+      DEFINES+=("$2"); shift 2 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AWS_FPGA_REPO_DIR="${AWS_FPGA_REPO_DIR:-$HOME/src/project_data/aws-fpga}"
 export CL_DIR="$REPO/fpga/cl_sigil"
+# Extra Verilog defines for synth_cl_sigil.tcl (space separated).
+export SIGIL_CL_DEFINES="${DEFINES[*]}"
 # hdk_setup.sh is not -u/-e clean.
 set +euo pipefail
 cd "$AWS_FPGA_REPO_DIR"
@@ -67,7 +80,8 @@ args=(-c cl_sigil --mode small_shell --flow "$FLOW" --aws_clk_gen --no-encrypt
 args+=(--tag "$TAG")
 REV=$(cat "$REPO/.git-rev" 2>/dev/null || git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)
 mkdir -p "$CL_DIR/build/checkpoints"
-echo "sigil $REV recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM aws-fpga $(git -C "$AWS_FPGA_REPO_DIR" rev-parse HEAD 2>/dev/null)" \
+DEFS_TXT="${SIGIL_CL_DEFINES:-none}"
+echo "sigil $REV recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM defines=${DEFS_TXT// /,} aws-fpga $(git -C "$AWS_FPGA_REPO_DIR" rev-parse HEAD 2>/dev/null)" \
   > "$CL_DIR/build/checkpoints/$TAG.sigil_source.txt"
-echo "build_cl_sigil: tag $TAG, sigil $REV, recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM"
+echo "build_cl_sigil: tag $TAG, sigil $REV, recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM defines=${DEFS_TXT// /,}"
 python3 ./aws_build_dcp_from_cl.py "${args[@]}"
