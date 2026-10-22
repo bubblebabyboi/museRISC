@@ -1,3 +1,3 @@
-# sigil_cpu pins face the top-level glue (fabric, devices) above the
-# block (see ../config.mk floorplan): all on the block's top edge.
-exclude_io_pin_region -region bottom:* -region left:* -region right:*
+# sigil_cpu pins face the top-level glue column on the left of the die
+# (see ../config.mk floorplan): all on the block's left edge.
+exclude_io_pin_region -region top:* -region bottom:* -region right:*

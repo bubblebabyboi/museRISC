@@ -1,17 +1,17 @@
-# Per-layer global-routing derating for the sigil_hier blocks and top
+# Per-layer global-routing derating for the sigil_hier blocks
 # (PRE_GLOBAL_ROUTE_TCL, directly or via sigil_cpu/pre_grt.tcl).
+# SIGIL_GRT_ADJ = {layer adjustment ...}; the default is the sky130hd
+# platform's uniform 0.2 (platforms/sky130hd/fastroute.tcl), which
+# ../sigil_soc/pre_grt.tcl would otherwise replace with
+# ROUTING_LAYER_ADJUSTMENT.
 #
-# The sky130hd platform derates every layer by 0.2
-# (platforms/sky130hd/fastroute.tcl). With that, FastRoute put 41 % of
-# the crypto block's wire on met1 (3.24 of 7.83 m at 35 %
-# utilization) while met3/met4 stayed 30-33 % used, and detailed
-# routing started with 186k-264k violations, 64 % of them met1
-# shorts. sky130hd cell pins are on li1, so met1 is also every pin's
-# access layer (OpenLane reserves it almost entirely for that). Derate
-# met1 hard so global routing assigns the trunks to met2-met4.
-# SIGIL_GRT_ADJ overrides the list {layer adjustment ...}.
+# Tried and dropped (docs/evidence/w7-sky130-hier-2026-10-22.log):
+# reserving met1 for pin access (met1 0.7 / 0.5, as OpenLane does).
+# FastRoute then detours instead of using met3/met4 more: the crypto
+# block's global demand rose 18 % and overflowed (40,801 gcells at
+# 42 % utilization, 15,856 at 30 %), where the uniform 0.2 run had none.
 set sigil_grt_adj [expr { [info exists ::env(SIGIL_GRT_ADJ)] ? $::env(SIGIL_GRT_ADJ) :
-  {met1 0.7 met2 0.25 met3 0.2 met4 0.2 met5 0.2} }]
+  {met1 0.2 met2 0.2 met3 0.2 met4 0.2 met5 0.2} }]
 foreach {l a} $sigil_grt_adj {
   if { [[ord::get_db_tech] findLayer $l] == "NULL" } { continue }
   set_global_routing_layer_adjustment $l $a

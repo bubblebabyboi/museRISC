@@ -35,8 +35,8 @@ export SDC_FILE = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/constraint.sdc
 
 # Floorplan: see ../config.mk for the die budget inside the Caravel
 # user area. Overridable from the command line for sizing runs.
-export DIE_AREA  ?= 0 0 2900 2560
-export CORE_AREA ?= 5 5 2895 2555
+export DIE_AREA  ?= 0 0 2770 2680
+export CORE_AREA ?= 5 5 2765 2675
 export MAX_ROUTING_LAYER = met4
 export MACRO_PLACE_HALO ?= 40 40
 export PLACE_DENSITY_LB_ADDON ?= 0.05

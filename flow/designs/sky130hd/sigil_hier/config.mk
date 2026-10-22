@@ -22,6 +22,13 @@
 # (--empty-blackboxes), without the block libs (SIGIL_TOP_SYNTH=1 on
 # the synth run); every later stage reads the block abstracts below.
 #
+# Floorplan (um, die coordinates; core margin 2, block halos 5; RTLMP
+# checks that every macro plus halo lies inside the core):
+#   sigil_cpu         (10, 10)     2900 x 2560, pins on its top edge
+#   glue channel      y 2570..2660, full width, plus 160 um columns
+#                     left and right of the crypto block
+#   sigil_crypto_top  (170, 2660)  2590 x 850, pins on its bottom edge
+#   SoC pins          left and right die edges above the CPU block
 export DESIGN_NICKNAME = sigil_hier
 export DESIGN_NAME = sigil_soc_top
 export PLATFORM    = sky130hd
@@ -51,9 +58,9 @@ export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE = $(DESIGN_HOME)/$(PLATFORM)/sigil_soc/constraint.sdc
 
 export DIE_AREA  = 0 0 2920 3520
-export CORE_AREA = 10 10 2910 3510
+export CORE_AREA = 2 2 2918 3518
 export MACRO_PLACEMENT_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/macro_place.tcl
-export MACRO_PLACE_HALO = 10 10
+export MACRO_PLACE_HALO = 5 5
 export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/io.tcl
 export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/pdn.tcl
 export PLACE_DENSITY ?= 0.30
