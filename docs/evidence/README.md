@@ -2215,6 +2215,54 @@ Gates on `534f846` (`gates.log`):
   is identical: 55.00% (3491/6252).
 - riscv-tests: 123/123.
 
+## #56: CoreMark on the performance harness (2026-10-22)
+
+[`perf-coremark-56-2026-10-22/`](perf-coremark-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/` (UART log and
+`SIGIL_PERF` record of all 12 runs), the build logs, `fetch.log`
+(pinned-source fetch and checks), `host-reference.log` (native x86-64
+CRC references), `long-1000/` (10 s rule), `flag-sweep/` (`-O2` vs
+`-O3`/`-Os`), `image-check.log`, `rerun-final.log` and
+`cm_long_run.py`. Port and method:
+[`sw/bench/coremark/README.md`](../../sw/bench/coremark/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  harness's simulation-only counters, as in the Dhrystone entry above.
+  No #53 pipelining.
+- **Benchmark.** EEMBC CoreMark 1.0, eembc/coremark `b56889a7`,
+  unmodified, fetched into the git-ignored `third_party/coremark` and
+  sha256/md5-checked. 2K data set, data on the stack, 20 iterations,
+  `-O2`, every file with the same flags, no LTO. Commit `320cf57`
+  (branch `56-perf-coremark`); the final code `4526052` rebuilds
+  byte-identical images.
+- **Run.** `make -C sim perf BENCHES=coremark CONFIG=default MEM="soc
+  axi" REPEAT=2 JOBS=12` on sigil-verify, results written
+  2026-10-22T09:39:42Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0.
+- **Validation.** 12/12 runs valid and deterministic. The port checked
+  the seed, list, matrix and state CRCs and `crcfinal` against a native
+  x86-64 build of the same sources; both EEMBC seed sets validate (run
+  rule 2).
+
+| Variant | soc | axi |
+|---|---:|---:|
+| **scalar** (`rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`), CoreMark/MHz | **1.395** | 1.395 |
+| sdk (with V) | 1.372 | 1.372 |
+| validation seeds (scalar) | 1.392 | 1.392 |
+
+- Scalar, soc: 14,337,806 cycles for 20 iterations, IPC 0.366. Fetch
+  latency and straddles take 45.8% of cycles; the L1s hold CoreMark
+  (39 I$ and 11 D$ misses, all cold), so the 24-cycle AXI model adds
+  only 1,250 cycles.
+- **10 s rule.** 1000-iteration runs (`long-1000/`, about 70 minutes
+  of simulation each, 11.5 s of region at 62.5 MHz) give the same
+  1.395 (performance seeds) and 1.392 (validation seeds), and CoreMark
+  printed `Correct operation validated`.
+- `-O3` is 19% slower than `-O2` here (more straddling fetches), so
+  `-O2` is the headline.
+- Only the default configuration was measured; sky130, oreg and fpga
+  are still to run.
+
 ## #56: vector and FP kernels, C vs RVV (2026-10-22)
 
 [`perf-kernels-56-2026-10-22/`](perf-kernels-56-2026-10-22/README.md):
