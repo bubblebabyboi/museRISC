@@ -96,16 +96,23 @@ _start:
     li s3, 0                      // delay index
     li s4, 0                      // op
     li s7, 0                      // phase
+    li s11, 0                     // per-op fail bitmask (0 = all pass)
     j enter
 
 // ECALL from S (page B): a0 = PTE read back, t3 = SC result.
+// The sweep does not halt on the first lost store; it records the
+// failing op in s11 and runs on, so one run shows which op kinds
+// (bit s4) ever lose the committed store. Exit value = s11.
 m_handler:
     csrr t1, mcause
     li t2, 9
     bne t1, t2, m_fail
     bnez t3, 3f                   // SC failed: no store, no check
     andi t2, a0, MARK
-    beqz t2, m_bad
+    bnez t2, 3f                   // marker present: this pass ok
+    li t2, 1                      // marker lost: record op s4
+    sll t2, t2, s4
+    or s11, s11, t2
 3:  addi s3, s3, 1
     li t2, NDLY
     bltu s3, t2, enter
@@ -122,10 +129,8 @@ m_handler:
     li t2, ITERS
     bltu s2, t2, enter
     li t1, 0x10000000
-    sd x0, 0(t1)
+    sd s11, 0(t1)                 // 0 = pass; else bit p set = op p lost a store
 1:  j 1b
-m_bad:
-    li t1, 0xFF                   // store to the PTE lost
 m_fail:
     ori t0, t1, 0x100
     slli t2, s3, 12
