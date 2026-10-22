@@ -624,7 +624,8 @@ SDK examples, console, finisher, bulk load/save, at a measured 62.5 MHz)
 was proven on the previous build of the same CL
 ([`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md));
 this AFI's RTL differs from it only in the core's MMU walker
-(`sigil_core.sv`, `sigil_mmu.sv`: the walker-race fix, #74).
+(`sigil_core.sv`, `sigil_mmu.sv`: the walker-race fix, #74, and an atomic
+Svadu A/D update; `git diff e641930 31a1568 -- rtl/` touches nothing else).
 
 **To boot Debian on it, see [`LINUX.md` §4](LINUX.md#4-boot-debian-on-your-f2)**:
 after the playground setup below, `~/bin/sigil-linux` downloads the
@@ -642,7 +643,7 @@ bare-metal programs see [`PROGRAMMING.md`](PROGRAMMING.md#8-running-on-aws-f2).
 | Core clock | 62.5 MHz (AWS_CLK_GEN B1, interim until #53 closes 100 MHz); HBM AXI 250 MHz (H0) |
 | Memory | DDR4 64 GiB at PA `0x8000_0000`, HBM 16 GiB at PA `0x10_8000_0000` ([`LINUX_PLATFORM.md`](LINUX_PLATFORM.md)) |
 | Built from | commit `31a1568`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP (release asset `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar`, sha256 `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246`) |
-| Timing, size | all constraints met, post-route WNS +0.095 ns (core clock, 16 ns); 131,259 LUTs (10.08% of the VU47P) for the CL, 82,201 for the SoC + OCL block ([`evidence/f2-platform-73-oopsfix-2026-10-22/`](evidence/f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)) |
+| Timing, size | all constraints met, post-route WNS +0.095 ns (core clock, 16 ns), HBM AXI +0.198 ns (4 ns); 131,259 LUTs (10.08% of the VU47P) for the CL, 82,201 for the SoC + OCL block ([`evidence/f2-platform-73-oopsfix-2026-10-22/`](evidence/f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)) |
 
 Earlier AFIs, kept as history:
 

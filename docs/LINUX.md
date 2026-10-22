@@ -151,7 +151,7 @@ reboot, and power-off.
 ## 4. Boot Debian on your F2
 
 All you need is an AWS account that can launch F2 instances. The FPGA
-image is Sigil's **public AFI `agfi-0a1fd54ef68bdc754`** (64 GiB DDR4 +
+image is Sigil's **public AFI `agfi-0c8aa56fde1a48495`** (64 GiB DDR4 +
 16 GiB HBM, test finisher, RTC; [`FPGA_F2.md`](FPGA_F2.md#flash-sigil-on-your-own-f2)),
 and the boot files and the Debian disk come from the GitHub release
 `sigil-linux-f2-2026-10-22`. An `f2.6xlarge` (us-east-1, the smallest
@@ -215,8 +215,10 @@ AFI, and puts `sigil-run` (bare-metal programs,
    `~/sigil-disk.ext4`, so the next `sigil-linux` continues where you
    left off.
 
-The login prompt appears **`<F2 boot time: pending>`** after the start
-(estimate from QEMU: about 9 minutes at 62.5 MHz, §7). Log in as
+The login prompt appears about **6 minutes** after the start: on the F2
+it came 5 min 48 s after the SoC was released, which follows about 21 s
+of DDR4 zeroing and disk loading (§7; the first run also downloads and
+unpacks the release). Log in as
 `sigil` / `sigil` and go on with §5.
 
 | Command | |
@@ -320,15 +322,16 @@ DTB (Linux reused that memory) but **not** the disk image, or the
 reboot discards everything written since boot. `sigil_host --on-reboot
 rerun` does exactly that: checked on the F2 with the platform test
 firmware (`platform-reboot` in the platform evidence), and Debian's
-`reboot` keeps the disk in QEMU; Debian `reboot` on the F2:
-`<F2 Debian reboot: pending>`.
+`reboot` keeps the disk in QEMU. Debian's `reboot` has not been run on
+the F2 yet (the F2 acceptance run skips the reboot round); a power-off,
+save and second boot from the saved disk passed there.
 
 ## 5. Using Sigil Linux
 
 ### 5.1 Logging in
 
-On the F2 the login prompt comes `<F2 boot time: pending>` after
-`sigil-linux` starts (estimate: about 9 minutes, §7). Until then the
+On the F2 the login prompt comes about 6 minutes after `sigil-linux`
+starts (5 min 48 s after the SoC is released, measured, §7). Until then the
 console shows OpenSBI's banner, the kernel log and systemd starting
 services; `SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login
 prompt next` is printed just before the prompt:
@@ -384,8 +387,8 @@ small brk and large mmap blocks, one big block touched page by page),
 (§5.5). gdb, strace and `man 3 printf` work as on any Debian machine.
 Default code generation is Debian's `rv64gc`; add
 `-march=rv64gc_zba_zbb_zbs_zicond` for the bit-manipulation extensions,
-`_zve64d_zvl512b` for vector code. On the F2, `gcc -O2 hello.c` takes
-`<F2 measured: pending>` (estimate: about a minute, §7): keep programs
+`_zve64d_zvl512b` for vector code. On the F2, `gcc hello.c && ./a.out`
+takes 22.9 s and `make` of the six examples 6 min 23 s (measured, §7): keep programs
 in several small files and let `make` rebuild only what changed.
 
 Cross-compiling from a PC also works (Ubuntu/Debian
@@ -454,6 +457,8 @@ node     0    1
   sequential read runs at 77 MB/s from DDR4 and 70 MB/s from HBM: with
   one memory request in flight both are latency-bound, so for this core
   HBM is not faster, it is 16 GiB more memory you can place data in.
+  Under Debian on the F2, `numa_hbm 256` measured a dependent load at
+  1791 ns from DDR4 and 1878 ns from HBM (TLB misses included).
 
 ### 5.5 Vector code (Zve64d, VLEN 512)
 
@@ -534,13 +539,13 @@ returned; `~/sigil-disk.ext4` is on the EBS volume and survives a stop.
 ### 5.8 It is slow
 
 Sigil Linux on the F2 is a complete Debian, but on a slow machine. The
-core runs at an interim **62.5 MHz** and needs about **13 cycles per
-instruction** running Linux (derived from the #55 F2 boot, §7): it is in
+core runs at an interim **62.5 MHz** and needs about **5 cycles per
+instruction** running Debian (measured on the F2, §7): it is in
 order, its L1 caches block on a miss, it has one memory request in
-flight, and a cold refill from DDR4 takes ≈ 46 cycles (729 ns). That is roughly 5
-million instructions per second. Booting takes `<F2 boot time: pending>`
-(estimate ≈ 9 min), `gcc hello.c` about a minute and starting `python3`
-about 15 s (estimates, §7). Use it to run and measure code on Sigil, not
+flight, and a cold refill from DDR4 takes ≈ 46 cycles (729 ns). That is roughly 12
+million instructions per second. Booting to the login prompt takes
+5 min 48 s, `gcc hello.c && ./a.out` 22.9 s and `python3 -c` 9.9 s
+(measured on the F2, §7). Use it to run and measure code on Sigil, not
 to build big projects: compile small programs, keep `make` incremental,
 and run long jobs under `nohup`. A faster FPGA clock (#53) and the
 microarchitecture work (#61) are the planned fixes.
@@ -609,7 +614,12 @@ F2 hart (in order, blocking L1 caches, one memory request in flight)
 averages about 5 cycles per instruction on this workload (the icount
 column × 5; an earlier calibration on the 6.6 boot suggested 13). Most
 of the boot is systemd's userspace start-up (`systemd-analyze blame` on
-the board). A faster FPGA clock (#53) scales everything.
+the board; on the F2 it is led by `dev-pmem0.device`, 2 min 13 s). Before
+the release the host spends about 21 s on the first run after an AFI load
+(zeroing DDR4, then loading the 8 GiB disk) and about 4 s after that; a
+second boot from the saved disk reached the prompt at 5 min 43 s
+([F2 logs](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/)). A faster
+FPGA clock (#53) scales everything.
 
 The image is tuned for this (§1); `systemd-analyze blame` on the board
 shows where the time goes.
