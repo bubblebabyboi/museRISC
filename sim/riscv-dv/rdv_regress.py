@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import time
+import zlib
 
 import yaml
 
@@ -61,7 +62,7 @@ SPIKE_ARGS = ["--isa=" + SPIKE_ISA, "--priv=msu", "--triggers=0",
 CORE_TB_BUS = ["--mem-lat", "1:6", "--mem-gap", "2", "--mem-ready", "70"]
 
 STATUSES = ["PASS", "MISMATCH", "DUT_TIMEOUT", "DUT_FAIL", "GEN_FAIL", "SPIKE_FAIL"]
-FIELDS = ["test", "seed", "status", "first_divergence", "ref_records",
+FIELDS = ["test", "seed", "gen_seed", "status", "first_divergence", "ref_records",
           "dut_records", "dut_cycles", "gen_s", "spike_s", "dut_s", "dir",
           "asm", "elf", "spike_log", "dut_trace", "ref_csv", "dut_csv", "report"]
 
@@ -140,6 +141,13 @@ def spike_wrote_tohost(log, tohost):
     return pat in data
 
 
+def gen_seed(test, seed):
+    """pygen seed for (test, seed). pygen draws everything, including the
+    boot mode, from one random stream seeded with this value, so using
+    the bare seed would give every test the same boot mode per seed."""
+    return (zlib.crc32(test.encode()) + seed) & 0x7FFFFFFF
+
+
 def run_one(entry, seed, a):
     test = entry["test"]
     d = os.path.join(a.out, test, str(seed))
@@ -149,7 +157,8 @@ def run_one(entry, seed, a):
         "asm": "%s_0.S" % test, "elf": "%s.elf" % test, "spike_log": "spike.log",
         "dut_trace": "dut.trace", "ref_csv": "ref.csv", "dut_csv": "dut.csv",
         "report": "compare.txt"}.items()}
-    row = {"test": test, "seed": seed, "dir": d, "first_divergence": "",
+    row = {"test": test, "seed": seed, "gen_seed": gen_seed(test, seed), "dir": d,
+           "first_divergence": "",
            "ref_records": "", "dut_records": "", "dut_cycles": "",
            "gen_s": "", "spike_s": "", "dut_s": ""}
     row.update(p)
@@ -169,7 +178,7 @@ def run_one(entry, seed, a):
     else:
         cmd = [a.venv_py, "pygen/pygen_src/test/riscv_instr_base_test.py",
                "--target=sigil", "--gen_test=%s" % entry.get("gen_test", "riscv_instr_base_test"),
-               "--num_of_tests=1", "--start_idx=0", "--seed=%d" % seed,
+               "--num_of_tests=1", "--start_idx=0", "--seed=%d" % row["gen_seed"],
                "--asm_file_name=%s" % os.path.join(d, test),
                "--log_file_name=%s" % os.path.join(d, "gen.log")] + gen_opts(entry, a.instr_cnt)
         rc, row["gen_s"] = run_cmd(cmd, os.path.join(d, "gen.out"), cwd=a.gen_dir,

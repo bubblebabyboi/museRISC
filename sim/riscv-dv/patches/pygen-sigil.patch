@@ -63,7 +63,10 @@ S  riscv_load_store_instr_lib.py: load/store streams as in SV: address =
    small offset stayed allowed for offsets the encoding cannot hold:
    assembler "illegal operands"); the base register is never x0 or a
    reserved register (rs1_c was commented out: "la zero, ..."), and the
-   SP-reserved check tests membership in either list.
+   SP-reserved check tests membership in either list. The hazard
+   stream's own randomize_offset gets the same address fix (its
+   misaligned ld/sd ended tests early in the generic exception handler)
+   and draws the reuse-previous-address decision per access, as in SV.
 T  riscv_privil_reg.py, riscv_privileged_common_seq.py: SSTATUS and SIE
    field layouts (from SV, plus VS), and no riscv_reg.randomize() for
    SSTATUS (broken in pygen; the MSTATUS path never calls it): S-mode
@@ -602,6 +605,35 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_load_store_instr_lib.p
              if not cfg.enable_unaligned_load_store:
                  if (self.addr[i] & 1) == 0:
                      allowed_instr.extend(
+@@ -285,8 +299,8 @@
+         offset_ = vsc.rand_int32_t()
+         self.offset = [0] * self.num_load_store
+         self.addr = [0] * self.num_load_store
+-        rand_num = random.randrange(0, 100)
+         for i in range(self.num_load_store):
++            rand_num = random.randrange(0, 100)  # Sigil patch: per access
+             if (i > 0) and (rand_num < self.hazard_ratio):
+                 self.offset[i] = self.offset[i - 1]
+                 self.addr[i] = self.addr[i - 1]
+@@ -300,9 +314,15 @@
+                         offset_ = random.randrange(-256, 256)
+                     elif self.locality == locality_e.SPARSE:
+                         offset_ = random.randrange(-2048, 2047)
+-                    var1 = self.base + offset_ - 1
+-                    var2 = self.base + offset_ + 1
+-                    addr_ = random.randrange(var1, var2)
++                    # Sigil patch: addr == base + offset inside the page.
++                    addr_ = self.base + offset_
++                    if not 0 <= addr_ < self.max_load_store_offset:
++                        span = {locality_e.NARROW: 16, locality_e.HIGH: 64,
++                                locality_e.MEDIUM: 256}.get(self.locality, 2048)
++                        lo = max(-span, -self.base)
++                        hi = min(span - 1, self.max_load_store_offset - 1 - self.base)
++                        offset_ = random.randint(lo, hi) if lo <= hi else 0
++                        addr_ = self.base + offset_
+                 except Exception:
+                     logging.critical("Cannot randomize load/store offset")
+                     sys.exit(1)
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_instr.py
 --- a/pygen/pygen_src/riscv_loop_instr.py
 +++ b/pygen/pygen_src/riscv_loop_instr.py
