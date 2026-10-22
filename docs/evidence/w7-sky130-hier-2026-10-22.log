@@ -356,6 +356,62 @@ die").
   incrementally (w34: 67,822 / 30,070 at iterations 0-1, 6.5 and 4 min;
   w34p: 86,457 at iteration 0), in progress at 19:40Z.
 
+  w34 result (run end 20:42:50Z, rc 0, wall 13,031 s; route stage
+  3 h 20 min):
+    detailed-route passes (DRT-0501 runtime): 7,236 / 2,022 / 993 /
+      455 / 614 / 434 s, each ending at 0 violations; antenna nets
+      after each pass 400 / 79 / 25 / 7 / 1 / 3 (diodes inserted 648 /
+      120 / 43 / 11 / 1). The ORFS loop stops after 5 repair rounds, so
+      the stage ended with 3 antenna nets (5 gate pins: met3 partial
+      side-area ratio 1,467.5 / 818.8 (3 pins) and met2 706.2 against
+      400, on _061840_, net11888, _061879_).
+    5_route_drc.rpt empty (0 DRC); final netlist LEC against synthesis
+      passed; PSM: all VDD / VSS shapes connected.
+    TT (platform lib, OpenRCX SPEF): setup WS +11.64 ns, TNS 0; hold
+      WS +0.37 ns; period_min 28.36 ns (fmax 35.3 MHz) at the 40 ns
+      clock; power 0.194 W (sequential 28 mW, combinational 150, clock
+      16).
+    Max slew / max cap (TT): 1,079 max-slew pins on 202 nets (limit
+      1.5 ns, worst 2.02 ns) and 210 max-cap pins (worst 0.24 pF
+      against 0.17); 96 of the driving pins are DFF outputs (89
+      u_hash.bufw[*], SHA-512 schedule w[*]). With the global-route
+      estimate (what the flow's last repair_design saw) the same
+      design has 14 / 2. Per violating driver, extracted / estimated
+      slew = 1.02-1.64 (median 1.25, p90 1.44; analysis script
+      drv_ratio.tcl on the routed odb: estimate_parasitics
+      -global_routing, then read_spef 6_final.spef); every violating
+      driver was at >= 1.01 ns (68 % of the limit) in the estimate.
+    Design area 1,199,293 um^2 (46 %); 6_final.gds 168 MB;
+      sigil_crypto_top.lef 3400 x 780, 98 pins.
+    So w34 is DRC-clean and meets 40 ns, but not antenna-clean (3
+    nets) and has max-slew / max-cap violations: not final.
+  w34p stopped at 20:46Z (docker stop; rc 137) in its fourth
+    post-route pass (antenna nets 434 / 101 / 23 after passes 1-3):
+    it routes no faster than w34 and has 5 % more wire, and the host
+    was needed for the two runs below.
+  v3 (vivado_rnd) at 21:00Z: iterations 20-23 1,154 / 1,077 / 1,042
+    ..., still running.
+
+  Two runs from w34 (at most two crypto runs on the host at a time):
+    w34m  full re-run (floorplan .. abstract, synthesis result seeded
+          as above) at commit d17e83c, whose crypto config makes the
+          w34 slot the default (DIE_AREA 0 0 3400 780, CORE_AREA 5 5
+          3395 775) and adds SLEW_MARGIN = CAP_MARGIN = 40 (repair to
+          0.6 x the limit in every repair_design, covering the 1.64x
+          above) and MAX_REPAIR_ANTENNAS_ITER_DRT = 10. 12 threads,
+          started 20:52:58Z; `make DESIGN_CONFIG=designs/sky130hd/
+          sigil_hier/sigil_crypto_top/config.mk FLOW_VARIANT=w34m
+          generate_abstract`. Pin placement (3_2_place_iop) comes
+          before the first repair_design, so the block pins should
+          match w34's.
+    w34b  post-route ECO on a copy of w34 with the CPU block's ECO
+          script (drt_eco_repair.tcl as of 20:48Z, frozen copy sha256
+          c02d25dd...; timing with w34's SPEF, repair_design with 40 %
+          margins, repair_timing, incremental global + detailed route,
+          antenna rounds), then make finish + abstract with the w34
+          snapshot. 8 threads, started 20:54:03Z. Before: setup WS
+          +11.641 ns, hold +0.367, 1,079 max slew, 210 max cap.
+
 == CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
   Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
   above, 16 threads each, snapshot 2db5230aa893.
