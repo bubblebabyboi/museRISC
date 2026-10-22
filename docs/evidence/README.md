@@ -2629,3 +2629,53 @@ against which #53 and later changes are compared.
   is 3 cycles instead of 2, a load takes 5 cycles instead of 2.5, and
   the 4 KiB direct-mapped D$ misses on every access from an 8 KiB
   working set.
+
+## #56 / #10: where the cycles go and ranked upgrade candidates (2026-10-22)
+
+[`perf-analysis-56-2026-10-22/`](perf-analysis-56-2026-10-22/README.md)
+holds the analysis behind `docs/PERFORMANCE.md` §12–14:
+
+- `counters/`: `derive.py`, and its output `derived.md`, which has every
+  counter-derived ratio the document quotes, plus helper scripts;
+- `frontend-model/`: the trace-driven front-end model (`fe.cpp`), its
+  run scripts and outputs, the what-if table `whatif.md`, and the
+  model's check against the RTL;
+- `analyses/`: the three analyses as written (front end, memory
+  hierarchy, execution units).
+
+Results: [`docs/PERFORMANCE.md`](../PERFORMANCE.md) §12–14.
+
+- **Inputs.**
+  - The counters of `perf-baseline-56-2026-10-22` (`56-perf-harness`
+    `de21e4b`; `rtl/` tree `89b98cb227c6`, main `eeaa332` plus the
+    simulation-only counters, no #53 pipelining).
+  - `perf-f2-56-2026-10-22`.
+  - Spike 1.1.1-dev (`2c300cd9`) commit traces of the baseline ELFs
+    (`8d15410`).
+  - RTL retirement traces for the SHA chains, from a simulation-only
+    tap in an uncommitted copy (Verilator 5.048).
+  - The model, built with g++ 13.3.0 on sigil-verify and run
+    2026-10-22, about 12:30–12:45Z.
+- **Validation.**
+  - The model of today's core reproduces the RTL cycle counts to within
+    +0.0002% for CoreMark, +0.0014% for Dhrystone and +0.0001% for
+    SHA-256 C and Zknh. On sky130 it is within +0.005%.
+  - `ic_access`, `br_taken`, `jal_redir`, `jalr_redir` and
+    `muldiv_busy` match the RTL counters exactly.
+  - Every (region, variant) pair present in several output sets is
+    identical (`version-consistency.log`).
+  - Every traced program self-checked under Spike, except one `rdtime`
+    rate check in `micro_pipe`. Spike's timer differs from the RTL's,
+    and `micro_pipe` serves only to check the model per mechanism.
+- **Results** (model figures, `default`):
+  - **Decoupled 64-bit fetch:** CoreMark 1.41x, Dhrystone 1.43x,
+    SHA-256 C 2.15x.
+  - **Plus a 64-entry bimodal predictor with a 4-entry RAS:** 1.70x,
+    1.80x and 2.32x.
+  - **Changes that leave fetch alone,** such as dual issue and
+    multithreading, are bounded today by the I$ port. It is 94.9% busy
+    on CoreMark, which caps them at 1.053x.
+  - **SHA-256 (#10):** the accelerator block API takes 572 cycles per
+    hash, against 9,918 for plain C, 6,753 for Zknh and 4,642 for
+    RVV ×16. That is 17.3x plain C, and F2 hardware gives the same
+    counts.
