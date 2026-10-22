@@ -2124,3 +2124,51 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #20: ACT Zalrsc-sc case-level probe on the in-house core (2026-10-22, branch `20-isa-followups`)
+
+- Artifacts: [`act-zalrsc-sc-probe-core-2026-10-22.csv`](act-zalrsc-sc-probe-core-2026-10-22.csv)
+  (one row per test case: Sail vs core signature words, default
+  harness configuration), [`act-zalrsc-sc-probe-runs-core-2026-10-22.csv`](act-zalrsc-sc-probe-runs-core-2026-10-22.csv)
+  (one row per test x harness configuration),
+  [`act-zalrsc-sc-probe-core-2026-10-22.log`](act-zalrsc-sc-probe-core-2026-10-22.log)
+  (tool versions, commands, summaries, cycle ranges).
+- Question: the CVA6-era sweep (above, 2026-10-12) recorded ACT
+  `Zalrsc-sc.w`/`sc.d` as a waived hang in the CVA6 testharness memory
+  path and asked for a case-level probe. On the in-house core both
+  ELFs have passed as whole tests since stage 4a; this probe checks
+  them case by case.
+- Method (`scripts/act_zalrsc_sc_probe.sh`, commit `0c46ae5`,
+  sigil-verify, Verilator 5.048, Sail 0.15, riscv-arch-test
+  `6af53584`, GCC 16.1.0 from the pinned 2026.08.27 toolchain):
+  - Tests: stock `Zalrsc-sc.w-00`/`sc.d-00` (275 cases each: 243
+    expect the SC to succeed, 32 expect it to fail) plus "noretry"
+    variants of both, where every constrained LR/SC retry budget
+    `LI(xN, 100)` is cut to 1 (274 per test). A spurious
+    first-attempt SC failure, which the stock retry loop would hide,
+    then reaches the signature. All four were built through the
+    ACT flow (Sail signature + self-check ELF). Sail's signatures
+    for the stock and noretry sources are identical.
+  - Harness configurations: default (L1 caches on), `--no-cache`,
+    and randomized bus timing (`--mem-lat 1:6 --mem-gap 2
+    --mem-ready 70`, seeds 1–16), both cached and uncached: 34 per
+    test.
+  - Each run executes the self-check ELF (5M-cycle budget, so a hang
+    would show as a timeout). It also executes the signature-mode
+    `.sig.elf`, the binary Sail ran, with `CORE_TB_SIGDUMP=1`, and
+    compares all 568 signature words with Sail's `.sig`
+    (`scripts/act_sig_cases.py` maps each word to its test case).
+    Signature-mode ELFs use Sail's HTIF console and halt macros, so
+    `core_tb` gained an opt-in `CORE_TB_HTIF_CONSOLE` mode. Default
+    harness behaviour is unchanged.
+- Result: **136/136 runs PASS** (self-check PASS, signature-mode run
+  completes, all 568 words equal to Sail). **1,100/1,100 cases** match
+  Sail word for word in the default configuration (4 tests x 275).
+  No timeouts. The longest run is 239,766 cycles (stock `sc.w`,
+  uncached with random bus timing).
+- Conclusion: the 2026-10-12 hang is specific to the CVA6
+  model/testharness and does not reproduce on the in-house core,
+  whose LR/SC behaviour matches Sail for every ACT
+  `sc.w`/`sc.d` case under all 34 timing configurations, including
+  with retries disabled. ACT Zalrsc (lr + sc) is claimed for the
+  in-house core.
