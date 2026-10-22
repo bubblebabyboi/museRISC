@@ -2,17 +2,19 @@
 # gcc:  make && make run
 CC      ?= gcc
 CFLAGS  ?= -O2 -Wall
-PROGS   = hello malloc_test numa_hbm rvv_vadd
+PROGS   = hello malloc_test numa_hbm memwhere rvv_vadd
 
 all: $(PROGS)
 
-numa_hbm: LDLIBS += -lnuma
+numa_hbm memwhere: LDLIBS += -lnuma
 rvv_vadd: CFLAGS += -march=rv64gc_zve64d
 
 run: all
 	./hello
 	./malloc_test
 	./numa_hbm
+	./memwhere 256
+	numactl --membind=1 ./memwhere 256
 	./rvv_vadd
 
 clean:

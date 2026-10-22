@@ -4,6 +4,8 @@ Sigil Linux examples (docs/LINUX.md in the Sigil repository)
   malloc_test.c  glibc malloc/realloc/free, small (brk) and large (mmap)
   numa_hbm.c     DDR4 (node 0) vs HBM (node 1) with libnuma: placement
                  check and a write / dependent-load timing per node
+  memwhere.c     which NUMA node a malloc'd buffer landed on (try it
+                 under numactl --membind=1 / --interleave=0,1)
   rvv_vadd.c     user-space vector (Zve64d, VLEN 512) with RVV intrinsics
 
   make && make run

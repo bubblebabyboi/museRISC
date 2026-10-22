@@ -7,8 +7,8 @@
 #
 #   sudo bash scripts/build_debian_rootfs.sh
 #
-# Needs (Ubuntu 24.04): mmdebstrap qemu-user-static binfmt-support
-# e2fsprogs zstd, and build/linux/modules-<krel>.tar.gz + Image + DTBs +
+# Needs (Ubuntu 24.04): mmdebstrap debian-archive-keyring qemu-user-static
+# binfmt-support e2fsprogs zstd, and build/linux/modules-<krel>.tar.gz + Image + DTBs +
 # fw_jump.bin from scripts/build_linux_kernel.sh and build_opensbi.sh.
 # Outputs in build/debian/ (override with SIGIL_ROOTFS_OUT):
 #   sigil-debian-13-riscv64.ext4       raw ext4 image (SIGIL_ROOTFS_SIZE, 8G)
@@ -28,11 +28,16 @@ PASSWORD=${SIGIL_PASSWORD:-sigil}
 NAME=sigil-debian-13-riscv64
 MIRROR=http://snapshot.debian.org/archive/debian/$SNAPSHOT
 SECMIRROR=http://snapshot.debian.org/archive/debian-security/$SNAPSHOT
+# Ubuntu's debian-archive-keyring (2023.4) holds the bookworm archive
+# keys, which also sign trixie's Release files; the image then gets
+# trixie's own debian-archive-keyring package.
+KEYRING=${SIGIL_DEBIAN_KEYRING:-/usr/share/keyrings/debian-archive-keyring.gpg}
 
 MODULES=$(ls build/linux/modules-*.tar.gz 2>/dev/null | head -1 || true)
 KREL=$(basename "${MODULES:-none}" .tar.gz); KREL=${KREL#modules-}
 
 [ "$(id -u)" = 0 ] || { echo "error: run with sudo (mmdebstrap --mode=root, chroot)" >&2; exit 1; }
+[ -f "$KEYRING" ] || { echo "error: $KEYRING missing (apt install debian-archive-keyring)" >&2; exit 1; }
 for t in mmdebstrap mkfs.ext4 zstd; do
   command -v $t >/dev/null || { echo "error: $t missing" >&2; exit 1; }
 done
@@ -57,7 +62,7 @@ mkdir -p "$OUT"
 ROOT=$OUT/root
 rm -rf "$ROOT"
 echo "== mmdebstrap $SUITE riscv64 from $MIRROR"
-mmdebstrap --mode=root --arch=riscv64 --variant=minbase \
+mmdebstrap --mode=root --arch=riscv64 --variant=minbase --keyring="$KEYRING" \
   --aptopt='Acquire::Check-Valid-Until "false"' \
   --aptopt='Acquire::Retries "5"' \
   --include="$(IFS=,; echo "${PACKAGES[*]}")" \
