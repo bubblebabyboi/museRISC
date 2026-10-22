@@ -1,0 +1,198 @@
+== region 0
+instr=5246414 rvc=2695749 ld=1082027 st=283065 br=1053669 br_taken=617615 br_back=522718 br_back_taken=473057 br_fwd_taken=144558 jal=83907 jalr=42774 ret=36387 jalr_call=6387 jalr_other=0 mul=187920 div=0 fp=0 vec=0 strad4=708693 strad8=401606
+fetch_acc_word=5955107 fetch_acc_reuse4=4193728 fetch_acc_blk8=2500679
+dir.NT.miss=617615
+dir.T.miss=436054
+dir.BTFN.miss=194219
+dir.bim16.miss=118482
+dir.bim32.miss=98160
+dir.bim64.miss=83217
+dir.bim128.miss=79325
+dir.bim256.miss=78913
+dir.bim512.miss=78416
+dir.bim1024.miss=78257
+dir.bim2048.miss=78257
+dir.bim4096.miss=77959
+dir.gsh64h4.miss=124234
+dir.gsh128h6.miss=124316
+dir.gsh256h4.miss=101819
+dir.gsh256h8.miss=104911
+dir.gsh512h6.miss=105057
+dir.gsh512h9.miss=97937
+dir.gsh1024h8.miss=85189
+dir.gsh1024h10.miss=86719
+dir.gsh2048h11.miss=77797
+dir.gsh4096h12.miss=67038
+btb.4w1 taken=707909 hit=457991 jalr_taken=6387 jalr_hit=1576
+btb.8w1 taken=707909 hit=500248 jalr_taken=6387 jalr_hit=1576
+btb.16w1 taken=707909 hit=560322 jalr_taken=6387 jalr_hit=4666
+btb.32w1 taken=707909 hit=649535 jalr_taken=6387 jalr_hit=4847
+btb.64w1 taken=707909 hit=694488 jalr_taken=6387 jalr_hit=6347
+btb.128w1 taken=707909 hit=701534 jalr_taken=6387 jalr_hit=6347
+btb.256w1 taken=707909 hit=704940 jalr_taken=6387 jalr_hit=6347
+btb.512w1 taken=707909 hit=706505 jalr_taken=6387 jalr_hit=6347
+btb.4w2 taken=707909 hit=442331 jalr_taken=6387 jalr_hit=0
+btb.8w2 taken=707909 hit=563300 jalr_taken=6387 jalr_hit=4710
+btb.16w2 taken=707909 hit=638910 jalr_taken=6387 jalr_hit=4710
+btb.32w2 taken=707909 hit=692046 jalr_taken=6387 jalr_hit=6188
+btb.64w2 taken=707909 hit=700779 jalr_taken=6387 jalr_hit=6247
+btb.128w2 taken=707909 hit=704081 jalr_taken=6387 jalr_hit=6347
+btb.256w2 taken=707909 hit=706605 jalr_taken=6387 jalr_hit=6347
+btb.512w2 taken=707909 hit=707162 jalr_taken=6387 jalr_hit=6347
+ras.1 returns=36387 correct=33256
+ras.2 returns=36387 correct=35785
+ras.4 returns=36387 correct=36285
+ras.8 returns=36387 correct=36386
+ras.16 returns=36387 correct=36386
+model.F0_rtl cycles=23031849 retired=5246413 ic_acc=6699401 flush=744296 mispred=744296 strad=708693 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F0ns cycles=20905733 retired=5246413 ic_acc=5990709 flush=744296 mispred=744296 strad=0 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F1 cycles=19081262 retired=5246413 ic_acc=4938440 flush=744296 mispred=744296 strad=769853 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F2 cycles=14619959 retired=5246411 ic_acc=2967818 flush=744296 mispred=744296 strad=0 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F2s cycles=17228086 retired=5246413 ic_acc=3197804 flush=744296 mispred=744296 strad=229987 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F3 cycles=13155697 retired=5246411 ic_acc=3521310 flush=744296 mispred=744296 strad=0 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F3s cycles=14637983 retired=5246411 ic_acc=3847391 flush=744296 mispred=744296 strad=260923 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F3q3 cycles=13245664 retired=5246411 ic_acc=4073648 flush=744296 mispred=744296 strad=0 icmiss=1246 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F3w16 cycles=12208990 retired=5246411 ic_acc=2540214 flush=744296 mispred=744296 strad=0 icmiss=1246 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F3w16s cycles=13008055 retired=5246411 ic_acc=2578482 flush=744296 mispred=744296 strad=38250 icmiss=1246 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F4 cycles=12370351 retired=5246411 ic_acc=4331096 flush=744296 mispred=744296 strad=0 icmiss=1246 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F4w4 cycles=13466467 retired=5246411 ic_acc=6161258 flush=744296 mispred=744296 strad=0 icmiss=1187 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F5 cycles=11839161 retired=5246411 ic_acc=3098572 flush=744296 mispred=744296 strad=0 icmiss=2355 dcmiss=18 pred_taken=0 memst=2730419 hold=375840
+model.F0+jal cycles=22780128 retired=5246413 ic_acc=6615494 flush=660389 mispred=660389 strad=708693 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F0+jal+r1 cycles=22864035 retired=5246413 ic_acc=6615494 flush=660389 mispred=660389 strad=708693 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F0+btfn cycles=21401098 retired=5246413 ic_acc=6155813 flush=200708 mispred=200708 strad=708693 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F0+btfn+r1 cycles=22044008 retired=5246413 ic_acc=6155813 flush=200708 mispred=200708 strad=708693 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F0+bim16 cycles=21173874 retired=5246413 ic_acc=6080076 flush=124971 mispred=124971 strad=708693 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F0+bim16+r1 cycles=21935227 retired=5246413 ic_acc=6080076 flush=124971 mispred=124971 strad=708693 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F0+bim32 cycles=21112908 retired=5246413 ic_acc=6059754 flush=104649 mispred=104649 strad=708693 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F0+bim32+r1 cycles=21868135 retired=5246413 ic_acc=6059754 flush=104649 mispred=104649 strad=708693 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F0+bim64 cycles=21068079 retired=5246413 ic_acc=6044811 flush=89706 mispred=89706 strad=708693 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F0+bim64+r1 cycles=21834579 retired=5246413 ic_acc=6044811 flush=89706 mispred=89706 strad=708693 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F0+bim256 cycles=21055180 retired=5246413 ic_acc=6040507 flush=85402 mispred=85402 strad=708693 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F0+bim256+r1 cycles=21821732 retired=5246413 ic_acc=6040507 flush=85402 mispred=85402 strad=708693 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F0+gsh12 cycles=21019555 retired=5246413 ic_acc=6028632 flush=73527 mispred=73527 strad=708693 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F0+gsh12+r1 cycles=21758992 retired=5246413 ic_acc=6028632 flush=73527 mispred=73527 strad=708693 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F0+perfect cycles=20798961 retired=5246413 ic_acc=5955105 flush=0 mispred=0 strad=708693 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F1+jal cycles=18794814 retired=5246413 ic_acc=4854533 flush=660389 mispred=660389 strad=758151 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F1+jal+r1 cycles=18878241 retired=5246413 ic_acc=4854533 flush=660389 mispred=660389 strad=758151 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F1+btfn cycles=17203167 retired=5246413 ic_acc=4411193 flush=200708 mispred=200708 strad=724852 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F1+btfn+r1 cycles=17832139 retired=5246413 ic_acc=4411193 flush=200708 mispred=200708 strad=724852 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F1+bim16 cycles=16938328 retired=5246413 ic_acc=4333642 flush=124971 mispred=124971 strad=718074 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F1+bim16+r1 cycles=17684046 retired=5246413 ic_acc=4333595 flush=124971 mispred=124971 strad=718055 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F1+bim32 cycles=16876767 retired=5246413 ic_acc=4313379 flush=104649 mispred=104649 strad=717938 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F1+bim32+r1 cycles=17616524 retired=5246413 ic_acc=4313341 flush=104649 mispred=104649 strad=717900 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F1+bim64 cycles=16829161 retired=5246413 ic_acc=4298914 flush=89706 mispred=89706 strad=714900 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F1+bim64+r1 cycles=17581597 retired=5246413 ic_acc=4298876 flush=89706 mispred=89706 strad=714862 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F1+bim256 cycles=16815298 retired=5246413 ic_acc=4294205 flush=85402 mispred=85402 strad=714808 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F1+bim256+r1 cycles=17567731 retired=5246413 ic_acc=4294167 flush=85402 mispred=85402 strad=714770 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F1+gsh12 cycles=16779440 retired=5246413 ic_acc=4281806 flush=73527 mispred=73527 strad=713730 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F1+gsh12+r1 cycles=17503876 retired=5246413 ic_acc=4281768 flush=73527 mispred=73527 strad=713692 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F1+perfect cycles=16517223 retired=5246413 ic_acc=4193726 flush=0 mispred=0 strad=708693 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F2+jal cycles=14337653 retired=5246411 ic_acc=2900418 flush=660389 mispred=660389 strad=0 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F2+btfn cycles=12548149 retired=5246411 ic_acc=2717465 flush=200708 mispred=200708 strad=0 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F2+bim16 cycles=12305820 retired=5246411 ic_acc=2658249 flush=124971 mispred=124971 strad=0 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F2+bim32 cycles=12244594 retired=5246411 ic_acc=2638258 flush=104649 mispred=104649 strad=0 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F2+bim64 cycles=12201901 retired=5246411 ic_acc=2633388 flush=89706 mispred=89706 strad=0 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F2+bim256 cycles=12182379 retired=5246411 ic_acc=2627089 flush=85402 mispred=85402 strad=0 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F2+gsh12 cycles=12107913 retired=5246411 ic_acc=2591428 flush=73527 mispred=73527 strad=0 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F2+perfect cycles=11822403 retired=5246411 ic_acc=2500677 flush=0 mispred=0 strad=0 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F2s+jal cycles=16947035 retired=5246413 ic_acc=3130404 flush=660389 mispred=660389 strad=229987 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F2s+jal+r1 cycles=17030942 retired=5246413 ic_acc=3130404 flush=660389 mispred=660389 strad=229987 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F2s+btfn cycles=15312235 retired=5246413 ic_acc=2946831 flush=200708 mispred=200708 strad=229407 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F2s+btfn+r1 cycles=15950420 retired=5246413 ic_acc=2945931 flush=200708 mispred=200708 strad=229427 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F2s+bim16 cycles=15069694 retired=5246413 ic_acc=2887372 flush=124971 mispred=124971 strad=229164 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F2s+bim16+r1 cycles=15824620 retired=5246413 ic_acc=2886454 flush=124971 mispred=124971 strad=229164 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F2s+bim32 cycles=15006440 retired=5246413 ic_acc=2867614 flush=104649 mispred=104649 strad=229397 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F2s+bim32+r1 cycles=15754910 retired=5246413 ic_acc=2866677 flush=104649 mispred=104649 strad=229397 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F2s+bim64 cycles=14966912 retired=5246413 ic_acc=2862714 flush=89706 mispred=89706 strad=229367 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F2s+bim64+r1 cycles=15728157 retired=5246413 ic_acc=2861777 flush=89706 mispred=89706 strad=229367 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F2s+bim256 cycles=14945528 retired=5246413 ic_acc=2856455 flush=85402 mispred=85402 strad=229427 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F2s+bim256+r1 cycles=15706962 retired=5246413 ic_acc=2855537 flush=85402 mispred=85402 strad=229427 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F2s+gsh12 cycles=14851523 retired=5246413 ic_acc=2820725 flush=73527 mispred=73527 strad=229298 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F2s+gsh12+r1 cycles=15587210 retired=5246413 ic_acc=2820567 flush=73527 mispred=73527 strad=229298 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F2s+perfect cycles=14535401 retired=5246413 ic_acc=2730043 flush=0 mispred=0 strad=229367 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F3+jal cycles=12917549 retired=5246411 ic_acc=3446050 flush=660389 mispred=660389 strad=0 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3+jal+r1 cycles=12973796 retired=5246411 ic_acc=3446050 flush=660389 mispred=660389 strad=0 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3+btfn cycles=11364004 retired=5246411 ic_acc=3300748 flush=200708 mispred=200708 strad=0 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3+btfn+r1 cycles=11827951 retired=5246411 ic_acc=3293956 flush=200708 mispred=200708 strad=0 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3+bim16 cycles=11190898 retired=5246411 ic_acc=3236435 flush=124971 mispred=124971 strad=0 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3+bim16+r1 cycles=11735906 retired=5246411 ic_acc=3229542 flush=124971 mispred=124971 strad=0 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3+bim32 cycles=11092849 retired=5246411 ic_acc=3204867 flush=104649 mispred=104649 strad=0 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3+bim32+r1 cycles=11628270 retired=5246411 ic_acc=3197640 flush=104649 mispred=104649 strad=0 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3+bim64 cycles=11054292 retired=5246411 ic_acc=3195476 flush=89706 mispred=89706 strad=0 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3+bim64+r1 cycles=11594732 retired=5246411 ic_acc=3188394 flush=89706 mispred=89706 strad=0 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3+bim256 cycles=11030830 retired=5246411 ic_acc=3188590 flush=85402 mispred=85402 strad=0 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3+bim256+r1 cycles=11571927 retired=5246411 ic_acc=3181686 flush=85402 mispred=85402 strad=0 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3+gsh12 cycles=10901962 retired=5246411 ic_acc=3137593 flush=73527 mispred=73527 strad=0 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3+gsh12+r1 cycles=11443120 retired=5246411 ic_acc=3132995 flush=73527 mispred=73527 strad=0 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3+perfect cycles=10574053 retired=5246411 ic_acc=3029228 flush=0 mispred=0 strad=0 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F3s+jal cycles=14376736 retired=5246411 ic_acc=3777091 flush=660389 mispred=660389 strad=250043 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3s+jal+r1 cycles=14431554 retired=5246411 ic_acc=3777091 flush=660389 mispred=660389 strad=250043 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3s+btfn cycles=12713199 retired=5246411 ic_acc=3646158 flush=200708 mispred=200708 strad=251250 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3s+btfn+r1 cycles=13228520 retired=5246411 ic_acc=3638886 flush=200708 mispred=200708 strad=251250 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3s+bim16 cycles=12611366 retired=5246411 ic_acc=3585599 flush=124971 mispred=124971 strad=244972 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3s+bim16+r1 cycles=13223755 retired=5246411 ic_acc=3578229 flush=124971 mispred=124971 strad=244972 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3s+bim32 cycles=12511492 retired=5246411 ic_acc=3551635 flush=104649 mispred=104649 strad=244829 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3s+bim32+r1 cycles=13118032 retired=5246411 ic_acc=3543931 flush=104649 mispred=104649 strad=244829 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3s+bim64 cycles=12458064 retired=5246411 ic_acc=3541759 flush=89706 mispred=89706 strad=245559 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3s+bim64+r1 cycles=13079502 retired=5246411 ic_acc=3534199 flush=89706 mispred=89706 strad=245559 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3s+bim256 cycles=12436426 retired=5246411 ic_acc=3534732 flush=85402 mispred=85402 strad=245479 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3s+bim256+r1 cycles=13058469 retired=5246411 ic_acc=3527252 flush=85402 mispred=85402 strad=245479 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3s+gsh12 cycles=12289157 retired=5246411 ic_acc=3478363 flush=73527 mispred=73527 strad=244877 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3s+gsh12+r1 cycles=12904091 retired=5246411 ic_acc=3472238 flush=73527 mispred=73527 strad=244877 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3s+perfect cycles=11939413 retired=5246411 ic_acc=3365485 flush=0 mispred=0 strad=242558 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F3w4+jal cycles=16370434 retired=5246411 ic_acc=5203052 flush=660389 mispred=660389 strad=0 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3w4+btfn cycles=14393913 retired=5246411 ic_acc=4549806 flush=200708 mispred=200708 strad=0 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3w4+bim16 cycles=14184855 retired=5246411 ic_acc=4475590 flush=124971 mispred=124971 strad=0 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3w4+bim32 cycles=14100792 retired=5246411 ic_acc=4452411 flush=104649 mispred=104649 strad=0 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3w4+bim64 cycles=14060532 retired=5246411 ic_acc=4435849 flush=89706 mispred=89706 strad=0 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3w4+bim256 cycles=14044631 retired=5246411 ic_acc=4430536 flush=85402 mispred=85402 strad=0 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3w4+gsh12 cycles=14002906 retired=5246411 ic_acc=4419461 flush=73527 mispred=73527 strad=0 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3w4+perfect cycles=13704515 retired=5246411 ic_acc=4318121 flush=0 mispred=0 strad=0 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F3w16s+jal cycles=12827019 retired=5246411 ic_acc=2566652 flush=660389 mispred=660389 strad=38250 icmiss=1188 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3w16s+jal+r1 cycles=12885073 retired=5246411 ic_acc=2566652 flush=660389 mispred=660389 strad=38250 icmiss=1188 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F3w16s+btfn cycles=11243791 retired=5246411 ic_acc=2609612 flush=200708 mispred=200708 strad=39782 icmiss=1189 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3w16s+btfn+r1 cycles=11833686 retired=5246411 ic_acc=2602300 flush=200708 mispred=200708 strad=39782 icmiss=1189 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F3w16s+bim16 cycles=11235999 retired=5246411 ic_acc=2636012 flush=124971 mispred=124971 strad=39850 icmiss=1188 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3w16s+bim16+r1 cycles=11902043 retired=5246411 ic_acc=2628442 flush=124971 mispred=124971 strad=39850 icmiss=1188 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F3w16s+bim32 cycles=11124959 retired=5246411 ic_acc=2592569 flush=104649 mispred=104649 strad=39894 icmiss=1188 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3w16s+bim32+r1 cycles=11785417 retired=5246411 ic_acc=2584668 flush=104649 mispred=104649 strad=39894 icmiss=1188 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F3w16s+bim64 cycles=11075800 retired=5246411 ic_acc=2582547 flush=89706 mispred=89706 strad=39750 icmiss=1188 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3w16s+bim64+r1 cycles=11751653 retired=5246411 ic_acc=2574868 flush=89706 mispred=89706 strad=39750 icmiss=1188 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F3w16s+bim256 cycles=11056243 retired=5246411 ic_acc=2576181 flush=85402 mispred=85402 strad=39769 icmiss=1189 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3w16s+bim256+r1 cycles=11732247 retired=5246411 ic_acc=2568503 flush=85402 mispred=85402 strad=39769 icmiss=1189 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F3w16s+gsh12 cycles=10957621 retired=5246411 ic_acc=2513927 flush=73527 mispred=73527 strad=39812 icmiss=1189 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3w16s+gsh12+r1 cycles=11608726 retired=5246411 ic_acc=2507761 flush=73527 mispred=73527 strad=39812 icmiss=1189 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F3w16s+perfect cycles=10629385 retired=5246411 ic_acc=2405907 flush=0 mispred=0 strad=38290 icmiss=1188 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F4+jal cycles=12146882 retired=5246411 ic_acc=4237922 flush=660389 mispred=660389 strad=0 icmiss=1188 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F4+jal+r1 cycles=12230286 retired=5246411 ic_acc=4237922 flush=660389 mispred=660389 strad=0 icmiss=1188 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F4+btfn cycles=10559213 retired=5246411 ic_acc=4098939 flush=200708 mispred=200708 strad=0 icmiss=1189 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F4+btfn+r1 cycles=11068715 retired=5246411 ic_acc=4087859 flush=200708 mispred=200708 strad=0 icmiss=1189 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F4+bim16 cycles=10390024 retired=5246411 ic_acc=3977655 flush=124971 mispred=124971 strad=0 icmiss=1188 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F4+bim16+r1 cycles=11016302 retired=5246411 ic_acc=3966451 flush=124971 mispred=124971 strad=0 icmiss=1188 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F4+bim32 cycles=10313497 retired=5246411 ic_acc=3936185 flush=104649 mispred=104649 strad=0 icmiss=1188 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F4+bim32+r1 cycles=10933679 retired=5246411 ic_acc=3925006 flush=104649 mispred=104649 strad=0 icmiss=1188 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F4+bim64 cycles=10273119 retired=5246411 ic_acc=3925047 flush=89706 mispred=89706 strad=0 icmiss=1188 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F4+bim64+r1 cycles=10906029 retired=5246411 ic_acc=3913928 flush=89706 mispred=89706 strad=0 icmiss=1188 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F4+bim256 cycles=10256258 retired=5246411 ic_acc=3917247 flush=85402 mispred=85402 strad=0 icmiss=1189 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F4+bim256+r1 cycles=10889018 retired=5246411 ic_acc=3906109 flush=85402 mispred=85402 strad=0 icmiss=1189 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F4+gsh12 cycles=10189920 retired=5246411 ic_acc=3851193 flush=73527 mispred=73527 strad=0 icmiss=1189 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F4+gsh12+r1 cycles=10795016 retired=5246411 ic_acc=3840049 flush=73527 mispred=73527 strad=0 icmiss=1189 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F4+perfect cycles=9914353 retired=5246411 ic_acc=3714555 flush=0 mispred=0 strad=0 icmiss=1188 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F4w4+jal cycles=13231252 retired=5246411 ic_acc=6026492 flush=660389 mispred=660389 strad=0 icmiss=1187 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F4w4+btfn cycles=11556429 retired=5246411 ic_acc=5305606 flush=200708 mispred=200708 strad=0 icmiss=1188 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F4w4+bim16 cycles=11370390 retired=5246411 ic_acc=5158697 flush=124971 mispred=124971 strad=0 icmiss=1187 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F4w4+bim32 cycles=11280781 retired=5246411 ic_acc=5117160 flush=104649 mispred=104649 strad=0 icmiss=1187 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F4w4+bim64 cycles=11232758 retired=5246411 ic_acc=5087185 flush=89706 mispred=89706 strad=0 icmiss=1187 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F4w4+bim256 cycles=11212795 retired=5246411 ic_acc=5077590 flush=85402 mispred=85402 strad=0 icmiss=1188 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F4w4+gsh12 cycles=11156579 retired=5246411 ic_acc=5055849 flush=73527 mispred=73527 strad=0 icmiss=1188 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F4w4+perfect cycles=10871300 retired=5246411 ic_acc=4906739 flush=0 mispred=0 strad=0 icmiss=1187 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F5+jal cycles=11637413 retired=5246411 ic_acc=3039997 flush=660389 mispred=660389 strad=0 icmiss=2313 dcmiss=18 pred_taken=83907 memst=2730419 hold=375840
+model.F5+btfn cycles=10226223 retired=5246411 ic_acc=3184762 flush=200708 mispred=200708 strad=0 icmiss=2276 dcmiss=18 pred_taken=642910 memst=2730419 hold=375840
+model.F5+bim16 cycles=10108353 retired=5246411 ic_acc=3174414 flush=124971 mispred=124971 strad=0 icmiss=2313 dcmiss=18 pred_taken=761353 memst=2730419 hold=375840
+model.F5+bim32 cycles=10036267 retired=5246411 ic_acc=3123800 flush=104649 mispred=104649 strad=0 icmiss=2313 dcmiss=18 pred_taken=755227 memst=2730419 hold=375840
+model.F5+bim64 cycles=9995224 retired=5246411 ic_acc=3107401 flush=89706 mispred=89706 strad=0 icmiss=2313 dcmiss=18 pred_taken=766500 memst=2730419 hold=375840
+model.F5+bim256 cycles=9981397 retired=5246411 ic_acc=3097845 flush=85402 mispred=85402 strad=0 icmiss=2276 dcmiss=18 pred_taken=766552 memst=2730419 hold=375840
+model.F5+gsh12 cycles=9923428 retired=5246411 ic_acc=3026442 flush=73527 mispred=73527 strad=0 icmiss=2246 dcmiss=18 pred_taken=739437 memst=2730419 hold=375840
+model.F5+perfect cycles=9673617 retired=5246411 ic_acc=2866150 flush=0 mispred=0 strad=0 icmiss=2252 dcmiss=18 pred_taken=744296 memst=2730419 hold=375840
+model.F0+bim64+btb64 cycles=21085527 retired=5246413 ic_acc=6050627 flush=95522 mispred=95522 strad=708693 icmiss=1187 dcmiss=18 pred_taken=751716 memst=2730419 hold=375840
+model.F3s+bim64+btb64j cycles=12428121 retired=5246411 ic_acc=3533229 flush=89175 mispred=89175 strad=245519 icmiss=1187 dcmiss=18 pred_taken=758102 memst=2730419 hold=375840
