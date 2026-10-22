@@ -15,8 +15,8 @@
 #     (entry 0) and the backing pages; entry 15 opens everything else;
 #   - draws medeleg (fetch/load/store page faults, illegal instruction,
 #     breakpoint, ecall from U), mideleg, mie and pending
-#     mip bits (SSIP/STIP/SEIP), and mstatus (MPP = S or U, SUM, MXR, FS,
-#     SIE, SPIE, SPP, MPIE);
+#     mip bits (SSIP/STIP/SEIP), and mstatus (MPP = S or U, TVM, SUM,
+#     MXR, FS, SIE, SPIE, SPP, MPIE);
 #   - SFENCE.VMA, then MRET into a stub that may first set sstatus.SIE
 #     (illegal in U), then does one random access through TEST_VA or
 #     MEGA_VA: a load, store, AMO, LR, FP load, a jump into the page
@@ -326,9 +326,9 @@ iter:
         srli    t1, s4, 40
         andi    t1, t1, 0x222
         csrs    mip, t1
-        # ---- mstatus: MPP S or U, SUM, MXR, FS, SIE, SPIE, SPP, MPIE ----
+        # ---- mstatus: MPP S or U, TVM, SUM, MXR, FS, SIE, SPIE, SPP, MPIE ----
         RAND    s4
-        li      t0, (1 << 19) | (1 << 18) | (3 << 13) | (1 << 8) | (1 << 7) | (1 << 5) | (1 << 1)
+        li      t0, (1 << 20) | (1 << 19) | (1 << 18) | (3 << 13) | (1 << 8) | (1 << 7) | (1 << 5) | (1 << 1)
         and     t1, s4, t0
         andi    s8, s4, 1               # 1: S, 0: U
         slli    t2, s8, 11
