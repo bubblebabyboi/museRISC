@@ -69,7 +69,10 @@ RESULT: @@RESULT@@
 
 == Crypto block experiments (all GRT 0 overflow unless stated)
   run    die (um)      util   GRT derating           GRT usage (m1/m2/m3/m4, total)        DRT iter 0 / 1 / 2 / 3 ...
-  r1/s   2590 x 850    49 %   platform 0.2           76.0/64.2/58.6/37.2 %, 63.2 %         263,961 / 193,866 / 182,045 / 60,919 / @@CRYPTO_S@@
+  r1/s   2590 x 850    49 %   platform 0.2           76.0/64.2/58.6/37.2 %, 63.2 %         263,961 / 193,866 / 182,045 / 60,919 /
+                                                                                                25,404 / 14,337 / 9,172 / 6,887 / 5,184 (iteration 8,
+                                                                                                stopped for the v2 floorplan; 5,184 = 2,903 met1 + 633 met2
+                                                                                                shorts, 1,191 met1 spacing ...)
   d42    2590 x 1000   42 %   platform 0.2           69.5/61.9/45.9/34.5 %, 57.1 %         233,428 (stopped)
   d35    2590 x 1190   35 %   platform 0.2           60.5/60.2/30.4/33.2 %, 49.9 %         186,146 (stopped)
   u30    2590 x 1400   30 %   0.2 all layers         71.9/48.7/57.1/12.7 %, 53.7 %         261,945 (stopped)
@@ -82,14 +85,28 @@ RESULT: @@RESULT@@
   of moving trunks to met3/met4, and overflows.
 
 == CPU block experiments
-  run    die (um)      GRT derating          GRT result
-  r1     2900 x 2560   0.3 (pre_grt.tcl)     usage 88.7 %, 214,046 overflowed gcells, 28.28 m wire
-  s      2900 x 2560   0.2 (platform)        usage 76.9 % (m1 77.9, m2 78.3, m3 76.9, m4 71.2),
-                                             45,096 overflowed gcells, 28.42 m wire;
-                                             GRT stage (incl. repair_design 20 min,
-                                             repair_timing, antenna) > 3 h; stopped
-                                             before DRT for the v2 floorplan
-  L      3400 x 3300   met1 0.7, others 0.2  still overflowing after 2 x 30 extra iterations; stopped
+  All with 40 um macro halos (RTLMP: 3.70 mm^2 of macros + halos).
+  run    die (um)      mm^2   GRT derating          GRT result
+  r1     2900 x 2560   7.42   0.3 (pre_grt.tcl)     usage 88.7 %, 214,046 overflowed gcells, 28.28 m wire
+  s      2900 x 2560   7.42   0.2 (platform)        usage 76.9 % (m1 77.9, m2 78.3, m3 76.9, m4 71.2),
+                                                    45,096 overflowed gcells, 28.42 m wire; GRT stage
+                                                    (repair_design 20 min, repair_timing, antenna)
+                                                    > 3 h; stopped before DRT
+  v2     2770 x 2680   7.42   0.2                   usage 77.6 % (m1 80.6, m2 83.7, m3 72.5, m4 65.5),
+                                                    100,783 overflowed gcells, 28.60 m wire (pins on
+                                                    the left edge for the v2 top floorplan)
+  v2/10  2770 x 2680   7.42   0.2, 10 iterations    usage 67.8 %, 64,593 overflowed gcells, 24.10 m
+                                                    (launched as a 20 um-halo test; the halo override
+                                                    did not reach RTLMP, so this is v2 with 10 instead
+                                                    of 30 congestion iterations)
+  L      3400 x 3300   11.22  met1 0.7, others 0.2  still overflowing after 2 x 30 extra iterations; stopped
+  z99    3200 x 3100   9.92   0.2, 10 iterations    usage 57.5 % (m1 61.4, m2 67.7, m3 43.0, m4 49.1),
+                                                    17,997 overflowed gcells, 28.67 m wire
+  z112   3400 x 3300   11.22  0.2, 10 iterations    usage 51.4 % (m1 58.4, m2 59.3, m3 38.7, m4 36.9),
+                                                    177 overflowed gcells, 29.08 m wire
+  => the CPU block needs ~11 mm^2 to global-route without overflow;
+     the Caravel die can give it at most ~7.4 mm^2 (with the crypto
+     block at ~2.2 mm^2 and a ~0.5 mm^2 glue column).
   After CTS (r1): design area 5.08 mm^2 (69 % of the block incl.
   macros); setup WNS -0.06 ns at 40 ns (reg-to-reg, before routing).
   The CPU's wire demand is the problem: 28.3 m of global route for
@@ -104,4 +121,23 @@ RESULT: @@RESULT@@
   die pins sideways through a 90 um channel, and GRT spread them over
   both blocks where only met5 is free. Fixed by the v2 floorplan.
 
-@@V2@@
+== Top level, v2 dry run (provisional block abstracts from the v2 blocks' 4_cts)
+  synth 22 s; floorplan/PDN/place/CTS complete. GRT: usage 24.2 %,
+  3,536 overflowed gcells (79,305 in v1), the rest over the CPU block's
+  left part (x 100-500, y 1750-2750) where only met5 is free.
+  DRT: 20,045 / 8,262 / 7,269 / 3,558 / 2,714 / 2,525 / 2,358 / 2,282 /
+  2,266 / 2,228 / 2,159 / 2,116 / 2,103 / 1,690 / 1,111 / 1,009
+  (iteration 15; stopped, the top-level flow works end to end).
+
+== Crypto block v3 (2770 x 780, bottom-edge pins; final v2 floorplan slot)
+  The first v2 shape (2770 x 810, pins on the 810 um left edge) put the
+  AXI register/read-mux logic at one end of the block: HPWL +12 %,
+  global-route wire 11.00 m vs 8.90 m, 7,873 overflowed gcells at
+  74.9 % usage. With the pins on the bottom edge (v3): 0 overflow,
+  68.3 % usage, 9.43 m.
+@@CRYPTO_V3@@
+
+== Host disk
+  The host disk filled up once during these runs (0 bytes free while
+  copying a CPU variant); superseded variant results were deleted, the
+  running jobs were unaffected (they were in GRT/DRT computation).
