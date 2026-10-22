@@ -757,6 +757,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       ex_vs2_log2 = ((idex_ctrl_q.bext_op == VOP_MLOG) ||
                      (idex_ctrl_q.bext_op == VOP_MSBIT))
                     ? -4'sd3 : ex_lmul_log2;
+    end else if (idex_ctrl_q.bext_op == VOP_IOTA) begin
+      ex_vd_log2 = ex_lmul_log2;
+      ex_vs2_log2 = -4'sd3;  // vs2 is a mask register
     end else if (idex_ctrl_q.bext_op == VOP_EXT) begin
       ex_vd_log2 = ex_lmul_log2;
       // imm[2:1]: 01=/8, 10=/4, 11=/2
@@ -771,6 +774,15 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
            4'(signed'({1'b0, csr_vtype[5:3]})))
         : ex_lmul_log2;
   end
+  // RVV vector-scalar FP operand: with SEW=32 an f register that
+  // does not hold a NaN-boxed single is read as the canonical NaN
+  // (RVV 1.0 sec. 13 / "NaN boxing"), for every .vf form, including
+  // the moves, merges and slides that bypass the FPU (vfmv.v.f,
+  // vfmv.s.f, vfmerge.vfm, vfslide1up/down.vf).
+  logic [63:0] vec_frs1;
+  assign vec_frs1 = ((csr_vtype[5:3] == 3'd2) &&
+                     (ex_frs1[63:32] != 32'hffff_ffff))
+                    ? 64'hffff_ffff_7fc0_0000 : ex_frs1;
   function automatic logic align_bad(
       input logic [4:0] regno, input logic signed [3:0] log2n);
     logic [4:0] mask;
@@ -1008,8 +1020,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .vd_i      (idex_rd_q),
       .nreg_i    (4'd1 << vec_wlmul),
       // FP vector .vf forms read the scalar from the FP
-      // register file; integer .vx forms use the GPR value.
-      .scalar_i  (idex_ctrl_q.fp_rs1 ? ex_frs1 : ex_rs1),
+      // register file (NaN-box checked, vec_frs1); integer
+      // .vx forms use the GPR value.
+      .scalar_i  (idex_ctrl_q.fp_rs1 ? vec_frs1 : ex_rs1),
       .imm_i     (idex_imm_q),
       .vxrm_i    (csr_vxrm),
       .frm_i     (csr_frm),

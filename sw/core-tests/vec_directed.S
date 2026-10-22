@@ -403,6 +403,25 @@ _start:
     li a2, 0x15161718
     bne a0, a2, fail
 
+    // 25: viota.m reads one mask register (vs2) whatever LMUL is:
+    // v5 under LMUL=2 is legal (riscv-dv regression, issue #8:
+    // the core raised an illegal-instruction exception).
+    li t0, 25
+    la a1, trap_cause
+    sd x0, 0(a1)
+    li a1, 8
+    vsetvli a0, a1, e32, m2, ta, ma
+    li a1, 0x5a                    // mask bits 1,3,4,6
+    vmv.s.x v5, a1
+    viota.m v8, v5                 // {0,0,1,1,2,3,3,4}
+    la a1, trap_cause
+    ld a1, 0(a1)
+    bnez a1, fail
+    vslidedown.vi v12, v8, 7
+    vmv.x.s a0, v12
+    li a2, 4
+    bne a0, a2, fail
+
     // 99: mid-instruction fault. PMP (locked, so last test):
     // allow [0, buf+16), deny [buf+16, buf+64). The e64 load
     // commits elements 0-1, faults at element 2, vstart=2.
