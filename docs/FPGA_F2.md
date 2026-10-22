@@ -613,17 +613,23 @@ sudo fpga/host/sigil_host --memtest all                      # full-range DDR4 +
 ## Flash Sigil on your own F2
 
 The whole Sigil SoC — in-house RV64GCV core (vector unit, L1 caches),
-crypto/hash engine, CLINT/PLIC/UART/boot ROM — is published as a **public
-AFI**. Proven on hardware 2026-10-22 (#55,
-[`evidence/f2-first-boot-55-2026-10-22/`](evidence/f2-first-boot-55-2026-10-22/SUMMARY.md)):
-baremetal crypto, OpenSBI and Linux 6.6 to userspace at a measured 62.5 MHz.
+crypto/hash engine, CLINT/PLIC/UART/boot ROM, test finisher, RTC — with all
+**64 GiB of DDR4 and 16 GiB of HBM** is published as a **public AFI**.
+Proven on hardware 2026-10-22 (#73,
+[`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
+full-range memory tests of both memories, firmware, SDK examples, Linux,
+console, finisher, bulk load/save, at a measured 62.5 MHz.
 
 | | |
 |---|---|
-| AGFI | **`agfi-035116450e0a0d093`** (AFI `afi-019aabf5d4a815ae5`, us-east-1) |
+| AGFI | **`agfi-0a1fd54ef68bdc754`** (AFI `afi-035809e576d7ea8d5`, us-east-1) |
 | Shell / PCI | Small Shell `0x10212415` / `0x1D0F:0xF054` |
-| Core clock | 62.5 MHz (AWS_CLK_GEN B1, interim until #53 closes 100 MHz) |
-| Built from | commit `4058108`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP |
+| Core clock | 62.5 MHz (AWS_CLK_GEN B1, interim until #53 closes 100 MHz); HBM AXI 250 MHz (H0) |
+| Memory | DDR4 64 GiB at PA `0x8000_0000`, HBM 16 GiB at PA `0x10_8000_0000` ([`LINUX_PLATFORM.md`](LINUX_PLATFORM.md)) |
+| Built from | commit `e641930`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP |
+
+The first public AFI (`agfi-035116450e0a0d093`, #55: 128 MiB, needs
+`--ignore-mem-err`) still works with the current `sigil_host`.
 
 1. Launch an **`f2.6xlarge`** in **us-east-1** (zones a–d offer F2) from the
    AWS **FPGA Developer AMI** (Ubuntu, 1.19.x). About $2/h On-Demand —
@@ -636,7 +642,7 @@ baremetal crypto, OpenSBI and Linux 6.6 to userspace at a measured 62.5 MHz.
    ```
 3. Load the public Sigil AFI and check it:
    ```sh
-   sudo fpga-load-local-image -S 0 -I agfi-035116450e0a0d093 -H
+   sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H
    sudo fpga-describe-local-image -S 0 -H     # status 'loaded', 0x1d0f:0xf054
    ```
 4. Build the host runtime and your payloads:
@@ -651,14 +657,14 @@ baremetal crypto, OpenSBI and Linux 6.6 to userspace at a measured 62.5 MHz.
 5. Run:
    ```sh
    # baremetal: load at 0x8000_0000, release reset, stream the UART
-   sudo fpga/host/sigil_host --ignore-mem-err --bin build/soc-tests/crypto_soc_test.bin
-   # Linux: OpenSBI fw_jump + kernel Image + DTB (see docs/QEMU.md / sw/linux/README.md)
-   sudo fpga/host/sigil_host --ignore-mem-err --linux --fw fw_jump.bin \
-        --image Image --dtb sigil.dtb --stdin --timeout 600
+   sudo fpga/host/sigil_host --bin build/soc-tests/crypto_soc_test.bin
+   # Linux: OpenSBI fw_jump + kernel Image + DTB (+ disk in the pmem window)
+   sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
+        --load 0xC80000000=disk.ext4 --save 0xC80000000=disk-saved.ext4:8G --console
    ```
-   The host prints the UART, stops on a pass/fail marker, and reports the
-   **measured core clock**. `--ignore-mem-err` is required with this AFI
-   (#62: a spurious sticky AXI error flag; results are unaffected).
+   The host prints the UART, stops on the test finisher or a pass/fail
+   marker, and reports the **measured core clock**. The first run after an
+   AFI load zeroes all DDR4 once (≈17 s; DDR4 has ECC, #62).
 **One-command playground:** on a fresh `f2.6xlarge` (FPGA Developer AMI),
 `curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash`
 installs the SDK and a RISC-V compiler, clones Sigil, builds `sigil_host`,

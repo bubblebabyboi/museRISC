@@ -1,7 +1,7 @@
 #!/bin/bash
 # One-time setup of a Sigil F2 playground on an f2.6xlarge (FPGA Developer AMI).
 set -euo pipefail
-AGFI=agfi-035116450e0a0d093
+AGFI=agfi-0a1fd54ef68bdc754
 cd ~
 [ -d aws-fpga ] || git clone -q -b v2.3.5 --depth 1 https://github.com/aws/aws-fpga.git aws-fpga
 (cd aws-fpga && source sdk_setup.sh > ~/sdk_setup.log 2>&1)

@@ -2124,3 +2124,23 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #73 Linux platform on F2: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63, 2026-10-22)
+
+[`f2-platform-73-2026-10-22/SUMMARY.md`](f2-platform-73-2026-10-22/SUMMARY.md).
+Public AFI **`agfi-0a1fd54ef68bdc754`** (`afi-035809e576d7ea8d5`), core
+62.5 MHz (B1), HBM AXI 250 MHz (H0); post-route WNS +0.150 ns, core clock
++0.635 ns. On a real `f2.6xlarge`: full-range engine memory test of DDR4
+(64 GiB) and HBM (16 GiB), two seeds, 0 errors; sparse core test over both
+(1.3 M lines), 0 errors; refill latency from the core DDR4 729 ns / HBM 813 ns;
+#62 reproduced (SLVERR on the refill of a never-written DDR4 line: ECC) and
+fixed (DDR4 scrubbed once per AFI load, 17 s); #63 fixed (Linux console lines
+intact, 16-byte UART bursts byte-exact); finisher power off / fail code /
+reboot keeping the pmem window; RTC at wall-clock time; raw console with
+Ctrl-] detach; 4 GiB and 8 GiB load/save round trips (3.6 GB/s load,
+1.0 GB/s save); firmware and all SDK examples without `--ignore-mem-err`.
+Simulation: Verilator (`fpgatop-f2-quick` with an 80 GiB sparse model,
+`axibridge` out-of-window, `fpgaocl` v4 registers, `fpgatop`, `core-test`,
+`make test`, `make lint`; CI-parity Verilator 5.020 lint + FPGA targets) and
+HDK XSIM (`test_sigil_regs`, `test_sigil_platform`, `test_sigil_hash`,
+`test_sigil_host_cosim`) — logs in `sim/` and `xsim/`.

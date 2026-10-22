@@ -4,7 +4,7 @@
 #   sigil-run program.bin           [-- sigil_host options]
 #   sigil-run some/dir              (a folder with .c files)
 set -euo pipefail
-AGFI=agfi-035116450e0a0d093
+AGFI=agfi-0a1fd54ef68bdc754
 SIGIL=$HOME/sigil
 srcs=(); extra=()
 while [ $# -gt 0 ]; do
@@ -30,4 +30,4 @@ else
   bin="$work/build/$name.bin"
   echo "[sigil-run] built $bin ($(stat -c %s "$bin") bytes)"
 fi
-exec sudo "$SIGIL/fpga/host/sigil_host" --ignore-mem-err --bin "$bin" --timeout 60 "${extra[@]}"
+exec sudo "$SIGIL/fpga/host/sigil_host" --bin "$bin" --timeout 60 "${extra[@]}"
