@@ -1,0 +1,46 @@
+# report_bus_skew on cl_sigil.2026_10_22-211218.post_route.dcp (busskew.tcl): the set_bus_skew constraints
+# of the clock-converter / CDC IP (not covered by report_timing_summary). 43 constraints, all met,
+# worst slack +2.838 ns. Columns: Id, instance under WRAPPER/CL, corner, requirement, actual skew, slack (ns).
+1    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.781 slack   3.003
+2    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.644 slack   2.866
+3    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.616 slack   2.838
+4    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.685 slack   2.907
+5    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.690 slack   2.912
+6    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.710 slack   2.932
+7    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.792 slack   3.014
+8    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.805 slack   3.027
+9    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.717 slack   2.939
+10   G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.776 slack   2.998
+11   DDR_CDC                      Fast  req   4.000 actual  -0.630 slack   4.630
+12   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.610 slack   3.142
+13   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.338 slack   3.414
+14   DDR_CDC                      Fast  req   4.000 actual  -0.663 slack   4.663
+15   DDR_CDC                      Fast  req   4.000 actual  -0.655 slack   4.655
+16   DDR_CDC                      Fast  req   4.000 actual  -0.676 slack   4.676
+17   DDR_CDC                      Fast  req   4.000 actual  -0.628 slack   4.628
+18   DDR_CDC                      Fast  req   4.000 actual  -0.638 slack   4.638
+19   DDR_CDC                      Fast  req   4.000 actual  -0.519 slack   4.519
+20   DDR_CDC                      Fast  req   4.000 actual  -0.674 slack   4.674
+21   DDR_CDC                      Fast  req   4.000 actual  -0.630 slack   4.630
+22   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.319 slack   3.433
+23   DDR_CDC                      Fast  req   4.000 actual  -0.643 slack   4.643
+24   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.415 slack   3.337
+25   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.355 slack   3.397
+26   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.467 slack   3.285
+27   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.384 slack   3.368
+28   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.414 slack   3.338
+29   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.461 slack   3.291
+30   SH_DDR/genblk1.IS_DDR_PRESENT.AXI_CCF Slow  req   3.752 actual   0.459 slack   3.293
+31   OCL_CDC                      Slow  req   8.888 actual   0.430 slack   8.458
+32   AWS_CLK_GEN                  Slow  req  20.000 actual  -0.287 slack  20.287
+33   AWS_CLK_GEN                  Slow  req  20.000 actual  -0.281 slack  20.281
+34   SH_DDR/ddr_stat.AXIL_CCF     Slow  req   7.504 actual   0.999 slack   6.505
+35   SH_DDR/ddr_stat.AXIL_CCF     Slow  req   7.504 actual   1.236 slack   6.268
+36   OCL_CDC                      Fast  req   8.888 actual  -0.310 slack   9.198
+37   OCL_CDC                      Slow  req   8.888 actual  -0.239 slack   9.127
+38   AWS_CLK_GEN                  Slow  req  20.000 actual  -0.231 slack  20.231
+39   SH_DDR/ddr_stat.AXIL_CCF     Slow  req   7.504 actual   0.829 slack   6.675
+40   AWS_CLK_GEN                  Slow  req   8.000 actual  -0.273 slack   8.273
+41   OCL_CDC                      Slow  req   8.000 actual  -0.173 slack   8.173
+42   AWS_CLK_GEN                  Slow  req   8.000 actual  -0.138 slack   8.138
+43   SH_DDR/ddr_stat.AXIL_CCF     Slow  req   8.000 actual   0.743 slack   7.257

@@ -1,0 +1,20 @@
+clk_out2_clk_mmcm_b: endpoints with setup slack < 1.0 ns: 75 (worst path per endpoint, grouped start -> end)
+   0.460     12  WRAPPER/CL/SIGIL/u_top/u_soc/rst_sync_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_crypto_bridge/u_crypto/u_hash
+   0.482     46  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_mmu
+   0.665      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[31]
+   0.724      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[55]
+   0.796      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[50]
+   0.846      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[12]
+   0.864      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[34]
+   0.867      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[4]
+   0.875      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[24]
+   0.876      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[62]
+   0.886      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[20]
+   0.891      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[29]
+   0.895      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[63]
+   0.895      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[59]
+   0.922      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[30]
+   0.939      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[13]
+   0.956      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[5]
+   0.987      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[52]
+   0.997      1  WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/memwb_valid_q_reg -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/exmem_result_q_reg[47]

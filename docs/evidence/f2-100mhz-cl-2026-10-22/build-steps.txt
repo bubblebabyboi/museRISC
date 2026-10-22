@@ -1,0 +1,84 @@
+sigil cb6c1a24fff5a99196910d5af16ece1923dc30ac recipe_b=B5 recipe_hbm=H0 defines=SIGIL_FPGA_TIMING,SIGIL_VRF_OREG aws-fpga c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
+# 100 MHz CL build, attempt 1. Built on sigil-fpga-build (r7iz.8xlarge, FPGA Developer AMI,
+# Vivado 2025.2, aws-fpga v2.3.5 at ~/src/project_data/aws-fpga) from a `git archive` export of
+# 53-100mhz-afi cb6c1a24 (.git-rev) in /dev/shm/mhz100-cl/src. Same script, flow and HDK options as
+# the oops-fix AFI (f2-platform-73-oopsfix-2026-10-22, agfi-0c8aa56fde1a48495), with two changes:
+#   * group-B recipe B5 instead of B1: clk_extra_b1 = 100 MHz (aws-fpga v2.3.5
+#     hdk/docs/Clock_Recipes_User_Guide.md: B5 = clk_extra_b0 400 MHz, clk_extra_b1 100 MHz;
+#     the CL uses clk_extra_b1 as the core clock, SIGIL_CORE_CLK_KHZ=100000);
+#   * --fpga-timing: SIGIL_FPGA_TIMING and SIGIL_VRF_OREG reach CL synthesis (see synth_check.txt).
+# HBM recipe H0 (clk_hbm_axi 250 MHz) as before.
+#
+#   export PATH=~/mhz100-cl/bin:$PATH        # `vivado` wrapper: -source build_all.tcl ->
+#                                            #   threads_build_all.tcl = set_param general.maxThreads 16;
+#                                            #   source build_all.tcl (everything else unchanged)
+#   export TMPDIR=/dev/shm/mhz100-cl/tmp
+#   cd /dev/shm/mhz100-cl/src
+#   fpga/scripts/build_cl_sigil.sh --recipe-b B5 --recipe-hbm H0 --fpga-timing --tag 2026_10_22-211218
+#   -> SIGIL_CL_DEFINES="SIGIL_FPGA_TIMING SIGIL_VRF_OREG"
+#   -> aws_build_dcp_from_cl.py -c cl_sigil --mode small_shell --flow BuildAll
+#      --aws_clk_gen --no-encrypt --clock_recipe_a A1 --clock_recipe_b B5
+#      --clock_recipe_c C0 --clock_recipe_hbm H0
+#      (place SSI_SpreadLogic_high, phys_opt/route AggressiveExplore)
+#
+# Source check: all 677 files of `git archive cb6c1a2` are byte-identical (sha256) in the build tree;
+# every other file there is a build output (build.log, build.tag, .git-rev, fpga/cl_sigil/build/...).
+#
+# build.log timeline (UTC):
+AWS FPGA: 2026-10-22 21:12:22 - Build starts
+AWS FPGA: (21:12:25): Sigil core clock: clk_extra_b1, recipe B5 = 100000 kHz
+AWS FPGA: (21:12:25): Sigil HBM AXI clock: clk_hbm_axi, recipe H0
+AWS FPGA: (21:12:25): Sigil extra Verilog defines: SIGIL_FPGA_TIMING SIGIL_VRF_OREG
+AWS FPGA: (21:12:29): Starting synthesizing customer design cl_sigil
+AWS FPGA: (21:23:42): Writing post-synth design checkpoint
+AWS FPGA: (21:24:00): Start linking customer design cl_sigil
+AWS FPGA: (21:25:42): Writing post-link design checkpoint
+AWS FPGA: (21:29:11): Start optimizing customer design cl_sigil
+AWS FPGA: (21:31:20): Writing post-opt design checkpoint and report
+AWS FPGA: (21:31:55): Start placing customer design cl_sigil
+AWS FPGA: (21:46:41): Writing post-place design checkpoint and report
+AWS FPGA: (21:47:06): Start physical-optimizing customer design cl_sigil
+AWS FPGA: (21:47:11): Writing post-phy_opt design checkpoint and report
+AWS FPGA: (21:47:27): Start routing customer design cl_sigil
+AWS FPGA: (22:00:03): Writing post-route design checkpoint and report
+AWS FPGA: (22:00:05): Checking the negative slack path of the existing design
+AWS FPGA: (22:00:05): SUCCESS: Design has no negative slack path
+AWS FPGA: (22:00:23): Finished building design checkpoints for customer design cl_sigil
+AWS FPGA: 2026-10-22 22:00:30 - Build completes
+AWS FPGA: Build Time = 0:48:07.716880.
+# --- after the build ---
+# Post-place WNS +0.501 ns, so phys_opt_design (AggressiveExplore) skipped its setup optimisations
+# ("Design worst setup slack (WNS) is greater than or equal to 0.000 ns"). Route: Post Routing
+# Timing Summary WNS=0.049 TNS=0.000 WHS=0.005 THS=0.000.
+# Post-route: "SUCCESS: Design has no negative slack path" (post_route.dcp, not .VIOLATED).
+# Critical warnings: the same set as the oops-fix build (6x Constraints 18-4866,
+# 48x Designutils 20-1280, 2x Vivado 12-1815, 1x Vivado 12-4739, 1x Vivado 12-795).
+#
+# Reports (read-only on the DCPs, Vivado 2025.2, 4 threads):
+#   vivado -mode batch -source rpt.tcl -tclargs cl_sigil.2026_10_22-211218.post_route.dcp <out>
+#     -> post_route_timing_summary.rpt (trimmed before "Timing Details", as in earlier evidence),
+#        post_route_util_cl.rpt, post_route_util_hier.rpt, clock_summary.txt,
+#        worst_setup/hold_to_<clock>.rpt + inter_from/to_core.rpt (compacted into worst_paths.txt),
+#        core_near_critical.txt, main_a0_near_critical.txt (first 40 lines)
+#   vivado -mode batch -source busskew.tcl -tclargs cl_sigil.2026_10_22-211218.post_route.dcp <rpt>
+#     -> bus_skew_summary.txt
+#   vivado -mode batch -source synthcheck.tcl -tclargs cl_sigil.2026_10_22-211218.post_synth.dcp
+#   vivado -mode batch -source netcheck.tcl -tclargs cl_sigil.2026_10_22-211218.post_synth.dcp
+#     -> synth_check.txt
+#
+# DCP tarball (not uploaded, no AFI created in this step):
+#   sigil-fpga-build:~/mhz100-cl/build-211218/checkpoints/2026_10_22-211218.Developer_CL.tar
+#   (also /dev/shm/mhz100-cl/src/fpga/cl_sigil/build/checkpoints/, lost on a stop)
+#   sha256 f9ddd72bf2194297a48a3e91bebffbc4044bf6460bff992ea1f40b913e3be813, 110,110,720 bytes
+#   contains to_aws/2026_10_22-211218.SH_CL_routed.dcp (sha256 = manifest dcp_hash 3a15c33d...),
+#   .debug_probes.ltx, .manifest.txt (developer_cl_manifest.txt)
+# ~/mhz100-cl/build-211218/ also holds all checkpoints (post_synth .. post_route), the HDK
+# reports, build.log, the Vivado log and the generated clock constraints; ~/mhz100-cl/rpt-211218/
+# holds the full reports.
+#
+# AFI creation (for the lead; same bucket and form as the oops-fix AFI):
+#   aws s3 cp 2026_10_22-211218.Developer_CL.tar s3://sigil-fpga-afi-891612553438/dcp/
+#   aws ec2 create-fpga-image --region us-east-1
+#     --name sigil-100mhz-2026_10_22-211218
+#     --input-storage-location Bucket=sigil-fpga-afi-891612553438,Key=dcp/2026_10_22-211218.Developer_CL.tar
+#     --logs-storage-location Bucket=sigil-fpga-afi-891612553438,Key=logs/

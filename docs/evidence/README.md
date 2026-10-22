@@ -2486,3 +2486,20 @@ runs).
   the write-back always gets the port first. The lock still holds
   FENCE.I back, and it is the guarantee for any case where the
   write-back misses that cycle (README, `fpga_controls.log`).
+
+## #53 on F2: 100 MHz core-clock CL build meets timing (2026-10-22, branch `53-100mhz-afi`)
+
+- Artifacts: [`f2-100mhz-cl-2026-10-22/`](f2-100mhz-cl-2026-10-22/README.md)
+- What: the first full F2 CL build at 100 MHz. Source `cb6c1a2`;
+  `build_cl_sigil.sh --recipe-b B5 --recipe-hbm H0 --fpga-timing`, so
+  `SIGIL_FPGA_TIMING` and `SIGIL_VRF_OREG` reach CL synthesis (checked in
+  the build log and the post-synth netlist).
+- Result: build `2026_10_22-211218` meets timing on every clock.
+  - Design WNS +0.049 ns, in `clk_main_a0` (Shell-side DDR crossbar IP).
+  - Core clock: WNS +0.460 ns at 10 ns. The worst core path is the SoC
+    reset fan-out into the SHA-512 schedule; next is the VLS `vl` →
+    `mt_q` lookup at +0.482 ns.
+  - WHS +0.005 ns; bus skew met (worst +2.838 ns).
+  - No CL change was needed.
+- Caveat: static timing only. No AFI has been created yet, and nothing
+  has run on hardware at 100 MHz.
