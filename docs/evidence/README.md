@@ -2130,21 +2130,23 @@ on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
 [`perf-dhrystone-56-2026-10-22/`](perf-dhrystone-56-2026-10-22/report.md):
 `report.md`, `results.csv`, `results.json` (every counter plus
 metadata), `runs/` (UART log and `SIGIL_PERF` record of all 32 runs),
-the build logs with the full compiler command lines, and
-`synth-view-diff.log` and `cross-sim-5.020.log`. Method:
+the build logs with the full compiler command lines,
+`synth-view-diff.log`, `cross-sim-5.020.log` and `gates.log`. Method:
 [`docs/PERFORMANCE.md`](../PERFORMANCE.md).
 
 - **Design.** main `eeaa332` RTL, measured before any #53 pipelining.
-  Harness commit `623c576` (branch `56-perf-harness`) adds only
+  Harness commit `534f846` (branch `56-perf-harness`) adds only
   `` `ifndef SYNTHESIS`` code. `scripts/synth_view_diff.sh eeaa332
-  623c576` shows the preprocessed RTL is byte-identical under
+  534f846` shows the preprocessed RTL is byte-identical under
   `SYNTHESIS` alone and with `SIGIL_SRAM_FAKERAM45`,
-  `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_OREG` and `SIGIL_VRF_OREG`.
+  `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_OREG` and `SIGIL_VRF_OREG`
+  (`synth-view-diff.log`).
 - **Run.** `make -C sim perf BENCHES=dhrystone CONFIG="default sky130
-  oreg fpga" MEM="soc axi" JOBS=8 REPEAT=2 VJOBS=4` on sigil-verify
-  (c7i.8xlarge, Ubuntu 24.04), 2026-10-22T06:56Z, with Verilator 5.048
-  and riscv64-unknown-elf-gcc 16.1.0 (`deps/`). 32 simulations took
-  2 min 25 s.
+  oreg fpga" MEM="soc axi" JOBS=4 REPEAT=2 VJOBS=4` on sigil-verify
+  (c7i.8xlarge, Ubuntu 24.04), results written 2026-10-22T08:34:51Z, with Verilator 5.048
+  and riscv64-unknown-elf-gcc 16.1.0 (`deps/`). The 8 testbench builds
+  plus 32 simulations took 4 min 33 s. Earlier runs at `623c576` and
+  `e3b40fc` (same counter logic) gave byte-identical records.
 - **Benchmark.** Dhrystone 2.1 (netlib `dhry-c`, ported:
   `sw/bench/dhrystone/README.md`), 2000 runs. Flags: `sdk.mk` (`-O2
   -mstrict-align -mcmodel=medany -ffreestanding -std=gnu11`, separate
@@ -2204,4 +2206,4 @@ Observations:
 - **Projection only:** at F2's 62.5 MHz, the scalar figure is about
   23 DMIPS. No hardware run.
 
-Gates on the harness branch: `gates.log` in the same directory.
+Gates on `534f846`: `gates.log` in the same directory.

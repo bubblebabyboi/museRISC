@@ -1,5 +1,5 @@
-$ /home/ubuntu/wt/56-perf-base/build/sim/soc_rtl_tb_vrforeg 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-base/build/perf/baseline/bin/dhrystone-scalar/dhrystone.bin --exit-string 'SIGIL TEST PASS dhrystone' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-base/build/perf/baseline/runs/dhrystone-scalar.soc-fpga.r0.perf
-loaded 8112 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-base/build/perf/baseline/bin/dhrystone-scalar/dhrystone.bin
+$ /home/ubuntu/wt/56-perf-base/build/sim/soc_rtl_tb_vrforeg 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-base/build/perf/final2/bin/dhrystone-scalar/dhrystone.bin --exit-string 'SIGIL TEST PASS dhrystone' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-base/build/perf/final2/runs/dhrystone-scalar.soc-fpga.r0.perf
+loaded 8112 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-base/build/perf/final2/bin/dhrystone-scalar/dhrystone.bin
 
 Dhrystone Benchmark, Version 2.1 (Language: C)
 

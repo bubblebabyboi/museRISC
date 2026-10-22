@@ -1,7 +1,7 @@
 # Sigil performance report
 
-- Date (UTC): 2026-10-22T06:56:02Z
-- Commit: `623c576520c96235f8506b6a2a171be5a9f3f4ec` (HEAD); merge-base with main `eeaa33299d7b`; rtl/ tree `2bd713d88b11`
+- Date (UTC): 2026-10-22T08:34:51Z
+- Commit: `534f846e0ea26f7d5be4e882e3149a3e6d36c324` (HEAD); merge-base with main `eeaa33299d7b`; rtl/ tree `89b98cb227c6`
 - Simulator: Verilator 5.048 2026-04-26 rev v5.048; compiler: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
 - Host: ip-172-31-65-164 Linux 7.0.0-1014-aws x86_64
 - Memory model `soc`: `--mem-lat 1:1 --mem-gap 0 --mem-ready 100`
