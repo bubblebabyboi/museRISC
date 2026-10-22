@@ -38,3 +38,14 @@ oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$
 	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 4000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
 	    ./oops_core_tb $$t.bin 4000000 $$a > /dev/null || rc=1; \
 	  done; done; exit $$rc
+
+# Svadu atomicity (issue #73 oops review): an older store / AMO /
+# SC to a PTE that a fetch walk is reading and A/D-updating must
+# not be overwritten by the walker's stale write-back.
+OOPS_SVADU_TESTS := ptw_svadu_race_directed
+.PHONY: oops-svadu-race
+oops-svadu-race: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_SVADU_TESTS)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_SVADU_TESTS); do \
+	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
+	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 20000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
+	  done; done; exit $$rc
