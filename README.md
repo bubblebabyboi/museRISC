@@ -111,7 +111,8 @@ make -C sim socrtl                 # secp256k1 ECDSA + Ed25519 verify -> "SOC CR
 Upstream compliance and the Linux boot are longer runs:
 [`sim/run_riscv_tests.sh`](sim/run_riscv_tests.sh),
 [`sw/act4-core/README.md`](sw/act4-core/README.md) (ACT), and
-[`sw/linux/README.md`](sw/linux/README.md) (~509M cycles in Verilator).
+[`sw/linux/README.md`](sw/linux/README.md) (Linux 6.12 to
+`SIGIL_LINUX_BOOT_OK` in 261M cycles on `soc_rtl_tb`).
 
 ### 2. On a real FPGA (AWS EC2 F2)
 
@@ -144,6 +145,11 @@ needs `--ignore-mem-err`) still works with the current `sigil_host`.
 ## Boot Debian on your own F2
 
 A real Debian 13 with gcc, on Sigil, on an FPGA in your own AWS account.
+
+> **Status:** Debian passed 23/23 acceptance checks in QEMU shaped like
+> the F2; `sigil-linux` passed its tests against a simulated `sigil_host`;
+> first F2 run: `<sigil-linux on F2: pending>`.
+
 Launch an `f2.6xlarge` in us-east-1 from the AWS **FPGA Developer AMI**,
 log in as `ubuntu`, and:
 
@@ -168,7 +174,7 @@ Sigil comes with a small bare-metal SDK ([`sw/sdk/`](sw/sdk/)): startup
 code, one header (`sigil.h`) with the memory map, UART `printf`, timers
 and interrupts, cycle counters, and drivers for the hash engine, field
 arithmetic and Ed25519 verify. Programs run unchanged in simulation and on
-the F2.
+the F2 (except `hbm_touch`, which needs the F2's memory map).
 
 ```sh
 cp -r sw/sdk/template myprog && cd myprog   # main.c + Makefile
@@ -200,6 +206,7 @@ part of the regression):
 | `ed25519_verify` | signature verification with the field unit |
 | `vector_dot` | RVV 1.0 vector code vs scalar |
 | `fp_math` | IEEE-754 double precision, rounding modes, FMA |
+| `hbm_touch` | F2 only: the 16 GiB of HBM and DDR4 beyond 128 MiB from bare-metal C ([`docs/PROGRAMMING.md` §8.1](docs/PROGRAMMING.md#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)) |
 
 The programmer's guide — toolchain, memory map, SDK API, running in
 simulation and on F2, interrupts, vector, performance counters and
