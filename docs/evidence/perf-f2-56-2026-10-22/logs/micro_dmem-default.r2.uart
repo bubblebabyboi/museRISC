@@ -1,0 +1,40 @@
+SIGIL PERF region=1 cycles=61 instret=10
+MICRO region=1 empty ops=4096 cycles=61 instret=10 cycles/op=0.015
+SIGIL PERF region=2 cycles=12636 instret=4234
+MICRO region=2 chase_rand_1k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=3 cycles=12636 instret=4234
+MICRO region=3 chase_rand_2k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=4 cycles=12636 instret=4234
+MICRO region=4 chase_rand_4k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=5 cycles=12636 instret=4234
+MICRO region=5 chase_rand_8k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=6 cycles=12636 instret=4234
+MICRO region=6 chase_rand_12k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=7 cycles=12902 instret=4234
+MICRO region=7 chase_rand_16k ops=4096 cycles=12902 instret=4234 cycles/op=3.150
+SIGIL PERF region=8 cycles=75209 instret=4234
+MICRO region=8 chase_rand_20k ops=4096 cycles=75209 instret=4234 cycles/op=18.362
+SIGIL PERF region=9 cycles=109248 instret=4234
+MICRO region=9 chase_rand_24k ops=4096 cycles=109248 instret=4234 cycles/op=26.672
+SIGIL PERF region=10 cycles=139116 instret=4234
+MICRO region=10 chase_rand_32k ops=4096 cycles=139116 instret=4234 cycles/op=33.964
+SIGIL PERF region=11 cycles=164159 instret=4234
+MICRO region=11 chase_rand_64k ops=4096 cycles=164159 instret=4234 cycles/op=40.078
+SIGIL PERF region=12 cycles=166392 instret=4234
+MICRO region=12 chase_rand_128k ops=4096 cycles=166392 instret=4234 cycles/op=40.623
+SIGIL PERF region=13 cycles=166392 instret=4234
+MICRO region=13 chase_rand_256k ops=4096 cycles=166392 instret=4234 cycles/op=40.623
+SIGIL PERF region=14 cycles=12636 instret=4234
+MICRO region=14 chase_seq_4k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=15 cycles=12636 instret=4234
+MICRO region=15 chase_seq_8k ops=4096 cycles=12636 instret=4234 cycles/op=3.085
+SIGIL PERF region=16 cycles=12911 instret=4234
+MICRO region=16 chase_seq_16k ops=4096 cycles=12911 instret=4234 cycles/op=3.152
+SIGIL PERF region=17 cycles=115742 instret=4234
+MICRO region=17 chase_seq_32k ops=4096 cycles=115742 instret=4234 cycles/op=28.257
+SIGIL PERF region=18 cycles=31239 instret=4819
+MICRO region=18 stream_ld ops=4096 cycles=31239 instret=4819 cycles/op=7.627
+SIGIL PERF region=19 cycles=48963 instret=4814
+MICRO region=19 stream_st ops=4096 cycles=48963 instret=4814 cycles/op=11.954
+MICRO CHECK OK micro_dmem iterations=4096 regions=19
+SIGIL TEST PASS micro_dmem
