@@ -316,13 +316,16 @@ instance had a hard cap, which it never reached: user-data `shutdown
      --logs <logs> --bench-dir sw/bench --sha256sums SHA256SUMS \
      --sim docs/evidence/perf-suite-56-2026-10-22/results.json:docs/evidence/perf-suite-56-2026-10-22/runs \
      --sim-long docs/evidence/perf-coremark-56-2026-10-22/long-1000/results.json:docs/evidence/perf-coremark-56-2026-10-22/long-1000/runs \
-     --sim-extra base=<fpga results.json> --json results.json --md regions.md
+     --sim-extra base=docs/evidence/perf-baseline-56-2026-10-22/fpga/results.json \
+     --json results.json --md regions.md
    python3 .../scripts/f2_report.py results.json > tables.md
    ```
 
-The `fpga` column comes from the #56 simulation baseline run at
-`8d15410`: `docs/evidence/perf-baseline-56-2026-10-22/run_baseline.sh`,
-`CONFIG=fpga`, results written 2026-10-22T11:40:56Z. The same images
-were used, 712/712 runs were valid, and the file's sha256 is
-`328237fc…c42d`. The values used are copied into `results.json` (the
+The `fpga` column comes from the #56 simulation baseline at `8d15410`,
+[`perf-baseline-56-2026-10-22/fpga/results.json`](../perf-baseline-56-2026-10-22/fpga/results.json)
+(`run_baseline.sh`, `CONFIG=fpga`, written 2026-10-22T11:40:56Z, the
+same images, 712/712 valid; sha256 `328237fc…c42d`, the file this
+comparison read). The `default/axi` and `default/soc` columns come from
+`perf-suite-56-2026-10-22`, which has the same images and RTL. The values
+used are copied into `results.json` (`sim_axi`, `sim_soc` and
 `base_fpga_*` fields).
