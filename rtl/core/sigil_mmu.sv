@@ -34,7 +34,7 @@
 module sigil_mmu #(
     // FPGA timing structures (#53, sigil_cache_pkg::FPGA_TIMING):
     // one-hot port lookups; registered data translation (the dl_*
-    // lookup port below).
+    // lookup port below); fetch page register (g_ireg).
     parameter bit FPGA_TIMING = 1'b0
 ) (
     input  wire        clk_i,
@@ -308,39 +308,9 @@ module sigil_mmu #(
                               sum_i, mxr_i);
   end
 
-  always_comb begin
-    if_pa_o = if_va_i;
-    if_ok_o = 1'b0;
-    if_fault_o = 1'b0;
-    if_fault_page_o = 1'b1;
-    if_fault_guest_o = 1'b0;
-    if_fault_gpa_o = 64'd0;
-    if (!if_trans) begin
-      if_ok_o = 1'b1;
-    end else if (if_vs_trans && !canonical(if_va_i)) begin
-      if_fault_o = 1'b1;
-    end else if (!if_vs_trans && if_g_trans && |if_va_i[63:41]) begin
-      if_fault_o = 1'b1;
-      if_fault_guest_o = 1'b1;
-      if_fault_gpa_o = if_va_i;
-    end else if (wf_valid_q && !wf_is_data_q && (wf_va_q == if_va_i)) begin
-      // A recorded walk fault supersedes a stale TLB hit that
-      // triggered the re-walk (e.g. a G-stage permission denial).
-      if_fault_o = 1'b1;
-      if_fault_page_o = wf_page_q;
-      if_fault_guest_o = wf_guest_q;
-      if_fault_gpa_o = wf_gpa_q;
-    end else if (if_lk.hit) begin
-      if_pa_o = entry_pa(if_lk.e, if_va_i);
-      if (!if_lk.perm) begin
-        if_fault_o = 1'b1;
-      end else if (if_lk.gok) begin
-        if_ok_o = 1'b1;  // G denial or A=0 falls through to a re-walk
-      end
-    end
-  end
-
-  // The data port's verdict for one access (fault gated by valid).
+  // A port's verdict for one access (fault gated by valid): main's
+  // fetch and data port logic, the port (data) choosing which
+  // recorded walk fault applies.
   typedef struct packed {
     logic [63:0] pa;
     logic        ok, fault, page, guest;
@@ -348,9 +318,10 @@ module sigil_mmu #(
   } dres_t;
 
   /* verilator lint_off UNUSEDSIGNAL */  // only the PA fields of .e are read
-  function automatic dres_t d_result(
-      input logic [63:0] va, input logic valid, input logic trans,
-      input logic vs_trans, input logic g_trans, input lookup_t lk);
+  function automatic dres_t port_result(
+      input logic [63:0] va, input logic valid, input logic data,
+      input logic trans, input logic vs_trans, input logic g_trans,
+      input lookup_t lk);
     dres_t r;
     r.pa = va;
     r.ok = 1'b0;
@@ -366,7 +337,9 @@ module sigil_mmu #(
       r.fault = valid;
       r.guest = 1'b1;
       r.gpa = va;
-    end else if (wf_valid_q && wf_is_data_q && (wf_va_q == va)) begin
+    end else if (wf_valid_q && (wf_is_data_q == data) && (wf_va_q == va)) begin
+      // A recorded walk fault supersedes a stale TLB hit that
+      // triggered the re-walk (e.g. a G-stage permission denial).
       r.fault = valid;
       r.page = wf_page_q;
       r.guest = wf_guest_q;
@@ -376,7 +349,7 @@ module sigil_mmu #(
       if (!lk.perm) begin
         r.fault = valid;
       end else if (lk.gok) begin
-        r.ok = 1'b1;
+        r.ok = 1'b1;  // G denial or A=0 falls through to a re-walk
       end
     end
     return r;
@@ -384,7 +357,6 @@ module sigil_mmu #(
   /* verilator lint_on UNUSEDSIGNAL */
 
   logic miss_f, miss_d;
-  assign miss_f = if_trans && !if_ok_o && !if_fault_o;
   logic [1:0]  d_acc;
   logic [63:0] d_root_pte;
   assign d_acc = d_exec_i ? 2'd2 : d_write_i ? 2'd1 : 2'd0;
@@ -519,6 +491,94 @@ module sigil_mmu #(
     end
   end
 
+`ifndef SYNTHESIS
+  // Simulation checks are armed by the first reset edge (pre-reset
+  // state is arbitrary under +verilator+rand+reset+2).
+  logic chk_live_q;
+  initial chk_live_q = 1'b0;
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) chk_live_q <= 1'b0;
+    else chk_live_q <= 1'b1;
+  end
+`endif
+
+  // Fetch port. Main: the if_* outputs are the combinational lookup
+  // of the fetch VA. FPGA_TIMING (#53) step 7: IF translates from
+  // it_q, the last OK translated fetch page and the context it was
+  // looked up in (privilege, V, satp/vsatp mode and ASID, hgatp mode
+  // and VMID: the TLB's own match key), so fetch_stall, the I$
+  // request and fetch PMP start from a page compare. A fetch outside
+  // it waits a cycle while the full lookup is registered in ir_q
+  // (tagged with its VA and context): an OK result loads it_q, a
+  // fault is delivered from ir_q, and a miss starts the walk from
+  // ir_q. ir_q is not used in the cycle after a walk end, flush or
+  // abort (ichg_q), so a just-filled entry never starts a second
+  // walk; it_q is dropped by SFENCE and traps. A TLB fill keeps it_q:
+  // a cached OK translation stays usable until SFENCE.
+  if (FPGA_TIMING) begin : g_ireg
+    logic         ichg_d, ichg_q, it_valid_q, it_hit, ir_live;
+    logic [42:0]  ctx, it_ctx_q, ir_ctx_q;
+    logic [63:12] it_va_q, it_pa_q;
+    logic [63:0]  ir_va_q;
+    dres_t        if_res, ir_q;
+    assign ctx = {if_priv_i, if_virt_i, satp_i[63:60], satp_asid,
+                  hgatp_i[63:60], hgatp_vmid};
+    assign if_res = port_result(if_va_i, 1'b1, 1'b0, if_trans, if_vs_trans,
+                                if_g_trans, if_lk);
+    assign ichg_d = flush_i || abort_i ||
+                    ((state_q != W_IDLE) && walk_grant_i) ||
+                    ((state_q == W_G_READ) && g_width_fault);
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        ichg_q <= 1'b0;
+        it_valid_q <= 1'b0;
+        it_va_q <= '0;
+        it_pa_q <= '0;
+        it_ctx_q <= '0;
+        ir_q <= '0;
+        ir_va_q <= 64'd0;
+        ir_ctx_q <= '0;
+      end else begin
+        ichg_q <= ichg_d;
+        ir_q <= if_res;
+        ir_va_q <= if_va_i;
+        ir_ctx_q <= ctx;
+        if (flush_i || abort_i) begin
+          it_valid_q <= 1'b0;
+        end else if (if_trans && if_res.ok) begin
+          it_valid_q <= 1'b1;
+          it_va_q <= if_va_i[63:12];
+          it_pa_q <= if_res.pa[63:12];
+          it_ctx_q <= ctx;
+        end
+      end
+    end
+    assign it_hit = it_valid_q && (it_va_q == if_va_i[63:12]) &&
+                    (it_ctx_q == ctx);
+    assign ir_live = !ichg_q && (ir_va_q == if_va_i) && (ir_ctx_q == ctx);
+    assign if_pa_o = if_trans ? {it_pa_q, if_va_i[11:0]} : if_va_i;
+    assign if_ok_o = !if_trans || it_hit;
+    assign if_fault_o = if_trans && !it_hit && ir_live && ir_q.fault;
+    assign if_fault_page_o = ir_q.page;
+    assign if_fault_guest_o = ir_q.guest;
+    assign if_fault_gpa_o = ir_q.gpa;
+    assign miss_f = if_trans && !it_hit && ir_live && !ir_q.ok && !ir_q.fault;
+`ifndef SYNTHESIS
+    // Every cycle IF uses it_q, the full lookup of the fetch VA is a
+    // miss or the same page (no SFENCE since, no PTE was re-read).
+    always_ff @(posedge clk_i) begin
+      if (chk_live_q && if_trans && it_hit &&
+          (if_res.fault || (if_res.ok && (if_res.pa[63:12] != it_pa_q))))
+        $error("sigil_mmu: fetch page register differs from the I-port lookup");
+    end
+`endif
+  end else begin : g_ireg_off
+    assign {if_pa_o, if_ok_o, if_fault_o, if_fault_page_o, if_fault_guest_o,
+            if_fault_gpa_o} = port_result(if_va_i, 1'b1, 1'b0, if_trans,
+                                          if_vs_trans, if_g_trans, if_lk);
+    assign miss_f = if_trans && !if_ok_o && !if_fault_o;
+  end
+
   // Data port. Main: the d_* outputs are the combinational lookup of
   // MEM's access. FPGA_TIMING (#53): they are mt_q, the lookup of the
   // dl_* port registered on dl_ld_i, so MEM's PMP check, request and
@@ -537,8 +597,8 @@ module sigil_mmu #(
                             dl_g_trans, dl_vs_trans, dl_priv_i,
                             dl_exec_i ? 2'd2 : dl_write_i ? 2'd1 : 2'd0,
                             dl_write_i, dl_sum_i, dl_mxr_i);
-    assign dl_res = d_result(dl_va_i, 1'b1, dl_vs_trans || dl_g_trans,
-                             dl_vs_trans, dl_g_trans, d_lk);
+    assign dl_res = port_result(dl_va_i, 1'b1, 1'b1, dl_vs_trans || dl_g_trans,
+                                dl_vs_trans, dl_g_trans, d_lk);
     // Every TLB write is on a walker grant; a data walk fault is on a
     // grant or a G-stage GPA width fault.
     assign chg_d = flush_i || abort_i ||
@@ -574,7 +634,7 @@ module sigil_mmu #(
     // faulting translation may be held until SFENCE.
     lookup_t dl_ref, s_lk;
     dres_t   s_res;
-    logic    mt_wf_q, chk_live_q;
+    logic    mt_wf_q;
     assign dl_ref = lookup_idx(dl_va_i, dl_satp_i[59:44], dl_virt_i,
                                hgatp_vmid, dl_g_trans, dl_vs_trans, dl_priv_i,
                                dl_exec_i ? 2'd2 : dl_write_i ? 2'd1 : 2'd0,
@@ -582,13 +642,8 @@ module sigil_mmu #(
     assign s_lk = lookup_idx(d_va_i, d_satp_asid, d_virt_i, hgatp_vmid,
                              d_g_trans, d_vs_trans, d_priv_i, d_acc,
                              d_write_i, sum_i, mxr_i);
-    assign s_res = d_result(d_va_i, 1'b1, d_trans, d_vs_trans, d_g_trans,
-                            s_lk);
-    initial chk_live_q = 1'b0;
-    always @(posedge clk_i or negedge rst_ni) begin
-      if (!rst_ni) chk_live_q <= 1'b0;
-      else chk_live_q <= 1'b1;
-    end
+    assign s_res = port_result(d_va_i, 1'b1, 1'b1, d_trans, d_vs_trans,
+                               d_g_trans, s_lk);
     always_ff @(posedge clk_i) begin
       if (dl_ld_i) mt_wf_q <= wf_valid_q && wf_is_data_q && (wf_va_q == dl_va_i);
       if ((d_lk.hit != dl_ref.hit) || (d_lk.hit && (d_lk != dl_ref)))
@@ -606,8 +661,8 @@ module sigil_mmu #(
                              d_g_trans, d_vs_trans, d_priv_i, d_acc,
                              d_write_i, sum_i, mxr_i);
     assign {d_pa_o, d_ok_o, d_fault_o, d_fault_page_o, d_fault_guest_o,
-            d_fault_gpa_o} = d_result(d_va_i, d_valid_i, d_trans, d_vs_trans,
-                                      d_g_trans, d_lk);
+            d_fault_gpa_o} = port_result(d_va_i, d_valid_i, 1'b1, d_trans,
+                                         d_vs_trans, d_g_trans, d_lk);
     assign miss_d = d_valid_i && d_trans && !d_ok_o && !d_fault_o;
   end
 
