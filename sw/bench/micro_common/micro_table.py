@@ -11,6 +11,8 @@ prints, per micro benchmark, one row per region:
   - cycles per operation for every configuration / memory model run
     (= the harness's cycles/iteration: every region runs exactly
     "iterations" operations);
+  - the same net of the measurement window's own cost (the region's
+    cycles minus those of the bench's `empty` region, per operation);
   - instructions per operation and where the cycles go, per operation
     (the stk_* accounting of the first run, categories >= 0.05);
   - the L1 events per operation (I$/D$ misses, write-backs).
@@ -62,11 +64,13 @@ def bench_table(name, meta, runs):
     out = [f"### {name}", "", meta.get("description", ""), "",
            f"Operations per region: {runs[0]['iterations']:,}. "
            f"Breakdown and events per operation from {ref[0]}/{ref[1]}.", ""]
+    empty = next((r for r in runs if r["label"] == "empty"
+                  and (r["config"], r["mem"]) == ref), None)
     head = (["Region", "One operation"] + [f"cycles/op {c}/{m}" for c, m in combos]
-            + ["instr/op", f"where the cycles go per op ({ref[0]}/{ref[1]})",
-               "I$ miss/op", "D$ miss/op"])
+            + [f"net of window {ref[0]}/{ref[1]}", "instr/op",
+               f"where the cycles go per op ({ref[0]}/{ref[1]})", "I$ miss/op", "D$ miss/op"])
     out.append("| " + " | ".join(head) + " |")
-    out.append("|---|---|" + "---:|" * len(combos) + "---:|---|---:|---:|")
+    out.append("|---|---|" + "---:|" * (len(combos) + 2) + "---|---:|---:|")
     for rid in regions:
         base = by.get((rid, ref[0], ref[1]))
         if base is None:
@@ -78,7 +82,7 @@ def bench_table(name, meta, runs):
             cells = [f"{by[(rid, cm[0], cm[1])]['counters']['cycles']} cycles"
                      if (rid, cm[0], cm[1]) in by else "-" for cm in combos]
             out.append(f"| {label} | {notes.get(str(rid), '')} | " + " | ".join(cells)
-                       + f" | {c['instret']} instr | (window overhead, not per op) | "
+                       + f" | - | {c['instret']} instr | (window overhead, not per op) | "
                        f"{c['ic_miss']} | {c['dc_miss']} |")
             continue
         cells = []
@@ -87,8 +91,9 @@ def bench_table(name, meta, runs):
             cells.append(fmt(r["counters"]["cycles"] / r["iterations"]) if r else "-")
         stk = sorted(((c.get("stk_" + k, 0) / ops, k) for k in STK), reverse=True)
         where = ", ".join(f"{k} {v:.2f}" for v, k in stk if v >= 0.05)
+        net = fmt((c["cycles"] - empty["counters"]["cycles"]) / ops) if empty else "-"
         out.append(f"| {label} | {notes.get(str(rid), '')} | " + " | ".join(cells)
-                   + f" | {c['instret'] / ops:.3f} | {where} | {c['ic_miss'] / ops:.4f} | "
+                   + f" | {net} | {c['instret'] / ops:.3f} | {where} | {c['ic_miss'] / ops:.4f} | "
                    f"{c['dc_miss'] / ops:.4f} |")
     out.append("")
     return out
