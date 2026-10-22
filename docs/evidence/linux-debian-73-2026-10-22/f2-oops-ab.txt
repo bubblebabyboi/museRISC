@@ -39,7 +39,10 @@ SLUB red-zoning is off (no SLUB_DEBUG_ON / slub_debug=, no KFENCE).
 10 11:12     low-PA + ASID allocator disabled              OOPS t=116.6 s anon_vma_clone   exp-noasid.log
              (context.c: use_asid_allocator never on;      @ffffffd602997958 (valid), then
              kernel prints "ASID allocator disabled")      filemap_fault
-11 11:14     low-PA + transparent_hugepage=never           (running)                       exp-nothp.log
+11 11:14     low-PA + transparent_hugepage=never           OOPS t=100.5 s folio_lruvec_    exp-nothp.log
+                                                           lock @ffffffd601f5e0c8 (valid)
+12 11:16     execstress v2 (progress every 25 iters),      (running)                       exp-execstress-v2.log
+             low-PA DTB, no disk
 
 Platform side notes (for a platform issue, not fixed here):
 - UART garbling after interrupted runs. Sequence: run 1 (sigil_host --console
@@ -51,7 +54,10 @@ Platform side notes (for a platform issue, not fixed here):
   the following --console runs (memstress, run "memstress2"), already in the
   OpenSBI banner. After fpga-clear-local-image + fpga-load-local-image (and
   the automatic DDR4 scrub) the console was byte-exact again (runs 6-11).
-- Self restarts: within single sigil_host runs (exp-nohbm.host,
-  exp-ddr2g.host, exp-minisa.host) the OpenSBI banner appears again after the
-  kernel oopsed, i.e. the SoC restarted from the boot ROM without a host
-  reload (--on-reboot exit was given; no "finisher: reboot" message).
+- Self restarts: within single sigil_host runs (exp-nohbm.host line 386,
+  exp-ddr2g.host line 189, exp-minisa.host line 122) the OpenSBI banner
+  appears again right after an oops trace ends ("---[ end trace ... ]---"),
+  i.e. the SoC restarted OpenSBI without a host reload (--on-reboot exit was
+  given; sigil_host printed no "finisher" message). exp-nohbm.host also
+  starts with "discarded 1024 UART bytes from a previous run": the SIGINT'd
+  previous sigil_host had left the SoC running (drop mode).
