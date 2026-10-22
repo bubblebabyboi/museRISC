@@ -166,6 +166,22 @@ The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 OpenSBI is built with `FW_JUMP_FDT_ADDR=0x83000000`, so the DTB stays
 where the host put it and the kernel may be up to 46 MiB.
 
+With the platform's `sigil_host` (options as on the `73-f2-memory-platform`
+branch; confirmed by the F2 run):
+
+```sh
+zstd -d sigil-debian-13-riscv64.ext4.zst          # 8 GiB raw image
+sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
+     --load 0xC80000000=sigil-debian-13-riscv64.ext4 \
+     --save 0xC80000000=sigil-disk-saved.ext4:8G \
+     --console --on-reboot exit
+```
+
+`--console` is an interactive raw terminal (Ctrl-] detaches); after
+`poweroff` the host saves the first 8 GiB of the pmem window, the whole
+file system, and that file boots next time. `--on-reboot exit` until a
+reboot can keep the disk (below).
+
 **Power-off, reboot and the disk.** Sigil's L1 D$ is write-back and the
 host's PCIS view of DDR4 does not see dirty lines. Linux therefore
 powers off and reboots only through SBI SRST (the kernel has no syscon
@@ -229,9 +245,9 @@ Cross-compiling from a PC also works (Ubuntu/Debian
 sigil@sigil:~$ numactl --hardware
 available: 2 nodes (0-1)
 node 0 cpus: 0
-node 0 size: 48xxx MB
+node 0 size: 48305 MB
 node 1 cpus:
-node 1 size: 16xxx MB
+node 1 size: 16110 MB
 node distances:
 node     0    1
    0:   10   20
@@ -302,15 +318,24 @@ saving, or the copy may hold a dirty, unjournaled state.
 
 ## 10. Boot time and speed
 
-QEMU (TCG on the build instance, 2026-10-22): about 17 s from reset to
-`multi-user.target`, 25 s to the login prompt. These numbers say
-nothing about the FPGA.
+| | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | F2 estimate (62.5 MHz) |
+|---|---:|---:|---:|
+| reset → login prompt | 21 s | 42 s | **≈ 9 min** |
+| `gcc -O2 hello.c` | < 1 s | 4.9 s | ≈ 1 min |
+| `python3 -c 'print(42)'` | < 1 s | 1.0 s | ≈ 15 s |
 
-On the F2 the hart runs at 62.5 MHz, in order, with blocking L1 caches
-and one memory request in flight, roughly a 1990s workstation without
-its L2. Expect minutes to the login prompt and seconds for small
-commands; `gcc hello.c` takes a few seconds, Python starts slowly. The
-measured numbers are in the F2 evidence (§4).
+QEMU's own speed says nothing about the FPGA. `scripts/qemu_sigil_check.py
+--icount` runs QEMU so that guest time advances 16 ns per instruction —
+a 62.5 MHz hart executing one instruction per cycle, a lower bound. The
+F2 hart (in order, blocking L1 caches, one memory request in flight)
+needed about 13 cycles per instruction on the #55 Linux 6.6 boot
+(calibrated by running that exact payload in the same icount QEMU), so
+the F2 column is the icount column × 13. Measured F2 numbers replace it
+in the evidence when the run happens. A faster FPGA clock (#53) scales
+everything.
+
+The image is tuned for this (§1); `systemd-analyze blame` on the board
+shows where the time goes.
 
 ## 11. Limits
 

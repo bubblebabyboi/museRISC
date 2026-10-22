@@ -2124,3 +2124,115 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #68 #69 #70 #64: Linux 6.12 + Debian 13 for Sigil, QEMU bring-up (2026-10-22, branch `73-linux-debian`)
+
+Logs in [`linux-debian-73-2026-10-22/`](linux-debian-73-2026-10-22/);
+user guide [`docs/LINUX.md`](../LINUX.md). Everything that runs on the
+SoC for epic #73, built on `sigil-fpga-build` (Ubuntu 24.04) and brought
+up in QEMU against [`LINUX_PLATFORM.md`](../LINUX_PLATFORM.md). **No
+FPGA run yet** (the AFI with the 80 GiB map is not published); the F2
+numbers below are estimates.
+
+**Versions.** Linux **6.12.114** (`sw/linux/kernel/sigil_defconfig`,
+tarball sha256 `7a858991…4af3`); OpenSBI **v1.9** (`cbf9f673`) generic
+`fw_jump` + `sw/linux/opensbi/0001-*.patch`; **Debian 13.7 "trixie"
+riscv64** from `snapshot.debian.org` **`20261020T000000Z`** (trixie,
+-updates, -security), 257 packages
+([`debian-manifest.txt`](linux-debian-73-2026-10-22/debian-manifest.txt):
+gcc/g++ 14.2.0, binutils 2.44, glibc 2.41, gdb 16.3, make 4.4.1, git
+2.47.3, python3 3.13.5, systemd 257.13, numactl/libnuma 2.0.19, …);
+build tools in [`build-versions.txt`](linux-debian-73-2026-10-22/build-versions.txt).
+Two image builds from the snapshot gave a byte-identical manifest.
+
+**Artifacts** (not in git; `sigil-fpga-build:~/os-artifacts/`, all
+checksums in [`SHA256SUMS`](linux-debian-73-2026-10-22/SHA256SUMS)):
+
+| File | Load address | sha256 |
+|---|---|---|
+| `fw_jump.bin` | `0x8000_0000` | `d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf` |
+| `Image` | `0x8020_0000` | `0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790` |
+| `Image-initramfs` (`/init` → `SIGIL_LINUX_BOOT_OK`) | `0x8020_0000` | `2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48` |
+| `sigil-f2.dtb` | `0x8300_0000` | `eb1689b43fe38e01d75e36c569d51bb7ea21c3163c10fb6acafa4b466f521e04` |
+| `sigil-qemu.dtb` / `sigil-sim.dtb` | `0x8300_0000` | `9b8313cc…0a03` / `f144da91…77` |
+| `sigil-debian-13-riscv64.ext4.zst` (222 MB) | `0xC_8000_0000` (PCIS `0x0C_0000_0000`) | `a9cfcbc977fad8968f07200d595b37ed3df51f7877b7fc0ec26d985e5fb5bf33` |
+| raw `.ext4` (8 GiB, after `zstd -d`) | | `c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632` |
+
+**QEMU acceptance: 23/23 PASS** (`python3 scripts/qemu_sigil_check.py
+--fresh`; transcript [`qemu-check.log`](linux-debian-73-2026-10-22/qemu-check.log),
+summary [`qemu-check-summary.txt`](linux-debian-73-2026-10-22/qemu-check-summary.txt)).
+QEMU 8.2.2 `-M virt` shaped like the contract
+(`scripts/qemu_sigil_boot.sh`): one hart with only Sigil's extensions,
+Sv39, DDR4 node 0 = 48 GiB at `0x8000_0000`, the pmem disk = 16 GiB
+file-backed at `0xC_8000_0000`, HBM node 1 = 16 GiB at `0x10_8000_0000`,
+the F2's OpenSBI, kernel and disk image with `sigil-qemu.dtb`.
+
+- Login on `ttyS0` as `sigil` after `SIGIL_LINUX_BOOT_OK Debian GNU/Linux
+  13 (trixie) up, login prompt next`; `Linux sigil 6.12.114-sigil …
+  riscv64`; ISA `rv64imafdch_zicntr_zicond_zicsr_zifencei_zca_zcb_zcd_
+  zba_zbb_zbc_zbkb_zbkc_zbkx_zbs_zknd_zkne_zknh_zve32f_zve32x_zve64d_
+  zve64f_zve64x`; systemd `running`, no failed units; `/` = `/dev/pmem0`
+  ext4 rw.
+- `numactl --hardware`: `available: 2 nodes (0-1)`, node 0 cpus 0 size
+  48305 MB, node 1 (no CPUs) size 16110 MB, distances 10/20.
+- `gcc hello.c && ./a.out` → `Hello from sigil on riscv64`; `make` of
+  the examples on the guest; `malloc_test 512` → `MALLOC OK`; libnuma
+  `numa_alloc_onnode` on nodes 0 and 1 → all pages on the requested node;
+  `memwhere 1024` → `node 0: 1024 MiB`, `numactl --membind=1 memwhere
+  1024` → **`node 1: 1024 MiB`**, `--interleave=0,1` → 512 + 512 MiB.
+- RVV: `rvv_vadd` (intrinsics, `-march=rv64gc_zve64d`) → `hwprobe: zve32x 1
+  zve64x 1 zve64d 1 full-v 0`, `VLEN = 512 bits`, `RVV OK`; `autovec`
+  (`-O3 -march=rv64gc_zve64d_zvl512b`) correct with 7 vector
+  instructions.
+- sudo, python3, git, gdb, strace, vim, file, man; a file written to the
+  pmem disk survives `reboot` (finisher `0x7777`); `poweroff` → `reboot:
+  Power down`, QEMU exits (finisher `0x5555` via SBI SRST).
+- QEMU timings (TCG, **not FPGA**): reset → boot marker 18 s, login prompt
+  21 s; `systemd-analyze` 0.5 s kernel + 9.8 s userspace.
+
+**F2 estimate** (`--icount`: QEMU `-icount shift=4,sleep=off`, 16 ns per
+instruction = a 62.5 MHz hart at IPC 1, [`qemu-icount.log`](linux-debian-73-2026-10-22/qemu-icount.log)):
+`systemd-analyze` 2.07 s kernel + 41.05 s userspace, boot marker at
+41.7 s, `gcc -O2 hello.c` 4.9 s, `python3 -c` 1.0 s. Calibration: the #55
+F2 payload (the sha256-identical 6.6 `Image`, `fw_jump.bin` and DTB of #55)
+reaches `clk: Disabling unused clocks` at 4.74 s in the same icount QEMU
+(≈ 0.30 G instructions, [`old66-f2-payload-icount.log`](linux-debian-73-2026-10-22/old66-f2-payload-icount.log));
+on the F2 that line came at kernel time 385.36 s with a 10 MHz DT timebase
+while `mtime` ran at 62.5 MHz, i.e. 61.7 s = 3.85 G cycles: **≈ 13 cycles
+per instruction**. Scaled: login prompt **≈ 9 min** after reset, `gcc
+hello.c` ≈ 1 min, `python3` start ≈ 15 s at 62.5 MHz, until measured.
+
+**Tuning from the icount runs.** Before it
+([`qemu-icount-before-tuning.log`](linux-debian-73-2026-10-22/qemu-icount-before-tuning.log))
+the marker came at 84.2 s and the first login **timed out** (`login:
+timed out after 60 seconds`); with that fixed, `blame` was led by
+`user@1000.service` 37.8 s, `dev-pmem0.device` 30.8 s (boot fsck waiting
+for udev), `systemd-udev-trigger` 25.3 s (512 legacy pty nodes, 8 loop
+devices) and ~5 s each for five `modprobe@` units and `systemd-binfmt`.
+Now: logind sessions of class `background-light` (no per-user service
+manager at login), no boot-time fsck, `LEGACY_PTYS=n`,
+`BLK_DEV_LOOP_MIN_COUNT=0`, those units masked, `LOGIN_TIMEOUT 0`:
+marker 84.2 s → 41.7 s, login a few seconds.
+
+**Findings.** (1) A raw pmem namespace needs `ND_CLAIM`: with BTT, PFN
+and DAX all off, `devm_nsio_enable()` is a `-ENXIO` stub, `nd_pmem`
+fails silently and `root=/dev/pmem0` waits forever; `sigil_defconfig`
+keeps `CONFIG_BTT=y`. (2) Sigil's write-back D$ is not coherent with the
+host's PCIS view, so Linux powers off and reboots only through SBI SRST
+(no syscon reset drivers in the kernel) and the OpenSBI patch runs
+`FENCE.I` (writes back every dirty line on Sigil) before the finisher
+write; a host save after `poweroff` then holds the whole file system.
+(3) 6.12 enables user vector on Zve64d; the vector usercopy threshold is
+1 GiB so the kernel never uses the element-serial vector unit for
+`copy_*_user`. (4) GCC auto-vectorizes for Zve64d only with `_zvl512b`.
+
+**Deviations / contract proposals.** QEMU-only: 10 MHz timebase; three
+QEMU NUMA sockets lay out the ranges, so QEMU has two extra harts outside
+the DT (OpenSBI parks them); virtio-mmio slots; no crypto node.
+Proposed for `LINUX_PLATFORM.md`: RTC = PLIC source 11; DTB at
+`0x8300_0000` (`FW_JUMP_FDT_ADDR`, kernel ≤ 46 MiB, initrd `0x8400_0000`);
+**a finisher reboot must not reload the pmem disk** (today
+`sigil_host --on-reboot rerun` reloads every `--load` image); power-off
+and reboot via SBI SRST with the D$ write-back; optional host-written
+`/chosen/rng-seed`; later: Svnapot/Svadu in the ISA string (`misa`
+reports V although the unit is Zve64d — harmless, Linux uses the DT).
