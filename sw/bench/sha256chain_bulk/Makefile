@@ -15,6 +15,8 @@ SRCS      := sha256chain_bulk.c $(COMMON)/sha256_sw.c $(COMMON)/sha256_rvv.c \
 BENCH_ITERATIONS ?= 64
 
 KAT_H := $(OUT)/sha256chain_bulk_kat_$(BENCH_ITERATIONS).h
+# Every function starts on an I$ line (why: ../sha256chain/Makefile).
+EXTRA_CFLAGS += -falign-functions=64
 EXTRA_CFLAGS += -DSHA256CHAIN_KIB=$(BENCH_ITERATIONS) \
                 -DSHA256CHAIN_KAT_H='"$(notdir $(KAT_H))"' -I$(OUT) -I$(COMMON)
 

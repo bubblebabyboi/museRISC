@@ -47,6 +47,23 @@ static void result(const char *what, sigil_perf_t t, uint64_t msg_bytes) {
   bench_print_rate(what, t.cycles, t.instret, N, "hash", N * msg_bytes);
 }
 
+/* Accelerator chains: each region is one call (the functions start on
+ * an I$ line, -falign-functions=64 in the Makefile). */
+__attribute__((noinline)) static void accel_chain_block(uint32_t blk[16], size_t n) {
+  for (; n > 0; n--) sigil_sha256_block(blk, blk);
+}
+__attribute__((noinline)) static int accel_chain_bytes(uint8_t m[32], size_t n) {
+  int err = 0;
+  for (; n > 0; n--) err |= sigil_sha256(m, 32, m);
+  return err;
+}
+__attribute__((noinline)) static int accel_chain_hash(int mode, uint8_t *m, size_t len,
+                                                      size_t n) {
+  int err = 0;
+  for (; n > 0; n--) err |= sigil_hash(mode, m, len, m, len);
+  return err;
+}
+
 int main(void) {
   uint32_t h[8];
   sigil_perf_t t;
@@ -94,7 +111,7 @@ int main(void) {
     for (int i = 9; i < 15; i++) blk[i] = 0;
     blk[15] = 256;
     sigil_perf_begin_id(3);
-    for (size_t i = 0; i < N; i++) sigil_sha256_block(blk, blk);
+    accel_chain_block(blk, N);
     t = sigil_perf_end_id(3);
     check_words(blk, kat_chain_sha256, "chain: accelerator block != hashlib");
     result("sha256 accel sigil_sha256_block", t, 32);
@@ -103,10 +120,10 @@ int main(void) {
   /* 4: accelerator, byte API (packs the message, pads, unpacks). */
   {
     uint8_t m[32];
-    int err = 0;
+    int err;
     bench_seed(0, m, 32);
     sigil_perf_begin_id(4);
-    for (size_t i = 0; i < N; i++) err |= sigil_sha256(m, 32, m);
+    err = accel_chain_bytes(m, N);
     t = sigil_perf_end_id(4);
     bench_require(err == 0 && memcmp(m, kat_chain_sha256, 32) == 0,
                   "chain: accelerator sigil_sha256 != hashlib");
@@ -116,10 +133,10 @@ int main(void) {
   /* 5: accelerator SHA-512, 64-byte chain. */
   {
     uint8_t m[64] __attribute__((aligned(8)));
-    int err = 0;
+    int err;
     bench_seed(0, m, 64);
     sigil_perf_begin_id(5);
-    for (size_t i = 0; i < N; i++) err |= sigil_hash(SIGIL_HASH_SHA512, m, 64, m, 64);
+    err = accel_chain_hash(SIGIL_HASH_SHA512, m, 64, N);
     t = sigil_perf_end_id(5);
     bench_require(err == 0 && memcmp(m, kat_chain_sha512, 64) == 0,
                   "chain: accelerator SHA-512 != hashlib");
@@ -129,10 +146,10 @@ int main(void) {
   /* 6: accelerator SHA3-256. */
   {
     uint8_t m[32] __attribute__((aligned(8)));
-    int err = 0;
+    int err;
     bench_seed(0, m, 32);
     sigil_perf_begin_id(6);
-    for (size_t i = 0; i < N; i++) err |= sigil_hash(SIGIL_HASH_SHA3_256, m, 32, m, 32);
+    err = accel_chain_hash(SIGIL_HASH_SHA3_256, m, 32, N);
     t = sigil_perf_end_id(6);
     bench_require(err == 0 && memcmp(m, kat_chain_sha3_256, 32) == 0,
                   "chain: accelerator SHA3-256 != hashlib");
