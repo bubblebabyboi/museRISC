@@ -804,3 +804,6 @@ coverage:
 
 clean:
 	rm -rf $(BUILD)
+
+## ---- Performance harness: make -C sim perf (sim/perf.mk) --------------
+include $(ROOT)/sim/perf.mk
