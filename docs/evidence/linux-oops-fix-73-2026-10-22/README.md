@@ -3,7 +3,7 @@
 - Branch: `73-oops-fix`.
 - Gate SHA: `31a15689bec847a51357d4dcacc361a4986b548a`.
 - Base: `73-linux-release` `5458d16` (main plus the F2 platform and Linux).
-- Core issue: CORE_ISSUE. Platform issue from the same F2 runs: PLATFORM_ISSUE.
+- Core issue: #74. Platform issue from the same F2 runs: #75.
 
 ## Summary
 

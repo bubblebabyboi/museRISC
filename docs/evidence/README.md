@@ -2420,3 +2420,6 @@ oops PC is the second of two dependent loads.
 `stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
 counts, so simulated Linux never reaches the race. The F2 boot with an AFI
 built from this branch is still to come.
+
+Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
+runs).
