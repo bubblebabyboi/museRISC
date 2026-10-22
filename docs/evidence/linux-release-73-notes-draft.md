@@ -2,36 +2,39 @@
 DRAFT release notes for tag sigil-linux-f2-2026-10-22 (epic #73). Remove this
 comment before publishing.
 
-Suggested title (only if the F2 Debian boot passed): "Sigil 2026-10-22b:
-Debian 13 on AWS F2 with 64 GiB DDR4 + 16 GiB HBM (public AFI)"
+Title: "Sigil 2026-10-22b: Debian 13 on AWS F2 with 64 GiB DDR4 + 16 GiB HBM
+(public AFI)"
 
 Assets are staged on sigil-fpga-build:~/release-73/ by
 ~/rel73-work/stage_release73.sh (checks the DCP against the evidence, the OS
 artifacts against ~/os-artifacts/SHA256SUMS, the programs against
-fw/SHA256SUMS; reproducible tarballs; no file over 2 GiB).
+fw/SHA256SUMS; reproducible tarballs; no file over 2 GiB). The DCP is now the
+one of the public AFI agfi-0c8aa56fde1a48495 (31a1568, walker-race fix #74);
+the evidence tarball holds every docs/evidence/*-73-2026-10-22 directory of
+73-linux-release.
 
-Before publishing, in this order:
-1. Merge the latest origin/73-linux-debian (with the first F2 Debian boot
-   evidence) into 73-linux-release.
-2. sigil-linux has only run against a simulated host. On an F2 with a
-   checkout of this branch (sigil_host built) and the staged assets copied to
-   ~/release-73, run inside tmux
+Before publishing, in this order (steps 1, 3 and 4 are done):
+1. Done: origin/73-oops-fix (31a1568 RTL + evidence) and origin/73-linux-debian
+   (6881bff, the F2 Debian boot evidence) are merged into 73-linux-release.
+   `git diff 31a15689 HEAD -- rtl/ fpga/cl_sigil/` is empty.
+2. sigil-linux has only run against a simulated host (the F2 Debian runs used
+   the sigil_host command it wraps). On an F2 with a checkout of this branch
+   (sigil_host built) and the staged assets copied to ~/release-73, run inside
+   tmux
      SIGIL_LINUX_URL=file://$HOME/release-73 bash ~/sigil/fpga/scripts/sigil-linux
    boot, `sudo poweroff`, check "disk saved", then run it a second time from
-   the saved disk. Commit that log under docs/evidence/.
-3. Fill every placeholder that ends in "pending>" from those two runs, in these notes
-   and in the docs (drop the hbm_touch one if it was not run). This must
-   print nothing:
-     git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/
-   Replace the "about 9 min" estimate with the measured F2 boot time in
-   fpga/scripts/sigil-linux (the "login prompt takes minutes" line), README
-   "Boot Debian on your own F2", docs/LINUX.md 4.1, 5.1, 5.8 and the 7 table,
-   and the opening paragraph of these notes (keep "on a real AWS F2 FPGA" only
-   if the F2 boot passed).
-4. Copy the new F2 evidence directories into ~/rel73-work/evidence/ on
-   sigil-fpga-build and rerun ~/rel73-work/stage_release73.sh:
-   sigil_linux_evidence_2026-10-22.tar.gz and SHA256SUMS change, so update
-   their rows in the assets table.
+   the saved disk. Commit that log under docs/evidence/. If it passes, replace
+   "not yet run on an F2" in the sigil-linux row of these notes, and the
+   sigil-linux sentences in README "Boot Debian on your own F2", docs/LINUX.md
+   §4 (status box) and docs/FPGA_F2.md ("Flash Sigil on your own F2").
+3. Done: every placeholder is filled from the F2 runs on agfi-0c8aa56fde1a48495
+   (the hbm_touch one says "not yet run on the F2"). This must print nothing:
+     git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/ docs/evidence/
+4. Done: the F2 evidence directories were copied into ~/rel73-work/evidence/
+   on sigil-fpga-build and ~/rel73-work/stage_release73.sh was rerun with the
+   new DCP; the DCP, evidence and SHA256SUMS rows below are the restaged ones.
+   If evidence changes again, copy it and rerun the script, then update those
+   rows.
 5. Merge 73-linux-release into main and push, and wait for CI on main to
    pass. Do this before (or in the same minute as) the release: the setup
    one-liner, sigil-linux and every guide link below use main.
@@ -40,18 +43,21 @@ Before publishing, in this order:
      sed '1,/^-->$/d' docs/evidence/linux-release-73-notes-draft.md > notes.md
      gh release create sigil-linux-f2-2026-10-22 --repo bubblebabyboi/sigil \
        --target main --title "<title above>" --notes-file notes.md ~/release-73/*
-   (all 16 files of ~/release-73, about 369 MB; none over 2 GiB).
+   (all 16 files of ~/release-73, about 368 MB; none over 2 GiB; SHA256SUMS
+   sha256 2e7f2e0bb7a7e33d8e2e773fac5ae4dd48ad8e812776824b2b7e05acca9711a8).
 7. On a fresh f2.6xlarge, run the three commands of "Boot Debian on your own
    F2" once against the published release.
-8. Delete the merged branches 73-f2-memory-platform, 73-linux-debian and
-   73-linux-release.
+8. Delete the merged branches 73-f2-memory-platform, 73-linux-debian,
+   73-oops-fix and 73-linux-release.
 -->
 
-The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now boots **Debian 13 "trixie" with gcc and glibc** `<on a real AWS F2 FPGA: pending, keep only if the F2 boot passed>`, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
+The whole Sigil SoC — the in-house RV64GCV core (vector unit, L1 caches) plus the crypto/hash engine and peripherals — now boots **Debian 13 "trixie" with gcc and glibc on a real AWS F2 FPGA**, with **all of the board's memory**: 48 GiB DDR4 as NUMA node 0, **16 GiB HBM as NUMA node 1**, and a 16 GiB DDR4 window as the root disk `/dev/pmem0`. On an `f2.6xlarge` it reaches the login prompt **5 min 48 s** after the SoC starts and passes **22/22 acceptance checks**. New **public AFI**, Sigil-built OpenSBI v1.9 + Linux 6.12 LTS payloads, and a ready-to-boot Debian image.
+
+The first Debian boots on the F2 found a bug in the core: a data-TLB miss that preempted an instruction-fetch page walk could take that walk's page-table response as its own, which made the kernel oops ([#74](https://github.com/bubblebabyboi/sigil/issues/74)). The new AFI has the fix.
 
 ## Boot Debian on your own F2
 
-Public AFI **`agfi-0a1fd54ef68bdc754`** (AFI `afi-035809e576d7ea8d5`, us-east-1, Small Shell `0x10212415`, PCI `0x1D0F:0xF054`), core clock **62.5 MHz** (interim; 100 MHz is #53), HBM AXI 250 MHz.
+Public AFI **`agfi-0c8aa56fde1a48495`** (AFI `afi-059766f9a85c6d39a`, us-east-1, Small Shell `0x10212415`, PCI `0x1D0F:0xF054`), core clock **62.5 MHz** (interim; 100 MHz is #53), HBM AXI 250 MHz. It supersedes `agfi-0a1fd54ef68bdc754` (`afi-035809e576d7ea8d5`), whose core has the walker race: do not use that one for Linux.
 
 ```sh
 # on a new f2.6xlarge (FPGA Developer AMI, us-east-1), logged in as ubuntu
@@ -60,7 +66,7 @@ tmux                  # recommended: keeps the session alive if SSH drops
 ~/bin/sigil-linux     # downloads this release, loads the AFI, boots to the login prompt
 ```
 
-The console is your terminal. The login prompt appears after **`<F2 boot time, reset to login prompt: pending>`** (QEMU-based estimate: about 9 minutes at 62.5 MHz). First `sigil-linux` run on the F2: `<sigil-linux on F2: pending>`. Log in as **`sigil` / `sigil`** (sudo) or `root` / `sigil`, then for example:
+The console is your terminal. The login prompt appears **5 min 48 s** after the SoC starts (measured on the F2; before that the host zeroes DDR4 and loads the 8 GiB disk, about 21 s, and the first run downloads the release). The F2 runs below used the `sigil_host` command that `sigil-linux` wraps (by hand, next block); `sigil-linux` itself passed its tests against a simulated `sigil_host`. Log in as **`sigil` / `sigil`** (sudo) or `root` / `sigil`, then for example:
 
 ```sh
 gcc hello.c && ./a.out                          # native gcc 14 / glibc 2.41
@@ -111,16 +117,20 @@ Memory as Linux sees it on the F2:
 
 | Check | Result |
 |---|---|
-| Reset → `SIGIL_LINUX_BOOT_OK` → login prompt | `<F2 boot time: pending>` |
-| Login, `uname`, systemd state, root on `/dev/pmem0` | `<pending>` |
-| `numactl --hardware` (node 0 DDR4, node 1 HBM) | `<pending>` |
-| `numactl --membind=1` memory lands in HBM | `<pending>` |
-| `gcc hello.c && ./a.out`, time | `<pending>` |
-| RVV Zve64d user program (`rvv_vadd`) | `<pending>` |
-| `poweroff` → `sigil_host --save` → second boot from the saved disk | `<pending>` |
-| `sigil-linux`: boot, `sudo poweroff`, save to `~/sigil-disk.ext4`, second boot from it | `<sigil-linux on F2: pending>` |
+| SoC release → `SIGIL_LINUX_BOOT_OK` → login prompt | **337.7 s → 347.9 s (5 min 48 s)**; second boot 333.2 s → 343.2 s; no kernel oops in either |
+| Where the time goes | ≈ 129 s OpenSBI + early memory setup for 64 + 16 GiB, then `systemd-analyze`: 10.6 s kernel + 3 min 25.5 s userspace (`dev-pmem0.device` 2 min 13 s); about 5 core cycles per instruction |
+| Login, `uname`, systemd state, root on `/dev/pmem0` | PASS: Linux 6.12.114 + Debian 13, `isa` with `zve64d`, systemd `running` with no failed units, `/` = `/dev/pmem0` ext4 rw |
+| `numactl --hardware` (node 0 DDR4, node 1 HBM) | PASS: 2 nodes, node 0 48305 MB with cpu 0, node 1 16110 MB without CPUs; `free -h` 62 GiB |
+| `numactl --membind=1` memory lands in HBM | PASS: `memwhere 1024` → node 1: 1024 MiB; `numa_hbm`: dependent load 1791 ns DDR4 / 1878 ns HBM |
+| `gcc hello.c && ./a.out`, time | PASS: **22.9 s**; `make` of the 6 examples 6 min 23 s; `python3 -c` 9.9 s; `malloc_test` OK |
+| RVV Zve64d user program (`rvv_vadd`) | PASS: VLEN 512; GCC auto-vectorized `autovec` PASS |
+| `sudo`, git/gdb/strace/vim/file/man | PASS |
+| `poweroff` → `sigil_host --save` → second boot from the saved disk | PASS: the file written in run 1 is there, `journalctl --list-boots` shows both boots |
+| `sigil-linux`: boot, `sudo poweroff`, save to `~/sigil-disk.ext4`, second boot from it | not yet run on an F2 (the runs above used the `sigil_host` command it wraps); 35/35 tests against a simulated `sigil_host` |
 
-**The memory platform** (same AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
+22/22 acceptance checks plus the persistence check, [`linux-debian-73-2026-10-22/f2-boot-fixed/`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/f2-boot-fixed/) (full consoles, check summaries, instance and AFI info). F2 time for all of #73: about 3.9 instance-hours.
+
+**The memory platform** (on the platform AFI `agfi-0a1fd54ef68bdc754`, the same CL without the core's walker fix; not repeated on the new AFI, [`f2-platform-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
 
 | Test | Result |
 |---|---|
@@ -135,7 +145,7 @@ Memory as Linux sees it on the F2:
 
 Before the F2 Debian boot, the same OS was brought up in QEMU shaped like the platform (**23/23 acceptance checks**, [`linux-debian-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-debian-73-2026-10-22/)), and the all-RTL SoC model booted Linux 6.12 to `SIGIL_LINUX_BOOT_OK` in 261 M cycles.
 
-FPGA build: Vivado 2025.2, aws-fpga v2.3.5, commit `e641930`, all timing constraints met (WNS +0.150 ns; core clock +0.635 ns at 16 ns; HBM AXI +0.336 ns at 4 ns); 131,694 LUTs (10.1 % of the VU47P) for the full CL, 82,676 for the SoC.
+FPGA build of the new AFI: Vivado 2025.2, aws-fpga v2.3.5, commit `31a1568`, all timing constraints met (WNS +0.095 ns on the core clock at 16 ns; HBM AXI +0.198 ns at 4 ns); 131,259 LUTs (10.08 % of the VU47P) for the full CL, 82,201 for the SoC + OCL block ([`f2-platform-73-oopsfix-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)). The walker race and its fix: [`linux-oops-fix-73-2026-10-22`](https://github.com/bubblebabyboi/sigil/blob/main/docs/evidence/linux-oops-fix-73-2026-10-22/README.md) (13 race tests under the checkers 0/39 before, 39/39 after; core-test, riscv-tests 123/123 and ACT 2,577/2,578 rerun).
 
 ## Assets
 
@@ -153,16 +163,18 @@ FPGA build: Vivado 2025.2, aws-fpga v2.3.5, commit `e641930`, all timing constra
 | `kernel-6.12.114-sigil.config` | 63.7 kB | `dfe19a27fb626f68aa2717ddb77ce0e97eb8d864a148dfe6fba7c6fa87c58bf8` | full kernel configuration |
 | `System.map-6.12.114-sigil` | 1.8 MB | `5c1b2e11bfb2153f0ec190a85ccaf1435eba6b970f0a2fd81fedce9fdf3d4ad3` | kernel symbol map |
 | `manifest.txt` | 7.9 kB | `09bdec60d5d446f09916628376a01947e21ff2612cf629282c40b724bdf19376` | Debian image manifest: snapshot, kernel, every package with its version |
-| `sigil_f2_linux_cl_dcp_e641930.Developer_CL.tar` | 110.9 MB | `69307c690bdcefac9b5d59c786b09f3f7ffa8cf8ea64a51ffa072dbecf86b0cd` | unencrypted F2 design checkpoint the public AFI was created from (manifest `dcp_hash` `2475a285…ab805`) — rebuild or modify it yourself |
-| `sigil_programs_2026-10-22b.tar.gz` | 33.4 kB | `142e1f8b2a4b4873428fef05384bcc5106f5dbe308f1d1b93526edd05bc713ec` | prebuilt bare-metal firmware (crypto, Ed25519, hash, smoke, new F2 platform test and memory test) and the 7 SDK example binaries |
-| `sigil_linux_evidence_2026-10-22.tar.gz` | `<size: restage after the F2 boot evidence>` | `<sha256: restage after the F2 boot evidence>` | #73 evidence: Vivado reports, every F2 host log and UART capture, QEMU and RTL boot logs, `<F2 Debian boot logs: pending>` |
+| `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar` | 110.2 MB | `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246` | unencrypted F2 design checkpoint the public AFI `agfi-0c8aa56fde1a48495` was created from (manifest `dcp_hash` `53eed162…11fe73`) — rebuild or modify it yourself |
+| `sigil_programs_2026-10-22b.tar.gz` | 33.4 kB | `dde6adc16bc409fefb94159f91dcdae0aeaa7e31cd57ed7c67829fd01b6cded3` | prebuilt bare-metal firmware (crypto, Ed25519, hash, smoke, new F2 platform test and memory test) and the 7 SDK example binaries |
+| `sigil_linux_evidence_2026-10-22.tar.gz` | 338.3 kB | `3b15b6dd994648851c84ccfd159281d9a95b42fbeaa5fff983040a25172f9b24` | #73 evidence: Vivado reports of both platform AFIs, every F2 host log and UART capture, QEMU and RTL boot logs, the F2 Debian consoles (the oopses on the old AFI and the 22/22 runs on the new one), the walker-race tests and gates |
 | `SHA256SUMS` | 1.3 kB | | checksums of all of the above |
 
 Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linux_kernel.sh`, `build_debian_rootfs.sh` (versions, checksums and the Debian snapshot are pinned), `fpga/scripts/build_cl_sigil.sh` for the CL.
 
 ## Known issues
 
-- **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs about **13 cycles per instruction** running Linux, at an interim 62.5 MHz. Booting takes minutes and `gcc hello.c` takes about a minute (estimate; `<F2 measured: pending>`). Performance work is epic #61; 100 MHz is #53.
+- **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs about **5 cycles per instruction** running Debian, at an interim 62.5 MHz. Booting to the login prompt takes 5 min 48 s, `gcc hello.c && ./a.out` 22.9 s and `python3 -c` 9.9 s (measured on the F2). Performance work is epic #61; 100 MHz is #53.
+- **F2 platform quirks** ([#75](https://github.com/bubblebabyboi/sigil/issues/75), open): a `sigil_host` killed by a signal (e.g. Ctrl-C outside `--console`, or `pkill`) leaves the SoC running, and after that the console lost bytes until the AFI was reloaded (`sudo fpga-clear-local-image -S 0 -H`, then `sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H`). End Debian sessions with `sudo poweroff`.
+- `sudo reboot` inside Debian keeps the disk in QEMU and was checked on the F2 with the platform test firmware, but Debian's own `reboot` has not been run on the F2 yet.
 - **No network on the F2** (#72). To install more packages, `apt-get install` them into your disk file from the F2 host through a `qemu-user-static` chroot while `sigil-linux` is not running (commands in [`docs/LINUX.md` §6](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#6-the-disk-pmem-saving-it-back-adding-packages)).
 - **The crypto engine has not had a side-channel or fault-injection review.** Do not use real keys.
 - One hart (no SMP). The vector unit is **Zve64d with VLEN 512, not full V**: build with `-march=rv64gc_zve64d` (add `_zvl512b` for auto-vectorization), never `rv64gcv`.
