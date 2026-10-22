@@ -685,7 +685,7 @@ die").
     against 27.500 required): the ECO's estimate was 0.74 ns
     optimistic for the paths it re-buffered. The 36 max-slew pins are
     on 5 nets (worst 2.688 ns against 1.5 on a net with 8 antenna
-    diodes; 33 of the 36 pins are diodes), the max-cap pin (0.243 /
+    diodes; 30 of the 36 pins are diodes), the max-cap pin (0.243 /
     0.222 pF) drives one of them: the ECO's antenna rounds ran after
     its repair_design.
   s125 (3400 x 3680): detailed route 17:23-21:46Z (4 h 23 min; host
