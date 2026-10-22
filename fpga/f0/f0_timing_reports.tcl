@@ -20,11 +20,11 @@
 # and writes the reports again into <out_dir>/cut<N>-<name>: what would
 # still fail once those paths are fixed, before changing any RTL.
 
-# Register group of a start/end cell: drop bit/entry indices, LUTRAM
-# primitives and the replication / RAM-slice suffixes synthesis and
-# phys_opt add.
+# Register group of a start/end cell: drop bit/entry indices, LUTRAM and
+# DSP macro primitives and the replication / RAM-slice suffixes synthesis
+# and phys_opt add.
 proc f0_reg_group {cell} {
-  regsub {/(SP|DP|RAM[A-H](_D1)?)$} $cell {} cell
+  regsub {/(SP|DP|RAM[A-H](_D1)?|DSP_[A-Z0-9_]+)$} $cell {} cell
   regsub {(_rep(__[0-9]+)?|_replica(_[0-9]+)?|__[0-9]+)$} $cell {} cell
   regsub -all {_reg(\[[0-9]+\])+} $cell {_reg} cell
   regsub {(\[[0-9]+\])+$} $cell {} cell
@@ -84,10 +84,11 @@ proc f0_fail_reports {out} {
       dp [get_property DATAPATH_DELAY $paths] dl [get_property DATAPATH_LOGIC_DELAY $paths] \
       dn [get_property DATAPATH_NET_DELAY $paths] \
       sp [get_property STARTPOINT_PIN $paths] ep [get_property ENDPOINT_PIN $paths] {
-    set ec [get_cells -of_objects $ep]
     set sg [f0_reg_group [get_cells -of_objects $sp]]
+    set eg [f0_reg_group [get_cells -of_objects $ep]]
+    set owner [lrange [split $eg /] 0 end-1]
     regsub {\[[0-9]+\]$} [get_property REF_PIN_NAME $ep] {} epin
-    set eg [f0_reg_group $ec]/$epin
+    append eg /$epin
     set thru [lsort -unique [get_property PARENT [get_cells -of_objects $p]]]
     # Nets that kept their RTL name (not synthesis-generated), in path order.
     set nets {}
@@ -97,7 +98,6 @@ proc f0_fail_reports {out} {
     puts $fh [join [list $slack $lvl $dp $dl $dn $sp $ep $sg $eg [join $thru ,] [join $nets ,]] \t]
     f0_add ends $eg $slack $lvl $sp $ep
     f0_add pairs "$sg\t$eg" $slack $lvl $sp $ep
-    set owner [split [get_property PARENT $ec] /]
     for {set k 0} {$k < 4 && $k < [llength $owner]} {incr k} {
       f0_add hier [join [lrange $owner 0 $k] /] $slack $lvl {} {}
     }
