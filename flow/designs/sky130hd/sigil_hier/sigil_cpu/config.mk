@@ -33,12 +33,24 @@ export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/sigil_soc/core
 export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/constraint.sdc
 
-# Floorplan: see ../config.mk for the die budget inside the Caravel
-# user area. Overridable from the command line for sizing runs.
-export DIE_AREA  ?= 0 0 2770 2680
-export CORE_AREA ?= 5 5 2765 2675
+# Floorplan (non-Caravel die, see ../config.mk): 3400 x 3420 um =
+# 11.63 mm^2, 3.6 % more than the 3400 x 3300 sizing run that
+# global-routed with 177 overflowed gcells at 51.4 % usage (9.92 mm^2
+# overflowed on 17,997; the Caravel share of 7.42 mm^2 on 45k-101k).
+# Built together with a 3400 x 3680 (12.51 mm^2) variant:
+#   DIE_AREA="0 0 3400 3680" CORE_AREA="5 5 3395 3675"
+# Overridable from the command line for sizing runs.
+export DIE_AREA  ?= 0 0 3400 3420
+export CORE_AREA ?= 5 5 3395 3415
 export MAX_ROUTING_LAYER = met4
-export MACRO_PLACE_HALO ?= 40 40
+# Macro halo. This ORFS version passes no halo option to
+# rtl_macro_placer and no script reads MACRO_PLACE_HALO (setting it had
+# no effect); RTLMP keeps half the minimum macro channel around each
+# macro, so the halo is set through RTLMP_MIN_CHANNEL_SIZE. 80 80
+# (= 40 um halos, "Area of macros with halos: 3698426.94" in
+# 2_2_floorplan_macro.log for the 7 OpenRAM macros) is the platform
+# default that every sizing run used.
+export RTLMP_MIN_CHANNEL_SIZE ?= 80 80
 export PLACE_DENSITY_LB_ADDON ?= 0.05
 export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/io.tcl
 export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/pdn.tcl
