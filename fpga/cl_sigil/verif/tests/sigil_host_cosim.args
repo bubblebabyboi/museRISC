@@ -1,0 +1,13 @@
+# Arguments for fpga/host/sigil_host.c in test_sigil_host_cosim (one per
+# line; paths relative to the XSIM run directory). Timeout is in
+# simulated seconds.
+--recipe-b
+1
+--bin
+../../../fw/hash_soc_test.bin
+--exit
+SOC HASH PASS
+--timeout
+0.02
+--log
+sigil_host_uart.log

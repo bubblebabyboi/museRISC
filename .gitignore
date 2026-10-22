@@ -7,3 +7,22 @@ obj_dir/
 __pycache__/
 /deps
 .claude/
+# AWS F2 CL (issue #54): the HDK layout needs a tracked build/ dir;
+# only its scripts and constraints are sources.
+!/fpga/cl_sigil/build/
+/fpga/cl_sigil/build/*
+!/fpga/cl_sigil/build/scripts/
+!/fpga/cl_sigil/build/constraints/
+/fpga/cl_sigil/build/scripts/aws_build_dcp_from_cl.py
+/fpga/cl_sigil/build/scripts/build_all.tcl
+/fpga/cl_sigil/build/scripts/build_level_1_cl.tcl
+/fpga/cl_sigil/build/scripts/*.log
+/fpga/cl_sigil/build/scripts/*.jou
+/fpga/cl_sigil/build/scripts/.Xil/
+/fpga/cl_sigil/build/scripts/to_aws*/
+/fpga/cl_sigil/build/constraints/generated_cl_clocks_aws.xdc
+/fpga/cl_sigil/verif/sim/
+/fpga/host/sigil_host
+/fpga/host/*.o
+/fpga/cl_sigil/verif/fw/
+/fpga/cl_sigil/verif/*.make.log

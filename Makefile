@@ -10,6 +10,11 @@ BUILD := build
 # FPGA SoC top + mbus->AXI4 bridge (issue #52).
 FPGA_RTL := rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv \
             rtl/fpga/sigil_fpga_top.sv
+# AWS F2 CL core-clock half: OCL registers + FPGA top (issue #54).
+# The CL top fpga/cl_sigil/design/cl_sigil.sv instantiates Xilinx IP
+# (clock converters, SmartConnect, AWS_CLK_GEN, sh_ddr, XPM) and is
+# not Verilator-linted; it is checked by the HDK XSIM/Vivado flows.
+FPGA_OCL_RTL := $(FPGA_RTL) rtl/fpga/sigil_ocl_regs.sv rtl/fpga/sigil_fpga_ocl.sv
 
 CORE_RTL := rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv \
             rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv \
@@ -61,6 +66,8 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_decerr rtl/fpga/sigil_axi_decerr.sv
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

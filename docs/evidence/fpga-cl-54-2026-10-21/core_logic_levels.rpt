@@ -1,0 +1,29 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Wed Oct 21 09:23:13 2026
+| Host         : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command      : report_design_analysis -logic_level_distribution -of_timing_paths [get_timing_paths -group [get_clocks clk_out2_clk_mmcm_b] -max_paths 1000 -nworst 1] -file /home/ubuntu/cl-sigil-build2/rpt/core_logic_levels.rpt
+| Design       : top
+| Device       : xcvu47p
+| Design State : Routed
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Design Analysis
+
+Table of Contents
+-----------------
+1. Logic Level Distribution
+
+1. Logic Level Distribution
+---------------------------
+
++---------------------+-------------+----+----+----+----+----+-----+-----+-----+-----+----+
+|   End Point Clock   | Requirement | 34 | 35 | 36 | 37 | 38 |  39 |  40 |  41 |  42 | 43 |
++---------------------+-------------+----+----+----+----+----+-----+-----+-----+-----+----+
+| clk_out2_clk_mmcm_b | 16.000ns    |  2 | 19 | 73 |  1 | 14 | 220 | 246 | 100 | 321 |  4 |
++---------------------+-------------+----+----+----+----+----+-----+-----+-----+-----+----+
+* Columns represent the logic levels per end point clock
+** Distribution is for top worst 1000 paths
+
+
