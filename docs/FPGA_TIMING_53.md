@@ -644,7 +644,9 @@ checks on from the first.
 - **Checks:**
   - Simulation:
     - (i) whenever IF uses `it_q` and the full I-TLB lookup of
-      `fetch_va` is OK, the PA and guest bits are equal;
+      `fetch_va` is OK, the PA and guest bits are equal, unless `it_q`
+      was loaded before the last TLB change (a re-walk may re-read a
+      PTE changed without SFENCE; either translation is legal);
     - (ii) `it_q` is invalid in the cycle after any satp, vsatp or
       hgatp write, trap, xRET or SFENCE/HFENCE [P2, J-ISA].
   - Tests: `vm_directed`, `hyp_directed`, `trap_pa_fetch`,
@@ -868,6 +870,25 @@ setting (`SIGIL_VRF_OREG` + `SIGIL_FPGA_TIMING`).
 - **Evidence:** `docs/evidence/fpga-timing-53-final-2026-10-2x.md` plus
   a README entry, and a `docs/CORE.md` section on `FPGA_TIMING`
   behaviour.
+- **Review round 2 (fixes, FPGA_TIMING only).** Three ISA
+  divergences from `main`, found by directed review tests:
+  - An EX capture (`dl_mem` = 0) matched the walk-fault record by VA
+    alone, so an HLV/HSV/HLVX right after a trimmed `vle*ff` of the
+    same VA took a spurious page fault: `main` drops the record
+    before that access reaches MEM. Such a capture is now not valid
+    and MEM replays its own lookup (+1 cycle, rare). The `mt_q`
+    simulation check exempts only MEM's own captures whose record
+    dropped afterwards.
+  - The fetch guest flag left `g_ireg` without the fault, so a fetch
+    access fault right after a fetch guest-page fault lookup wrote a
+    stale GPA to `mtval2`/`htval`. It is now gated with the fault.
+  - The `it_q` simulation check fired on a legal stale translation
+    (a code page remapped without SFENCE, then re-walked for a D-bit
+    update); it now skips the cycle after a TLB change until `it_q`
+    reloads.
+  - Tests: the review's directed tests that pass on `main` (21
+    programs; `vm_irq_directed` at 152 timer-IRQ offsets) run in
+    `sim/run_directed.sh`.
 
 ### Step 16 (optional, after closure): redirect port for translated fetch
 
@@ -924,7 +945,7 @@ the Status column.
 | Vector LS: indexed | +1 per active element (4 → 5 cycles; an index prefetch could recover it) |
 | Fetch, bare or M-mode | 0 |
 | Fetch, translated | 0 on the same page. +1 per page change, including cross-page redirects until step 16. +1 after trap, xRET, SFENCE/HFENCE or satp/vsatp/hgatp write. +1 per I-walk. +1 on a fetch page fault. |
-| Rare | +1 when a TLB write lands on the `mt_q` capture edge |
+| Rare | +1 when a TLB write lands on the `mt_q` capture edge. +1 when EX's access matches the recorded data walk fault (MEM replays its own lookup; review round 2) |
 
 **Fallback costs**, each measured and documented if it is used:
 
