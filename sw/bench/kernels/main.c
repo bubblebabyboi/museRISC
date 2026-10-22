@@ -150,7 +150,10 @@ static void check_out(const char *impl, const void *out, const void *ref, size_t
   const uint8_t *a = out, *b = ref;
   for (size_t i = 0; i < bytes; i++)
     if (a[i] != b[i]) fail_at(impl, (long)i);
-  if (!guards_ok(out, bytes)) fail_at(impl, -1); /* guard band overwritten */
+  if (!guards_ok(out, bytes)) {
+    sigil_printf("KERNEL %s: %s wrote outside its output (guard band)\n", cur, impl);
+    fail_at(impl, -1);
+  }
 }
 
 static void check_val(const char *impl, const void *v, const void *ref, size_t bytes) {
