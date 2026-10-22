@@ -34,6 +34,7 @@ foreach tok [regexp -all -inline {[A-Za-z0-9_/]+\.sv} $mk] { lappend soc_files $
 lappend soc_files \
   ${rtl_dir}/fpga/sigil_fifo.sv \
   ${rtl_dir}/fpga/sigil_mbus_axi4.sv \
+  ${rtl_dir}/fpga/sigil_axi_memeng.sv \
   ${rtl_dir}/fpga/sigil_fpga_top.sv \
   ${rtl_dir}/fpga/sigil_ocl_regs.sv \
   ${rtl_dir}/fpga/sigil_fpga_ocl.sv \

@@ -8,6 +8,8 @@
 // side, AXI4 clock converter on the DDR side) and the Shell glue.
 // Kept free of Xilinx primitives so Verilator lints and simulates
 // it (tb/cpp/fpga_ocl_tb.cpp drives it the way fpga/host/ does).
+// RAM_SIZE is the SoC RAM window (128 MiB in simulation, 80 GiB =
+// DDR4 + HBM in the F2 CL); HBM_PRESENT / hbm_ready_i report the HBM.
 `default_nettype none
 module sigil_fpga_ocl #(
     parameter int unsigned AXI_ID_W   = 16,
@@ -18,11 +20,13 @@ module sigil_fpga_ocl #(
     parameter logic [63:0] DDR_BASE = 64'h0,
     parameter int unsigned UART_TX_DEPTH = 1024,
     parameter int unsigned UART_RX_DEPTH = 64,
-    parameter logic [31:0] CORE_CLK_KHZ = 32'd62500
+    parameter logic [31:0] CORE_CLK_KHZ = 32'd62500,
+    parameter bit          HBM_PRESENT = 1'b0
 ) (
     input  wire        clk_i,
     input  wire        rst_ni,
     input  wire        ddr_ready_i,       // synchronized to clk_i
+    input  wire        hbm_ready_i,       // synchronized to clk_i
     output logic       soc_in_reset_o,    // status (virtual LEDs)
     output logic       mem_err_o,
     // AXI4-Lite slave (OCL registers).
@@ -83,6 +87,7 @@ module sigil_fpga_ocl #(
 );
   localparam int unsigned TX_CW = $clog2(UART_TX_DEPTH) + 1;
   localparam int unsigned RX_CW = $clog2(UART_RX_DEPTH) + 1;
+  localparam logic [63:0] RAM_MB = RAM_SIZE >> 20;
 
   logic        soc_reset_req, cache_en, soc_in_reset, trap;
   logic [63:0] boot_pc, cycle_count, trap_cause, trap_pc;
@@ -90,11 +95,19 @@ module sigil_fpga_ocl #(
   logic        tx_valid, tx_pop, tx_ovf, rx_push, rx_full;
   logic [TX_CW-1:0] tx_count;
   logic [RX_CW-1:0] rx_count;
+  logic        tx_drop, err_clr, fin_event, rtc_set;
+  logic [63:0] err_addr, rtc_set_ns, rtc_ns;
+  logic [31:0] err_info, err_count, fin_value, rtc_inc;
+  logic        eng_start, eng_busy, eng_done, eng_fail;
+  logic [1:0]  eng_mode;
+  logic [63:0] eng_base, eng_size, eng_seed, eng_fail_addr, eng_cycles;
+  logic [31:0] eng_mism, eng_rerr;
 
   assign soc_in_reset_o = soc_in_reset;
 
   sigil_ocl_regs #(
-      .CORE_CLK_KHZ(CORE_CLK_KHZ), .TX_CW(TX_CW), .RX_CW(RX_CW)
+      .CORE_CLK_KHZ(CORE_CLK_KHZ), .TX_CW(TX_CW), .RX_CW(RX_CW),
+      .RAM_SIZE_MB(RAM_MB[31:0]), .HBM_PRESENT(HBM_PRESENT)
   ) u_regs (
       .clk_i, .rst_ni,
       .s_axil_awaddr, .s_axil_awvalid, .s_axil_awready,
@@ -120,7 +133,31 @@ module sigil_fpga_ocl #(
       .uart_rx_push_o    (rx_push),
       .uart_rx_full_i    (rx_full),
       .uart_rx_count_i   (rx_count),
-      .ddr_ready_i
+      .uart_tx_drop_o    (tx_drop),
+      .ddr_ready_i,
+      .hbm_ready_i,
+      .err_clr_o         (err_clr),
+      .err_addr_i        (err_addr),
+      .err_info_i        (err_info),
+      .err_count_i       (err_count),
+      .fin_event_i       (fin_event),
+      .fin_value_i       (fin_value),
+      .rtc_set_o         (rtc_set),
+      .rtc_set_ns_o      (rtc_set_ns),
+      .rtc_inc_o         (rtc_inc),
+      .rtc_ns_i          (rtc_ns),
+      .eng_start_o       (eng_start),
+      .eng_mode_o        (eng_mode),
+      .eng_base_o        (eng_base),
+      .eng_size_o        (eng_size),
+      .eng_seed_o        (eng_seed),
+      .eng_busy_i        (eng_busy),
+      .eng_done_i        (eng_done),
+      .eng_fail_i        (eng_fail),
+      .eng_mism_i        (eng_mism),
+      .eng_fail_addr_i   (eng_fail_addr),
+      .eng_rerr_i        (eng_rerr),
+      .eng_cycles_i      (eng_cycles)
   );
 
   sigil_fpga_top #(
@@ -136,6 +173,10 @@ module sigil_fpga_ocl #(
       .soc_in_reset_o    (soc_in_reset),
       .cycle_count_o     (cycle_count),
       .mem_err_o,
+      .err_clr_i         (err_clr),
+      .err_addr_o        (err_addr),
+      .err_info_o        (err_info),
+      .err_count_o       (err_count),
       .trap_o            (trap),
       .trap_cause_o      (trap_cause),
       .trap_pc_o         (trap_pc),
@@ -144,10 +185,29 @@ module sigil_fpga_ocl #(
       .uart_tx_pop_i     (tx_pop),
       .uart_tx_count_o   (tx_count),
       .uart_tx_overflow_o(tx_ovf),
+      .uart_tx_drop_i    (tx_drop),
       .uart_rx_data_i    (rx_data),
       .uart_rx_push_i    (rx_push),
       .uart_rx_full_o    (rx_full),
       .uart_rx_count_o   (rx_count),
+      .fin_event_o       (fin_event),
+      .fin_value_o       (fin_value),
+      .rtc_set_i         (rtc_set),
+      .rtc_set_ns_i      (rtc_set_ns),
+      .rtc_inc_i         (rtc_inc),
+      .rtc_ns_o          (rtc_ns),
+      .eng_start_i       (eng_start),
+      .eng_mode_i        (eng_mode),
+      .eng_base_i        (eng_base),
+      .eng_size_i        (eng_size),
+      .eng_seed_i        (eng_seed),
+      .eng_busy_o        (eng_busy),
+      .eng_done_o        (eng_done),
+      .eng_fail_o        (eng_fail),
+      .eng_mism_o        (eng_mism),
+      .eng_fail_addr_o   (eng_fail_addr),
+      .eng_rerr_o        (eng_rerr),
+      .eng_cycles_o      (eng_cycles),
       .m_axi_awid, .m_axi_awaddr, .m_axi_awlen, .m_axi_awsize,
       .m_axi_awburst, .m_axi_awlock, .m_axi_awcache, .m_axi_awprot,
       .m_axi_awqos, .m_axi_awvalid, .m_axi_awready,

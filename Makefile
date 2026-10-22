@@ -4,12 +4,13 @@ RTL := rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv \
        rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv \
        rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv \
        rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv \
+       rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv \
        rtl/soc/sigil_crypto_bridge.sv \
        rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
 BUILD := build
 # FPGA SoC top + mbus->AXI4 bridge (issue #52).
 FPGA_RTL := rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv \
-            rtl/fpga/sigil_fpga_top.sv
+            rtl/fpga/sigil_axi_memeng.sv rtl/fpga/sigil_fpga_top.sv
 # AWS F2 CL core-clock half: OCL registers + FPGA top (issue #54).
 # The CL top fpga/cl_sigil/design/cl_sigil.sv instantiates Xilinx IP
 # (clock converters, SmartConnect, AWS_CLK_GEN, sh_ddr, XPM) and is
@@ -67,6 +68,8 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl "-GRAM_SIZE=64'h1400000000" -GHBM_PRESENT=1 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_memeng -GAXI_DATA_W=64 rtl/fpga/sigil_axi_memeng.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_decerr rtl/fpga/sigil_axi_decerr.sv
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)

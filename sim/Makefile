@@ -390,6 +390,8 @@ SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
              $(SOCDIR)/sigil_clint.sv $(SOCDIR)/sigil_plic.sv \
              $(SOCDIR)/sigil_uart16550.sv \
              $(SOCDIR)/sigil_bootrom.sv \
+             $(SOCDIR)/sigil_test_finisher.sv \
+             $(SOCDIR)/sigil_rtc_goldfish.sv \
              $(SOCDIR)/sigil_crypto_bridge.sv \
              $(SOCDIR)/sigil_soc_fabric.sv \
              $(SOCDIR)/sigil_soc_top.sv
@@ -489,14 +491,14 @@ examples: $(addprefix example-,$(EXAMPLES))
 FPGADIR    := $(ROOT)/rtl/fpga
 BRIDGE_RTL := $(FPGADIR)/sigil_mbus_axi4.sv
 FPGA_RTL   := $(SOC_RTL) $(FPGADIR)/sigil_fifo.sv $(BRIDGE_RTL) \
-              $(FPGADIR)/sigil_fpga_top.sv
+              $(FPGADIR)/sigil_axi_memeng.sv $(FPGADIR)/sigil_fpga_top.sv
 AXI_TB_H   := $(ROOT)/tb/cpp/axi4_slave_model.h
 AXIB_WIDTHS := 64 128 512
 # Bridge unit TB at each AXI data width (window 64 KiB, AXI base
 # 0x4_0000: must match the constants in axi_bridge_tb.cpp).
 $(BUILD)/axi_bridge_tb_%: $(ROOT)/tb/cpp/axi_bridge_tb.cpp $(AXI_TB_H) $(BRIDGE_RTL) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/axib_$* --top-module sigil_mbus_axi4 \
-	  -GAXI_DATA_W=$* "-GMEM_MASK=64'hFFFF" "-GAXI_BASE=64'h40000" \
+	  -GAXI_DATA_W=$* "-GMEM_SIZE=64'h10000" "-GAXI_BASE=64'h40000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=$$(($*/8)) \
 	  -o $(abspath $@) $(BRIDGE_RTL) $(abspath $(ROOT)/tb/cpp/axi_bridge_tb.cpp)
 

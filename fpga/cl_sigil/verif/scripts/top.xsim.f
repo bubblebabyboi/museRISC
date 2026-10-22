@@ -40,11 +40,14 @@ $CL_DIR/../../rtl/soc/sigil_clint.sv
 $CL_DIR/../../rtl/soc/sigil_plic.sv
 $CL_DIR/../../rtl/soc/sigil_uart16550.sv
 $CL_DIR/../../rtl/soc/sigil_bootrom.sv
+$CL_DIR/../../rtl/soc/sigil_test_finisher.sv
+$CL_DIR/../../rtl/soc/sigil_rtc_goldfish.sv
 $CL_DIR/../../rtl/soc/sigil_crypto_bridge.sv
 $CL_DIR/../../rtl/soc/sigil_soc_fabric.sv
 $CL_DIR/../../rtl/soc/sigil_soc_top.sv
 $CL_DIR/../../rtl/fpga/sigil_fifo.sv
 $CL_DIR/../../rtl/fpga/sigil_mbus_axi4.sv
+$CL_DIR/../../rtl/fpga/sigil_axi_memeng.sv
 $CL_DIR/../../rtl/fpga/sigil_fpga_top.sv
 $CL_DIR/../../rtl/fpga/sigil_ocl_regs.sv
 $CL_DIR/../../rtl/fpga/sigil_fpga_ocl.sv

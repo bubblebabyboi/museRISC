@@ -40,7 +40,7 @@
 namespace {
 // Must match the build's -G overrides (sim/Makefile axibridge).
 constexpr uint64_t kMemBase = 0x80000000ULL;  // MEM_BASE
-constexpr uint64_t kWindow = 0x10000ULL;      // MEM_MASK + 1
+constexpr uint64_t kWindow = 0x10000ULL;      // MEM_SIZE
 constexpr uint64_t kAxiBase = 0x40000ULL;     // AXI_BASE
 constexpr int kDw = AXI_DW_BYTES;
 
