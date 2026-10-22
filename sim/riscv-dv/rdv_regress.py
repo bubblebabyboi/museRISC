@@ -264,11 +264,13 @@ def run_one(entry, seed, a):
         return row
 
     # 1. Generate (pygen) and assemble. A directed entry ('asm:', like
-    #    riscv-dv's --asm_test) skips generation; its seed only varies
-    #    the DUT bus timing.
+    #    riscv-dv's --asm_test) skips generation; it is assembled with
+    #    -DRDV_SEED=<gen_seed>, which seeds its PRNG.
+    asm_defs = []
     if "asm" in entry:
         shutil.copyfile(os.path.join(HERE, entry["asm"]), p["asm"])
         row["gen_s"] = 0
+        asm_defs = ["-DRDV_SEED=%d" % row["gen_seed"]]
     else:
         cmd = [a.venv_py, "pygen/pygen_src/test/riscv_instr_base_test.py",
                "--target=sigil", "--gen_test=%s" % entry.get("gen_test", "riscv_instr_base_test"),
@@ -296,7 +298,7 @@ def run_one(entry, seed, a):
                 why = "rc=%d" % rc
             return done("GEN_FAIL", "pygen %s: %s" % (why, tail(os.path.join(d, "gen.out"), 2)))
     cmd = [a.gcc, "-march=" + entry.get("march", MARCH), "-mabi=" + MABI, "-static", "-mcmodel=medany",
-           "-fvisibility=hidden", "-nostdlib", "-nostartfiles", p["asm"],
+           "-fvisibility=hidden", "-nostdlib", "-nostartfiles"] + asm_defs + [p["asm"],
            "-I", USER_EXT, "-T", LINK_LD, "-o", p["elf"]]
     rc, _ = run_cmd(cmd, os.path.join(d, "gcc.out"), timeout=300)
     if rc != 0:

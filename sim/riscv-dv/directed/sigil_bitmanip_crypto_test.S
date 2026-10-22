@@ -1,14 +1,20 @@
 # Directed program for the riscv-dv flow (issue #8): instructions that
 # riscv-dv's pygen cannot generate, run through the same Spike vs DUT
-# commit-trace comparison as the generated tests. A xorshift64 PRNG
-# feeds 300 iterations of RV64 Zba/Zbb/Zbs W-forms, Zbkb/Zbkc/Zbkx,
+# commit-trace comparison as the generated tests. A xorshift64 PRNG,
+# seeded with RDV_SEED (the driver assembles the program with
+# -DRDV_SEED=<gen_seed>), feeds 300 iterations of RV64 Zba/Zbb/Zbs W-forms, Zbkb/Zbkc/Zbkx,
 # Zkne/Zknd/Zknh and Zicond, so every result register write is
 # compared; the stores at the end are compared too. Assembled with
 # Zcb, so the assembler emits Zcb encodings where it can.
+#ifndef RDV_SEED
+#define RDV_SEED 0
+#endif
         .section .text
         .globl _start
 _start:
         li      s0, 0x9e3779b97f4a7c15   # PRNG state
+        li      t0, RDV_SEED
+        xor     s0, s0, t0
         li      s1, 300                  # iterations
         li      s2, 0                    # running digest
 loop:
