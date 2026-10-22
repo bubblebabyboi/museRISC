@@ -287,6 +287,13 @@ module sigil_icache import sigil_cache_pkg::*; #(
       (bus_rsp_valid_i && (state_q != S_FILL)) |->
       (bus_rsp_last_i && (state_q == S_UNC_RSP)))
     else $error("icache: unexpected bus response");
+  // Performance-counter tap, read hierarchically by the
+  // simulation-only event counters in sigil_cpu (sigil_perf.svh):
+  // the lookup of the current request missed (a refill follows).
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic perf_miss;
+  assign perf_miss = (state_q == S_LOOKUP) && !hit;
+  /* verilator lint_on UNUSEDSIGNAL */
 `endif
 endmodule
 `default_nettype wire
