@@ -1,0 +1,291 @@
+#56 / #10 completeness review, 2026-10-22: gates on the final 56-perf-harness tree, the baseline
+reproduced from a clean worktree, and the docs/PERFORMANCE.md how-to commands run as written.
+
+Design under test: rtl/ tree 89b98cb227c6 = the tree of the committed baseline
+(perf-baseline-56-2026-10-22) = main eeaa332 plus the simulation-only counters. No #53 code.
+Branch commits after b441f31 change only docs/ (this log, its index entry, PERFORMANCE.md text).
+
+Contents
+  A. Gates, clean worktree of 56-perf-harness at b441f31 (sigil-verify)
+  B. Coverage and core-test cycle counts against main eeaa332
+  C. make lint on the Mac (Verilator 5.044)
+  D. The baseline reproduced from a clean worktree, and the PERFORMANCE.md how-to commands
+  E. How the ACT ELFs were generated
+
+======================================================================================
+A. Gates (scripts: build/gates.out of ~/wt/56-gates, a fresh `git worktree add --detach` of
+   origin/56-perf-harness + scripts/worktree_setup.sh; VJOBS=9, ACT 9 jobs; the riscv-dv
+   regression shared the host)
+======================================================================================
+# Gates: branch 56-perf-harness, clean worktree, sigil-verify (EC2 c7i.8xlarge, Ubuntu 24.04)
+host ip-172-31-65-164 start 2026-10-22T13:45:57Z
+head b441f310792814ca2a6e9304ab4be1a49d713f7f (PERFORMANCE.md (#56): quick smoke is ITER=1 ...)
+tracked files modified: 0; merge-base with main: eeaa33299d7b
+rtl/ tree 89b98cb227c6 (baseline evidence tree 89b98cb227c6; main eeaa332 bad309f0f8ac)
+deps verilator: Verilator 5.048 2026-04-26 rev v5.048; CI-parity verilator: Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv gcc: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0; host g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0; Python 3.12.3; VJOBS=9
+
+== lint
+lint-5.048 rc=0 21s
+  17 lint runs; warnings 0, errors 0
+lint-5.020 rc=0 17s
+  (Verilator 5.020 2024-01-01 rev (Debian 5.020-1)) warnings 0, errors 0
+
+== synthesis view (passive counters): +define+SYNTHESIS
+synth-view-diff rc=0 1s
+  defines=[SYNTHESIS] lines=12035 A=39ff64cdc9f5c312 B=39ff64cdc9f5c312 IDENTICAL
+  defines=[SYNTHESIS SIGIL_SRAM_FAKERAM45] lines=12072 A=202f5e01b334161c B=202f5e01b334161c IDENTICAL
+  defines=[SYNTHESIS SIGIL_SRAM_SKY130] lines=12090 A=68394c5d1706778d B=68394c5d1706778d IDENTICAL
+  defines=[SYNTHESIS SIGIL_SRAM_OREG] lines=12035 A=1e1503de037b6f36 B=1e1503de037b6f36 IDENTICAL
+  defines=[SYNTHESIS SIGIL_VRF_OREG] lines=12035 A=d1ec36fba4839bd1 B=d1ec36fba4839bd1 IDENTICAL
+  defines=[none, simulation view] lines=12588 A=92ed7150eb0d2ab7 B=8f6dae7dab5110b6 DIFFERENT (330 lines)
+  SYNTHESIS VIEWS IDENTICAL
+  lint +define+SYNTHESIS, Verilator 5.048: 17 runs, 24 warnings ( 20 'bus_rsp_last_i'  4 'req_off' ), 0 errors; diagnostics identical to main eeaa332
+  lint +define+SYNTHESIS, Verilator 5.020: 17 runs, 24 warnings ( 20 'bus_rsp_last_i'  4 'req_off' ), 0 errors; diagnostics identical to main eeaa332
+  sigil_cpu SYNTHESIS view, perf identifiers: 0 (simulation view: 193)
+
+== make test
+make-test rc=0 14s
+  ALL PHASE-0 KATs PASS
+
+== make core-test
+core-test rc=0 2460s
+  235 'TB PASS' lines; 0 FAIL/TIMEOUT/Error lines
+  VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro fakeram45]
+  SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro fakeram45]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro sky130]
+  SOC RTL TB PASS (exit string at 40649633 cycles) [SRAM macro sky130]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro oreg]
+  SOC RTL TB PASS (exit string at 40648793 cycles) [SRAM macro oreg]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro vrforeg]
+  SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro vrforeg]
+  ALL 7 EXAMPLES PASS on soc_rtl_tb
+    lines with all attached points covered : 54.00%  (3727/6840)
+  vs main eeaa332 reference (same host, ~/wt/main-eeaa332/build/gates-main/core-test.log): PASS lines main 255, branch 255, differing lines (wall-clock stripped) 4
+  main coverage:   lines with all attached points covered : 55.00%  (3491/6252)
+
+== make riscv-tests
+riscv-tests rc=0 28s
+  riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+== make -C sim srammacro
+srammacro rc=0 1187s
+  VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro fakeram45]
+  SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro fakeram45]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro sky130]
+  SOC RTL TB PASS (exit string at 40649633 cycles) [SRAM macro sky130]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro oreg]
+  SOC RTL TB PASS (exit string at 40648793 cycles) [SRAM macro oreg]
+  VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+  CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro vrforeg]
+  SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro vrforeg]
+
+== make -C sim examples
+examples rc=0 79s
+  EXAMPLE PASS hello (at 53902 cycles, 0 s)
+  EXAMPLE PASS timer_irq (at 51321 cycles, 1 s)
+  EXAMPLE PASS sha256_accel (at 1465841 cycles, 7 s)
+  EXAMPLE PASS hash_stream (at 261281 cycles, 1 s)
+  EXAMPLE PASS ed25519_verify (at 14630075 cycles, 66 s)
+  EXAMPLE PASS vector_dot (at 811390 cycles, 4 s)
+  EXAMPLE PASS fp_math (at 47399 cycles, 0 s)
+  ALL 7 EXAMPLES PASS on soc_rtl_tb
+
+== ACT, full core set (~/wt/56-critic/third_party/riscv-arch-test/work/sigil-core/elfs; generated from riscv-arch-test 6af53584 + Sail 0.15 per sw/act4-core/README.md, 43 listed in act-vector-core-genfail-2026-10-14.csv moved aside)
+act rc=1 514s
+  ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 513s
+  FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+  Vx: 821/821
+  Vls: 1051/1051
+  Vf: 162/162
+  scalar+priv: 543/544
+
+end 2026-10-22T14:59:09Z wall 4392s
+
+Notes on A
+- The 24 warnings of the +define+SYNTHESIS lint are UNUSEDSIGNAL (bus_rsp_last_i, read only by
+  the caches' existing `ifndef SYNTHESIS assertions; req_off[2:0] in sigil_mbus_axi4). They are
+  main's own: the same 17 runs on a `git archive eeaa332` copy give byte-identical diagnostics on
+  both Verilators. `make lint` itself does not define SYNTHESIS and is clean (0 warnings).
+- "perf identifiers 0" = with SYNTHESIS defined, the preprocessed sigil_cpu contains no perf_*
+  or PE_STK* identifier at all; the synthesis views of every flow's define set are byte-identical
+  to main eeaa332 (synth_view_diff.sh). Nothing new can reach a netlist.
+- The 4 "differing lines" of the PASS-line comparison are command echoes that contain the
+  worktree path (~/wt/main-eeaa332 vs ~/wt/56-gates); every TB PASS / EXAMPLE PASS line,
+  cycle counts included, is identical to main's.
+- The core-test coverage line above (54.00%, 3727/6840) is not comparable with main's
+  reference, because this run did `make test` first and its crypto unit TBs add 7 coverage
+  files (cov_cryptotop/ecfield/hashstream/keccak/sha256/sha512 and cov_rvtest from
+  riscv-tests). Section B compares like with like.
+- ACT: the only failure is the known PA0 waiver PMPSm_cfg_A_tor_zero-00 (18,024 cycles). Against
+  docs/evidence/act-core-w0-stack-2026-10-20.csv: the same 2,578 tests, the same verdicts and
+  identical cycle counts for all 2,578.
+
+======================================================================================
+B. Coverage and cycle counts against main eeaa332 (reference: core-test of a main eeaa332
+   worktree on the same host, 2026-10-22T06:57Z, ~/wt/main-eeaa332/build/gates-main/core-test.log)
+======================================================================================
+- The main reference wrote 1,440 cov_*.dat files; this run wrote the same 1,440 plus the 7 above.
+- All 1,440 common files are byte-identical (cmp: 0 differ).
+- Merged over those 1,440 files: "lines with all attached points covered : 55.00% (3491/6252)",
+  identical to main's 55.00% (3491/6252), and identical uncovered-line counts in every one of the
+  26 annotated source files. The counters (verilator coverage_off) add no coverage point.
+- core-test: 235 'TB PASS' lines on both; every PASS line identical including cycle counts.
+
+======================================================================================
+C. make lint on the Mac (edit host), Verilator 5.044 2026-01-01 (Homebrew), 56-perf-harness at
+   a78e1ce (rtl/ tree 89b98cb227c6, the same as b441f31), 2026-10-22T13:24:57Z
+======================================================================================
+make lint rc=0 8s: 17 lint runs, 0 warnings, 0 errors
+
+======================================================================================
+D. Clean-worktree reproduction and how-to commands (sigil-verify, ~/wt/56-critic: a fresh
+   detached worktree of 56-perf-harness at 61fc93c, rtl/ tree 89b98cb227c6; Verilator 5.048,
+   riscv64-unknown-elf-gcc 16.1.0). 61fc93c differs from b441f31 only in docs/PERFORMANCE.md and
+   in scripts/perf_report.py (new I$/D$ hit and miss-cycle rows in the events table); the report
+   and --diff steps were rerun with b441f31's perf_report.py (end of this section).
+======================================================================================
+D.1 The committed baseline, reproduced run by run. For each configuration:
+    make -C sim perf CONFIG=<config> MEM="soc axi" JOBS=12 PERF_OUT=build/perf/new-<config>
+    then docs/evidence/perf-suite-56-2026-10-22/compare_evidence.py (image sha256, every
+    SIGIL_PERF counter, hardware-counter numbers) against
+    docs/evidence/perf-baseline-56-2026-10-22/<config>/results.json (rep 0).
+howto start 2026-10-22T13:21:29Z head 61fc93c Verilator 5.048 2026-04-26 rev v5.048
+== repro-default: make -C sim perf CONFIG=default MEM=soc axi JOBS=12 PERF_OUT=~/wt/56-critic/build/perf/new-default
+repro-default rc=0 285s
+perf: build coremark [validation] (20 iterations)
+perf: 356 runs valid, 0 failed; ~/wt/56-critic/build/perf/new-default/results.json, ~/wt/56-critic/build/perf/new-default/report.md
+compare new-default vs baseline rc=0
+docs/evidence/perf-baseline-56-2026-10-22/default/results.json: benches coremark dhrystone kernels micro_dmem micro_imem micro_pipe micro_units micro_vec sha256chain sha256chain_bulk; evidence date 2026-10-22T11:27:22Z commit 8d15410 rtl 89b98cb227c6
+  356 runs in common (712 in evidence): image identical 356/356, counters identical 356/356
+suite: 356 valid runs, 0 failed; 356 compared with evidence, 0 not in any evidence set
+RESULT: IDENTICAL
+== repro-sky130: make -C sim perf CONFIG=sky130 MEM=soc axi JOBS=12 PERF_OUT=~/wt/56-critic/build/perf/new-sky130
+repro-sky130 rc=0 438s
+perf: build coremark [validation] (20 iterations)
+perf: 356 runs valid, 0 failed; ~/wt/56-critic/build/perf/new-sky130/results.json, ~/wt/56-critic/build/perf/new-sky130/report.md
+compare new-sky130 vs baseline rc=0
+docs/evidence/perf-baseline-56-2026-10-22/sky130/results.json: benches coremark dhrystone kernels micro_dmem micro_imem micro_pipe micro_units micro_vec sha256chain sha256chain_bulk; evidence date 2026-10-22T11:35:34Z commit 8d15410 rtl 89b98cb227c6
+  356 runs in common (712 in evidence): image identical 356/356, counters identical 356/356
+suite: 356 valid runs, 0 failed; 356 compared with evidence, 0 not in any evidence set
+RESULT: IDENTICAL
+== repro-fpga: make -C sim perf CONFIG=fpga MEM=soc axi JOBS=12 PERF_OUT=~/wt/56-critic/build/perf/new-fpga
+repro-fpga rc=0 315s
+perf: build coremark [validation] (20 iterations)
+perf: 356 runs valid, 0 failed; ~/wt/56-critic/build/perf/new-fpga/results.json, ~/wt/56-critic/build/perf/new-fpga/report.md
+compare new-fpga vs baseline rc=0
+docs/evidence/perf-baseline-56-2026-10-22/fpga/results.json: benches coremark dhrystone kernels micro_dmem micro_imem micro_pipe micro_units micro_vec sha256chain sha256chain_bulk; evidence date 2026-10-22T11:40:56Z commit 8d15410 rtl 89b98cb227c6
+  356 runs in common (712 in evidence): image identical 356/356, counters identical 356/356
+suite: 356 valid runs, 0 failed; 356 compared with evidence, 0 not in any evidence set
+RESULT: IDENTICAL
+perf_report.py --diff (61fc93c version) default baseline vs new-default: rc=0, 356 runs "no change"
+    => default, sky130 and fpga all reproduce exactly: 3 x 356 region results, identical images
+       and identical counters. The baseline is deterministic across worktrees and Verilator
+       rebuilds of the testbenches.
+
+D.2 The PERFORMANCE.md §1/§5/§8 commands, as written (JOBS/VJOBS raised where noted)
+== dhry3cfg: make -C sim perf BENCHES=dhrystone CONFIG=default sky130 fpga JOBS=8
+dhry3cfg rc=0 60s
+perf: 12 runs valid, 0 failed; ~/wt/56-critic/build/perf/run/results.json, ~/wt/56-critic/build/perf/run/report.md
+== dhryrep2: make -C sim perf BENCHES=dhrystone MEM=soc REPEAT=2
+dhryrep2 rc=0 20s
+perf: determinism over 2 repeats: PASS (identical counts)
+perf: 4 runs valid, 0 failed; ~/wt/56-critic/build/perf/run/results.json, ~/wt/56-critic/build/perf/run/report.md
+== kernclock: make -C sim perf BENCHES=kernels VARIANTS=scalar CLOCK_MHZ=62.5 100 JOBS=12
+kernclock rc=0 127s
+perf: 56 runs valid, 0 failed; ~/wt/56-critic/build/perf/run/results.json, ~/wt/56-critic/build/perf/run/report.md
+projected-throughput sections: 1
+== report: scripts/perf_report.py build/perf/run --csv ~/wt/56-critic/build/gates/out.csv --md ~/wt/56-critic/build/gates/out.md
+report rc=0 1s
+== benchrun: make -C sw/bench/dhrystone run
+benchrun rc=0 18s
+SIGIL_PERF v1 region=0 seq=0 stk_retire=1022022 stk_fetch_lat=1144022 stk_fetch_miss=130 stk_fetch_unc=0 ... (record truncated here)
+DHRYSTONE CHECK OK runs=2000
+    (benchrun is `make -C sw/bench/dhrystone run`: SDK-flag build on soc_rtl_tb, SIGIL_PERF record
+    on stderr, self-check line present.)
+
+D.3 Quick smoke. PERFORMANCE.md said `make -C sim perf ITER=200  # quick smoke`. ITER scales every
+    bench: from the baseline's cycles per iteration, kernels needs about 680 M region cycles at
+    ITER=200 (limit 2e8) and CoreMark about 143 M per variant (10x its default). Run as a check
+    (kernels only, scalar variant, soc):
+== iter200-kernels: timeout 3000 make -C sim perf ITER=200 BENCHES=kernels VARIANTS=scalar MEM=soc JOBS=1 PERF_OUT=~/wt/56-critic/build/perf/iter200k
+iter200-kernels rc=2 1123s
+    perf: 0 runs valid, 28 failed (every region: testbench exit status 2 = cycle limit; 'KERNEL dgemm CHECK OK' onwards missing)
+    Fixed in PERFORMANCE.md (b441f31): the quick smoke is now `make -C sim perf ITER=1`:
+== iter1: make -C sim perf ITER=1 JOBS=12 PERF_OUT=~/wt/56-critic/build/perf/iter1
+iter1 rc=0 105s
+perf: build coremark [validation] (1 iterations)
+perf: 356 runs valid, 0 failed; ~/wt/56-critic/build/perf/iter1/results.json, ~/wt/56-critic/build/perf/iter1/report.md
+    (every bench and variant, both memory models, 356 region results valid in 105 s at JOBS=12).
+
+D.4 `make -C sim perf BENCHES=coremark VARIANTS=scalar ITER=1000 MAX_CYCLES=1500000000` (JOBS=2):
+    perf: coremark[scalar] region 0 soc/default rep 0: cycles=716834078 instret=262309888 (3514.2 s) PASS
+    perf: coremark[scalar] region 0 axi/default rep 0: cycles=716835328 instret=262309888 (3083.01 s) PASS
+    perf: 2 runs valid, 0 failed
+    UART (both runs): "COREMARK CRC ... crcfinal=0xd340 (crcfinal matches the host reference)",
+    "Correct operation validated.", "COREMARK CHECK OK iterations=1000"; Total time 11.469 s at
+    62.5 MHz. 1.395 CoreMark/MHz; soc cycles identical to perf-coremark-56-2026-10-22/long-1000
+    (716,834,078).
+
+D.5 Report and diff with the final perf_report.py (56-gates worktree, b441f31):
+    scripts/perf_report.py build/perf/new-default --csv ... --md ...      rc=0 (events table now
+      has I$ hit (%), I$ miss cyc %, D$ hit (%), D$ miss cyc % columns)
+    scripts/perf_report.py --diff docs/evidence/perf-baseline-56-2026-10-22/default build/perf/new-default
+      rc=0: 356 runs compared, 356 at +0.00% cycles, 356 "no change" in the accounting, 0 moved.
+
+Not exercised: §10 (F2 hardware). The owner's F2 instance is off-limits to this review; the F2
+evidence (perf-f2-56-2026-10-22) stands as committed.
+
+======================================================================================
+E. ACT ELF generation (sigil-verify, ~/wt/56-critic/third_party/riscv-arch-test, a clone at the
+   pinned 6af53584; Sail 0.15 Linux release; mise 2026.10.17; JOBS=12), following
+   sw/act4-core/README.md steps 1-4
+======================================================================================
+act_gen start 2026-10-22T13:11:35Z head 61fc93c
+riscv-arch-test 6af53584a Add minstret/instret retirement tests for Zicntr (#2716)
+0.15
+2026.10.17 linux-x64 (2026-10-21)
+== im: ./scripts/build_act4_core.sh
+im rc=0 17s
+✓ Build complete: 256 succeeded
+== priv: env EXTENSIONS=ExceptionsSv,ExceptionsSvSm,PMPS,PMPSm,PMPU,PMPF,Sv,SvPMP,SvSm,SvbareSm,SvaduPMP,Sv39,Svbare,Svnapot,Svadu ./scripts/build_act4_core.sh
+priv rc=0 5s
+✓ Build complete: 472 succeeded
+== ext: env EXTENSIONS=Zaamo,Zalrsc,F,D,Zba,Zbb,Zbc,Zbs,Zbkb,Zbkc,Zbkx,Zicond,Zkne,Zknd,Zknh ./scripts/build_act4_core.sh
+ext rc=0 23s
+✓ Build complete: 1208 succeeded
+== apriv: env EXTENSIONS=ExceptionsSvZaamo,ExceptionsSvZaamoSm,ExceptionsSvZalrsc,ExceptionsSvZalrscSm,PMPZaamo,PMPZalrsc ./scripts/build_act4_core.sh
+apriv rc=0 1s
+✓ Build complete: 48 succeeded
+== c: env EXTENSIONS=Zca,Zcb,Zcd ./scripts/build_act4_core.sh
+c rc=0 3s
+✓ Build complete: 192 succeeded
+== vgen: bash -c cd third_party/riscv-arch-test && mise exec -- make vector-tests EXTENSIONS=Vx8,Vx16,Vx32,Vx64,Vls8,Vls16,Vls32,Vls64,Vf32,Vf64
+vgen rc=0 5s
+moved aside: 0
+== vec: env EXTENSIONS=Vx8,Vx16,Vx32,Vx64,Vls8,Vls16,Vls32,Vls64,Vf32,Vf64 ./scripts/build_act4_core.sh
+vec rc=2 115s
+
+✗ Build failed: 2253 succeeded, 1 failed
+make: *** [Makefile:176: elfs] Error 1
+elfs: 544
+act_gen end 2026-10-22T13:14:51Z wall 196s
+The first vector build failed on Vls16-vloxei64.v-00 (Sail "Trap signature overflow"), one of the
+43 tests listed in act-vector-core-genfail-2026-10-14.csv. With this riscv-arch-test pin, the
+unpriv vector .S sources are written by the `make elfs` step, not by `make vector-tests` (which
+generated only priv vector suites), so "moved aside: 0" above: the sources did not exist yet.
+After that first build the 43 listed sources were moved out of tests/rv64i/ (and tests/rv32i/),
+and the vector build was rerun:
+    moved aside rv64i: 43
+    vec rc=0 194s; Build complete: 5917 succeeded, 2219 up-to-date
+    regenerated after move: 0
+    elfs: 2578   (Vx 821, Vls 1051, Vf 162; scalar + priv 544)
+sw/act4-core/README.md step 4 ("move the sources ... first") does not work as written with this
+pin; the order above (build, move, rebuild) does. The README is outside #56 and is left as is.
