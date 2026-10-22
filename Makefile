@@ -68,7 +68,7 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl "-GRAM_SIZE=64'h1400000000" -GHBM_PRESENT=1 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl "-GRAM_SIZE=64'h1400000000" "-GHBM_PRESENT=1'b1" $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_memeng -GAXI_DATA_W=64 rtl/fpga/sigil_axi_memeng.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_decerr rtl/fpga/sigil_axi_decerr.sv
 
