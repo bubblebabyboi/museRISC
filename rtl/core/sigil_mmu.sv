@@ -554,15 +554,20 @@ module sigil_mmu #(
     // Every cycle: a one-hot hit is an index hit with the same entry
     // and verdicts (the D port's check is in g_dreg). Every cycle IF
     // uses it_q, the full lookup of the fetch VA is a miss or the same
-    // page (no SFENCE since, no PTE was re-read).
+    // page (no SFENCE since), unless it_q was loaded before the last
+    // TLB write: a re-walk may have re-read a PTE changed without
+    // SFENCE, and either translation is then legal.
     lookup_t if_ref;
+    logic    it_old_q;
     assign if_ref = lookup_idx(if_va_i, satp_asid, if_virt_i, hgatp_vmid,
                                if_g_trans, if_vs_trans, if_priv_i, 2'd2, 1'b0,
                                sum_i, mxr_i);
     always_ff @(posedge clk_i) begin
+      if (ichg_d) it_old_q <= 1'b1;
+      else if (if_trans && if_res.ok) it_old_q <= 1'b0;
       if ((if_lk.hit != if_ref.hit) || (if_lk.hit && (if_lk != if_ref)))
         $error("sigil_mmu: one-hot TLB lookup differs from find_entry");
-      if (chk_live_q && if_trans && it_hit &&
+      if (chk_live_q && if_trans && it_hit && !it_old_q &&
           (if_res.fault || (if_res.ok && (if_res.pa[63:12] != it_pa_q))))
         $error("sigil_mmu: fetch page register differs from the I-port lookup");
     end
