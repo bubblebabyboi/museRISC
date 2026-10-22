@@ -2241,3 +2241,147 @@ an exact host model.
 - **Caveat.** Shifting the scalar C code by 2 bytes moves its cycles by
   -24% to +26%, from 32-bit instructions straddling a 4-byte fetch
   word. The kernels are therefore 64-byte aligned.
+
+## #56: performance harness, microbenchmarks (2026-10-22)
+
+[`perf-micro-56-2026-10-22/`](perf-micro-56-2026-10-22/micro_table.md):
+`micro_table.md` (cycles per operation for every region, where the
+cycles go per operation, derived cache parameters), the harness's
+`report.md`, `results.csv` and `results.json`, `runs/` (UART log and
+`SIGIL_PERF` records of all 20 simulations), `build-micro_*.log`
+(full compiler command lines), `perf-run.log` (harness console) and
+`determinism.log`. Method:
+[`sw/bench/micro_common/README.md`](../../sw/bench/micro_common/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: the harness branch's RTL
+  (`534f846`, main `eeaa332` plus the simulation-only counters, see the
+  Dhrystone entry above). Measured before any #53 pipelining. The
+  benchmarks are on branch `56-perf-micro` (`904d59e`), which adds only
+  `sw/bench/micro_*` to `56-perf-harness` `d2b3df4`.
+- **Run.** `make -C sim perf BENCHES="micro_pipe micro_units micro_dmem
+  micro_imem micro_vec" CONFIG=default MEM="soc axi" REPEAT=2 JOBS=10`
+  on sigil-verify (c7i.8xlarge, Ubuntu 24.04), results written
+  2026-10-22T09:54:30Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0 (`deps/`). 20 simulations in 34 s.
+- **Benchmarks.** Five benchmarks, 105 regions, each region one
+  mechanism running exactly `iterations` operations (assembly kernels,
+  unrolled loops), so the harness's cycles/iteration is cycles per
+  operation. Each benchmark has an `empty` region that measures the
+  window's own cost (66–81 cycles soc, 91–131 axi); `micro_table.md`
+  also lists every value net of it.
+- **Validation.** 420/420 region results valid (105 regions x 2 memory
+  models x 2 repeats):
+  - every kernel result matched its value computed in C (sums, counts,
+    nodes reached, stored elements), and each program printed `MICRO
+    CHECK OK`;
+  - in every record, `cycles` = `mcycle` delta, `instret` = `minstret`
+    delta and the accounting sums to `cycles`;
+  - both repeats are identical, and a second harness invocation at
+    `49352b9` (same images, sha256 in `determinism.log`) gave identical
+    records too: 4 identical runs of each of the 210 (region, memory
+    model) pairs.
+
+Cycles per operation, default configuration, raw as the harness
+reports them. micro_pipe, micro_units and micro_vec show soc; axi is
+within 0.1 cycles of it for every region in those three:
+
+| micro_pipe | cycles/op |
+|---|---:|
+| `add` 32-bit, dependent or independent | 2.04 |
+| `c.add` 16-bit | 2.04 |
+| 32-bit `add` straddling two fetch words | 4.06 |
+| branch not taken | 2.04 |
+| branch taken; `jal` | 4.04 |
+| call + `ret` with a one-instruction callee (`jal` or `jalr`) | 10.04 |
+| loop trip (`addi` + taken `bnez`) | 6.02 |
+| data-dependent branch: never / always / alternating / random 50% taken | 8.61 / 10.61 / 9.61 / 9.61 |
+| `ld` hit, dependent (load-to-load) | 3.03 |
+| `ld` hit, independent; `sd` hit | 2.54 |
+| `ld` + `add` using it, distance 1 / distance 2 (per pair) | 4.04 / 4.04 |
+| `rdcycle`, `rdtime`, `csrr`, `csrw`, `csrrw`, `fence` | 2.04 |
+
+| micro_units | dependent | independent | docs/CORE.md EX cycles |
+|---|---:|---:|---:|
+| `mul` | 4.20 | 4.19 | 3 |
+| `div`, 63 quotient bits | 36.18 | 36.18 | 35 |
+| `div`, dividend < divisor | | 4.15 | 3 |
+| `divw`, 31 quotient bits | 20.18 | | 19 |
+| `rem`, 62 quotient bits | | 35.17 | 34 |
+| `fadd.d` / `fmul.d` | 6.20 / 6.18 | 6.16 | 5 |
+| `fmadd.d` | 8.19 | | 7 |
+| `fdiv.d` / `fsqrt.d` | 33.17 / 33.17 | 33.17 / 33.15 | 32 |
+| `fdiv.s` / `fsqrt.s` | 18.18 / 18.17 | | 17 |
+
+| micro_dmem (one 64-byte line per load) | soc | axi |
+|---|---:|---:|
+| random chase, 1–12 KiB | 3.10 | 3.10 |
+| random chase, 16 KiB | 3.12 | 3.18 |
+| random chase, 20 / 24 / 32 KiB | 7.47 / 9.93 / 12.24 | 17.43 / 25.47 / 33.03 |
+| random chase, 64 / 128 / 256 KiB | 13.96 / 14.11 / 14.11 | 38.67 / 39.15 / 39.15 |
+| address-order chase, 4 / 8 / 16 / 32 KiB | 3.10 / 3.10 / 3.12 / 10.48 | 3.10 / 3.11 / 3.18 / 27.27 |
+| load stream, per 8-byte `ld` | 4.27 | 7.41 |
+| store stream into dirty lines, per 8-byte `sd` | 6.25 | 13.02 |
+
+| micro_imem (straight-line 32-bit code), cycles/instruction | soc | axi |
+|---|---:|---:|
+| footprint 1–4 KiB | 2.01–2.06 | 2.01–2.06 |
+| 6 / 8 KiB | 2.04 / 2.03 | 2.11 / 2.09 |
+| 12 / 16 / 24 / 32 KiB | 2.47 / 2.53 / 2.58 / 2.61 | 3.52 / 3.71 / 3.89 / 3.98 |
+
+| micro_vec | cycles per vector instruction |
+|---|---:|
+| `vsetvli`, same vtype / alternating vtype | 2.43 / 2.49 (2.12 / 2.17 net of window) |
+| `vadd.vv` e8, vl = 1 / 8 / 64 / 512 | 7.43 / 14.40 / 70.40 / 518.40 (N + 6.4) |
+| `vadd.vv` e64, vl = 8 | 14.41 |
+| `vle8.v`, vl = 1 / 8 / 64 / 512 | 4.96 / 25.92 / 193.92 / 1,537.92 (3N + 1.9) |
+| `vse8.v`, vl = 1 / 8 / 64 / 512 | 4.98 / 25.93 / 193.93 / 1,537.93 |
+| `vmul.vv` / `vfadd.vv` / `vredsum.vs` e64, vl = 8 | 70.42 / 54.47 / 16.47 |
+
+What the calibration shows:
+
+- **Every instruction costs at least 2 cycles: one fetch per
+  instruction, 2 cycles per fetch.** Compressed code fetches no faster:
+  `c.add` costs the same as `add`, at 1.02 I$ accesses per instruction,
+  because the word is fetched again for the second half. A 32-bit
+  instruction that straddles two fetch words costs 4.
+- **A redirect costs 2 cycles, and there is no prediction.** A taken
+  branch, `jal` or `jalr` costs 2 cycles more than falling through:
+  one squashed wrong-path slot plus one refetch slot. A data-dependent
+  branch costs the same at a 50% taken rate whether the pattern
+  alternates or is random, exactly midway between never taken and
+  always taken. Its cost depends only on the outcome.
+- **Load-use bubbles hide in the fetch gap.**
+  - An L1 load hit costs 2.5 cycles independent and 3 dependent
+    (load-to-load).
+  - A load followed by an ALU consumer costs 4.04 per pair at distance
+    1 and at distance 2.
+  - CSR accesses, `rdcycle`, `rdtime` and `fence` cost the same as an
+    ALU op. They do not serialize.
+- **The M unit and FPU do not overlap work.** Every operation costs its
+  `docs/CORE.md` EX occupancy plus 1.1 cycles (net of window), and
+  dependent and independent sequences cost the same.
+- **D$ (16 KiB, 4-way).**
+  - A random working set of up to 16 KiB hits (0.002 misses per load).
+    The miss rate is 40% at 20 KiB, 83% at 32 KiB and 100% from
+    128 KiB.
+  - A clean miss costs 12.0 cycles (soc) or 37.0 cycles (axi), as
+    `dc_miss_cyc / dc_miss`. A dependent load that misses costs 14.1 or
+    39.1 cycles.
+  - Streaming loads move 1.87 or 1.08 bytes/cycle.
+- **I$ (8 KiB, 2-way).**
+  - Straight-line footprints up to 4 KiB never miss. At 6–8 KiB,
+    3.5–4.5% of line fetches miss: round-robin victim conflicts with
+    the driver's lines.
+  - From 12 KiB, 67–88% of line fetches miss. The rate is never 100%,
+    because the shared round-robin pointer leaves some lines resident.
+  - The miss penalty is 12.0 cycles (soc) or 37.0 cycles (axi).
+- **Vector.**
+  - Arithmetic matches `docs/CORE.md` exactly in the vector unit
+    (`stk_vec`): `vadd` N+4, e64 `vmul` (4+4)N+4, `vfadd` 6N+4,
+    `vredsum` N+6. Each vector instruction adds about 2.1 cycles of
+    issue on top.
+  - Unit-stride `vle8`/`vse8` take **3 cycles per element** in MEM
+    (`stk_vls` = 3N). `docs/CORE.md` gives 2 per element plus 1, and
+    quotes 1,025 cycles for `vle8` at vl=512; this run measures 1,536
+    MEM cycles in the SoC with the D$.
+  - `vsetvli` costs an ALU op, whether vtype changes or not.
