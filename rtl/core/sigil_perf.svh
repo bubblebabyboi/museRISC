@@ -312,7 +312,6 @@
       perf_seq_q <= 32'd0;
       perf_mc_b_q <= 64'd0;
       perf_mi_b_q <= 64'd0;
-      for (int i = 0; i < PerfN; i++) perf_cnt_q[i] <= 64'd0;
     end else begin
       if (irsp_valid) begin
         perf_ic_miss_q <= 1'b0;
@@ -334,17 +333,19 @@
         perf_region_q <= perf_mark_region;
         perf_mc_b_q <= u_core.u_csr.mcycle_q;
         perf_mi_b_q <= u_core.u_csr.minstret_q;
-        for (int i = 0; i < PerfN; i++) perf_cnt_q[i] <= 64'(perf_inc[i]);
-      end else begin
-        if (perf_end) begin
-          perf_on_q <= 1'b0;
-          if (perf_on_q) perf_seq_q <= perf_seq_q + 32'd1;
-        end
-        if (perf_active) begin
-          for (int i = 0; i < PerfN; i++)
-            perf_cnt_q[i] <= perf_cnt_q[i] + 64'(perf_inc[i]);
-        end
+      end else if (perf_end) begin
+        perf_on_q <= 1'b0;
+        if (perf_on_q) perf_seq_q <= perf_seq_q + 32'd1;
       end
+    end
+  end
+  // One process per counter (Verilator 5.020 has no non-blocking
+  // writes to unpacked-array elements inside a loop).
+  for (genvar g = 0; g < PerfN; g++) begin : g_perf_cnt
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni)           perf_cnt_q[g] <= 64'd0;
+      else if (perf_begin)   perf_cnt_q[g] <= 64'(perf_inc[g]);
+      else if (perf_active)  perf_cnt_q[g] <= perf_cnt_q[g] + 64'(perf_inc[g]);
     end
   end
 
