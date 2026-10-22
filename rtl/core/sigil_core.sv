@@ -2181,5 +2181,165 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       end
     end
   end
+
+`ifndef SYNTHESIS
+  // ------------------------------------------------------------
+  // Commit trace (simulation only, issue #8)
+  // ------------------------------------------------------------
+  // With the plusarg +sigil_trace=<file>, every retired
+  // instruction and every trap taken is written to <file>, one
+  // line each (the DUT side of the riscv-dv regression,
+  // scripts/riscv_dv_regress.sh; format in docs/VERIFICATION.md):
+  //   I <cycle> <priv> <pc> <insn> [x<n>=<v>] [f<n>=<v>]
+  //     [c<csr>=<v>] [m<va>:<bytes>=<v>] [v<n>=<VLEN bits>]...
+  //   E <cycle> <priv> <epc> <cause> <tval>
+  // An instruction retires in WB on the minstret condition
+  // (memwb_valid_q && !memwb_exc_q && !mem_stall). What MEM/WB
+  // does not carry (instruction bits, privilege, and the CSR,
+  // fflags, store and VRF side effects) rides along in shadow
+  // registers loaded under the pipeline registers' own update
+  // conditions. Nothing here feeds back into the design; without
+  // the plusarg nothing is written.
+  int          tr_fd;
+  string       tr_path;
+  initial begin
+    tr_fd = 0;
+    if ($value$plusargs("sigil_trace=%s", tr_path)) begin
+      tr_fd = $fopen(tr_path, "w");
+      if (tr_fd == 0) $error("sigil_core: cannot open trace file %s", tr_path);
+    end
+  end
+  final if (tr_fd != 0) $fclose(tr_fd);
+
+  logic [63:0] tr_cycle_q;
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) tr_cycle_q <= 64'd0;
+    else         tr_cycle_q <= tr_cycle_q + 64'd1;
+  end
+
+  // Shadow of the VRF: every write (vector unit or MEM
+  // sequencer), byte-masked, so a retiring vector instruction
+  // can log the whole registers it wrote.
+  logic [63:0] tr_vrf_q [256];
+  initial for (int i = 0; i < 256; i++) tr_vrf_q[i] = 64'd0;
+  always @(posedge clk_i) begin
+    if (vrf_we) begin
+      for (int b = 0; b < 8; b++) begin
+        if (vrf_wbe[b]) tr_vrf_q[vrf_wa][b*8 +: 8] <= vrf_wd[b*8 +: 8];
+      end
+    end
+  end
+  // VRF rows (registers) written this cycle, by owner: the
+  // vector unit serves the instruction in EX, the load/store
+  // sequencer the one in MEM (never both in one cycle).
+  logic [31:0] tr_vu_row, tr_vls_row;
+  assign tr_vu_row = (vrf_we && !vls_is) ? (32'd1 << vrf_wa[7:3]) : 32'd0;
+  assign tr_vls_row = (vrf_we && vls_is) ? (32'd1 << vrf_wa[7:3]) : 32'd0;
+
+  // Scalar store issued by the instruction in MEM (its final,
+  // write phase for an AMO; a failing SC issues none).
+  logic tr_st_fire;
+  assign tr_st_fire = mem_issue && dreq_ready_i && mem_write_phase &&
+                      !mem_fencei && !vls_is;
+  logic [4:0] tr_ff_flags;
+  assign tr_ff_flags = vec_fflags_we ? vec_fflags : fpu_flags;
+  // The pipeline registers advance (EX->MEM->WB) at this edge.
+  logic tr_adv;
+  assign tr_adv = !trap_take && !freeze && !mem_stall;
+
+  logic [31:0] tr_x_vregs_q;  // rows the EX instruction wrote so far
+  logic [31:0] tr_m_instr_q, tr_w_instr_q;
+  logic        tr_m_rvc_q, tr_w_rvc_q;
+  logic [1:0]  tr_m_priv_q, tr_w_priv_q;
+  logic        tr_m_csr_q, tr_w_csr_q;
+  logic [11:0] tr_w_csr_addr_q;
+  logic [63:0] tr_w_csr_val_q;
+  logic        tr_m_ff_q, tr_w_ff_q;
+  logic [4:0]  tr_m_ffv_q, tr_w_ffv_q;
+  logic [31:0] tr_m_vregs_q, tr_w_vregs_q;
+  logic        tr_m_st_q, tr_w_st_q;
+  logic [63:0] tr_m_st_addr_q, tr_w_st_addr_q;
+  logic [63:0] tr_m_st_data_q, tr_w_st_data_q;
+  logic [1:0]  tr_m_st_size_q, tr_w_st_size_q;
+  always @(posedge clk_i) begin
+    if (trap_take || ex_advance) tr_x_vregs_q <= 32'd0;
+    else                         tr_x_vregs_q <= tr_x_vregs_q | tr_vu_row;
+    if (tr_adv) begin
+      // MEM -> WB. A CSR write committed at the previous edge
+      // (EX->MEM), so the CSR unit's trace read mux now shows
+      // the written CSR's new value.
+      tr_w_instr_q <= tr_m_instr_q;
+      tr_w_rvc_q <= tr_m_rvc_q;
+      tr_w_priv_q <= tr_m_priv_q;
+      tr_w_csr_q <= tr_m_csr_q;
+      tr_w_csr_addr_q <= u_csr.trace_waddr_q;
+      tr_w_csr_val_q <= u_csr.trace_wval;
+      tr_w_ff_q <= tr_m_ff_q;
+      tr_w_ffv_q <= tr_m_ffv_q;
+      tr_w_vregs_q <= tr_m_vregs_q | tr_vls_row;
+      tr_w_st_q <= tr_m_st_q;
+      tr_w_st_addr_q <= tr_m_st_addr_q;
+      tr_w_st_data_q <= tr_m_st_data_q;
+      tr_w_st_size_q <= tr_m_st_size_q;
+      // EX -> MEM (privilege as executed: xRET changes it at
+      // this very edge).
+      tr_m_instr_q <= idex_instr_q;
+      tr_m_rvc_q <= idex_rvc_q;
+      tr_m_priv_q <= priv;
+      tr_m_csr_q <= csr_we;
+      tr_m_ff_q <= (csr_fflags_we || vec_fflags_we) && (tr_ff_flags != 5'd0);
+      tr_m_ffv_q <= u_csr.fflags_q | tr_ff_flags;
+      tr_m_vregs_q <= tr_x_vregs_q | tr_vu_row;
+      tr_m_st_q <= 1'b0;
+    end else begin
+      // MEM holds (its access is in flight): collect its effects.
+      tr_m_vregs_q <= tr_m_vregs_q | tr_vls_row;
+      if (tr_st_fire) begin
+        tr_m_st_q <= 1'b1;
+        tr_m_st_addr_q <= mem_va;
+        tr_m_st_data_q <= eff_store_data;
+        tr_m_st_size_q <= exmem_ctrl_q.funct3[1:0];
+      end
+    end
+  end
+
+  always @(posedge clk_i) begin
+    if ((tr_fd != 0) && chk_live_q) begin
+      if (memwb_valid_q && !memwb_exc_q && !mem_stall && !freeze) begin
+        if (tr_w_rvc_q) begin
+          $fwrite(tr_fd, "I %0d %0d %h %h", tr_cycle_q, tr_w_priv_q,
+                  memwb_pc_q, tr_w_instr_q[15:0]);
+        end else begin
+          $fwrite(tr_fd, "I %0d %0d %h %h", tr_cycle_q, tr_w_priv_q,
+                  memwb_pc_q, tr_w_instr_q);
+        end
+        if (memwb_reg_write_q && (memwb_rd_q != 5'd0))
+          $fwrite(tr_fd, " x%0d=%h", memwb_rd_q, memwb_result_q);
+        if (memwb_fp_write_q)
+          $fwrite(tr_fd, " f%0d=%h", memwb_rd_q, memwb_result_q);
+        if (tr_w_csr_q)
+          $fwrite(tr_fd, " c%h=%h", tr_w_csr_addr_q, tr_w_csr_val_q);
+        if (tr_w_ff_q)
+          $fwrite(tr_fd, " c001=%h", {59'd0, tr_w_ffv_q});
+        if (tr_w_st_q)
+          $fwrite(tr_fd, " m%h:%0d=%h", tr_w_st_addr_q,
+                  4'd1 << tr_w_st_size_q, tr_w_st_data_q);
+        for (int r = 0; r < 32; r++) begin
+          if (tr_w_vregs_q[r]) begin
+            $fwrite(tr_fd, " v%0d=", r);
+            for (int w = 7; w >= 0; w--) begin
+              $fwrite(tr_fd, "%h", tr_vrf_q[8'(r * 8 + w)]);
+            end
+          end
+        end
+        $fwrite(tr_fd, "\n");
+      end
+      if (trap_take) begin
+        $fwrite(tr_fd, "E %0d %0d %h %h %h\n", tr_cycle_q, tr_w_priv_q,
+                memwb_pc_q, memwb_cause_q, memwb_tval_q);
+      end
+    end
+  end
+`endif
 endmodule
 `default_nettype wire

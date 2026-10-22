@@ -28,6 +28,11 @@
 // Usage: core_tb <program.bin|elf> [max_cycles] [--expect-trap CAUSE]
 //          [--irq-timer-after N] [--no-cache] [--mem-lat A:B]
 //          [--mem-gap N] [--mem-ready PCT] [--mem-seed S] [--trace]
+//          [--drain N] [+sigil_trace=FILE]
+// --drain N (ELF mode): after the HTIF tohost write, keep clocking
+// N more cycles before exiting (same verdict), so the store and
+// the instructions older than it retire into the commit trace
+// that +sigil_trace=FILE writes (rtl/core/sigil_core.sv, sim only).
 // Exit status: 0 pass, 1 test failure, 2 timeout, 3 unexpected trap.
 #include "Vsigil_cpu.h"
 #include "verilated.h"
@@ -131,6 +136,7 @@ int main(int argc, char** argv) {
   long irq_timer_after = -1;
   bool trace = std::getenv("CORE_TB_TRACE") != nullptr;
   bool cache_en = true;
+  uint64_t drain = 0;
   MbusConfig bus_cfg;
   for (int i = 2; i < argc; ++i) {
     if (const int n = bus_cfg.Parse(argc, argv, i)) {
@@ -143,6 +149,8 @@ int main(int argc, char** argv) {
       trace = true;
     } else if (std::strcmp(argv[i], "--no-cache") == 0) {
       cache_en = false;
+    } else if (std::strcmp(argv[i], "--drain") == 0 && i + 1 < argc) {
+      drain = std::strtoull(argv[++i], nullptr, 0);
     } else if (argv[i][0] == '+') {
       // Verilator plusarg (e.g. +verilator+rand+reset+2), handled
       // by commandArgs; must not be read as the cycle limit.
@@ -291,7 +299,11 @@ int main(int argc, char** argv) {
   dut->eval();
   dut->rst_ni = 1;
 
+  // HTIF verdict held while --drain cycles run (rc < 0: none yet).
+  int htif_rc = -1;
+  uint64_t drain_end = 0;
   for (uint64_t cycle = 0; cycle < max_cycles; ++cycle) {
+    if (htif_rc >= 0 && cycle >= drain_end) return finish(htif_rc);
     if (irq_timer_after >= 0 &&
         cycle >= static_cast<uint64_t>(irq_timer_after) && !irq_active) {
       dut->irq_m_timer_i = 1;
@@ -374,22 +386,26 @@ int main(int argc, char** argv) {
           arch.Wb(base + uint64_t(i), static_cast<uint8_t>(wdata >> (8 * i)));
         }
       }
-      if (elf_mode && (base >> 12) == (tohost_addr >> 12)) {
+      if (elf_mode && htif_rc < 0 && (base >> 12) == (tohost_addr >> 12)) {
         const uint64_t th = arch.R64(tohost_addr);
         if (th != 0) {
           if (th == 1) {
             std::printf("CORE TB PASS %s (htif, %llu cycles)\n", prog_path,
                         static_cast<unsigned long long>(cycle + 1));
-            return finish(0);
+            htif_rc = 0;
+          } else {
+            std::printf("CORE TB FAIL %s test %llu (htif, %llu cycles)\n",
+                        prog_path, static_cast<unsigned long long>(th >> 1),
+                        static_cast<unsigned long long>(cycle + 1));
+            htif_rc = 1;
           }
-          std::printf("CORE TB FAIL %s test %llu (htif, %llu cycles)\n",
-                      prog_path, static_cast<unsigned long long>(th >> 1),
-                      static_cast<unsigned long long>(cycle + 1));
-          return finish(1);
+          if (drain == 0) return finish(htif_rc);
+          drain_end = cycle + 1 + drain;
         }
       }
     }
   }
+  if (htif_rc >= 0) return finish(htif_rc);
   std::printf("CORE TB TIMEOUT %s after %llu cycles (fetch pa 0x%lx; bus %s)\n",
               prog_path, static_cast<unsigned long long>(max_cycles),
               static_cast<unsigned long>(dut->dbg_fetch_pa_o),
