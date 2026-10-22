@@ -89,3 +89,42 @@ run mmio_bypass mmio_bypass_directed.bin
 run vm_sfence_cache vm_sfence_cache_directed.bin
 run fp_hold_cache fp_hold_cache_directed.bin
 run ptw_drop ptw_drop_directed.bin
+# #53 review: translation context, fetch translation and vector LS
+# faults under Sv39, H-extension HLV/HSV/HLVX context, the walk-fault
+# record, walker contention, CSR write intent (FPGA_TIMING registers
+# the data translation and the fetch page).
+run vm_ctx vm_ctx_directed.bin
+run vm_fetch vm_fetch_directed.bin
+run vm_vec vm_vec_directed.bin 4000000
+run vm_satp_fetch vm_satp_fetch_directed.bin
+run hlv_ctx hlv_ctx_directed.bin
+run hlv_wf hlv_wf_directed.bin
+run mem53_wf_sum mem53_wf_sum_directed.bin
+run mem53_wf_hlv mem53_wf_hlv_directed.bin
+run mem53_ifault_gpa mem53_ifault_gpa_directed.bin
+run mem53_itlb_remap mem53_itlb_remap_directed.bin
+run mem53_ctx mem53_ctx_directed.bin
+run mem53_walk_contend mem53_walk_contend_directed.bin
+run vm_ctx_switch vm_ctx_switch_directed.bin
+run vm_ctx_switch_irq vm_ctx_switch_directed.bin 2000000 --irq-timer-after 20000
+run fetch_page fetch_page_directed.bin
+run hyp_ctx hyp_ctx_directed.bin
+run hyp_fetch hyp_fetch_directed.bin
+run vec_vm vec_vm_directed.bin 4000000
+run vec_vm_irq vec_vm_directed.bin 4000000 --irq-timer-after 150000
+run vm_walk_overlap vm_walk_overlap_directed.bin 3000000
+run csr_intent csr_intent_directed.bin
+run vm_stale_fetch vm_stale_fetch_directed.bin
+# Timer IRQ across a paging loop in which every access walks (I/O
+# reads, AMOs, a page-crossing vector load, a delegated page fault):
+# at most one interrupt, precise mepc, every I/O read and AMO once.
+n=0
+for o in $(seq 300 37 5900); do
+  echo "[$TAG] core_tb vm_irq_directed.bin --irq-timer-after $o ${EXTRA[*]} --mem-seed $seed"
+  COV_FILE="${COV_PREFIX}_vmirq_${o}_${TAG}.dat" "$TB" vm_irq_directed.bin \
+    --irq-timer-after "$o" "${EXTRA[@]}" --mem-seed "$seed" > "vm_irq_${o}_${TAG}.log" 2>&1 ||
+    { echo "offset $o:"; cat "vm_irq_${o}_${TAG}.log"; exit 1; }
+  n=$((n + 1))
+done
+echo "CORE TB PASS vm_irq_directed.bin [$TAG] ($n IRQ offsets 300..5900)"
+seed=$((seed + 1))
