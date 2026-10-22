@@ -1,4 +1,4 @@
-collected 2026-10-22T15:34:37Z on ip-172-31-66-228 (sigil-fpga-build)
+collected 2026-10-22T16:49:06Z on ip-172-31-66-228 (sigil-fpga-build)
 
 == inputs
 d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  /home/ubuntu/os-artifacts/stress/fw_jump.bin
@@ -26,13 +26,21 @@ ptw2_lat1.out: stale-walk-rsp=0 d-load-mismatch=0 PTWINV-live=0 oops=0 assert=0
     PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
     PTWINV violations=0
 exec_lat45.out: stale-walk-rsp=0 d-load-mismatch=0 PTWINV-live=0 oops=0 assert=0
-    end: (still running)
+    end: SOC RTL TB TIMEOUT after 2000000000 cycles
     last console: execstress: start 76.87
+    OOPSCHK summary: d-loads 60184140 d-stores 38712212 fetches 362350301 fencei 3480 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+    PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+    PTWINV violations=0
 exec_lat1.out: stale-walk-rsp=0 d-load-mismatch=0 PTWINV-live=0 oops=0 assert=0
-    end: (still running)
+    end: SOC RTL TB TIMEOUT after 2000000000 cycles
     last console: execstress: start 36.70
+    OOPSCHK summary: d-loads 125104773 d-stores 59102838 fetches 777518200 fencei 3480 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+    PTWCOV pre=1 inflight=0 inflight_drp=0 rsp_same=1 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+    PTWINV violations=0
     wall: ptw2_lat1 rc=0 1257s 14:18:58
     wall: ptw2_lat45 rc=0 2767s 15:16:49
+    wall: exec_lat45 rc=2 8102s 16:45:44
+    wall: exec_lat1 rc=2 8237s 16:47:59
 
 == hunters' runs (~/oops/dcache/runs), unpatched unless named *exp*
 ptw2_lat45.out: stale-walk-rsp=0 d-load-mismatch=0 PTWINV-live=0 oops=0 assert=0
@@ -63,13 +71,11 @@ exec_lat1.out: stale-walk-rsp=0 d-load-mismatch=0 PTWINV-live=0 oops=0 assert=0
     last console: execstress: start 36.70
 
 == Linux sim processes still running (hunters' unpatched runs and this gate's; etime, cputime)
- 738563    04:23:28 00:00:00 /usr/bin/time -v ../sigil/build/sim/soc_rtl_tb 20000000000 --mem-lat 40:50 --mem-gap 1 --mem-ready 80 --mem-seed 11 --load 0x80000000=../art/fw_jump.bin --load 0x80200000=../art/Image-execstress --load
- 738565    04:23:28 04:23:28 ../sigil/build/sim/soc_rtl_tb 20000000000 --mem-lat 40:50 --mem-gap 1 --mem-ready 80 --mem-seed 11 --load 0x80000000=../art/fw_jump.bin --load 0x80200000=../art/Image-execstress --load 0x83000000=../ar
- 773703    04:14:18 00:00:00 /usr/bin/time -v /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 2 --load 0x80000000=/ho
- 773704    04:14:18 00:00:00 /usr/bin/time -v /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 40:76 --axi-blat 20:60 --axi-gap 0 --axi-ready 90 --axi-seed 9 --load 0x80000000=/home/ubuntu/os-artifacts/f
- 773707    04:14:18 04:14:18 /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 2 --load 0x80000000=/home/ubuntu/os-arti
- 773708    04:14:18 04:14:18 /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 40:76 --axi-blat 20:60 --axi-gap 0 --axi-ready 90 --axi-seed 9 --load 0x80000000=/home/ubuntu/os-artifacts/fw_jump.bin --load
- 774641    04:13:01 04:13:01 ./tb.v2 20000000000 --mem-lat 40:50 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Image-execstress --load 0x83000000=/home/ubuntu/os-
- 774643    04:13:01 04:13:01 ./tb.v2 20000000000 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Image-execstress --load 0x83000000=/home/ubuntu/os-artifacts/stress
-1296559    01:03:54 01:03:54 /home/ubuntu/oops/fixgates/oops/build/sim/oops_soc_rtl_tb 2000000000 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Image-execstress -
-1296560    01:03:54 01:03:54 /home/ubuntu/oops/fixgates/oops/build/sim/oops_soc_rtl_tb 2000000000 --mem-lat 40:50 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Im
+ 738563    05:37:57 00:00:00 /usr/bin/time -v ../sigil/build/sim/soc_rtl_tb 20000000000 --mem-lat 40:50 --mem-gap 1 --mem-ready 80 --mem-seed 11 --load 0x80000000=../art/fw_jump.bin --load 0x80200000=../art/Image-execstress --load
+ 738565    05:37:57 05:37:56 ../sigil/build/sim/soc_rtl_tb 20000000000 --mem-lat 40:50 --mem-gap 1 --mem-ready 80 --mem-seed 11 --load 0x80000000=../art/fw_jump.bin --load 0x80200000=../art/Image-execstress --load 0x83000000=../ar
+ 773703    05:28:47 00:00:00 /usr/bin/time -v /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 2 --load 0x80000000=/ho
+ 773704    05:28:47 00:00:00 /usr/bin/time -v /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 40:76 --axi-blat 20:60 --axi-gap 0 --axi-ready 90 --axi-seed 9 --load 0x80000000=/home/ubuntu/os-artifacts/f
+ 773707    05:28:47 05:28:46 /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 36:72 --axi-blat 1:300 --axi-gap 2 --axi-ready 60 --axi-rw-race --axi-ooo --axi-seed 2 --load 0x80000000=/home/ubuntu/os-arti
+ 773708    05:28:47 05:28:46 /home/ubuntu/oops/axi/sigil/build/sim/fpga_top_tb_f2 40000000000 --axi-rlat 40:76 --axi-blat 20:60 --axi-gap 0 --axi-ready 90 --axi-seed 9 --load 0x80000000=/home/ubuntu/os-artifacts/fw_jump.bin --load
+ 774641    05:27:30 05:27:30 ./tb.v2 20000000000 --mem-lat 40:50 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Image-execstress --load 0x83000000=/home/ubuntu/os-
+ 774643    05:27:30 05:27:30 ./tb.v2 20000000000 --load 0x80000000=/home/ubuntu/os-artifacts/stress/fw_jump.bin --load 0x80200000=/home/ubuntu/os-artifacts/stress/Image-execstress --load 0x83000000=/home/ubuntu/os-artifacts/stress
