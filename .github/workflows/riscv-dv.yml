@@ -1,0 +1,184 @@
+name: riscv-dv random regression
+
+# Issue #8: riscv-dv random programs on the in-house core, every retired
+# instruction compared with Spike (docs/VERIFICATION.md, "riscv-dv random-
+# instruction regression vs Spike"). Nightly and manual only: generating
+# one program takes minutes, so this never runs on push or pull_request
+# and is not meant to be a required check. Nightly runs every test with
+# two seeds: seed 1 (the same programs every night, so a red run after a
+# change is a regression) and 1000 + the run number (new programs every
+# night). A failing (test, seed) reproduces locally with
+#   make -C sim riscv-dv TESTS=<test> SEEDS=<seed>
+
+"on":
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: Comma-separated test names, or "all" (scripts/riscv_dv_regress.sh --list)
+        required: true
+        default: all
+        type: string
+      seeds:
+        description: Seeds, e.g. 1 or 1,2,3 or 1-4
+        required: true
+        default: "1"
+        type: string
+      instr_cnt:
+        description: Override every generated test's instruction count (0 = the test list's)
+        required: true
+        default: "0"
+        type: string
+  schedule:
+    - cron: "41 3 * * *"
+
+permissions:
+  contents: read
+
+# Single-threaded Verilator builds (sim/Makefile VJOBS), as in the other
+# workflows: apt Verilator 5.020 intermittently aborts with "attempted to
+# destroy locked Thread Pool" when verilating with -j 0.
+env:
+  VJOBS: "1"
+  RISCV_TOOLCHAIN_TAG: "2026.08.27"
+  RISCV_TOOLCHAIN_ASSET: riscv64-elf-ubuntu-24.04-gcc.tar.xz
+
+concurrency:
+  group: riscv-dv-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  riscv-dv:
+    name: riscv-dv programs vs Spike on the core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Check out Sigil
+        uses: actions/checkout@v4
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator build-essential device-tree-compiler \
+            libboost-regex-dev libboost-system-dev python3-venv curl
+          verilator --version
+          python3 --version
+
+      # Same pinned bare-metal toolchain as compliance.yml.
+      - name: Cache RISC-V GCC toolchain
+        id: riscv-toolchain-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/riscv-toolchain
+          key: riscv-gnu-toolchain-${{ env.RISCV_TOOLCHAIN_TAG }}-${{ env.RISCV_TOOLCHAIN_ASSET }}
+
+      - name: Install RISC-V GCC toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.riscv-toolchain-cache.outputs.cache-hit }}" != "true" ]; then
+            mkdir -p "$HOME/riscv-toolchain"
+            curl -fsSL \
+              "https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/${RISCV_TOOLCHAIN_TAG}/${RISCV_TOOLCHAIN_ASSET}" \
+              -o /tmp/riscv-toolchain.tar.xz
+            tar -xJf /tmp/riscv-toolchain.tar.xz -C "$HOME/riscv-toolchain"
+          fi
+          gcc_path=$(find "$HOME/riscv-toolchain" -path '*/bin/riscv64-unknown-elf-gcc' -print -quit)
+          test -n "$gcc_path"
+          dirname "$gcc_path" >> "$GITHUB_PATH"
+          "$gcc_path" --version
+
+      # Spike at the commit pinned in scripts/build_spike.sh (the key
+      # changes with the script, so a new pin rebuilds).
+      - name: Cache Spike
+        id: spike-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/opt/spike
+          key: spike-ubuntu-24.04-${{ hashFiles('scripts/build_spike.sh') }}
+
+      - name: Build pinned Spike
+        if: steps.spike-cache.outputs.cache-hit != 'true'
+        run: scripts/build_spike.sh "$HOME/opt/spike"
+
+      # The pinned riscv-dv clone and the generator's Python venv
+      # (pins in scripts/riscv_dv_setup.sh and sim/riscv-dv/requirements.txt).
+      - name: Cache riscv-dv clone and Python venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            third_party/riscv-dv
+            build/riscv-dv/venv
+          key: riscv-dv-ubuntu-24.04-${{ hashFiles('scripts/riscv_dv_setup.sh', 'sim/riscv-dv/requirements.txt') }}
+
+      - name: Set up the generator (riscv-dv pin, patched pygen, venv)
+        run: scripts/riscv_dv_setup.sh
+
+      - name: Build the core harness with the retire trace
+        run: make -C sim ../build/sim/core_tb
+
+      - name: Run riscv-dv regression
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_TESTS: ${{ inputs.tests }}
+          IN_SEEDS: ${{ inputs.seeds }}
+          IN_INSTR_CNT: ${{ inputs.instr_cnt }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            tests=$IN_TESTS seeds=$IN_SEEDS instr_cnt=$IN_INSTR_CNT
+          else
+            tests=all seeds="1,$((1000 + GITHUB_RUN_NUMBER))" instr_cnt=0
+          fi
+          [[ "$tests" =~ ^[A-Za-z0-9_,]+$ ]] || { echo "bad tests: $tests" >&2; exit 2; }
+          [[ "$seeds" =~ ^[0-9,-]+$ ]] || { echo "bad seeds: $seeds" >&2; exit 2; }
+          [[ "$instr_cnt" =~ ^[0-9]+$ ]] || { echo "bad instr_cnt: $instr_cnt" >&2; exit 2; }
+          {
+            echo "## riscv-dv vs Spike"
+            echo
+            echo "tests \`$tests\`, seeds \`$seeds\`, instr_cnt \`$instr_cnt\` (0 = test list), $(verilator --version)"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          args=(--tests "$tests" --seeds "$seeds" --jobs "$(nproc)" --out build/riscv-dv/ci)
+          if [ "$instr_cnt" != 0 ]; then args+=(--instr-cnt "$instr_cnt"); fi
+          SPIKE="$HOME/opt/spike/bin/spike" scripts/riscv_dv_regress.sh "${args[@]}" \
+            2>&1 | tee build-ci-riscv-dv.log
+
+      - name: Summarize results
+        if: always()
+        shell: bash
+        run: |
+          csv=build/riscv-dv/ci/results.csv
+          test -f "$csv" || { echo "no results.csv" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          mkdir -p build-ci-riscv-dv-failures
+          python3 - "$csv" >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          import collections, csv, os, shutil, sys
+          rows = list(csv.DictReader(open(sys.argv[1])))
+          counts = collections.Counter(r["status"] for r in rows)
+          print("| status | runs |\n|---|---|")
+          for s, n in sorted(counts.items()):
+              print("| %s | %d |" % (s, n))
+          print("\n%d runs, %d records compared" % (
+              len(rows), sum(int(r["ref_records"] or 0) for r in rows if r["status"] == "PASS")))
+          bad = [r for r in rows if r["status"] != "PASS"]
+          if bad:
+              print("\n| test | seed | status | first divergence |\n|---|---|---|---|")
+              for r in bad:
+                  print("| %s | %s | %s | %s |" % (r["test"], r["seed"], r["status"],
+                        r["first_divergence"][:300].replace("|", "/")))
+                  if r["dir"] and os.path.isdir(r["dir"]):
+                      shutil.copytree(r["dir"], os.path.join(
+                          "build-ci-riscv-dv-failures", "%s-%s" % (r["test"], r["seed"])))
+          EOF
+
+      - name: Upload riscv-dv results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riscv-dv-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            build-ci-riscv-dv.log
+            build/riscv-dv/ci/results.csv
+            build-ci-riscv-dv-failures/
+          if-no-files-found: warn
+          retention-days: 30
