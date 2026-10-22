@@ -2344,6 +2344,43 @@ a `qemu-user-static` chroot into the disk file on the host, ran verbatim from
 `LINUX.md` on Ubuntu 24.04 (installs `sl` in 18 s, `e2fsck` clean), and the
 changed disk boots in QEMU from a release-only layout and runs the package.
 
+## #73 First Debian boot on a real F2: kernel oops, MMU race (2026-10-22, AFI `agfi-0a1fd54ef68bdc754`, branch `73-linux-debian`)
+
+Run log and A/B table: [`linux-debian-73-2026-10-22/f2-oops-ab.txt`](linux-debian-73-2026-10-22/f2-oops-ab.txt);
+console logs, experiment DTBs and inputs in [`f2-boot/`](linux-debian-73-2026-10-22/f2-boot/).
+The published artifacts of the QEMU bring-up section above, booted exactly
+per `docs/LINUX.md` §4 on the platform AFI (`f2.6xlarge`, core 62.5 MHz):
+
+- **Worked:** 8 GiB disk loaded in 2.38 s (3.61 GB/s); OpenSBI → Linux
+  6.12 with both NUMA nodes (48 GiB DDR4 node 0, 16 GiB HBM node 1),
+  `/dev/pmem0` mounted, `Run /sbin/init` at kernel time 8.2 s, systemd
+  257 up at 12.2 s, `Queued start job for default target` at 73.5 s
+  (kernel time starts only after ~2 min of early memory setup, see the
+  fixed-AFI run below).
+- **Failed:** kernel oopses from 35–130 s into systemd startup in every
+  Debian run — "Unable to handle kernel paging request" at valid
+  linear-map addresses (anon_vma_clone, folio_lruvec_lock) and garbage
+  pointers `0xcccccccccccccccc` (filemap_fault). No login prompt.
+- **Bisection (13 runs):** still fails with no HBM, 2 GiB DDR4, every
+  address below 4 GiB (384 MiB RAM + 1.6 GiB pmem at `0x9800_0000`), quiet
+  console, a DT ISA of plain rv64imafdc, no jump labels/BPF, ASIDs
+  disabled, `transparent_hugepage=never`. Passes: `memstress` (anonymous
+  memory, FENCE.I, fork/COW, AMO/LR-SC; 0 bad in 651 s), and no oops in
+  minutes of `execstress` (busybox fork/exec) or `pmemstress` (ext4 on
+  pmem + dynamic exec from the Debian disk) — stress kernels from
+  `scripts/build_stress_kernels.sh`.
+- **Cause (RTL hunt, branches `73-oops-mmu` / `73-oops-sim-repro`):** an
+  MMU walker race — a data-TLB miss preempting an in-flight fetch walk
+  takes the fetch walk's outstanding PTE response as its own first PTE —
+  needs code-page-crossing ITLB misses plus DDR-like latency; Debian's
+  dynamically linked userland provides both. The Debian boot is re-run on
+  the AFI with the fix.
+- Platform notes for a later issue: SIGINT'd `sigil_host` runs left the
+  SoC running; the following runs' consoles lost bytes until the AFI was
+  reloaded; OpenSBI restarted by itself after some oopses.
+- F2 time: OS agent 2.15 h (09:26–11:35 UTC); instance
+  `i-0172708b8206bb63d` terminated 11:35 UTC.
+
 ## #73 Linux oops: fetch-walk preemption fix (2026-10-22, branch `73-oops-fix`)
 
 Root cause, found by the oops hunt (branches `73-oops-mmu`,
@@ -2425,3 +2462,43 @@ built from this branch is still to come.
 
 Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
 runs).
+
+## #73 Debian on the F2 with the walker-race fix: login, 22/22 checks, disk persists (2026-10-22, AFI `agfi-0c8aa56fde1a48495`, branch `73-linux-debian`)
+
+Logs: [`linux-debian-73-2026-10-22/f2-boot-fixed/`](linux-debian-73-2026-10-22/f2-boot-fixed/)
+(`f2-run1.txt` full console of boot + acceptance, `f2-run2.txt` second boot
+from the saved disk, `*-summary.txt` check summaries, `f2-instance-info.txt`).
+Same published OS artifacts as above (sha256 in `f2-instance-info.txt`),
+booted exactly per `docs/LINUX.md` §4 on AFI `afi-059766f9a85c6d39a` /
+`agfi-0c8aa56fde1a48495` (branch `73-oops-fix`, RTL `31a1568`: stale MMU
+walker response dropped on preempt/abandon, Svadu A/D write-back lock),
+`f2.6xlarge` `i-0c58fa4d79908ae8b`, core **62.500 MHz** measured.
+
+- **No oops** in either boot (`Oops`/`BUG:`/`WARNING:` count 0).
+- **Boot time** (wall clock from SoC release, 8 GiB disk loaded in 2.42 s
+  before it): `SIGIL_LINUX_BOOT_OK` at **337.7 s**, **login prompt at
+  347.9 s (5 min 48 s)**; second boot 333.2 s / 343.2 s. Of this, ~129 s
+  is OpenSBI + early kernel memory setup for 64 + 16 GiB before the kernel
+  clock starts; then kernel 10.6 s (`Run /sbin/init` at 8.2 s) and systemd
+  userspace 3 min 25.5 s (`systemd-analyze`; `blame` led by
+  `dev-pmem0.device` 2 min 13 s, journald 54 s, logind 48 s, udev-trigger
+  47 s). The QEMU icount estimate (≈ 9 min) was pessimistic: about 5 core
+  cycles per instruction overall, not 13.
+- **Acceptance: 22/22 PASS** (`scripts/qemu_sigil_check.py --label F2
+  --scale 40 --no-reboot --release 'SoC released'`): login as `sigil`;
+  `uname` 6.12.114-sigil riscv64 + Debian 13; `/proc/cpuinfo` isa with
+  zve64d, `uarch sigil,core`, sv39; systemd `running`, no failed units;
+  `/` = `/dev/pmem0` ext4 rw; `numactl --hardware` **2 nodes: node 0 48305
+  MB (cpus 0), node 1 16110 MB (no cpus)**, distances 10/20; `free -h` 62 GiB;
+  `time (gcc hello.c && ./a.out)` **22.9 s**; `make` of the 6 examples
+  6 min 23 s; `malloc_test 512` MALLOC OK; `numa_hbm 256` all pages on the
+  requested node, dependent load DDR4 1791 ns vs HBM 1878 ns (with TLB
+  misses); `memwhere 1024` node 0, **`numactl --membind=1` → node 1: 1024
+  MiB**, interleave 512 + 512; `rvv_vadd` RVV OK (VLEN 512); `autovec` 7
+  vector instructions; sudo; `python3 -c` **9.9 s**; git/gdb/strace/vim/
+  file/man; a stamp file written; `sudo poweroff` → `reboot: Power down`
+  → `finisher: power off` → host saved the 8 GiB window (0.81 GB/s).
+- **Persistence: PASS** — run 2 loads the saved disk, logs in as root, the
+  stamp file is there (`journalctl --list-boots` shows both boots), power
+  off.
+- F2 time: 0.78 h (16:34–17:21 UTC), instance terminated.

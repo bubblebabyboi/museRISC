@@ -157,15 +157,23 @@ and the boot files and the Debian disk come from the GitHub release
 `sigil-linux-f2-2026-10-22`. An `f2.6xlarge` (us-east-1, the smallest
 F2) costs about $2/h On-Demand: stop it when you are done.
 
-> **Status:** the AFI passed its hardware tests
+> **Status (2026-10-22): works.** On the public AFI
+> `agfi-0c8aa56fde1a48495`, which has the MMU walker-race fix (#74),
+> Debian boots to the login prompt 5 min 48 s after the SoC is released
+> and passes 22/22 acceptance checks plus the save/reload persistence check
+> ([`evidence/linux-debian-73-2026-10-22/f2-boot-fixed/`](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/);
+> the AFI build: [`evidence/f2-platform-73-oopsfix-2026-10-22/`](evidence/f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)).
+> The memory platform passed its hardware tests
 > ([`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md))
 > and this Debian passed 23/23 acceptance checks in QEMU
 > ([`evidence/linux-debian-73-2026-10-22/`](evidence/linux-debian-73-2026-10-22/)).
-> `sigil-linux` passed its tests against a simulated `sigil_host` and
-> AFI tools ([`sigil-linux-tests.log`](evidence/linux-user-docs-73-2026-10-22/sigil-linux-tests.log)).
-> First Debian boot on the F2: `<F2 Debian boot evidence: pending>`.
-> First `sigil-linux` run on the F2 (boot, `poweroff`, save, second boot
-> from the saved disk): `<sigil-linux on F2: pending>`.
+> The F2 runs used the `sigil_host` command of §4.2 by hand; `sigil-linux`
+> wraps that command and passed its tests against a simulated `sigil_host`
+> and AFI tools ([`sigil-linux-tests.log`](evidence/linux-user-docs-73-2026-10-22/sigil-linux-tests.log)).
+> The previous AFI `agfi-0a1fd54ef68bdc754` has the walker bug: Debian
+> oopses on it 35–130 s into systemd startup
+> ([`f2-oops-ab.txt`](evidence/linux-debian-73-2026-10-22/f2-oops-ab.txt)).
+> It is superseded; do not use it for Linux.
 
 ### 4.1 One command: `sigil-linux`
 
@@ -584,21 +592,24 @@ state.
 
 ## 7. Boot time and speed
 
-| | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | F2 estimate (62.5 MHz) |
+| | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | **F2, measured** (62.5 MHz) |
 |---|---:|---:|---:|
-| reset → login prompt | 21 s | 42 s | **≈ 9 min** |
-| `gcc -O2 hello.c` | < 1 s | 4.9 s | ≈ 1 min |
-| `python3 -c 'print(42)'` | < 1 s | 1.0 s | ≈ 15 s |
+| release → login prompt | 21 s | 42 s | **5 min 48 s** |
+| of which before the kernel clock starts (OpenSBI, memory setup) | < 1 s | — | ≈ 2 min 9 s |
+| `systemd-analyze` (kernel + userspace) | 0.5 + 9.8 s | 2.1 + 41 s | 10.6 s + 3 min 25 s |
+| `gcc hello.c && ./a.out` | < 1 s | 4.9 s | 22.9 s |
+| `make` of the 6 examples | 13 s | — | 6 min 23 s |
+| `python3 -c 'print(...)'` | < 1 s | 1.0 s | 9.9 s |
+| `poweroff` → host saved the 8 GiB disk | — | — | ≈ 1 min |
 
 QEMU's own speed says nothing about the FPGA. `scripts/qemu_sigil_check.py
 --icount` runs QEMU so that guest time advances 16 ns per instruction —
 a 62.5 MHz hart executing one instruction per cycle, a lower bound. The
 F2 hart (in order, blocking L1 caches, one memory request in flight)
-needed about 13 cycles per instruction on the #55 Linux 6.6 boot
-(calibrated by running that exact payload in the same icount QEMU), so
-the F2 column is the icount column × 13. Measured F2 numbers replace it
-in the evidence when the run happens. A faster FPGA clock (#53) scales
-everything.
+averages about 5 cycles per instruction on this workload (the icount
+column × 5; an earlier calibration on the 6.6 boot suggested 13). Most
+of the boot is systemd's userspace start-up (`systemd-analyze blame` on
+the board). A faster FPGA clock (#53) scales everything.
 
 The image is tuned for this (§1); `systemd-analyze blame` on the board
 shows where the time goes.

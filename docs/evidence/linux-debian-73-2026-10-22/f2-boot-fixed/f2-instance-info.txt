@@ -1,0 +1,12 @@
+instance: i-0c58fa4d79908ae8b (sigil-f2-debian) f2.6xlarge us-east-1a, FPGA Developer AMI ami-069f868732bb588dc, launched 16:34:05 UTC, terminated 17:21 UTC
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-0c8aa56fde1a48495  loaded            0        ok               0       0x10212415
+6.8.0-1021-aws
+sigil_host from 73-oops-fix (git archive origin/73-oops-fix, 31a1568 RTL; branch head 653d2cf)
+6c5adace5821a3ae57fc7092079d625e77a2ce3c654973c1c7f9fc900cc7dce4  /home/ubuntu/sigil/fpga/host/sigil_host
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790  Image
+eb1689b43fe38e01d75e36c569d51bb7ea21c3163c10fb6acafa4b466f521e04  sigil-f2.dtb
+c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632  sigil-debian-13-riscv64.ext4
+8571718a92a49850f47420abaf211123a44e57e82cd91974fb2cfd9cf6d7200a  sigil-disk-saved.ext4
+f91e40597fd06442af90d2caaf4bf1db05e970b62262feb39951ebb10fdff519  sigil-disk-saved2.ext4
