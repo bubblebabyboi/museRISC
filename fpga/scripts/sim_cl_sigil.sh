@@ -5,13 +5,15 @@
 #
 # <fw_dir> holds the firmware images the tests load through PCIS:
 #   hash_soc_test.bin fpga_smoke_test.bin crypto_soc_test.bin
-#   ed25519_soc_test.bin       (make -C sim on the dev machine:
+#   ed25519_soc_test.bin f2_platform_test.bin
+#                              (make -C sim on the dev machine:
 #                               build/soc-tests/*.bin)
 #   fw_jump.bin sigil.dtb s_hello.bin   (scripts/build_opensbi.sh /
 #                               make soc: build/linux/), test_sigil_hello only
 # fpga_smoke_uart_in.txt is taken from sw/fpga-tests/.
 # Tests: test_sigil_regs test_sigil_hash test_sigil_smoke
 #        test_sigil_crypto test_sigil_ed25519 test_sigil_hello
+#        test_sigil_platform test_sigil_host_cosim
 # Logs: fpga/cl_sigil/verif/sim/xsim/<test>_sv_fast/<test>.log
 set -euo pipefail
 [ $# -ge 2 ] || { sed -n 2,16p "$0"; exit 2; }
