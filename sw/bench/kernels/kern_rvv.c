@@ -4,10 +4,10 @@
  * Plain strip-mined loops (vsetvl per strip, LMUL 8 for the widest
  * operand), VLEN-agnostic: the same binary is correct on any RVV 1.0
  * Zve64d machine. On Sigil (VLEN 512) a strip is 64 e64 / 128 e32
- * elements. Reductions accumulate per element in a vector register
- * (tail undisturbed, so a short last strip keeps the other lanes) and
- * reduce once at the end, as vectorized code usually does. Built with
- * the SDK -march (which has V). */
+ * elements. The dot products accumulate per element in a vector
+ * register (tail undisturbed, so a short last strip keeps the other
+ * lanes) and reduce once at the end, as vectorized code usually does
+ * (mac_i8: see there). Built with the SDK -march (which has V). */
 #include <riscv_vector.h>
 
 #include "kernels.h"
@@ -155,20 +155,19 @@ void fir_f32_rvv(size_t n, size_t taps, const float *h, const float *x, float *y
   }
 }
 
-/* int8 x int8 -> int16 products (vwmul), accumulated into int32 lanes
- * (vwadd.wv): two widening steps, as RVV has no 4x widening MAC. */
+/* int8 x int8 -> int16 products (vwmul), summed per strip into an
+ * int32 scalar by the widening reduction (vwredsum): two widening
+ * steps, as RVV has no 4x widening MAC. (Accumulating into int32 lanes
+ * with vwadd.wv makes GCC 16 copy the accumulator group with vmv8r.v
+ * every strip.) */
 uint32_t mac_i8_rvv(size_t n, const int8_t *x, const int8_t *y) {
-  size_t vlmax = __riscv_vsetvlmax_e32m8();
-  vint32m8_t acc = __riscv_vmv_v_x_i32m8(0, vlmax);
+  vint32m1_t s = __riscv_vmv_s_x_i32m1(0, 1);
   for (size_t vl; n > 0; n -= vl, x += vl, y += vl) {
-    vl = __riscv_vsetvl_e8m2(n);
-    vint8m2_t vx = __riscv_vle8_v_i8m2(x, vl);
-    vint8m2_t vy = __riscv_vle8_v_i8m2(y, vl);
-    vint16m4_t p = __riscv_vwmul_vv_i16m4(vx, vy, vl);
-    acc = __riscv_vwadd_wv_i32m8_tu(acc, acc, p, vl);
+    vl = __riscv_vsetvl_e8m4(n);
+    vint8m4_t vx = __riscv_vle8_v_i8m4(x, vl);
+    vint8m4_t vy = __riscv_vle8_v_i8m4(y, vl);
+    s = __riscv_vwredsum_vs_i16m8_i32m1(__riscv_vwmul_vv_i16m8(vx, vy, vl), s, vl);
   }
-  vint32m1_t z = __riscv_vmv_s_x_i32m1(0, 1);
-  vint32m1_t s = __riscv_vredsum_vs_i32m8_i32m1(acc, z, vlmax);
   return (uint32_t)__riscv_vmv_x_s_i32m1_i32(s);
 }
 
