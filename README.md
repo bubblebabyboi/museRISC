@@ -143,9 +143,8 @@ all of the memory, is superseded and must not be used for Linux (its core
 has the MMU walker race,
 [#74](https://github.com/bubblebabyboi/sigil/issues/74)); the first
 public AFI `agfi-035116450e0a0d093` (128 MiB of DDR4, needs
-`--ignore-mem-err`) still runs bare-metal programs with the current
-`sigil_host`; its core also has the walker race (#74), so use it for
-bare-metal programs only.
+`--ignore-mem-err`) works with the current `sigil_host`, but its core
+also has the walker race (#74), so use it for bare-metal programs only.
 
 ## Boot Debian on your own F2
 
