@@ -411,6 +411,17 @@ die").
           antenna rounds), then make finish + abstract with the w34
           snapshot. 8 threads, started 20:54:03Z. Before: setup WS
           +11.641 ns, hold +0.367, 1,079 max slew, 210 max cap.
+          repair_design (40 %): 2,931 slew / 199 cap / 1 fanout
+          violations found, 2,643 cells resized, 440 buffers in 488
+          nets, utilization 47.0 %; then (SPEF + placement estimates
+          for the changed nets) setup WS +11.672, 0 slew / cap.
+          The incremental detailed_route stopped in its iteration 0
+          after 11.6 min (run rc 2, 21:13:32Z): "[ERROR DRT-1231] Pin
+          _166757_/S0 does not have access point" (an unchanged
+          sky130_fd_sc_hd__mux4_2 of the SHA-512 schedule; its
+          neighbourhood changed in the ECO legalization, and pin
+          access is computed per cell-plus-neighbours pattern). w34b
+          is dropped; w34m carries on.
 
 == CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
   Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
