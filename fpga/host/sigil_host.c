@@ -677,13 +677,25 @@ int main(int argc, char **argv) {
     if (img.status != FPGA_STATUS_LOADED) die(3, "slot %d: no AFI loaded (status %d)", slot, img.status);
     info("slot %d: AFI %s, shell 0x%08x", slot, img.ids.afi_id, img.sh_version);
   }
+  // Release the CL resets with the build's clock recipes first (the OCL
+  // registers sit behind them), then optionally reprogram group B.
+  if (aws_clkgen_deassert_resets(slot) != 0) die(3, "aws_clkgen_deassert_resets failed");
   if (recipe_b >= 0) {
-    // Groups A/C/HBM: HDK defaults A1, C0, H2 (450 MHz HBM AXI clock).
-    info("AWS_CLK_GEN: group B recipe B%d (A1 C0 H2 for the other groups)", recipe_b);
-    if (aws_clkgen_set_recipe(slot, 1, (uint32_t)recipe_b, 0, 2, 0) != 0)
+    // Groups A/C: HDK defaults A1, C0. HBM: the build's recipe from OCL
+    // CAPS[7:4] (recipe + 1) when the CL reports it, else H2 (v3 CL).
+    uint32_t hbm_recipe = 2;
+    if (fpga_pci_attach(slot, FPGA_APP_PF, APP_PF_BAR0, 0, &ocl) == 0) {
+      uint32_t v = 0, caps = 0;
+      if (fpga_pci_peek(ocl, R_ID, &v) == 0 && v == SIGIL_ID &&
+          fpga_pci_peek(ocl, R_VERSION, &caps) == 0 && (caps >> 16) >= 4 &&
+          fpga_pci_peek(ocl, R_CAPS, &caps) == 0 && ((caps >> 4) & 0xF) != 0)
+        hbm_recipe = ((caps >> 4) & 0xF) - 1;
+      fpga_pci_detach(ocl);
+      ocl = PCI_BAR_HANDLE_INIT;
+    }
+    info("AWS_CLK_GEN: group B recipe B%d (A1 C0 H%u for the other groups)", recipe_b, hbm_recipe);
+    if (aws_clkgen_set_recipe(slot, 1, (uint32_t)recipe_b, 0, hbm_recipe, 0) != 0)
       die(3, "aws_clkgen_set_recipe failed");
-  } else if (aws_clkgen_deassert_resets(slot) != 0) {
-    die(3, "aws_clkgen_deassert_resets failed");
   }
   if (fpga_pci_attach(slot, FPGA_APP_PF, APP_PF_BAR0, 0, &ocl) != 0) die(3, "attach OCL BAR0 failed");
   if (fpga_pci_attach(slot, FPGA_APP_PF, APP_PF_BAR4, BURST_CAPABLE, &pcis) != 0)
@@ -695,10 +707,12 @@ int main(int argc, char **argv) {
   const uint32_t khz = rd(R_CLK_KHZ);
   const bool v4 = (version >> 16) >= 4;
   ram_size = v4 ? (uint64_t)rd(R_RAM_SIZE_MB) << 20 : 0x08000000ull;
-  const bool has_hbm = v4 && (rd(R_CAPS) & 1u);
+  const uint32_t caps = v4 ? rd(R_CAPS) : 0;
+  const bool has_hbm = caps & 1u;
   info("Sigil CL version 0x%08x, build clock recipe %.3f MHz, RAM window %" PRIu64 " MiB at "
        "0x80000000%s", version, khz / 1000.0, ram_size >> 20,
        has_hbm ? " (DDR4 64 GiB + HBM 16 GiB)" : "");
+  if (has_hbm && (caps >> 4) & 0xF) info("HBM AXI clock: AWS_CLK_GEN recipe H%u", ((caps >> 4) & 0xF) - 1);
 #ifndef SV_TEST
   if (use_mmap) {
     void *p = NULL;

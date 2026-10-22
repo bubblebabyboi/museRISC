@@ -26,6 +26,12 @@ switch $clock_recipe_b {
   default { error "unknown clock_recipe_b $clock_recipe_b" }
 }
 print "Sigil core clock: clk_extra_b1, recipe $clock_recipe_b = ${core_khz} kHz"
+# HBM AXI clock (clk_hbm_axi) recipe number, reported in OCL CAPS so the
+# host reprograms the same recipe when it changes group B at run time.
+if {![regexp {^H([0-9])$} $clock_recipe_hbm -> hbm_recipe]} {
+  error "unknown clock_recipe_hbm $clock_recipe_hbm"
+}
+print "Sigil HBM AXI clock: clk_hbm_axi, recipe $clock_recipe_hbm"
 
 print "Reading Sigil SoC RTL from ${rtl_dir}"
 set fh [open ${rtl_dir}/sigil_soc_files.mk r]; set mk [read $fh]; close $fh
@@ -102,6 +108,7 @@ synth_design -mode out_of_context \
              -verilog_define XSDB_SLV_DIS \
              -verilog_define SYNTHESIS \
              -verilog_define SIGIL_CORE_CLK_KHZ=${core_khz} \
+             -verilog_define SIGIL_HBM_RECIPE=${hbm_recipe} \
              -include_dirs [list ${rtl_dir}/core ${src_post_enc_dir}] \
              -part ${DEVICE_TYPE} \
              -keep_equivalent_registers

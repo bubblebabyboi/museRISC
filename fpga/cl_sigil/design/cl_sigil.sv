@@ -5,7 +5,7 @@
 //
 //   Shell SDA ---------------------------> AWS_CLK_GEN (clock recipes)
 //                                            | clk_extra_b1 = core clock
-//                                            | clk_hbm_axi  = HBM AXI (H2 450 MHz)
+//                                            | clk_hbm_axi  = HBM AXI (recipe H0, 250 MHz)
 //   Shell OCL (clk_main_a0) -> AXI-Lite clock converter
 //                            -> sigil_fpga_ocl.s_axil (core clock)
 //                                 sigil_ocl_regs + sigil_fpga_top
@@ -44,6 +44,10 @@
 // loaded DDR.
 `ifndef SIGIL_CORE_CLK_KHZ
   `define SIGIL_CORE_CLK_KHZ 62500
+`endif
+// AWS_CLK_GEN HBM-group recipe of the build (H0 = 250 MHz clk_hbm_axi).
+`ifndef SIGIL_HBM_RECIPE
+  `define SIGIL_HBM_RECIPE 0
 `endif
 
 module cl_sigil
@@ -294,7 +298,8 @@ module cl_sigil
     .RAM_SIZE     (RAM_SIZE),                 // docs/LINUX_PLATFORM.md
     .DDR_BASE     (64'h0),                    // SoC 0x8000_0000 -> AXI 0x0
     .CORE_CLK_KHZ (32'(`SIGIL_CORE_CLK_KHZ)),
-    .HBM_PRESENT  (EN_HBM != 0)
+    .HBM_PRESENT  (EN_HBM != 0),
+    .HBM_RECIPE   (4'(`SIGIL_HBM_RECIPE))
   ) SIGIL (
     .clk_i          (clk_core),
     .rst_ni         (core_rst_n),

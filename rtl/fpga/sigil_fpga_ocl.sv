@@ -21,7 +21,8 @@ module sigil_fpga_ocl #(
     parameter int unsigned UART_TX_DEPTH = 1024,
     parameter int unsigned UART_RX_DEPTH = 64,
     parameter logic [31:0] CORE_CLK_KHZ = 32'd62500,
-    parameter bit          HBM_PRESENT = 1'b0
+    parameter bit          HBM_PRESENT = 1'b0,
+    parameter logic [3:0]  HBM_RECIPE = 4'd0      // AWS_CLK_GEN Hn of the build
 ) (
     input  wire        clk_i,
     input  wire        rst_ni,
@@ -107,7 +108,8 @@ module sigil_fpga_ocl #(
 
   sigil_ocl_regs #(
       .CORE_CLK_KHZ(CORE_CLK_KHZ), .TX_CW(TX_CW), .RX_CW(RX_CW),
-      .RAM_SIZE_MB(RAM_MB[31:0]), .HBM_PRESENT(HBM_PRESENT)
+      .RAM_SIZE_MB(RAM_MB[31:0]), .HBM_PRESENT(HBM_PRESENT),
+      .HBM_RECIPE(HBM_RECIPE)
   ) u_regs (
       .clk_i, .rst_ni,
       .s_axil_awaddr, .s_axil_awvalid, .s_axil_awready,

@@ -34,7 +34,8 @@ module sigil_ocl_regs #(
     parameter int unsigned RX_CW = 7,    // $clog2(UART_RX_DEPTH)+1
     // RAM window of the build (RAM_SIZE_MB register) and HBM presence.
     parameter logic [31:0] RAM_SIZE_MB = 32'd128,
-    parameter bit          HBM_PRESENT = 1'b0
+    parameter bit          HBM_PRESENT = 1'b0,
+    parameter logic [3:0]  HBM_RECIPE = 4'd0
 ) (
     input  wire        clk_i,
     input  wire        rst_ni,
@@ -245,7 +246,9 @@ module sigil_ocl_regs #(
       A_SCRATCH:       rd_mux = scratch_q;
       A_HOST_FLAGS:    rd_mux = host_flags_q;
       A_RAM_SIZE_MB:   rd_mux = RAM_SIZE_MB;
-      A_CAPS:          rd_mux = {31'd0, HBM_PRESENT};
+      // bit 0 HBM present; 7:4 = HBM clock recipe + 1 (0 = not reported)
+      A_CAPS:          rd_mux = {24'd0, HBM_PRESENT ? HBM_RECIPE + 4'd1 : 4'd0,
+                                 3'd0, HBM_PRESENT};
       A_ERR_ADDR_LO:   rd_mux = err_addr_i[31:0];
       A_ERR_ADDR_HI:   rd_mux = err_addr_i[63:32];
       A_ERR_INFO:      rd_mux = err_info_i;
