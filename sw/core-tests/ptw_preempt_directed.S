@@ -158,6 +158,7 @@ s_fail:
 .macro LAYOUT v
     .balign 4096
     .skip 0xFC0
+entry\v:
     .rept 15 - \v
     nop
     .endr
@@ -171,7 +172,6 @@ s_fail:
 1:  j s_next
     .balign 4096
 .endm
-entry0 = vcode + 0x1000 + 0xFC0
     LAYOUT 0
     LAYOUT 1
     LAYOUT 2
