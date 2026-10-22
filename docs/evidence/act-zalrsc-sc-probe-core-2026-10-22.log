@@ -1,0 +1,77 @@
+# ACT Zalrsc-sc case-level probe on the in-house core (issue #20)
+date_utc: 2026-10-22T06:58:12Z
+host: sigil-verify (EC2 c7i.8xlarge), Ubuntu 24.04.5 LTS, kernel 7.0.0-1014-aws
+commit: 0c46ae5caae020a767cfb4c658112d17dfd67aa8 (branch 20-isa-followups; RTL identical to main eeaa332)
+worktree clean: 0 modified tracked files
+verilator: Verilator 5.048 2026-04-26 rev v5.048
+riscv gcc: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0 (deps toolchain 2026.08.27)
+sail: sail_riscv_sim 0.15 (release 0.15 Linux-x86_64)
+riscv-arch-test: 6af53584adc8b944fdc34c361988674870146d91
+mise: 2026.10.17 linux-x64 (2026-10-21); ACT tools (.mise.toml): ruby 3.4.11, uv 0.12.23
+
+## commands
+EXTENSIONS=Zalrsc ./scripts/build_act4_core.sh            # Sail signatures + self-check ELFs (stock sources)
+make -C sim ../build/sim/core_tb
+JOBS=2 scripts/act_zalrsc_sc_probe.sh build/act-zalrsc-probe
+
+## probe output
+Zalrsc-sc.w-noretry-00.S: 274 of 274 retry budgets cut to 1
+Zalrsc-sc.d-noretry-00.S: 274 of 274 retry budgets cut to 1
+runs: 136/136 self-check PASS with signature == Sail
+cases (default config): 1100/1100 match Sail
+rc=0
+
+## per-test summary (scripts/act_sig_cases.py, default config)
+Zalrsc-sc.w-00: 551 SIGUPD slots (SIGUPD_COUNT 561) in 275 cases; signature words sail=568 core=568; word mismatches 0; case mismatches 0
+Zalrsc-sc.d-00: 551 SIGUPD slots (SIGUPD_COUNT 561) in 275 cases; signature words sail=568 core=568; word mismatches 0; case mismatches 0
+Zalrsc-sc.w-noretry-00: 551 SIGUPD slots (SIGUPD_COUNT 561) in 275 cases; signature words sail=568 core=568; word mismatches 0; case mismatches 0
+Zalrsc-sc.d-noretry-00: 551 SIGUPD slots (SIGUPD_COUNT 561) in 275 cases; signature words sail=568 core=568; word mismatches 0; case mismatches 0
+runs: 136/136 self-check PASS with signature == Sail
+cases (default config): 1100/1100 match Sail
+
+## ACT generation of the noretry variants (tail of act_gen.log)
+✓ DUT configs prepared: 1 config all up to date
+✓ Build complete: 8 succeeded, 16 up-to-date
+ELFs: third_party/riscv-arch-test/work/sigil-core/elfs/
+
+## noretry rewrite (first instance; every LI(xN, 100) retry budget, 274 per test)
+39c39
+<   LI(x15, 100) # retry counter for constrained LR/SC loop
+---
+>   LI(x15, 1) # retry counter cut to 1 (issue #20 probe)
+
+## Sail reference signatures: stock vs noretry (identical: Sail never needs a retry)
+Zalrsc-sc.w: identical (568 words)
+Zalrsc-sc.d: identical (568 words)
+
+## expected SC outcomes per test (first signature word of each case = SC rd)
+Zalrsc-sc.w-00: 243 cases expect SC success (rd=0), 32 expect SC failure (rd!=0)
+Zalrsc-sc.d-00: 243 cases expect SC success (rd=0), 32 expect SC failure (rd!=0)
+
+## signature-mode ELF on the core, default config (HTIF console + halt)
+HTIF: 
+HTIF: RVCP-SUMMARY: TEST SIGRUN - Test File "Zalrsc-sc.w-00.S"
+HTIF: 
+CORE TB PASS build/act-zalrsc-probe/elf/Zalrsc-sc.w-00.sig.elf (htif, 78175 cycles)
+HTIF: 
+HTIF: RVCP-SUMMARY: TEST SIGRUN - Test File "Zalrsc-sc.d-noretry-00.S"
+HTIF: 
+CORE TB PASS build/act-zalrsc-probe/elf/Zalrsc-sc.d-noretry-00.sig.elf (htif, 41505 cycles)
+
+## self-check cycles by configuration (min/max over the 16 random seeds)
+Zalrsc-sc.d-00 default 1 runs cycles 76962..76962
+Zalrsc-sc.d-00 nocache 1 runs cycles 134470..134470
+Zalrsc-sc.d-00 rand 16 runs cycles 87488..87682
+Zalrsc-sc.d-00 rand_nocache 16 runs cycles 238439..239539
+Zalrsc-sc.d-noretry-00 default 1 runs cycles 40273..40273
+Zalrsc-sc.d-noretry-00 nocache 1 runs cycles 54932..54932
+Zalrsc-sc.d-noretry-00 rand 16 runs cycles 50714..51137
+Zalrsc-sc.d-noretry-00 rand_nocache 16 runs cycles 96440..97259
+Zalrsc-sc.w-00 default 1 runs cycles 76964..76964
+Zalrsc-sc.w-00 nocache 1 runs cycles 134470..134470
+Zalrsc-sc.w-00 rand 16 runs cycles 87488..87712
+Zalrsc-sc.w-00 rand_nocache 16 runs cycles 238439..239766
+Zalrsc-sc.w-noretry-00 default 1 runs cycles 40275..40275
+Zalrsc-sc.w-noretry-00 nocache 1 runs cycles 54932..54932
+Zalrsc-sc.w-noretry-00 rand 16 runs cycles 50714..51097
+Zalrsc-sc.w-noretry-00 rand_nocache 16 runs cycles 96724..97259

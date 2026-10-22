@@ -1,4 +1,33 @@
-# TestFloat checkers for the CVA6 model
+# Berkeley TestFloat flows
+
+Two flows live here. The in-house FPU flows (below) are the ones that
+back claims about Sigil's own core; the CVA6 checkers are the
+historical characterization of the third-party cvfpu.
+
+## In-house FPU (`rtl/core/sigil_fpu.sv`)
+
+- Level 1, every F/D operation TestFloat covers (36 functions) in all
+  five rounding modes: `scripts/testfloat_fpu_vectors.sh` runs
+  `testfloat_gen` vectors through the FPU unit TB
+  (`tb/cpp/fpu_tb.cpp --testfloat`), comparing result bits and all
+  five exception flags (evidence: `docs/evidence/README.md`, "Multi-cycle
+  synthesizable FPU", 64,648,560 vectors).
+- Level 2, `f32_mulAdd`/`f64_mulAdd` (issue #20):
+  `scripts/testfloat_fpu_l2.sh` with the case generator
+  `tf_l2_mulAdd.c`, which compiles TestFloat's own `genCases_f32.c`/
+  `genCases_f64.c` and `random.c` (with a lock-free replica of glibc
+  `rand()`) so the level-2 stream can be cut into independent chunks;
+  `validate` checks its output byte-for-byte against `testfloat_gen`.
+  The complete level-2 stream is 14,512,627,712 cases per rounding
+  mode for f32 and 180,795,884,544 for f64; `STRIDE` keeps every
+  S-th grid triple for a bounded f64 run, and `OP=rot` sends cases
+  through fmadd/fmsub/fnmsub/fnmadd with sign-flipped operands so the
+  expected value is still TestFloat's mulAdd result. Results:
+  `docs/evidence/testfloat-l2-muladd-core-2026-10-22.csv`.
+- `roundToInt` is not tested: it has no instruction without Zfa,
+  which this configuration does not implement.
+
+## CVA6 model checkers (historical)
 
 Bare-metal checkers that execute Berkeley TestFloat level-1 vectors
 (generated against SoftFloat with the RISCV specialization) on the
@@ -37,7 +66,8 @@ Float->int checkers
 mask the NX flag: TestFloat generates those vectors with
 SoftFloat `exact=false` (expected flags never carry NX) while
 RISC-V `fcvt` raises NX on inexact conversions. `roundToInt`
-(no instruction without Zfa) and level-2 density are
-follow-up work under issue #20. The
+(no instruction without Zfa) is not applicable and level-2
+density was not run on CVA6 (the in-house FPU flow above covers
+level-2 mulAdd). The
 upstream `berkeley-softfloat-3`/`berkeley-testfloat-3` trees live
 uncommitted under `third_party/` (recorded commits in evidence).
