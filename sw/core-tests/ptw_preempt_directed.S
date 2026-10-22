@@ -118,8 +118,17 @@ m_wrong:
 m_trap:
     li t0, 4                      // e.g. load page fault on VA_D
 m_exit:
-    csrr s9, mepc
-    csrr s10, mtval
+    // Diagnostics for CORE_TB_DUMP=<diag>:0x28: mcause, mepc,
+    // mtval, passes done, exit code.
+    la t2, diag
+    csrr t1, mcause
+    sd t1, 0(t2)
+    csrr t1, mepc
+    sd t1, 8(t2)
+    csrr t1, mtval
+    sd t1, 16(t2)
+    sd s2, 24(t2)
+    sd t0, 32(t2)
     li t1, 0x10000000
     sd t0, 0(t1)
 1:  j 1b
@@ -169,6 +178,9 @@ entry0 = vcode + 0x1000 + 0xFC0
     LAYOUT 3
 
     .data
+    .balign 4096
+diag:                             // first word of .data
+    .skip 0x40
     .balign 4096
 page_d:
     .skip 0x800
