@@ -78,33 +78,44 @@ static void fill_u8(uint8_t *p, size_t n, rng_t r) {
   for (size_t i = 0; i < n; i++) p[i] = (uint8_t)(rng_next(&r) >> 56);
 }
 
-/* ---- buffers: a static pool, 64-byte aligned, a 64-byte guard band
- * (CANARY) before and after each buffer, so consecutive 4 KiB buffers
- * are also skewed by two cache lines. Reset per kernel. */
+/* ---- buffers: a static pool, 64-byte aligned, with a 64-byte guard
+ * band before and after each buffer, so consecutive 4 KiB buffers are
+ * also skewed by two cache lines. Each buffer's guard bands hold their
+ * own byte value, so an overrun that copies another buffer's guard
+ * (memcpy reading past its source) is still caught. Reset per kernel. */
 #define POOL_BYTES (64u * 1024u)
 #define GUARD 64u
-#define CANARY 0xA5
-#define POISON 0x5A
+#define MAXBUF 8u
+#define POISON 0x5A /* differs from every canary() */
 static uint8_t pool[POOL_BYTES] __attribute__((aligned(4096)));
 static size_t pool_used;
+static const uint8_t *buf_ptr[MAXBUF];
+static unsigned nbuf;
 
 static size_t round64(size_t n) { return (n + 63u) & ~(size_t)63u; }
 
+/* Guard byte of buffer i: eight distinct values. */
+static uint8_t canary(unsigned i) { return (uint8_t)(0xA5 ^ (0x3B * (i + 1))); }
+
 static void *buf(size_t bytes) {
   size_t span = round64(bytes) + 2u * GUARD;
-  if (pool_used + span > POOL_BYTES) sigil_fail("buffer pool exhausted");
+  if (pool_used + span > POOL_BYTES || nbuf == MAXBUF) sigil_fail("buffer pool exhausted");
   uint8_t *p = pool + pool_used;
-  memset(p, CANARY, span);
+  memset(p, canary(nbuf), span);
   pool_used += span;
+  buf_ptr[nbuf++] = p + GUARD;
   return p + GUARD;
 }
 
 static int guards_ok(const void *buffer, size_t bytes) {
   const uint8_t *q = buffer;
-  for (size_t i = 1; i <= GUARD; i++)
-    if (q[-(ptrdiff_t)i] != CANARY) return 0;
-  for (size_t i = bytes; i < round64(bytes) + GUARD; i++)
-    if (q[i] != CANARY) return 0;
+  unsigned i = 0;
+  while (i < nbuf && buf_ptr[i] != q) i++;
+  if (i == nbuf) return 0;
+  for (size_t j = 1; j <= GUARD; j++)
+    if (q[-(ptrdiff_t)j] != canary(i)) return 0;
+  for (size_t j = bytes; j < round64(bytes) + GUARD; j++)
+    if (q[j] != canary(i)) return 0;
   return 1;
 }
 
@@ -139,7 +150,7 @@ static void check_out(const char *impl, const void *out, const void *ref, size_t
   const uint8_t *a = out, *b = ref;
   for (size_t i = 0; i < bytes; i++)
     if (a[i] != b[i]) fail_at(impl, (long)i);
-  if (!guards_ok(out, bytes)) fail_at(impl, -1);
+  if (!guards_ok(out, bytes)) fail_at(impl, -1); /* guard band overwritten */
 }
 
 static void check_val(const char *impl, const void *v, const void *ref, size_t bytes) {
@@ -194,6 +205,7 @@ static void report(unsigned units, const char *unit) {
 static void begin(const char *name) {
   cur = name;
   pool_used = 0;
+  nbuf = 0;
 }
 
 /* ---- the kernels ---- */
