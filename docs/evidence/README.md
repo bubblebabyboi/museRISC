@@ -2206,4 +2206,11 @@ Observations:
 - **Projection only:** at F2's 62.5 MHz, the scalar figure is about
   23 DMIPS. No hardware run.
 
-Gates on `534f846`: `gates.log` in the same directory.
+Gates on `534f846` (`gates.log`):
+- `make lint` is clean on Verilator 5.048, 5.020 (CI version) and 5.044.
+- `make test` passes.
+- `make core-test`: 235/235 `TB PASS` lines, identical to a core-test
+  run of main `eeaa332` on the same host apart from wall-clock seconds.
+  Every cycle count is the same, including the SDK examples. Coverage
+  is identical: 55.00% (3491/6252).
+- riscv-tests: 123/123.
