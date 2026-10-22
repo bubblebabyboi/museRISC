@@ -240,7 +240,8 @@ compares them in order; the first difference is reported:
   must match (Spike also logs side effects the DUT does not, e.g.
   `mstatus` on FS dirtying or xRET; those are not compared), and an
   `fflags` update must be logged by both or neither. `fcsr`/`vcsr`
-  writes are compared field by field (Spike logs the fields);
+  writes are compared field by field (Spike logs the fields), and an
+  `sstatus` write against the `mstatus` value Spike logs for it;
 - vector registers: compared where both logged the register;
 - traps: cause, epc and tval;
 - Spike's trace is cut after its first store to `tohost`; the DUT trace

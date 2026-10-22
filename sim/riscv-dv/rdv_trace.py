@@ -26,7 +26,8 @@ Comparison rules (first divergence wins):
   effects (mstatus.FS/VS dirtying, xRET status updates, ...). Values are
   compared for every CSR both sides logged; fflags must additionally be
   logged by both or neither. fcsr/vcsr writes are split into their
-  fields first (Spike logs the fields);
+  fields first (Spike logs the fields), and an sstatus write is checked
+  against the mstatus value Spike logs for it;
 - vector registers: compared where both sides logged the register;
 - traps: cause, epc and tval;
 - the reference is cut after the first store to ``tohost`` (HTIF exit)
@@ -92,6 +93,9 @@ CSR_NAMES = {
     0x3A2: "pmpcfg2", 0xC20: "vl", 0xC21: "vtype",
 }
 CSR_NAMES.update({0x3B0 + i: "pmpaddr%d" % i for i in range(16)})
+# RV64 sstatus view of mstatus: SIE SPIE UBE SPP VS FS XS SUM MXR UXL SD.
+SSTATUS_MASK = ((1 << 1) | (1 << 5) | (1 << 6) | (1 << 8) | (3 << 9) | (3 << 13) |
+                (3 << 15) | (1 << 18) | (1 << 19) | (3 << 32) | (1 << 63))
 
 
 @dataclass
@@ -317,6 +321,11 @@ def _diff(ref, dut):
         if ref.c[a] != dut.c[a]:
             d.append("csr 0x%03x (%s): dut 0x%x ref 0x%x" % (
                 a, CSR_NAMES.get(a, "?"), dut.c[a], ref.c[a]))
+    # Spike logs an sstatus write as the mstatus write it performs.
+    if 0x100 in dut.c and 0x100 not in ref.c and 0x300 in ref.c:
+        if dut.c[0x100] != ref.c[0x300] & SSTATUS_MASK:
+            d.append("csr 0x100 (sstatus): dut 0x%x ref 0x%x (mstatus 0x%x)" % (
+                dut.c[0x100], ref.c[0x300] & SSTATUS_MASK, ref.c[0x300]))
     if (0x001 in ref.c) != (0x001 in dut.c):
         d.append("fflags write: dut %s ref %s" % (
             "0x%x" % dut.c[1] if 1 in dut.c else "none",
