@@ -26,4 +26,5 @@ export MAX_ROUTING_LAYER = met4
 export PLACE_DENSITY_LB_ADDON ?= 0.05
 export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_crypto_top/io.tcl
 export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/block_pdn.tcl
-export ROUTING_LAYER_ADJUSTMENT ?= 0.3
+export PRE_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/grt_layers.tcl
+export GLOBAL_ROUTE_ARGS ?= -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
