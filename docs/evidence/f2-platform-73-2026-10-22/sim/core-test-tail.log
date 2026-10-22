@@ -1,0 +1,41 @@
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM PASS
+F2 PLATFORM: rebooted once
+
+finisher: 0x00005555 (power off, code 0) at 778611 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 778611 cycles after reset release)
+reboots: 1
+AXI: 2166 AR (2166 R beats), 2082 AW (2082 W beats, 2082 B); stall cycles AW 847 W 839 AR 918 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+loaded 2104 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105316 cycles after reset release)
+AXI: 53 AR (53 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 28 R 0 B 0
+cd ../build/sim && ./fpga_ocl_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASSUART drained with 14 TX_DATA and 42 TX_DATA3 reads
+
+AXI: 85 AR (2101 R beats), 32 AW (2048 W beats, 32 B); stall cycles AW 13 W 869 AR 37 R 0 B 0
+FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+EXAMPLE PASS hello (at 54050 cycles, 0 s)
+EXAMPLE PASS timer_irq (at 51458 cycles, 0 s)
+EXAMPLE PASS sha256_accel (at 1465990 cycles, 3 s)
+EXAMPLE PASS hash_stream (at 261426 cycles, 0 s)
+EXAMPLE PASS ed25519_verify (at 14630219 cycles, 24 s)
+EXAMPLE PASS vector_dot (at 811531 cycles, 2 s)
+EXAMPLE PASS fp_math (at 47541 cycles, 0 s)
+ALL 7 EXAMPLES PASS on soc_rtl_tb
+FPGATOP EXAMPLE PASS hello (at 54926 cycles, 0 s)
+FPGATOP EXAMPLE PASS timer_irq (at 52188 cycles, 0 s)
+Total coverage (3612/6726) 53.00%
+See lines with '%00' in ../build/sim/coverage
+EXIT 0 wall 1959s
+EXIT 0 wall 1959s
