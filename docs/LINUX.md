@@ -122,7 +122,7 @@ The first run makes `build/debian/sigil-disk.img`, a sparse 16 GiB copy
 of the built image; it is the pmem window, file-backed and shared, so
 whatever the guest writes stays in that file across QEMU runs (like
 saving the F2 window back). `--fresh` starts again from the built image,
-`--disk FILE` uses another disk, `--net` adds a NIC (§6),
+`--disk FILE` uses another disk, `--net` adds a NIC (it passes no traffic yet, §6),
 `--initramfs` boots the `SIGIL_LINUX_BOOT_OK` smoke kernel instead.
 
 The QEMU machine follows the contract: one hart with Sigil's
@@ -555,27 +555,29 @@ state.
 - **More room:** the file system is 8 GiB in a 16 GiB window. `sudo
   resize2fs /dev/pmem0` grows it online to 16 GiB (then the saved image
   is 16 GiB too).
-- **More packages:** the F2 has no network yet (#72). Boot the same disk
-  in QEMU with networking, install there, and boot it on the F2 again.
-  On the F2 host, while `sigil-linux` is not running:
+- **More packages:** the F2 has no network yet (#72). Install them from
+  the F2 host into your disk file, while `sigil-linux` is not running:
+  `qemu-user-static` runs the riscv64 `apt` and package scripts on the
+  x86 host, through the host's network:
 
   ```sh
-  sudo apt-get install -y qemu-system-misc
-  D=~/.cache/sigil-linux/sigil-linux-f2-2026-10-22     # sigil-linux's downloads
-  curl -fLo $D/sigil-qemu.dtb https://github.com/bubblebabyboi/sigil/releases/download/sigil-linux-f2-2026-10-22/sigil-qemu.dtb
-  SIGIL_LINUX_DIR=$D bash ~/sigil/scripts/qemu_sigil_boot.sh --disk ~/sigil-disk.ext4 --net
-  # in Debian (QEMU boots in about 20 s, §7), logged in as sigil:
-  sudo sigil-qemu-net && sudo apt update && sudo apt install <packages>
-  sudo poweroff
+  sudo apt-get install -y qemu-user-static        # once: riscv64 programs on the host
+  M=/mnt/sigil; sudo mkdir -p $M
+  sudo mount -o loop ~/sigil-disk.ext4 $M
+  sudo mount --bind /dev $M/dev; sudo mount -t devpts devpts $M/dev/pts; sudo mount -t proc proc $M/proc
+  sudo cp -L /etc/resolv.conf $M/etc/resolv.conf   # DNS for apt
+  sudo chroot $M apt-get update
+  sudo chroot $M apt-get install -y <packages>
+  sudo umount $M/proc $M/dev/pts $M/dev $M
   ```
 
-  QEMU writes straight into the disk file, so there is nothing to save;
-  leave with `sudo poweroff` (Ctrl-A X is no clean shutdown). The file
-  grows to 16 GiB apparent size, still sparse; `sigil-linux` trims it to
-  the file system again on its next save. `SIGIL_LINUX_DIR` is the
-  directory with `fw_jump.bin`, `Image` and `sigil-qemu.dtb` (default: a
-  build's `build/linux`). On another Ubuntu 24.04 machine: clone Sigil,
-  download those three files from the release and copy the disk over.
+  The next `sigil-linux` boots the disk with the new packages. They come
+  from the live Debian 13 archive (`deb.debian.org`), not from the
+  snapshot the image was built from. Any Ubuntu 24.04 machine works the
+  same way; copy the disk file there and back. (`qemu_sigil_boot.sh
+  --net` does not work for this: QEMU's `virt` machine wires virtio
+  interrupts to the PLIC of its second NUMA socket, whose hart OpenSBI
+  parks, so the NIC passes no traffic.)
 - **Files in and out:** §5.6 (loop mount or `debugfs` on the disk file
   while nothing is running on it).
 
@@ -603,7 +605,7 @@ shows where the time goes.
 ## 8. Limits
 
 - One hart (`nproc` = 1); no SMP.
-- No network on the F2 yet (#72); QEMU only with `--net`.
+- No network on the F2 yet (#72); install packages from the host (§6).
 - No swap; no Sv48 (Sv39 maps up to 128 GiB physical, enough for the
   80 GiB here).
 - No full V: build vector code for Zve64d (§5.5).
