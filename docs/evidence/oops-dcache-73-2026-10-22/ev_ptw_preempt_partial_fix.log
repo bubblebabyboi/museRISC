@@ -1,0 +1,29 @@
+# PARTIAL-FIX EXPERIMENT (not applied anywhere): drop the walker request only when it is already in flight at the preemption (walk_preempt && dq_pend_q && dq_walk_q && !drsp_valid_i), NOT the request issued in the preemption cycle.
+# make -C sim -f Makefile.oops oops-ptw-preempt   (host sigil-fpga-build, 2026-10-22T11:40:09Z)
+#   +      // PARTIAL experiment: drop only a request already in flight.
+#   +      if (walk_preempt && dq_pend_q && dq_walk_q && !drsp_valid_i) begin
+#   +        dq_drop_q <= 1'b1;
+#   +      end
+#          if (mem_rsp && exmem_ctrl_q.amo && !amo_wr_q) begin
+== ptw_preempt_directed --mem-lat 1
+CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
+== ptw_preempt_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_directed.bin (44603 cycles)
+== ptw_preempt_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_directed.bin (178421 cycles)
+== ptw_preempt_cached_directed --mem-lat 1
+CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles)
+== ptw_preempt_cached_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles)
+== ptw_preempt_cached_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles)
+== ptw_preempt_twoload_directed --mem-lat 1
+OOPSCHK stale-walk-rsp cyc=31662 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (31745 cycles)
+== ptw_preempt_twoload_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+OOPSCHK stale-walk-rsp cyc=37155 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (37264 cycles)
+== ptw_preempt_twoload_directed --mem-lat 40:50
+OOPSCHK stale-walk-rsp cyc=61856 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (62068 cycles)
+make: *** [Makefile.oops:36: oops-ptw-preempt] Error 1
