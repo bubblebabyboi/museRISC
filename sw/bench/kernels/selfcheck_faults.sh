@@ -45,7 +45,7 @@ run_case() { # name file sed-script
       --exit-string "SIGIL TEST PASS kernels" --fail-string "SIGIL TEST FAIL" \
       +sigil_perf="$d/run.perf" >"$d/run.log" 2>&1
     rc=$?
-    grep -E "MISMATCH|KAT|CHECK OK|SIGIL TEST|TB (PASS|FAIL)" "$d/run.log" | sed 's/^/   /'
+    grep -E "MISMATCH|KAT|guard band|CHECK OK|SIGIL TEST|TB (PASS|FAIL)" "$d/run.log" | sed 's/^/   /'
     if [ $rc -ne 0 ]; then
       echo "   testbench exit status $rc: failed, as required"
     else
