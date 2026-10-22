@@ -654,3 +654,61 @@ die").
     global routes), repair_design slew/cap margins 20 %, repair_timing
     -setup margin 0.3 ns, incremental global route + detailed_route,
     antenna loop; then finish + abstract again. Started 20:45Z.
+  s116b post-route ECO (`make run`, drt_eco_repair.tcl as committed in
+    2d0e70a, 16 threads, 20:48-22:07Z, 1 h 19 min). A first try
+    (20:45Z) that re-estimated the changed nets from their global
+    routes stopped on RSZ-0074 ("Failed to build tree from global
+    routes ... found route to 2 pins, expected 3": the stored global
+    routes predate the post-route antenna diodes), so changed nets are
+    re-estimated from placement.
+    timing with the s116a SPEF   setup WNS -0.939 / TNS -79.06 (130
+                                 endpoints), 2,834 max-slew / 236
+                                 max-cap pins
+    repair_design (margins 20 %) 1,186 resized, 656 buffers on 779 nets
+                                 -> 22 slew / 1 cap pins (estimated)
+    repair_timing (margin 0.3)   29 buffers, 194 upsized, 89 pin swaps,
+                                 3 clones -> setup WNS +0.303 (estimated)
+    detailed route (26 min)      165,286 / 62,147 / 55,376 / 9,542 /
+                                 891 / 240 / 63 / 39 / 39 / 0
+    antenna rounds               259 -> 64 -> 20 -> 10 -> 3 -> 0 nets,
+                                 every re-route to 0 violations
+    wire 23.21 m, 2,218,773 vias; design area 5,321,760 um^2 (46 %).
+  s116b finish + abstract (23:11-23:24Z, 12.7 min, make starts at
+    5_3_fillcell): 5_route_drc.rpt empty, 0 antenna nets, LEC passed.
+    Timing, routed (6_final + RCX SPEF, corner_sta.tcl):
+    corner            setup WNS / TNS (ns), endpoints   hold WNS  slew / cap viol.
+    tt (platform)     -0.434 / -23.00, 116              +0.247    36 / 1
+    ss_100C_1v60      -25.939 / -183,633, 12,728        +0.609    22,160 / 3,690
+    ff_n40C_1v95      +9.601 / 0                        +0.118    21 / 0
+    The 116 TT setup misses are again only dbg_st_* outputs (worst
+    u_core.exmem_ctrl_q[2] -> dbg_st_wdata_o[13], arrival 27.934 ns
+    against 27.500 required): the ECO's estimate was 0.74 ns
+    optimistic for the paths it re-buffered. The 36 max-slew pins are
+    on 5 nets (worst 2.688 ns against 1.5 on a net with 8 antenna
+    diodes; 33 of the 36 pins are diodes), the max-cap pin (0.243 /
+    0.222 pF) drives one of them: the ECO's antenna rounds ran after
+    its repair_design.
+  s125 (3400 x 3680): detailed route 17:23-21:46Z (4 h 23 min; host
+    shared with the crypto w34/w34p runs), first pass 17 iterations:
+    440,359 / 335,094 / 310,030 / 51,268 / 7,634 / 1,708 / 769 / 445 /
+    347 / 270 / 145 / 42 / 23 / 23 / 1 / 1 / 0; antenna rounds 1,552 ->
+    478 -> 165 -> 77 -> 33 -> 14 nets after the 5 platform rounds
+    (each re-route to 0 violations); 6_report stopped on PSM-0069 as
+    s116 did (the 2db5230 config still had the platform's
+    PWR_NETS_VOLTAGES). Wall 5 h 14 min to that point. Not continued:
+    s116 is 0.88 mm^2 smaller and already routes clean, s125 ended
+    with more antenna nets.
+  s116c = s116b up to 5_2_route (copied with timestamps) + ECO rounds
+    (drt_eco_repair.tcl of 2884120: each round repair_design ->
+    repair_timing (hold too if a hold check fails) -> incremental
+    global + detailed route -> antenna loop -> OpenRCX of the routed
+    result -> timing again; stops at the first round with no setup /
+    hold / slew / cap violation and no antenna net, at most 3),
+    timed from the s116b SPEF, setup margin 0.8 ns, slew/cap margins
+    20 %. Started 23:30Z (`make run FLOW_VARIANT=s116c RUN_SCRIPT=...
+    SIGIL_ECO_SPEF=<s116b>/6_final.spef SIGIL_SETUP_MARGIN=0.8
+    SIGIL_ECO_ROUNDS=3`, snapshot 2db5230). Its first estimate:
+    placement parasitics WNS +0.520 / 0 slew / 1 cap.
+  KLayout DRC of the s116b GDS (`make drc`, ORFS sky130hd.lydrc: BEOL
+    checks, deep mode, 4 threads; 119,050,226 flat polygons) from
+    23:33Z, in parallel.
