@@ -2568,3 +2568,16 @@ branch's `SHA256SUMS` (12/12). `soc_rtl_tb` boots Linux 6.12 to
 byte-identical to the earlier gates and no oops. Full ACT was not rerun:
 `rtl/` (tree `c8bafdb2`), `tb/`, `sim/` and the ACT scripts are identical to
 `31a15689`, where full ACT gave 2,577/2,578 (only the PA0 waiver fails).
+
+## #73 Linux release branch: checks of the second review's fixes (2026-10-22)
+
+[`linux-release-73-review-fixes-2026-10-22.log`](linux-release-73-review-fixes-2026-10-22.log)
+(`73-linux-release`, `1d72210..62370e1`): documentation only. No file
+other than Markdown and evidence logs changed since `1d72210`, so its final
+gates hold, and `rtl/` and `fpga/cl_sigil/` still equal `31a15689`. The
+fixes label the 5 cycles per instruction as an estimate, state that the
+walker race (#74) is in every earlier core (the first public AFI
+`agfi-035116450e0a0d093` is for bare-metal programs only), point the status
+table at the runs on the shipped RTL, and add #75 to `LINUX.md`. No
+relative link or anchor is broken. The notes checklist's placeholder grep
+prints nothing. The superseded AFI appears only as history.
