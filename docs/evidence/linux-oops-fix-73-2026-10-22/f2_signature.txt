@@ -1,0 +1,83 @@
+== inputs (sigil-fpga-build:~/os-artifacts, listed in docs/evidence/linux-debian-73-2026-10-22/SHA256SUMS)
+0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790  Image
+5c1b2e11bfb2153f0ec190a85ccaf1435eba6b970f0a2fd81fedce9fdf3d4ad3  System.map-6.12.114-sigil
+dfe19a27fb626f68aa2717ddb77ce0e97eb8d864a148dfe6fba7c6fa87c58bf8  kernel-6.12.114-sigil.config
+
+== kernel layout (System.map-6.12.114-sigil)
+ffffffff80000000 T _start
+ffffffff805e118c T _etext
+ffffffff80600000 T __init_begin
+ffffffff8063e828 T _einittext
+ffffffff80823c08 R __init_end
+ffffffff80823c08 R _sdata
+ffffffff80ec1000 B __bss_start
+ffffffff80ec1000 R _edata
+ffffffff80ecc000 B swapper_pg_dir
+ffffffff80f21000 B _end
+
+== kernel config
+# CONFIG_RELOCATABLE is not set
+# CONFIG_RANDOMIZE_BASE is not set
+CONFIG_STRICT_KERNEL_RWX=y
+# CONFIG_PANIC_ON_OOPS is not set
+CONFIG_PANIC_TIMEOUT=0
+
+== oops sites, disassembled from Image (raw, linked at 0xffffffff80000000; GNU objdump (GNU Binutils) 2.47.20260726)
+-- anon_vma_clone (ffffffff8019c5a6): +0x5e ld s11,8(s4) / +0x62 ld a4,0(s11) = oops epc
+ffffffff8019c5f6 <.data+0x19c5f6>:
+ffffffff8019c5f6:	000bb503          	ld	a0,0(s7)
+ffffffff8019c5fa:	85da                	mv	a1,s6
+ffffffff8019c5fc:	0691b0ef          	jal	0xffffffff801b7e64
+ffffffff8019c600:	84aa                	mv	s1,a0
+ffffffff8019c602:	c971                	beqz	a0,0xffffffff8019c6d6
+ffffffff8019c604:	008a3d83          	ld	s11,8(s4)
+ffffffff8019c608:	000db703          	ld	a4,0(s11)
+ffffffff8019c60c:	01370b63          	beq	a4,s3,0xffffffff8019c622
+-- folio_lruvec_lock_irqsave (ffffffff801eeb20): +0x40 ld s1,8(a5) / +0x42 ld a5,200(s1) = oops epc
+ffffffff801eeb52 <.data+0x1eeb52>:
+ffffffff801eeb52:	6705                	lui	a4,0x1
+ffffffff801eeb54:	9736                	add	a4,a4,a3
+ffffffff801eeb56:	4318                	lw	a4,0(a4)
+ffffffff801eeb58:	0d070713          	addi	a4,a4,208 # 0x10d0
+ffffffff801eeb5c:	070e                	slli	a4,a4,0x3
+ffffffff801eeb5e:	97ba                	add	a5,a5,a4
+ffffffff801eeb60:	6784                	ld	s1,8(a5)
+ffffffff801eeb62:	64fc                	ld	a5,200(s1)
+ffffffff801eeb64:	04048493          	addi	s1,s1,64
+-- filemap_fault (ffffffff801529b8): +0x24/+0x28/+0x2c dependent loads, +0x2c = oops epc (badaddr cccccccccccccd1c = 0xcc..cc + 80)
+ffffffff801529d4 <.data+0x1529d4>:
+ffffffff801529d4:	01053a03          	ld	s4,16(a0)
+ffffffff801529d8:	0807bb03          	ld	s6,128(a5)
+ffffffff801529dc:	018b3983          	ld	s3,24(s6)
+ffffffff801529e0:	0009ba83          	ld	s5,0(s3)
+ffffffff801529e4:	050ab783          	ld	a5,80(s5)
+-- filemap_map_pages (ffffffff801503ac): +0x50 ld a5,0(a4) / +0x58 ld s1,80(a5) = oops epc
+ffffffff801503fc <.data+0x1503fc>:
+ffffffff801503fc:	631c                	ld	a5,0(a4)
+ffffffff801503fe:	8dae                	mv	s11,a1
+ffffffff80150400:	f2e43c23          	sd	a4,-200(s0)
+ffffffff80150404:	6ba4                	ld	s1,80(a5)
+
+== F2 load page faults at valid linear-map addresses (signature a), from docs/evidence/linux-debian-73-2026-10-22/f2-boot/ on 73-linux-debian
+Sv39 linear map: VA ffffffd600000000 = PA 0x80000000. Root index = VA[38:30], PMD index = VA[29:21].
+Kernel text VA ffffffff80000000.. = root[510]; its PMD table has 2 MiB leaves 0..7 (_end - _start = 0xf21000).
+log            epc                                        badaddr            root  VA[29:21] kernel PMD[VA[29:21]]
+f2-boot1-oops  folio_lruvec_lock_irqsave+0x42             ffffffd68457ecc8   346   34        invalid -> page fault
+exp-nohbm      folio_lruvec_lock_irqsave+0x42             ffffffd682e5cac8   346   23        invalid -> page fault
+exp-nohbm      folio_lruvec_lock_irqsave+0x42             ffffffd682e5c2c8   346   23        invalid -> page fault
+exp-ddr2g      folio_lruvec_lock_irqsave+0x42             ffffffd602bbf6c8   344   21        invalid -> page fault
+exp-lowpa      anon_vma_clone+0x62                        ffffffd601f21b60   344   15        invalid -> page fault
+exp-nobpfjl    anon_vma_clone+0x62 (other kernel build)   ffffffd601dd3548   344   14        invalid -> page fault
+exp-nobpfjl    anon_vma_clone+0x62 (other kernel build)   ffffffd601c85e38   344   14        invalid -> page fault
+exp-noasid     anon_vma_clone+0x62 (other kernel build)   ffffffd602997958   344   20        invalid -> page fault
+exp-noasid     filemap_fault+0x28 (other kernel build)    ffffffd601858298   344   12        invalid -> page fault
+exp-noasid     anon_vma_clone+0x62 (other kernel build)   ffffffd601db6f08   344   14        invalid -> page fault
+exp-nothp      folio_lruvec_lock_irqsave+0x42             ffffffd601f5e0c8   344   15        invalid -> page fault
+exp-nothp      folio_lruvec_lock_irqsave+0x42             ffffffd6029cb0c8   344   20        invalid -> page fault
+exp-nothp      anon_vma_clone+0x62                        ffffffd601fbe068   344   15        invalid -> page fault
+
+== signature b: 0xcc pointers (f2-boot1-oops: filemap_fault+0x2c x2, filemap_map_pages+0x58 x2, badaddr cccccccccccccd1c)
+cccccccccccccd1c = 0xcccccccccccccccc + 0x50 (the ld ...,80(reg) at the epc; reg came from the previous dependent load)
+A data walk that takes root[510] with VA[29:21] = 3 maps kernel image offsets 0x600000-0x7fffff, = 4 maps 0x800000-0x9fffff;
+__init_begin..__init_end = offsets 0x600000-0x823c08, freed by free_initmem() and filled with POISON_FREE_INITMEM (0xcc).
+Kernel image loaded at PA 0x80200000 (fw_jump next address), so PMD[i] -> PA 0x80200000 + i * 2 MiB.

@@ -201,8 +201,21 @@ Pipeline behaviour:
   through the D$ (coherent with PTE stores by construction;
   A/D updates are D$ stores). MEM has priority; an MMU
   flush/abort (SFENCE.VMA, trap) while a walker request is out
-  drops its response. PMP-denied PTE accesses complete without
-  a memory access.
+  drops its response, and so does a walk the MMU abandons
+  itself (`walk_abandon_o`: a data-TLB miss preempting a fetch
+  walk, a G-stage GPA-width fault), including a read issued in
+  the abandoning cycle (issue #73; `ptw_preempt*_directed.S`,
+  `ptw_gwidth*_directed.S`). The A/D update is atomic: from
+  the read of a leaf PTE that needs A/D to its write-back the
+  walker keeps the port (`walk_lock_o`; for a VS leaf under
+  two-stage translation this spans the G-stage walk of the
+  PTE's GPA), so an older store to that PTE cannot land in
+  between and be overwritten by the stale PTE with A set
+  (`ptw_ad_store_race_directed.S`, `ptw_svadu_race*_directed.S`).
+  PMP-denied PTE accesses complete without a memory access.
+  Simulation checks: the walker takes only its own response
+  (`a_walk_rsp`), and a live walker request always belongs to
+  the walk in progress (`a_walk_live`).
 - **FENCE.I** (MISC-MEM funct3=001) serializes in EX like
   SFENCE (redirect to pc+4, younger instructions flushed), then
   in MEM issues `DOP_CLEAN` (D$ writes back every dirty line)

@@ -1,0 +1,7 @@
+head efe871d12f937c81a59ac0b3669a7f5b894fdb1e start 2026-10-22T13:17:48Z
+build rc=0
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+boot rc=0 end 2026-10-22T13:35:40Z
+DONE
