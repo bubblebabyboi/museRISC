@@ -185,13 +185,18 @@ void sigil_pass(void) {
   sigil_halt();
 }
 
+/* The reason is printed on its own line first as well: the F2 host
+ * runtime stops reading at the fail marker itself. */
 void sigil_fail(const char *why) {
-  sigil_printf("SIGIL TEST FAIL %s: %s\n", test_name, why ? why : "");
+  if (why == NULL) why = "";
+  sigil_printf("error: %s\n", why);
+  sigil_printf("SIGIL TEST FAIL %s: %s\n", test_name, why);
   sigil_halt();
 }
 
 void sigil_exit(int code) {
   if (code == 0) sigil_pass();
+  sigil_printf("error: exit code %d\n", code);
   sigil_printf("SIGIL TEST FAIL %s: exit code %d\n", test_name, code);
   sigil_halt();
 }

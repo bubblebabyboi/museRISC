@@ -201,6 +201,12 @@ void sigil_set_irq_handler(sigil_irq_handler_t fn);
 typedef uint64_t (*sigil_exc_handler_t)(uint64_t mcause, uint64_t mepc,
                                          uint64_t mtval);
 void sigil_set_exc_handler(sigil_exc_handler_t fn);
+/* PC of the instruction after the one at `pc` (2 or 4 bytes: the
+ * program is built with C, so an instruction may be compressed). Use it
+ * to return past a faulting instruction from an exception handler. */
+static inline uint64_t sigil_next_pc(uint64_t pc) {
+  return pc + (((*(volatile uint16_t *)(uintptr_t)pc) & 3) == 3 ? 4 : 2);
+}
 
 /* ------------------------------------------------------------------ */
 /* Bump allocator over the RAM after the stack (no free).               */
