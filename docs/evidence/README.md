@@ -2331,3 +2331,15 @@ passes 23/23. Full ACT was not rerun because `rtl/core` is byte-identical to
 commits up to `ce9fe97` change no RTL; at that commit lint and
 `fpgatop-f2-examples` (`hbm_touch`) pass. Pending: the first Debian boot on a
 real F2, `<F2 boot time: pending>`.
+
+## #73 Linux release branch: re-check of the review fixes (2026-10-22)
+
+[`linux-release-73-docs-recheck-2026-10-22.log`](linux-release-73-docs-recheck-2026-10-22.log)
+(no F2 used): rerunning `f2_playground_setup.sh` now updates `~/sigil`
+(`git pull --ff-only`), keeps `~/hello/hello.c` and does not reload a loaded
+AFI (stubbed run). The `LINUX.md` §6 package install through QEMU `--net`
+fails: QEMU 8.2.2's `virt` wires virtio interrupts to the PLIC of its second
+NUMA socket, whose hart is parked (0 interrupts, 0 packets). The replacement,
+a `qemu-user-static` chroot into the disk file on the host, ran verbatim from
+`LINUX.md` on Ubuntu 24.04 (installs `sl` in 18 s, `e2fsck` clean), and the
+changed disk boots in QEMU from a release-only layout and runs the package.
