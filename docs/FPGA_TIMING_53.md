@@ -2,7 +2,11 @@
 
 - Date: 2026-10-22 (UTC). Branch `53-mem-stage-pipeline`. RTL base:
   `main` `eeaa332`.
-- Status: plan only. No RTL has changed yet.
+- Status: steps 1–3 implemented and measured (iteration 1), with the
+  `iter` flow of step 0b; steps 0a/0b in part (parameter, lint lines,
+  `fpga` srammacro family, F0 strategies, per-module equivalence
+  script). Results per iteration:
+  [`evidence/fpga-timing-53-iterations-2026-10-22.log`](evidence/fpga-timing-53-iterations-2026-10-22.log).
 - Baseline: [`evidence/fpga-timing-53-baseline-2026-10-22.md`](evidence/fpga-timing-53-baseline-2026-10-22.md).
   `main` with `SIGIL_VRF_OREG` at 10 ns has WNS −4.226 ns and 18,180
   failing endpoints in 13 path families. Family letters (A–L, G1, G2)
@@ -320,6 +324,11 @@ setting:
 - **Fixes:** the PMP part of A, B, D and F. P3 measured that priority
   chain at 6 LUTs (≈1.9 ns) on B; the parallel form is about 2
   levels.
+- **Measured (iteration 1):** the priority mask and the AND-OR must be
+  written as vector reductions (`hit[i] && no lower match`,
+  `|(first & perm)`). A first version that accumulated the verdict in
+  a loop synthesized back into a chain and was slower than the serial
+  `pmp_check` (2.6 ns against 2.1 ns from PA to verdict).
 - **Expected:** WNS ≈ −2.8 ± 0.4 (A, B).
 - **Cycles:** none.
 - **Checks:**
@@ -341,6 +350,11 @@ setting:
     `perm_ok`.
 - **Fixes:** the CAM part of A, B and C. CAM plus select costs
   4.6–4.9 ns today; the target is about 3.5–4 ns.
+- **Measured (iteration 1):** as in step 2, the select must be a
+  per-bit reduction `|(sel & column)`; the accumulating loop became a
+  10+ LUT OR chain (VA → PA 6.1 ns, WNS −5.609). The fill-target
+  lookup stays `find_entry` until step 8. With the reduction form, VA
+  → PA is 4.6 ns (`base`) and 3.9 ns (`iter`).
 - **Expected:** WNS ≈ −2.0 ± 0.5. It is limited by A, B and G1 (G1 is
   about −2.0 after the flow change).
 - **Cycles:** none.
@@ -828,10 +842,10 @@ All WNS values are estimates in ns.
 
 | Step | Change | Families | Cycle cost with FPGA_TIMING | WNS after (`iter`) | Limited by | Status |
 |---|---|---|---|---:|---|---|
-| 0 | plumbing, flow, inventory | all (flow) | 0 | −3.9 ± 0.3 (`closure` ≈ −3.2) | A | planned |
-| 1 | CSR write intent, FPU/M request | A tail | 0 | ≈ −3.75 | A | planned |
-| 2 | parallel PMP | A, B, D, F | 0 | ≈ −2.8 | A, B | planned |
-| 3 | one-hot TLB lookup | A, B, C | 0 | ≈ −2.0 | A, B, G1 | planned |
+| 0 | plumbing, flow, inventory | all (flow) | 0 | −3.9 ± 0.3 (`closure` ≈ −3.2) | A | in part (iteration 1) |
+| 1 | CSR write intent, FPU/M request | A tail | 0 | ≈ −3.75 | A | done: −4.052 (`base`) |
+| 2 | parallel PMP | A, B, D, F | 0 | ≈ −2.8 | A, B | done, with step 3 |
+| 3 | one-hot TLB lookup | A, B, C | 0 | ≈ −2.0 | A, B, G1 | done: −3.913 (`base`), −2.298 (`iter`) |
 | 4 | EX operand/result network | G1, G2 | 0 | ≈ −1.9 | A, B | planned |
 | 5 | `mt_q`, replay, walk port, VLS port | A, C | +1 per data walk, +1 per indexed VLS element | ≈ −1.6 | B | planned |
 | 6 | speculative cache reads | F, B/D/A enable sinks | 0 | ≈ −1.4 | B, H, E, I | planned |
