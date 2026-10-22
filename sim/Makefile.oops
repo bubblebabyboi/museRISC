@@ -38,3 +38,24 @@ oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$
 	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 4000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
 	    ./oops_core_tb $$t.bin 4000000 $$a > /dev/null || rc=1; \
 	  done; done; exit $$rc
+
+# Other walker-retarget paths the drop-on-preempt fix does not cover
+# (issue #73 oops review, other-preemption-paths lens). Each must
+# PASS on fixed RTL; on the drop-on-preempt RTL alone they FAIL:
+# - ptw_gwidth_redirect_directed: a two-stage (H) fetch walk left in
+#   W_G_READ by a GPA-width guest-page fault issues its G-root read
+#   and goes to W_IDLE without arming dq_drop; a later fetch redirect
+#   or data miss starts a fresh walk that consumes the stale response.
+# - ptw_preempt_guest_directed: the drop-on-preempt fix under two-stage
+#   (H) translation and HLV (a passing cross-check, kept as coverage).
+# - ptw_ad_store_race_directed: the non-atomic Svadu A/D write-back
+#   loses an older same-hart store to the leaf PTE (MEM has port
+#   priority between W_VS_READ and W_VS_UPD).
+OOPS_PTW_OTHER := ptw_gwidth_redirect_directed ptw_preempt_guest_directed ptw_ad_store_race_directed
+.PHONY: oops-ptw-other
+oops-ptw-other: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_PTW_OTHER)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_PTW_OTHER); do \
+	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
+	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 4000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
+	    ./oops_core_tb $$t.bin 4000000 $$a > /dev/null || rc=1; \
+	  done; done; exit $$rc
