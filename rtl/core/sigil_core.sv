@@ -1622,6 +1622,16 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       walk_rsp |-> ((walk_addr == chk_walk_addr_q) &&
                     (walk_we == chk_walk_we_q)))
     else $error("core: walker took the response to another walk's request");
+  // Stronger, at every cycle: a walker request still live on the
+  // port (in flight, not dropped) belongs to the walk the walker
+  // is doing now. A walk that moves off its PTE without arming
+  // dq_drop_q fails here at once, whether or not a later walk
+  // takes the response.
+  a_walk_live: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      (dq_pend_q && dq_walk_q && !dq_drop_q) |->
+      (walk_req && (walk_addr == chk_walk_addr_q) &&
+       (walk_we == chk_walk_we_q)))
+    else $error("core: walker left a live PTE request without dropping it");
   // The A/D lock never splits an AMO's read and write.
   a_walk_lock_amo: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       walk_lock |-> !amo_wr_q)
