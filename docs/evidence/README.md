@@ -2343,3 +2343,48 @@ NUMA socket, whose hart is parked (0 interrupts, 0 packets). The replacement,
 a `qemu-user-static` chroot into the disk file on the host, ran verbatim from
 `LINUX.md` on Ubuntu 24.04 (installs `sl` in 18 s, `e2fsck` clean), and the
 changed disk boots in QEMU from a release-only layout and runs the package.
+
+## #73 Linux oops: fetch-walk preemption fix (2026-10-22, branch `73-oops-fix`)
+
+Root cause, found by the oops hunt (branches `73-oops-mmu`,
+`73-oops-sim-repro`, `73-oops-dcache`): `sigil_mmu` lets a data-TLB miss
+preempt a fetch walk in `W_VS_READ`/`W_G_READ`, but `sigil_core` dropped a
+walker read only on SFENCE.VMA or a trap. The fetch walk's PTE read was
+then taken by the preempting data walk as its root PTE. Two triggers: the
+read is already in flight (PTE line misses, uncached tables), or it is
+issued in the same cycle as the preemption (a D$ hit). The result is a page
+fault on a valid VA, or a wrong superpage translation that returns wrong
+data without a trap. On F2 these are the two kernel oops signatures.
+
+Fix: `sigil_mmu` reports `walk_abandon_o` when a walk ends without
+consuming its PTE read. That covers the preemption and a G-stage
+GPA-width fault, which leaves `W_G_READ` in the cycle it may issue its
+read. The core drops the response of a walker read in flight or issued in
+that cycle. The fix is unconditional. A new simulation-only assertion
+(`a_walk_rsp`) checks that the walker only receives the response to its own
+request.
+
+[`oops-fix-73-2026-10-22/before_after.log`](oops-fix-73-2026-10-22/before_after.log):
+the three new directed tests on the `73-linux-release` RTL (`5458d16`) and
+on the fix, with the same binaries, on `core_tb` and on the opt-in checker
+build (`make -C sim -f Makefile.oops`):
+
+| test | 5458d16: `--mem-lat 1` / rand / `40:50` / `--no-cache` | fix |
+|---|---|---|
+| `ptw_preempt_directed` (uncached tables) | FAIL 0x10D (load page fault on a mapped VA), all 4 | PASS, all 4 |
+| `ptw_preempt_cached_directed` | FAIL 0x1FF (wrong data, no trap), all 4 | PASS, all 4 |
+| `ptw_preempt_twoload_directed` (same-cycle issue) | FAIL 0x11FF / 0x11FF / 0x11FF / 0x1FF (wrong data) | PASS, all 4 |
+
+On the old RTL the checker reports one `stale-walk-rsp` per run. On the fix
+it reports none. With `walk_abandon` masked out of the drop condition, the
+assertion stops all three tests.
+
+[`oops-fix-73-2026-10-22/gates.log`](oops-fix-73-2026-10-22/gates.log)
+(`cb523fa`, fresh clone on `sigil-fpga-build`): lint is clean on 5.048,
+5.020 and 5.044. `make core-test` passes with 253 TB PASS, 0 fail and no
+assertion failures. That is the 241 of the release gate plus the three
+tests in rand, uncached, xinit1 and xinit3, and 40/40 directed runs on
+each SRAM-macro build. riscv-tests pass 123/123. `soc_rtl_tb` boots Linux
+6.12 (`Image-initramfs`) to `SIGIL_LINUX_BOOT_OK` at 261,247,447 cycles,
+the same count as the release gate, so the race did not occur in that
+boot.

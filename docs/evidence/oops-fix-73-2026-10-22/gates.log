@@ -1,0 +1,74 @@
+# 73-oops-fix quick gates on sigil-fpga-build (fresh clone ~/oops/fix/sigil)
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T12:21:03Z
+head cb523fa963cf57756bbb3c05fb00429c309ae1bd dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=6
+
+lint-5.048 rc=0 18s
+lint-5.020 rc=0 15s
+core-test rc=0 2111s
+riscv-tests rc=0 22s
+end 2026-10-22T12:57:09Z
+DONE
+
+## lint (both versions): warnings/errors
+lint-5.048.log:0
+lint-5.020.log:0
+
+## core-test
+TB PASS lines: 253
+CORE TB FAIL lines: 0
+assertion failures: 0
+CORE TB PASS: 40 directed runs, 0 FAIL [SRAM macro fakeram45]
+CORE TB PASS: 40 directed runs, 0 FAIL [SRAM macro sky130]
+CORE TB PASS: 40 directed runs, 0 FAIL [SRAM macro oreg]
+CORE TB PASS: 40 directed runs, 0 FAIL [SRAM macro vrforeg]
+### new directed tests (rand, nocache, xinit1, xinit3)
+[rand] core_tb ptw_preempt_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 38
+[rand] core_tb ptw_preempt_cached_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 39
+[rand] core_tb ptw_preempt_twoload_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 40
+[nocache] core_tb ptw_preempt_directed.bin --no-cache --mem-seed 38
+[nocache] core_tb ptw_preempt_cached_directed.bin --no-cache --mem-seed 39
+[nocache] core_tb ptw_preempt_twoload_directed.bin --no-cache --mem-seed 40
+[xinit1] core_tb ptw_preempt_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+1 --mem-seed 38
+[xinit1] core_tb ptw_preempt_cached_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+1 --mem-seed 39
+[xinit1] core_tb ptw_preempt_twoload_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+1 --mem-seed 40
+[xinit3] core_tb ptw_preempt_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+3 --mem-seed 38
+[xinit3] core_tb ptw_preempt_cached_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+3 --mem-seed 39
+[xinit3] core_tb ptw_preempt_twoload_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 +verilator+rand+reset+2 +verilator+seed+3 --mem-seed 40
+CORE TB PASS ptw_preempt_directed.bin (44550 cycles)
+CORE TB PASS ptw_preempt_cached_directed.bin (88805 cycles)
+CORE TB PASS ptw_preempt_twoload_directed.bin (72671 cycles)
+CORE TB PASS ptw_preempt_directed.bin (57936 cycles)
+CORE TB PASS ptw_preempt_cached_directed.bin (86022 cycles)
+CORE TB PASS ptw_preempt_twoload_directed.bin (75448 cycles)
+CORE TB PASS ptw_preempt_directed.bin (44550 cycles)
+CORE TB PASS ptw_preempt_cached_directed.bin (88805 cycles)
+CORE TB PASS ptw_preempt_twoload_directed.bin (72671 cycles)
+CORE TB PASS ptw_preempt_directed.bin (44550 cycles)
+CORE TB PASS ptw_preempt_cached_directed.bin (88805 cycles)
+CORE TB PASS ptw_preempt_twoload_directed.bin (72671 cycles)
+### coverage (merged)
+  lines with all attached points covered : 55.00%  (3492/6254)
+
+## riscv-tests
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+## Linux 6.12 initramfs boot, soc_rtl_tb from the same RTL (worktree at the same SHA)
+head cb523fa963cf57756bbb3c05fb00429c309ae1bd start 2026-10-22T12:25:39Z
+build rc=0
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+boot rc=0 end 2026-10-22T12:43:52Z
+DONE
+SOC RTL TB PASS (exit string at 261247447 cycles)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 18:00.88
+console lines: 890; Oops/Unable to handle lines: 0
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+/proc/version: Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #2 SMP Thu Oct 22 07:20:18 UTC 2026
+SIGIL_LINUX_BOOT_OK
+
+## lint on the Mac (RTL identical to cb523fa): Verilator 5.044 (Homebrew), make lint rc=0, warnings/errors: 0

@@ -1,0 +1,111 @@
+host ip-172-31-66-228 start 2026-10-22T12:21:02Z
+base 5458d1693938ec5ede801275c7b0c58d8cfe750b (origin/73-linux-release) rtl diff vs fix:
+ rtl/core/sigil_core.sv | 43 +++++++++++++++++++++++++++++++++++--------
+ rtl/core/sigil_mmu.sv  | 24 +++++++++++++++++++++---
+ 2 files changed, 56 insertions(+), 11 deletions(-)
+fix  cb523fa963cf57756bbb3c05fb00429c309ae1bd (73-oops-fix)
+Verilator 5.048 2026-04-26 rev v5.048
+build fixba rc=0
+build base rc=0
+bins rc=0
+end 2026-10-22T12:21:58Z
+DONE
+
+# Per run: <tree>_<tb>_<test>_<config>.log; tb core_tb = plain harness (as core-test), oops_core_tb = + tb/sv/sigil_oops_chk.sv
+# configs: lat1 = --mem-lat 1; rand = --mem-lat 1:6 --mem-gap 2 --mem-ready 70 (CORE_RAND_ARGS); lat40_50 = --mem-lat 40:50; nocache = --no-cache
+# base = origin/73-linux-release 5458d16 RTL; fixba = 73-oops-fix RTL; same test binaries (built once)
+base_core_tb_ptw_preempt_cached_directed_lat1.log              CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (31293 cycles)
+base_core_tb_ptw_preempt_cached_directed_lat40_50.log          CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (60780 cycles)
+base_core_tb_ptw_preempt_cached_directed_nocache.log           CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (47210 cycles)
+base_core_tb_ptw_preempt_cached_directed_rand.log              CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (36601 cycles)
+base_core_tb_ptw_preempt_directed_lat1.log                     CORE TB FAIL ptw_preempt_directed.bin test 269 (26276 cycles)
+base_core_tb_ptw_preempt_directed_lat40_50.log                 CORE TB FAIL ptw_preempt_directed.bin test 269 (140355 cycles)
+base_core_tb_ptw_preempt_directed_nocache.log                  CORE TB FAIL ptw_preempt_directed.bin test 269 (46922 cycles)
+base_core_tb_ptw_preempt_directed_rand.log                     CORE TB FAIL ptw_preempt_directed.bin test 269 (33936 cycles)
+base_core_tb_ptw_preempt_twoload_directed_lat1.log             CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (31745 cycles)
+base_core_tb_ptw_preempt_twoload_directed_lat40_50.log         CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (62068 cycles)
+base_core_tb_ptw_preempt_twoload_directed_nocache.log          CORE TB FAIL ptw_preempt_twoload_directed.bin test 511 (47265 cycles)
+base_core_tb_ptw_preempt_twoload_directed_rand.log             CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (37264 cycles)
+base_oops_core_tb_ptw_preempt_cached_directed_lat1.log         CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (31293 cycles)
+    OOPSCHK stale-walk-rsp cyc=31184 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 18 d-stores 2574 fetches 10440 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+base_oops_core_tb_ptw_preempt_cached_directed_lat40_50.log     CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (60780 cycles)
+    OOPSCHK stale-walk-rsp cyc=60443 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 18 d-stores 2574 fetches 10440 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+base_oops_core_tb_ptw_preempt_cached_directed_nocache.log      CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (47210 cycles)
+    OOPSCHK stale-walk-rsp cyc=47110 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_cached_directed_rand.log         CORE TB FAIL ptw_preempt_cached_directed.bin test 511 (36601 cycles)
+    OOPSCHK stale-walk-rsp cyc=36435 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 18 d-stores 2574 fetches 10440 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+base_oops_core_tb_ptw_preempt_directed_lat1.log                CORE TB FAIL ptw_preempt_directed.bin test 269 (26276 cycles)
+    OOPSCHK stale-walk-rsp cyc=26244 req_pa=0x20020000 req_we=0 walker_pa=0x20020008 walker_we=0 data=0x0000000008008401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 10376 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_directed_lat40_50.log            CORE TB FAIL ptw_preempt_directed.bin test 269 (140355 cycles)
+    OOPSCHK stale-walk-rsp cyc=140282 req_pa=0x20020000 req_we=0 walker_pa=0x20020008 walker_we=0 data=0x0000000008008401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 10376 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_directed_nocache.log             CORE TB FAIL ptw_preempt_directed.bin test 269 (46922 cycles)
+    OOPSCHK stale-walk-rsp cyc=46868 req_pa=0x20020000 req_we=0 walker_pa=0x20020008 walker_we=0 data=0x0000000008008401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_directed_rand.log                CORE TB FAIL ptw_preempt_directed.bin test 269 (33936 cycles)
+    OOPSCHK stale-walk-rsp cyc=33899 req_pa=0x20020000 req_we=0 walker_pa=0x20020008 walker_we=0 data=0x0000000008008401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 10376 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_twoload_directed_lat1.log        CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (31745 cycles)
+    OOPSCHK stale-walk-rsp cyc=31662 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 48 d-stores 2575 fetches 10541 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+base_oops_core_tb_ptw_preempt_twoload_directed_lat40_50.log    CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (62068 cycles)
+    OOPSCHK stale-walk-rsp cyc=61856 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 48 d-stores 2575 fetches 10541 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+base_oops_core_tb_ptw_preempt_twoload_directed_nocache.log     CORE TB FAIL ptw_preempt_twoload_directed.bin test 511 (47265 cycles)
+    OOPSCHK stale-walk-rsp cyc=47173 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x201000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 0)
+base_oops_core_tb_ptw_preempt_twoload_directed_rand.log        CORE TB FAIL ptw_preempt_twoload_directed.bin test 4607 (37264 cycles)
+    OOPSCHK stale-walk-rsp cyc=37155 req_pa=0x100000 req_we=0 walker_pa=0x100008 walker_we=0 data=0x0000000000040401 walker_is_data=1 walker_va=0x40000000 level=2 priv=1 fetch_va=0x203000 mem_va=0x40000000 pte_at_walker_pa=0x0000000000040c01 verdict=DIFFERENT
+    OOPSCHK summary: d-loads 48 d-stores 2575 fetches 10541 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 1 (different 1)
+fixba_core_tb_ptw_preempt_cached_directed_lat1.log             CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles)
+fixba_core_tb_ptw_preempt_cached_directed_lat40_50.log         CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles)
+fixba_core_tb_ptw_preempt_cached_directed_nocache.log          CORE TB PASS ptw_preempt_cached_directed.bin (86022 cycles)
+fixba_core_tb_ptw_preempt_cached_directed_rand.log             CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles)
+fixba_core_tb_ptw_preempt_directed_lat1.log                    CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
+fixba_core_tb_ptw_preempt_directed_lat40_50.log                CORE TB PASS ptw_preempt_directed.bin (178421 cycles)
+fixba_core_tb_ptw_preempt_directed_nocache.log                 CORE TB PASS ptw_preempt_directed.bin (57936 cycles)
+fixba_core_tb_ptw_preempt_directed_rand.log                    CORE TB PASS ptw_preempt_directed.bin (44603 cycles)
+fixba_core_tb_ptw_preempt_twoload_directed_lat1.log            CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles)
+fixba_core_tb_ptw_preempt_twoload_directed_lat40_50.log        CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles)
+fixba_core_tb_ptw_preempt_twoload_directed_nocache.log         CORE TB PASS ptw_preempt_twoload_directed.bin (75448 cycles)
+fixba_core_tb_ptw_preempt_twoload_directed_rand.log            CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles)
+fixba_oops_core_tb_ptw_preempt_cached_directed_lat1.log        CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles)
+    OOPSCHK summary: d-loads 1952 d-stores 2574 fetches 18612 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_cached_directed_lat40_50.log    CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles)
+    OOPSCHK summary: d-loads 1952 d-stores 2574 fetches 18612 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_cached_directed_nocache.log     CORE TB PASS ptw_preempt_cached_directed.bin (86022 cycles)
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_cached_directed_rand.log        CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles)
+    OOPSCHK summary: d-loads 1952 d-stores 2574 fetches 18612 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_directed_lat1.log               CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
+    OOPSCHK summary: d-loads 64 d-stores 0 fetches 12555 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_directed_lat40_50.log           CORE TB PASS ptw_preempt_directed.bin (178421 cycles)
+    OOPSCHK summary: d-loads 64 d-stores 0 fetches 12555 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_directed_nocache.log            CORE TB PASS ptw_preempt_directed.bin (57936 cycles)
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_directed_rand.log               CORE TB PASS ptw_preempt_directed.bin (44603 cycles)
+    OOPSCHK summary: d-loads 64 d-stores 0 fetches 12555 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_twoload_directed_lat1.log       CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles)
+    OOPSCHK summary: d-loads 1568 d-stores 2575 fetches 16340 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_twoload_directed_lat40_50.log   CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles)
+    OOPSCHK summary: d-loads 1568 d-stores 2575 fetches 16340 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_twoload_directed_nocache.log    CORE TB PASS ptw_preempt_twoload_directed.bin (75448 cycles)
+    OOPSCHK summary: d-loads 0 d-stores 0 fetches 0 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+fixba_oops_core_tb_ptw_preempt_twoload_directed_rand.log       CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles)
+    OOPSCHK summary: d-loads 1568 d-stores 2575 fetches 16340 fencei 1 | d-load-mismatch 0 i-fetch-stale 0 stale-walk-rsp 0 (different 0)
+
+# Assertion check: 73-oops-fix RTL with walk_abandon masked out of the drop condition (walk_abandon && 1b0), plain core_tb, --mem-lat 1
+== ptw_preempt_directed
+[0] %Error: sigil_core.sv:1620: Assertion failed in TOP.sigil_cpu.u_core.a_walk_rsp: core: walker took the response to another walk's request
+%Error: ../rtl/core/sigil_core.sv:1620: Verilog $stop
+== ptw_preempt_cached_directed
+[0] %Error: sigil_core.sv:1620: Assertion failed in TOP.sigil_cpu.u_core.a_walk_rsp: core: walker took the response to another walk's request
+%Error: ../rtl/core/sigil_core.sv:1620: Verilog $stop
+== ptw_preempt_twoload_directed
+[0] %Error: sigil_core.sv:1620: Assertion failed in TOP.sigil_cpu.u_core.a_walk_rsp: core: walker took the response to another walk's request
+%Error: ../rtl/core/sigil_core.sv:1620: Verilog $stop
