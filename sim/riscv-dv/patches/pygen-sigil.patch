@@ -64,6 +64,32 @@ S  riscv_load_store_instr_lib.py: load/store streams as in SV: address =
    assembler "illegal operands"); the base register is never x0 or a
    reserved register (rs1_c was commented out: "la zero, ..."), and the
    SP-reserved check tests membership in either list.
+T  riscv_privil_reg.py, riscv_privileged_common_seq.py: SSTATUS and SIE
+   field layouts (from SV, plus VS), and no riscv_reg.randomize() for
+   SSTATUS (broken in pygen; the MSTATUS path never calls it): S-mode
+   boots aborted with "reg SSTATUS is not supported yet".
+U  riscv_asm_program_gen.py gen_privileged_mode_switch_routine: the
+   mode-switch code was collected in a list that the next loop
+   iteration reset, so only M-mode boots got their mstatus setup and
+   mret; +boot_mode=s/u programs silently stayed in M-mode.
+V  riscv_instr_gen_config.py: without +boot_mode, boot in a random
+   supported mode (SV boot_privileged_mode_dist_c; a TODO in pygen, so
+   every program booted in M-mode). Chosen after seeding.
+W  riscv_asm_program_gen.py gen_trap_handlers: the S-mode trap handler
+   section for S/U boots, as in SV (stvec points at it; link error
+   "undefined reference to stvec_handler" otherwise). pygen does not
+   delegate traps (gen_delegation_instr is a TODO), so traps still go
+   to M-mode.
+X  isa/riscv_instr.py get_load_store_instr/get_instr: deep copies of
+   the instruction templates (SV clone()). Shallow copies shared the
+   operand fields, so all loads/stores of one kind printed the operands
+   randomized last (a load using another stream's base register,
+   reading an unmapped address).
+Y  riscv_directed_instr_lib.py riscv_jal_instr: exclude the reserved
+   registers from the jal rd one by one (not_inside(<vsc list>) did
+   nothing; "jal tp" clobbered the trap handlers' stack pointer).
+Z  riscv_loop_instr.py: loop counter and limit registers all distinct
+   (SV unique {cnt, limit}); "bge t3, t3, target" looped forever.
 
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
 --- a/pygen/pygen_src/isa/riscv_b_instr.py
@@ -229,15 +255,27 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_instr.py b/pygen/p
          # rs1 rs2 values are overwriting and the last generated values are
          # getting assigned for a particular instruction hence creating different
          # object address and id to ratain the randomly generated values.
-@@ -283,7 +272,7 @@
+@@ -283,9 +272,9 @@
          if len(load_store_instr) == 0:
              load_store_instr = cls.instr_category["LOAD"] + \
                  cls.instr_category["STORE"]
 -        cls.idx = random.randrange(0, len(load_store_instr) - 1)
 +        cls.idx = random.randrange(0, len(load_store_instr))
          name = load_store_instr[cls.idx]
-         instr_h = copy.copy(cls.instr_template[name])
+-        instr_h = copy.copy(cls.instr_template[name])
++        instr_h = copy.deepcopy(cls.instr_template[name])  # Sigil patch
          return instr_h
+ 
+     @classmethod
+@@ -293,7 +282,7 @@
+         if not cls.instr_template.get(name):
+             logging.critical("Cannot get instr %s", name)
+             sys.exit(1)
+-        instr_h = copy.copy(cls.instr_template[name])
++        instr_h = copy.deepcopy(cls.instr_template[name])  # Sigil patch
+         return instr_h
+ 
+     def set_rand_mode(self):
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_amo_instr_lib.py b/pygen/pygen_src/riscv_amo_instr_lib.py
 --- a/pygen/pygen_src/riscv_amo_instr_lib.py
 +++ b/pygen/pygen_src/riscv_amo_instr_lib.py
@@ -351,6 +389,31 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
          misa = vsc.bit_t(rcs.XLEN)
          if rcs.XLEN == 32:
              misa[rcs.XLEN - 1:rcs.XLEN - 2] = 1
+@@ -617,7 +632,7 @@
+             if cfg.require_signature_addr:
+                 # TODO
+                 pass
+-        self.instr_stream.extend(instr)
++            self.instr_stream.extend(instr)  # Sigil patch: inside the loop
+ 
+     # Setup EPC before entering target privileged mode
+     def setup_epc(self, hart):
+@@ -760,6 +775,15 @@
+                                       privileged_reg_t.MEPC, privileged_reg_t.MSCRATCH,
+                                       privileged_reg_t.MSTATUS, privileged_reg_t.MIE,
+                                       privileged_reg_t.MIP)
++        if (privileged_mode_t.SUPERVISOR_MODE in rcs.supported_privileged_mode and
++                cfg.init_privileged_mode <= privileged_mode_t.SUPERVISOR_MODE):
++            # Sigil patch: S-mode section as in SV (for S/U boots, which
++            # set stvec and get an S-mode interrupt handler).
++            self.gen_trap_handler_section(hart, "s", privileged_reg_t.SCAUSE,
++                                          privileged_reg_t.STVEC, privileged_reg_t.STVAL,
++                                          privileged_reg_t.SEPC, privileged_reg_t.SSCRATCH,
++                                          privileged_reg_t.SSTATUS, privileged_reg_t.SIE,
++                                          privileged_reg_t.SIP)
+ 
+     # Generate the interrupt and trap handler for different privileged mode.
+     # The trap handler checks the xCAUSE to determine the type of the exception and jumps to
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_callstack_gen.py
 --- a/pygen/pygen_src/riscv_callstack_gen.py
 +++ b/pygen/pygen_src/riscv_callstack_gen.py
@@ -378,7 +441,17 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_data_page_gen.py b/pyg
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_directed_instr_lib.py b/pygen/pygen_src/riscv_directed_instr_lib.py
 --- a/pygen/pygen_src/riscv_directed_instr_lib.py
 +++ b/pygen/pygen_src/riscv_directed_instr_lib.py
-@@ -274,7 +274,7 @@
+@@ -136,7 +136,8 @@
+                     vsc.dist(self.jump[i].rd, [vsc.weight(riscv_reg_t.RA, 5), vsc.weight(
+                         vsc.rng(riscv_reg_t.SP, riscv_reg_t.T0), 1),
+                         vsc.weight(vsc.rng(riscv_reg_t.T2, riscv_reg_t.T6), 2)])
+-                    self.jump[i].rd.not_inside(cfg.reserved_regs)
++                    for reg in [riscv_reg_t(int(r)) for r in cfg.reserved_regs]:
++                        self.jump[i].rd != reg  # Sigil patch
+             self.jump[i].label = "{}".format(i)
+ 
+         for i in range(len(order)):
+@@ -274,7 +275,7 @@
  
              self.push_stack_instr[i + 1].process_load_store = 0
          if allow_branch:
@@ -387,6 +460,28 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_directed_instr_lib.py 
          else:
              self.enable_branch = 0
          if self.enable_branch:
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_instr_gen_config.py b/pygen/pygen_src/riscv_instr_gen_config.py
+--- a/pygen/pygen_src/riscv_instr_gen_config.py
++++ b/pygen/pygen_src/riscv_instr_gen_config.py
+@@ -15,6 +15,7 @@
+ import logging
+ import argparse
+ import vsc
++import random
+ from importlib import import_module
+ from pygen_src.riscv_instr_pkg import (mtvec_mode_t, f_rounding_mode_t,
+                                        riscv_reg_t, privileged_mode_t,
+@@ -468,6 +469,10 @@
+         pass
+ 
+     def post_randomize(self):
++        # Sigil patch: random boot mode when +boot_mode is not given.
++        if not self.boot_mode_opts:
++            self.init_privileged_mode = random.choice(list(rcs.supported_privileged_mode))
++            self.init_privil_mode = self.init_privileged_mode
+         # Setup the list all reserved registers
+         self.reserved_regs.extend((self.tp, self.sp, self.scratch_reg))
+         # Need to save all loop registers, and RA/T0
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_instr_sequence.py b/pygen/pygen_src/riscv_instr_sequence.py
 --- a/pygen/pygen_src/riscv_instr_sequence.py
 +++ b/pygen/pygen_src/riscv_instr_sequence.py
@@ -510,7 +605,15 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_load_store_instr_lib.p
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_instr.py
 --- a/pygen/pygen_src/riscv_loop_instr.py
 +++ b/pygen/pygen_src/riscv_loop_instr.py
-@@ -133,6 +133,16 @@
+@@ -13,6 +13,7 @@
+ """
+ 
+ import vsc
++import random
+ import sys
+ import logging
+ from pygen_src.riscv_instr_gen_config import cfg
+@@ -133,7 +134,29 @@
              with vsc.else_then:
                  self.loop_step_val[i] < 0
  
@@ -525,9 +628,22 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/
 +        return instr
 +
      def post_randomize(self):
++        # Sigil patch: counters and limits all distinct.
++        cnts = [riscv_reg_t(int(r)) for r in self.loop_cnt_reg]
++        banned = set(cnts) | set(riscv_reg_t(int(r)) for r in cfg.reserved_regs)
++        banned |= set(riscv_reg_t(int(r)) for r in self.reserved_rd) | {riscv_reg_t.ZERO}
++        for i in range(len(self.loop_limit_reg)):
++            lim = riscv_reg_t(int(self.loop_limit_reg[i]))
++            if lim == riscv_reg_t.ZERO:
++                continue  # c.beqz/c.bnez loops compare with zero
++            if lim in banned:
++                lim = random.choice([r for r in riscv_reg_t if r not in banned])
++                self.loop_limit_reg[i] = lim
++            banned.add(lim)
          for i in range(len(self.loop_cnt_reg)):
              self.reserved_rd.append(self.loop_cnt_reg[i])
-@@ -146,39 +156,17 @@
+         for i in range(len(self.loop_limit_reg)):
+@@ -146,39 +169,17 @@
          self.loop_update_instr = [0] * self.num_of_nested_loop
          self.loop_branch_instr = [0] * self.num_of_nested_loop
          self.loop_branch_target_instr = [0] * self.num_of_nested_loop
@@ -577,7 +693,7 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/
              # Branch target instruction, can be anything
              self.loop_branch_target_instr[i] = riscv_instr.get_rand_instr(
                  include_category = [riscv_instr_category_t.ARITHMETIC.name,
-@@ -204,30 +192,14 @@
+@@ -204,30 +205,14 @@
              self.loop_branch_target_instr[i].label = pkg_ins.format_string(
                  "{}_{}_t".format(self.label, i))
              # Instruction to update loop counter
@@ -614,7 +730,7 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/
              self.loop_branch_instr[i].comment = pkg_ins.format_string(
                  "branch for loop {}".format(i))
              self.loop_branch_instr[i].imm_str = self.loop_branch_target_instr[i].label
-@@ -244,12 +216,12 @@
+@@ -244,12 +229,12 @@
  
      # Build the whole loop structure from innermost loop to the outermost loop
      def build_loop_instr_stream(self):
@@ -633,9 +749,63 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/
 +                                self.loop_update_instr[i]] +
 +                               self.loop_instr + [self.loop_branch_instr[i]])
          logging.info("Totally {} instructions have been added".format(len(self.loop_instr)))
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_privil_reg.py b/pygen/pygen_src/riscv_privil_reg.py
+--- a/pygen/pygen_src/riscv_privil_reg.py
++++ b/pygen/pygen_src/riscv_privil_reg.py
+@@ -74,6 +74,41 @@
+             self.add_field("WPEI2", 1, reg_field_access_t.WPRI)
+             self.add_field("MEIE", 1, reg_field_access_t.WARL)
+             self.add_field("WPRI3", rcs.XLEN - 12, reg_field_access_t.WPRI)
++        # Sigil patch: supervisor status / interrupt-enable registers.
++        elif reg_name == privileged_reg_t.SSTATUS:
++            self.privil_level = privileged_level_t.S_LEVEL
++            self.add_field("UIE", 1, reg_field_access_t.WARL)
++            self.add_field("SIE", 1, reg_field_access_t.WARL)
++            self.add_field("WPRI0", 2, reg_field_access_t.WPRI)
++            self.add_field("UPIE", 1, reg_field_access_t.WARL)
++            self.add_field("SPIE", 1, reg_field_access_t.WARL)
++            self.add_field("WPRI1", 2, reg_field_access_t.WPRI)
++            self.add_field("SPP", 1, reg_field_access_t.WLRL)
++            self.add_field("VS", 2, reg_field_access_t.WARL)
++            self.add_field("WPRI2", 2, reg_field_access_t.WPRI)
++            self.add_field("FS", 2, reg_field_access_t.WARL)
++            self.add_field("XS", 2, reg_field_access_t.WARL)
++            self.add_field("WPRI3", 1, reg_field_access_t.WPRI)
++            self.add_field("SUM", 1, reg_field_access_t.WARL)
++            self.add_field("MXR", 1, reg_field_access_t.WARL)
++            if rcs.XLEN == 32:
++                self.add_field("WPRI4", 11, reg_field_access_t.WPRI)
++            else:
++                self.add_field("WPRI4", 12, reg_field_access_t.WPRI)
++                self.add_field("UXL", 2, reg_field_access_t.WARL)
++                self.add_field("WPRI5", rcs.XLEN - 35, reg_field_access_t.WPRI)
++            self.add_field("SD", 1, reg_field_access_t.WARL)
++        elif reg_name == privileged_reg_t.SIE:
++            self.privil_level = privileged_level_t.S_LEVEL
++            self.add_field("USIE", 1, reg_field_access_t.WARL)
++            self.add_field("SSIE", 1, reg_field_access_t.WARL)
++            self.add_field("WPRI0", 2, reg_field_access_t.WPRI)
++            self.add_field("UTIE", 1, reg_field_access_t.WARL)
++            self.add_field("STIE", 1, reg_field_access_t.WARL)
++            self.add_field("WPRI1", 2, reg_field_access_t.WPRI)
++            self.add_field("UEIE", 1, reg_field_access_t.WARL)
++            self.add_field("SEIE", 1, reg_field_access_t.WARL)
++            self.add_field("WPRI2", rcs.XLEN - 10, reg_field_access_t.WPRI)
+         # TODO add condition for rest of the modes
+         else:
+             logging.error("reg %0s is not supported yet", reg_name.name)
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_privileged_common_seq.py b/pygen/pygen_src/riscv_privileged_common_seq.py
 --- a/pygen/pygen_src/riscv_privileged_common_seq.py
 +++ b/pygen/pygen_src/riscv_privileged_common_seq.py
+@@ -62,7 +62,7 @@
+     def setup_smode_reg(self, mode, regs):
+         self.sstatus = riscv_privil_reg()
+         self.sstatus.init_reg(privileged_reg_t.SSTATUS)
+-        self.sstatus.randomize()
++        # Sigil patch: no randomize() (broken for riscv_reg in pygen).
+         self.sstatus_set_field(mode, regs)
+         self.sie_set_field(mode, regs)
+ 
 @@ -182,7 +182,7 @@
  
      def sie_set_field(self, mode, regs):

@@ -235,10 +235,13 @@ def _dut_csr(rec, addr, val):
         rec.c[addr] = val
 
 
-def parse_dut(path):
+def parse_dut(path, limit=None):
+    """DUT records; with `limit`, stop after that many."""
     recs = []
     with open(path, errors="replace") as fh:
         for ln, line in enumerate(fh, 1):
+            if limit is not None and len(recs) >= limit:
+                break
             toks = line.split()
             if not toks:
                 continue
@@ -423,7 +426,8 @@ def run(elf, spike_log, dut_trace, ref_csv=None, dut_csv=None, report=None):
     tohost = syms["tohost"]
     entry = elf_entry(elf)
     ref = parse_spike(spike_log, entry, tohost)
-    dut_all = parse_dut(dut_trace)
+    # Records past the reference's end only matter as "DUT continues".
+    dut_all = parse_dut(dut_trace, limit=len(ref) + 16)
     dut, dut_done = truncate_at(dut_all, tohost)
     if ref_csv or dut_csv:
         asm = elf_disasm(elf)

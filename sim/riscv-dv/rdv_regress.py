@@ -126,6 +126,20 @@ def run_cmd(cmd, log, cwd=None, timeout=None):
     return rc, round(time.time() - t0, 1)
 
 
+def spike_wrote_tohost(log, tohost):
+    """Spike stops shortly after the HTIF tohost store: look for it in
+    the tail of the commit log."""
+    pat = " mem 0x%016x 0x" % tohost
+    try:
+        with open(log, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            fh.seek(max(0, fh.tell() - (1 << 20)))
+            data = fh.read().decode(errors="replace")
+    except OSError:
+        return False
+    return pat in data
+
+
 def run_one(entry, seed, a):
     test = entry["test"]
     d = os.path.join(a.out, test, str(seed))
@@ -177,6 +191,12 @@ def run_one(entry, seed, a):
     if rc != 0:
         return done("SPIKE_FAIL", "spike %s: %s" % (
             "timeout" if rc is None else "rc=%d" % rc, tail(os.path.join(d, "spike.out"), 2)))
+    # A program that never reaches tohost on the reference (generator
+    # problem) is a SPIKE_FAIL; do not spend the DUT cycle budget on it.
+    tohost = rdv_trace.elf_symbols(p["elf"]).get("tohost")
+    if tohost is None or not spike_wrote_tohost(p["spike_log"], tohost):
+        return done("SPIKE_FAIL", "reference did not write tohost within %d instructions"
+                    % a.max_instr)
 
     # 3. DUT.
     cmd = [a.core_tb, p["elf"], str(a.max_cycles), "--drain", "64",
@@ -225,8 +245,10 @@ def main():
     ap.add_argument("--csv", help="results CSV (default <out>/results.csv)")
     ap.add_argument("--instr-cnt", type=int, default=0,
                     help="override every test's +instr_cnt (quick runs)")
-    ap.add_argument("--max-cycles", type=int, default=20_000_000)
-    ap.add_argument("--max-instr", type=int, default=20_000_000)
+    ap.add_argument("--max-cycles", type=int, default=5_000_000,
+                    help="core_tb cycle limit (DUT_TIMEOUT beyond)")
+    ap.add_argument("--max-instr", type=int, default=2_000_000,
+                    help="Spike instruction limit (SPIKE_FAIL beyond)")
     ap.add_argument("--gen-timeout", type=int, default=1800)
     ap.add_argument("--sim-timeout", type=int, default=900)
     ap.add_argument("--keep", action="store_true",
