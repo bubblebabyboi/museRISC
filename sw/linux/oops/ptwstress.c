@@ -9,7 +9,9 @@
 // so a fetch walk (next code page) and a data walk (new D page) collide
 // at every page crossing. On a correct core every load returns its
 // expected value (word at VA x holds x ^ KEY) and the pass takes no page
-// faults (D is MAP_POPULATE'd). On the affected RTL a data walk can
+// faults (D is MAP_POPULATE'd). Half of the gadget pages use the
+// two-load tail (an older TLB-hit/D$-miss load first), which needs no
+// page-table miss in the D$ at all. On the affected RTL a data walk can
 // consume the fetch walk's root[0] PTE: it then follows the text's own
 // tables, either returning text bytes for a D address (reported as BAD)
 // or raising a page fault on a present page, which Linux silently
@@ -68,7 +70,14 @@ int main(int argc, char **argv) {
   long bad = 0, spurious = 0;
   volatile uint64_t sink = 0;
   for (long it = 0; it < passes; ++it) {
-    for (unsigned long a = TBASE; a < TBASE + TSIZE; a += 64) sink += *(volatile uint64_t *)a;
+    // Thrash: per D$ set, 8 lines from 8 different T pages back to back
+    // (a plain sequential sweep evicts only one way per set: the D$
+    // round-robin victim pointer is global and advances by 64 = 0 mod 4
+    // between two misses to the same set); over all sets every one of
+    // the 128 T pages is touched, so every TLB entry is replaced too.
+    for (unsigned long s = 0; s < 64; ++s)
+      for (unsigned long n = 0; n < 8; ++n)
+        sink += *(volatile uint64_t *)(TBASE + ((s * 8 + n) % 128) * 4096 + s * 64);
     // D pages 16 .. 16 + NPAGES (+ up to 7 words): the text's own L0
     // indexes, so a walk through the wrong root lands on mapped text.
     const unsigned long stride = 4096 + 8 * (unsigned long)(it % 8);

@@ -90,10 +90,18 @@ module sigil_oops_chk (
   longint      i_epoch_q;
 
   bit trace_on;
-  initial trace_on = $test$plusargs("oopstrace");
+  int unsigned traceu_left;  // +oopstraceu=N: first N user-mode (priv 0) trace lines
+  initial begin
+    trace_on = $test$plusargs("oopstrace");
+    if (!$value$plusargs("oopstraceu=%d", traceu_left)) traceu_left = 0;
+  end
   always @(posedge clk_i) begin
-    if (trace_on && rst_ni && (walk_req || dreq_valid || drsp_valid || miss_d || miss_f ||
-                               dq_pend)) begin
+    if (rst_ni && traceu_left != 0 && priv == 2'd0 &&
+        (walk_req || dreq_valid || drsp_valid || miss_d || miss_f || dq_pend)) begin
+      traceu_left <= traceu_left - 1;
+    end
+    if (rst_ni && (trace_on || (traceu_left != 0 && priv == 2'd0)) &&
+        (walk_req || dreq_valid || drsp_valid || miss_d || miss_f || dq_pend)) begin
       $display("OT %0d mmu st=%0d data=%0d va=%h pte=%h lvl=%0d | missd=%0d missf=%0d wreq=%0d | dreq=%0d%0d a=%h op=%0d | rsp=%0d %h | pend=%0d walk=%0d drop=%0d wrsp=%0d | dacc=%0d dok=%0d mem_va=%h | ifok=%0d fva=%h",
                cyc_q, mmu_state, mmu_is_data, mmu_va, walk_addr, mmu_level, miss_d, miss_f,
                walk_req, dreq_valid, dreq_ready, dreq_addr, dreq_op, drsp_valid, drsp_rdata,
