@@ -171,9 +171,10 @@
 - test: riscv_amo_test
   source: target/rv64gc/testlist.yaml
   description: LR/SC and AMO streams.
-  # pygen peaks at 7.8-8.4 GiB RSS, every other test below 2; ten at
-  # once were OOM-killed on the 61 GiB machine (docs/VERIFICATION.md).
-  gen_mem_gb: 9
+  # pygen peaks at 7.8-9.0 GiB RSS (most seen: 9,231 MiB, seed 200024),
+  # every other test below 2; ten at once were OOM-killed on the 61 GiB
+  # machine (docs/VERIFICATION.md).
+  gen_mem_gb: 10
   gen_opts: >
     +instr_cnt=5000
     +num_of_sub_program=0
@@ -231,19 +232,27 @@
 # ---------------------------------------------------------------------
 # Directed programs (Sigil additions, like riscv-dv's --asm_test): the
 # extensions pygen cannot generate, through the same Spike comparison.
-# The seed only changes the DUT's bus timing.
+# Both are PRNG-driven: the driver assembles them with
+# -DRDV_SEED=<gen_seed>, so each seed is a different program (and a
+# different DUT bus timing).
 # ---------------------------------------------------------------------
 - test: sigil_bitmanip_crypto_test
   source: Sigil directed (sim/riscv-dv/directed)
   description: >
     PRNG-driven Zba/Zbb/Zbs (RV64 W forms), Zbkb/Zbkc/Zbkx, Zkne/Zknd/Zknh
-    and Zicond, 300 iterations.
+    and Zicond, 300 iterations, operands from the seeded PRNG.
   asm: directed/sigil_bitmanip_crypto_test.S
   march: rv64gc_zba_zbb_zbc_zbs_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zcb
 
 - test: sigil_vector_test
   source: Sigil directed (sim/riscv-dv/directed)
-  description: RVV integer, mask, permutation, FP and reductions at e8/e32/e64, LMUL 1/2/8.
+  description: >
+    Random RVV (Zve64d, VLEN 512): 24 iterations, each with a random legal
+    vtype (SEW 8-64, LMUL mf8-m8, ta/ma), AVL in [0, VLMAX], vxrm, frm and
+    data; vector loads/stores of every addressing mode, integer,
+    fixed-point, widening/narrowing, mask, permutation, reduction and FP
+    instructions, masked and unmasked; the whole vector state is reloaded
+    (and so compared) every iteration.
   asm: directed/sigil_vector_test.S
   march: rv64gcv_zcb
 
