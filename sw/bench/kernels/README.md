@@ -70,8 +70,17 @@ walks a column of B), using `vfredosum` (ordered) for the FP dot
 product and the FIR. `memcpy`/`memset` C call the SDK routines, which
 are scalar in both variants.
 
+**Code placement.** Every measured kernel starts on a 64-byte boundary
+(`KERNEL_FN` in `kernels.h`). On this core a 32-bit instruction that
+straddles a 4-byte fetch word costs a second fetch, so shifting a scalar
+loop by 2 bytes changes its cycles by up to about 25% either way
+([evidence](../../../docs/evidence/perf-kernels-56-2026-10-22/README.md)).
+With the alignment, a kernel's numbers depend only on its own code, not
+on the size of `main.c` or the SDK. `make KERNELS_C_EXTRA=-fpatchable-function-entry=1`
+shifts every C kernel by one `c.nop` to measure the other placement.
+
 The Makefile compiles `kern_c.c` and `ref.c` to objects with their own
-flags (`KERNELS_C_MARCH`, `KERNELS_C_OPT`) and checks that no
+flags (`KERNELS_C_MARCH`, `KERNELS_C_OPT`, `KERNELS_C_EXTRA`) and checks that no
 scalar-ISA object contains a vector instruction (any mnemonic starting
 with `v` fails the build).
 
