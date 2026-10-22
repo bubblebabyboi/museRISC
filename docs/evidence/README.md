@@ -2203,8 +2203,8 @@ per instruction**. Scaled: login prompt **≈ 9 min** after reset, `gcc
 hello.c` ≈ 1 min, `python3` start ≈ 15 s at 62.5 MHz, until measured.
 Measured on the F2 later (AFI `agfi-0c8aa56fde1a48495`, section "Debian on
 the F2 with the walker-race fix" below): login prompt 5 min 48 s after the
-SoC release, `gcc hello.c && ./a.out` 22.9 s, `python3 -c` 9.9 s, about 5
-cycles per instruction.
+SoC release, `gcc hello.c && ./a.out` 22.9 s, `python3 -c` 9.9 s, an estimated 5
+cycles per instruction (F2 times divided by QEMU icount instruction counts).
 
 **Tuning from the icount runs.** Before it
 ([`qemu-icount-before-tuning.log`](linux-debian-73-2026-10-22/qemu-icount-before-tuning.log))
@@ -2528,8 +2528,9 @@ walker response dropped on preempt/abandon, Svadu A/D write-back lock),
   clock starts; then kernel 10.6 s (`Run /sbin/init` at 8.2 s) and systemd
   userspace 3 min 25.5 s (`systemd-analyze`; `blame` led by
   `dev-pmem0.device` 2 min 13 s, journald 54 s, logind 48 s, udev-trigger
-  47 s). The QEMU icount estimate (≈ 9 min) was pessimistic: about 5 core
-  cycles per instruction overall, not 13.
+  47 s). The QEMU icount estimate (≈ 9 min) was pessimistic: an estimated 5 core
+  cycles per instruction overall (F2 kernel time divided by the QEMU icount
+  instruction count), not 13.
 - **Acceptance: 22/22 PASS** (`scripts/qemu_sigil_check.py --label F2
   --scale 40 --no-reboot --release 'SoC released'`): login as `sigil`;
   `uname` 6.12.114-sigil riscv64 + Debian 13; `/proc/cpuinfo` isa with

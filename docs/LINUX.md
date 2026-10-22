@@ -540,10 +540,11 @@ returned; `~/sigil-disk.ext4` is on the EBS volume and survives a stop.
 
 Sigil Linux on the F2 is a complete Debian, but on a slow machine. The
 core runs at an interim **62.5 MHz** and needs about **5 cycles per
-instruction** running Debian (measured on the F2, §7): it is in
-order, its L1 caches block on a miss, it has one memory request in
-flight, and a cold refill from DDR4 takes ≈ 46 cycles (729 ns). That is roughly 12
-million instructions per second. Booting to the login prompt takes
+instruction** running Debian (an estimate: F2 times divided by QEMU
+instruction counts, §7): it is in order, its L1 caches block on a
+miss, it has one memory request in flight, and a cold refill from DDR4
+takes ≈ 46 cycles (729 ns). That is roughly 12 million instructions
+per second. Booting to the login prompt takes
 5 min 48 s, `gcc hello.c && ./a.out` 22.9 s and `python3 -c` 9.9 s
 (measured on the F2, §7). Use it to run and measure code on Sigil, not
 to build big projects: compile small programs, keep `make` incremental,
@@ -611,8 +612,8 @@ QEMU's own speed says nothing about the FPGA. `scripts/qemu_sigil_check.py
 --icount` runs QEMU so that guest time advances 16 ns per instruction —
 a 62.5 MHz hart executing one instruction per cycle, a lower bound. The
 F2 hart (in order, blocking L1 caches, one memory request in flight)
-averages about 5 cycles per instruction on this workload (the icount
-column × 5; an earlier calibration on the 6.6 boot suggested 13). Most
+is estimated to average about 5 cycles per instruction on this
+workload (the icount column × 5; an earlier calibration on the 6.6 boot suggested 13). Most
 of the boot is systemd's userspace start-up (`systemd-analyze blame` on
 the board; on the F2 it is led by `dev-pmem0.device`, 2 min 13 s). Before
 the release the host spends about 21 s on the first run after an AFI load

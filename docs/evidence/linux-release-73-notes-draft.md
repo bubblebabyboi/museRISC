@@ -128,7 +128,7 @@ Memory as Linux sees it on the F2:
 | Check | Result |
 |---|---|
 | SoC release → `SIGIL_LINUX_BOOT_OK` → login prompt | **337.7 s → 347.9 s (5 min 48 s)**; second boot 333.2 s → 343.2 s; no kernel oops in either |
-| Where the time goes | ≈ 129 s OpenSBI + early memory setup for 64 + 16 GiB, then `systemd-analyze`: 10.6 s kernel + 3 min 25.5 s userspace (`dev-pmem0.device` 2 min 13 s); about 5 core cycles per instruction |
+| Where the time goes | ≈ 129 s OpenSBI + early memory setup for 64 + 16 GiB, then `systemd-analyze`: 10.6 s kernel + 3 min 25.5 s userspace (`dev-pmem0.device` 2 min 13 s); about 5 core cycles per instruction (estimate: F2 kernel time divided by QEMU icount instruction count) |
 | Login, `uname`, systemd state, root on `/dev/pmem0` | PASS: Linux 6.12.114 + Debian 13, `isa` with `zve64d`, systemd `running` with no failed units, `/` = `/dev/pmem0` ext4 rw |
 | `numactl --hardware` (node 0 DDR4, node 1 HBM) | PASS: 2 nodes, node 0 48305 MB with cpu 0, node 1 16110 MB without CPUs; `free -h` 62 GiB |
 | `numactl --membind=1` memory lands in HBM | PASS: `memwhere 1024` → node 1: 1024 MiB; `numa_hbm`: dependent load 1791 ns DDR4 / 1878 ns HBM |
@@ -182,7 +182,7 @@ Everything rebuilds from the repository: `scripts/build_opensbi.sh`, `build_linu
 
 ## Known issues
 
-- **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs about **5 cycles per instruction** running Debian, at an interim 62.5 MHz. Booting to the login prompt takes 5 min 48 s, `gcc hello.c && ./a.out` 22.9 s and `python3 -c` 9.9 s (measured on the F2). Performance work is epic #61; 100 MHz is #53.
+- **Speed.** The in-order core with blocking L1 caches and one memory request in flight needs an estimated **5 cycles per instruction** running Debian (F2 times divided by QEMU instruction counts), at an interim 62.5 MHz. Booting to the login prompt takes 5 min 48 s, `gcc hello.c && ./a.out` 22.9 s and `python3 -c` 9.9 s (measured on the F2). Performance work is epic #61; 100 MHz is #53.
 - **F2 platform quirks** ([#75](https://github.com/bubblebabyboi/sigil/issues/75), open): a `sigil_host` killed by a signal (e.g. Ctrl-C outside `--console`, or `pkill`) leaves the SoC running, and after that the console lost bytes until the AFI was reloaded (`sudo fpga-clear-local-image -S 0 -H`, then `sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H`). End Debian sessions with `sudo poweroff`.
 - `sudo reboot` inside Debian keeps the disk in QEMU and was checked on the F2 with the platform test firmware, but Debian's own `reboot` has not been run on the F2 yet.
 - **No network on the F2** (#72). To install more packages, `apt-get install` them into your disk file from the F2 host through a `qemu-user-static` chroot while `sigil-linux` is not running (commands in [`docs/LINUX.md` §6](https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md#6-the-disk-pmem-saving-it-back-adding-packages)).
