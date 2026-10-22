@@ -454,7 +454,8 @@ at +32 GiB, checks the first buffer again (no aliasing) and prints the
 cycles per 64-byte line of each pass. It passes on `fpga_top_tb_f2`
 (`make -C sim fpgatop-f2-examples`; 5.37M cycles with simulated AXI
 timing, which says nothing about F2 latency; built with GCC 16.1 and
-with Ubuntu's GCC 13.2, which `sigil-run` uses). It needs the F2 map, so
+with Ubuntu's GCC 13.2, which `sigil-run` uses;
+[`evidence/linux-user-docs-73-2026-10-22/`](evidence/linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log)). It needs the F2 map, so
 it does not run on `soc_rtl_tb` or `fpga_top_tb` (128 MiB). On the F2:
 `sigil-run sw/examples/hbm_touch/hbm_touch.c`; result:
 `<hbm_touch on F2: pending>`. The same kinds of accesses from the core

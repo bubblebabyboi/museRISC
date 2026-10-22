@@ -488,7 +488,9 @@ are lost):
 
 These commands were checked in QEMU with the release image (the
 root-owned `debugfs` file, the loop-mounted copy owned by `sigil`, files
-read back after `sudo poweroff`, `e2fsck -fn` clean).
+read back after `sudo poweroff`, `e2fsck -fn` clean;
+[`evidence/linux-user-docs-73-2026-10-22/`](evidence/linux-user-docs-73-2026-10-22/qemu-docs-check.log)),
+as were the §5.4 program and the §5.5 compiler lines.
 
 ### 5.7 Shutting down safely
 
