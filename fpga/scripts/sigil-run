@@ -4,7 +4,7 @@
 #   sigil-run program.bin           [-- sigil_host options]
 #   sigil-run some/dir              (a folder with .c files)
 set -euo pipefail
-AGFI=agfi-0a1fd54ef68bdc754
+AGFI=agfi-0c8aa56fde1a48495
 SIGIL=$HOME/sigil
 srcs=(); extra=()
 while [ $# -gt 0 ]; do

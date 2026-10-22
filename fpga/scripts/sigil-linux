@@ -31,7 +31,7 @@
 set -euo pipefail
 
 TAG=${SIGIL_LINUX_TAG:-sigil-linux-f2-2026-10-22}
-AGFI=${SIGIL_AGFI:-agfi-0a1fd54ef68bdc754}
+AGFI=${SIGIL_AGFI:-agfi-0c8aa56fde1a48495}
 SIGIL=${SIGIL:-$HOME/sigil}
 DISK=${SIGIL_DISK:-$HOME/sigil-disk.ext4}
 CACHE=${SIGIL_LINUX_CACHE:-$HOME/.cache/sigil-linux}
@@ -194,7 +194,7 @@ trap 'rm -rf "$TMP"' EXIT
 SAVED=$TMP/pmem.ext4
 
 say "booting Debian from $DISK"
-say "the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil"
+say "the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil"
 say "'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving"
 if [ -z "${TMUX:-}${STY:-}" ]; then
   say "tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost"

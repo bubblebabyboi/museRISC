@@ -615,29 +615,44 @@ sudo fpga/host/sigil_host --memtest all                      # full-range DDR4 +
 The whole Sigil SoC — in-house RV64GCV core (vector unit, L1 caches),
 crypto/hash engine, CLINT/PLIC/UART/boot ROM, test finisher, RTC — with all
 **64 GiB of DDR4 and 16 GiB of HBM** is published as a **public AFI**.
-Proven on hardware 2026-10-22 (#73,
-[`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md)):
-full-range memory tests of both memories, firmware, SDK examples, Linux,
-console, finisher, bulk load/save, at a measured 62.5 MHz.
+Proven on hardware 2026-10-22 (#73): Debian 13 boots on this AFI to a
+login prompt in 5 min 48 s and passes 22/22 acceptance checks plus a
+save/reload of its disk
+([`evidence/linux-debian-73-2026-10-22/f2-boot-fixed/`](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/)).
+The memory platform (full-range memory tests of both memories, firmware,
+SDK examples, console, finisher, bulk load/save, at a measured 62.5 MHz)
+was proven on the previous build of the same CL
+([`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md));
+this AFI's RTL differs from it only in the core's MMU walker
+(`sigil_core.sv`, `sigil_mmu.sv`: the walker-race fix, #74).
 
 **To boot Debian on it, see [`LINUX.md` §4](LINUX.md#4-boot-debian-on-your-f2)**:
 after the playground setup below, `~/bin/sigil-linux` downloads the
 release's OpenSBI, kernel, device tree and Debian disk, loads this AFI
 and boots to a login prompt, keeping your disk across sessions (Debian
-passed 23/23 checks in QEMU and `sigil-linux` its tests against a
-simulated host; first F2 run: `<sigil-linux on F2: pending>`). For
+passed 22/22 checks on the F2 with the `sigil_host` command that
+`sigil-linux` wraps, and `sigil-linux` passed its tests against a
+simulated host). For
 bare-metal programs see [`PROGRAMMING.md`](PROGRAMMING.md#8-running-on-aws-f2).
 
 | | |
 |---|---|
-| AGFI | **`agfi-0a1fd54ef68bdc754`** (AFI `afi-035809e576d7ea8d5`, us-east-1) |
+| AGFI | **`agfi-0c8aa56fde1a48495`** (AFI `afi-059766f9a85c6d39a`, us-east-1) |
 | Shell / PCI | Small Shell `0x10212415` / `0x1D0F:0xF054` |
 | Core clock | 62.5 MHz (AWS_CLK_GEN B1, interim until #53 closes 100 MHz); HBM AXI 250 MHz (H0) |
 | Memory | DDR4 64 GiB at PA `0x8000_0000`, HBM 16 GiB at PA `0x10_8000_0000` ([`LINUX_PLATFORM.md`](LINUX_PLATFORM.md)) |
-| Built from | commit `e641930`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP |
+| Built from | commit `31a1568`, aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP (release asset `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar`, sha256 `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246`) |
+| Timing, size | all constraints met, post-route WNS +0.095 ns (core clock, 16 ns); 131,259 LUTs (10.08% of the VU47P) for the CL, 82,201 for the SoC + OCL block ([`evidence/f2-platform-73-oopsfix-2026-10-22/`](evidence/f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)) |
 
-The first public AFI (`agfi-035116450e0a0d093`, #55: 128 MiB, needs
-`--ignore-mem-err`) still works with the current `sigil_host`.
+Earlier AFIs, kept as history:
+
+- `agfi-0a1fd54ef68bdc754` (`afi-035809e576d7ea8d5`, commit `e641930`,
+  2026-10-22): the first 64 GiB + 16 GiB platform build. **Superseded;
+  do not use it for Linux**: its core has the MMU walker race (#74), and
+  Debian oopses on it 35–130 s into systemd startup.
+- `agfi-035116450e0a0d093` (#55, the first public AFI: 128 MiB, needs
+  `--ignore-mem-err`): still works with the current `sigil_host` for
+  bare-metal programs.
 
 1. Launch an **`f2.6xlarge`** in **us-east-1** (zones a–d offer F2) from the
    AWS **FPGA Developer AMI** (Ubuntu, 1.19.x). About $2/h On-Demand —
@@ -650,7 +665,7 @@ The first public AFI (`agfi-035116450e0a0d093`, #55: 128 MiB, needs
    ```
 3. Load the public Sigil AFI and check it:
    ```sh
-   sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H
+   sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H
    sudo fpga-describe-local-image -S 0 -H     # status 'loaded', 0x1d0f:0xf054
    ```
 4. Build the host runtime and your payloads:
