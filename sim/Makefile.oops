@@ -4,7 +4,7 @@
 #   make -C sim -f Makefile.oops oops-core-tb oops-soc-rtl-tb
 include Makefile
 
-OOPS_CHK := $(ROOT)/tb/sv/sigil_oops_chk.sv
+OOPS_CHK := $(ROOT)/tb/sv/sigil_oops_chk.sv $(ROOT)/tb/sv/sigil_ptw_inv.sv
 OOPS_DPI := $(ROOT)/tb/cpp/oops_chk_dpi.cpp
 OOPS_VFLAGS := -Wno-UNUSEDSIGNAL -Wno-SYNCASYNCNET
 
@@ -37,4 +37,23 @@ oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$
 	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
 	    echo "== $$t $$a"; ./oops_core_tb $$t.bin 4000000 $$a | grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)" || rc=1; \
 	    ./oops_core_tb $$t.bin 4000000 $$a > /dev/null || rc=1; \
+	  done; done; exit $$rc
+
+# Skeptic review (patch-correctness lens) of the preemption fix:
+# adversarial directed tests plus the hunters' three, at the same
+# three bus timings, with the walker invariant / corner coverage of
+# tb/sv/sigil_ptw_inv.sv. Prints one line per run (CORE TB result,
+# stale-walk and PTWINV reports, PTWCOV counters); exit 1 if any run
+# fails, times out or reports a PTWINV violation.
+OOPS_SKEPTIC_TESTS := ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed \
+                      ptw_preempt_hyp_directed ptw_gwidth_directed
+.PHONY: oops-ptw-skeptic
+oops-ptw-skeptic: $(BUILD)/oops_core_tb \
+                  $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_PTW_TESTS) $(OOPS_SKEPTIC_TESTS)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_PTW_TESTS) $(OOPS_SKEPTIC_TESTS); do \
+	  for a in "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"; do \
+	    echo "== $$t $$a"; \
+	    ./oops_core_tb $$t.bin 40000000 $$a > skeptic_run.log 2>&1 || rc=1; \
+	    grep -E "CORE TB|OOPSCHK stale|PTWINV|PTWCOV" skeptic_run.log | head -8; \
+	    if grep -qE "PTWINV live" skeptic_run.log; then rc=1; fi; \
 	  done; done; exit $$rc
