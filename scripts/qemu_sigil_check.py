@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Automated QEMU acceptance run for Sigil Debian (issue #70).
+"""Automated acceptance run for Sigil Debian (issue #70), QEMU or F2.
 
-Boots scripts/qemu_sigil_boot.sh, waits for SIGIL_LINUX_BOOT_OK and the
-login prompt, logs in over the serial console and runs the checks from
+Boots scripts/qemu_sigil_boot.sh (or any console command, e.g. sigil_host
+on an F2 with --cmd), waits for SIGIL_LINUX_BOOT_OK and the login
+prompt, logs in over the serial console and runs the checks from
 docs/LINUX.md: gcc hello, malloc, numactl --hardware (two nodes),
 --membind=1 placement in node 1, an RVV (Zve64d) user program, sudo,
 a file written to the pmem disk surviving a reboot, then poweroff.
 Writes the console transcript and a summary with timings.
 
   python3 scripts/qemu_sigil_check.py [--log FILE] [--fresh] [--icount]
+  python3 scripts/qemu_sigil_check.py --cmd 'sudo sigil_host ... --console' \
+      --scale 40 --no-reboot --label F2        # F2: reboot reloads the disk
+  python3 scripts/qemu_sigil_check.py --cmd '...' --persist-check STAMP
 
 Needs python3-pexpect. QEMU timings are not FPGA timings.
 """
@@ -85,31 +89,55 @@ def main():
                     help="recreate the QEMU disk from the built image")
     ap.add_argument("--icount", action="store_true",
                     help="instruction-counting QEMU (62.5 MHz at IPC 1)")
+    ap.add_argument("--cmd", help="console command to run instead of QEMU "
+                    "(shell string, e.g. sigil_host --console ...)")
+    ap.add_argument("--scale", type=float, help="timeout multiplier")
+    ap.add_argument("--label", default="QEMU", help="platform name in the summary")
+    ap.add_argument("--no-reboot", action="store_true",
+                    help="skip the reboot round (poweroff after the checks)")
+    ap.add_argument("--stamp", default=str(int(time.time())),
+                    help="content tag of the file written to the disk")
+    ap.add_argument("--persist-check", metavar="STAMP",
+                    help="only log in as root, check ~sigil/persist.txt, power off")
     a = ap.parse_args()
 
-    cmd = ["bash", "scripts/qemu_sigil_boot.sh"]
-    if a.fresh:
-        cmd.append("--fresh")
-    if a.icount:
-        cmd.append("--icount")
-    scale = 20 if a.icount else 1
+    if a.cmd:
+        cmd = ["bash", "-c", a.cmd]
+    else:
+        cmd = ["bash", "scripts/qemu_sigil_boot.sh"]
+        if a.fresh:
+            cmd.append("--fresh")
+        if a.icount:
+            cmd.append("--icount")
+    scale = a.scale or (20 if a.icount else 1)
     with open(a.log, "w") as log:
         r = Run(cmd, log, scale)
-        r.login("sigil", 900)
-
-        if a.icount:
-            r.sh("systemd-analyze; cat /proc/uptime", 600,
+        if a.persist_check:
+            r.login("root", 900)
+            r.sh("cat /home/sigil/persist.txt", check=f"^sigil-persist-{a.persist_check}$",
+                 name="file survived power-off, save and reload")
+            r.sh("systemd-analyze; journalctl --list-boots --no-pager | tail -3", 600)
+            poweroff(r)
+        elif a.icount:
+            r.login("sigil", 900)
+            # guest time = 16 ns per instruction (62.5 MHz at IPC 1)
+            r.sh("cat /proc/uptime", 600)
+            r.sh("systemd-analyze; systemd-analyze blame --no-pager | head -25", 1200,
                  r"Startup finished", "systemd-analyze (icount)")
+            r.sh("time (gcc -O2 -o /tmp/h examples/hello.c && /tmp/h)", 1200,
+                 r"Hello from sigil", "gcc hello (icount)")
+            r.sh("time python3 -c 'print(42)'", 1200, r"^42$", "python3 start (icount)")
             r.p.sendline("sudo poweroff")
             r.expect([r"\[sudo\] password for sigil: "], 120)
             r.p.sendline(PASSWORD)
             r.expect([pexpect.EOF], 1200)
             r.mark("powered off")
         else:
-            checks(r)
+            r.login("sigil", 900)
+            checks(r, a.stamp, not a.no_reboot)
         log.flush()
 
-    print("\nSummary (QEMU, not FPGA timings):")
+    print(f"\nSummary ({a.label}{', not FPGA timings' if a.label == 'QEMU' else ''}):")
     for what, t in r.marks:
         print(f"  {t:8.1f} s  {what}")
     bad = [n for n, ok in r.results if not ok]
@@ -117,11 +145,20 @@ def main():
     if bad:
         print("FAILED: " + ", ".join(bad))
         return 1
-    print("QEMU SIGIL DEBIAN CHECK PASS")
+    print(f"{a.label.upper()} SIGIL DEBIAN CHECK PASS")
     return 0
 
 
-def checks(r):
+def poweroff(r):
+    r.p.sendline("poweroff")
+    r.mark("poweroff requested")
+    i = r.expect([pexpect.EOF, pexpect.TIMEOUT], 600)
+    ok = i == 0 and "reboot: Power down" in r.p.before
+    r.results.append(("poweroff ends the run (test finisher 0x5555)", ok))
+    r.mark(("PASS" if ok else "FAIL") + ": poweroff")
+
+
+def checks(r, stamp, do_reboot):
     r.sh("uname -a; . /etc/os-release; echo \"$PRETTY_NAME\"; cat /etc/sigil-release",
          check=r"6\.12\.\d+-sigil .*riscv64[\s\S]*Debian GNU/Linux 13",
          name="kernel 6.12 + Debian 13")
@@ -166,9 +203,20 @@ def checks(r):
     r.sh("systemd-analyze; systemd-analyze blame --no-pager | head -15", check=r"Startup finished",
          name="systemd-analyze")
     r.sh("ndctl list -N 2>/dev/null; ls /dev/rtc0 && cat /sys/class/rtc/rtc0/name; date -u")
-    stamp = str(int(time.time()))
     r.sh(f"echo sigil-persist-{stamp} > ~/persist.txt && sync && cat ~/persist.txt",
          check=f"^sigil-persist-{stamp}$", name="write file on pmem disk")
+    if not do_reboot:
+        r.p.sendline("sudo poweroff")
+        r.mark("poweroff requested")
+        i = r.expect([r"\[sudo\] password for sigil: ", pexpect.EOF, pexpect.TIMEOUT], 1200)
+        if i == 0:
+            r.p.sendline(PASSWORD)
+            i = 1 + r.expect([pexpect.EOF, pexpect.TIMEOUT], 1200)
+        i -= 1
+        ok = i == 0 and "reboot: Power down" in r.p.before
+        r.results.append(("poweroff ends the run (test finisher 0x5555)", ok))
+        r.mark(("PASS" if ok else "FAIL") + ": poweroff")
+        return
 
     # Reboot through the test finisher (0x7777); QEMU resets in place.
     r.p.sendline("sudo reboot")
@@ -178,12 +226,7 @@ def checks(r):
     r.login("root", 900)
     r.sh("cat /home/sigil/persist.txt", check=f"^sigil-persist-{stamp}$", name="file survived reboot")
     r.sh("journalctl --list-boots --no-pager | tail -3")
-    r.p.sendline("poweroff")
-    r.mark("poweroff requested")
-    i = r.expect([pexpect.EOF, pexpect.TIMEOUT], 600)
-    ok = i == 0 and "reboot: Power down" in r.p.before
-    r.results.append(("poweroff ends QEMU (test finisher 0x5555)", ok))
-    r.mark(("PASS" if ok else "FAIL") + ": poweroff")
+    poweroff(r)
 
 
 if __name__ == "__main__":

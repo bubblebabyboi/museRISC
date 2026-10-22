@@ -59,10 +59,18 @@ xz/zstd/bzip2; iproute2/ping (no network on the F2 yet, #72). The full
 package list with versions is the image's `manifest.txt` (recorded in
 the evidence directory). `~/examples` holds small C programs (§6–§8).
 
-Tuned for a slow single hart: no apt/man-db/fstrim/e2scrub timers, no
-network services, generous systemd timeouts (`DefaultTimeoutStartSec=15min`),
-a small persistent journal, SHA-512 password hashes (Debian's default
-yescrypt takes tens of seconds per login at 62.5 MHz), and a
+Tuned for a slow single hart (each item measured in QEMU's
+instruction-counting mode, §10): no apt/man-db/fstrim/e2scrub timers,
+no network services, no ndctl/cxl monitors, no `modprobe@` units for
+built-in drivers, no binfmt service; no boot-time fsck (it would wait
+for udev to announce `/dev/pmem0`; ext4 replays its journal at mount);
+generous systemd timeouts (`DefaultTimeoutStartSec=15min`); a small
+persistent journal; SHA-512 password hashes (Debian's default yescrypt
+takes tens of seconds per login at 62.5 MHz); no login timeout
+(`login` gives up after 60 s by default); logins register a logind
+session of class `background-light`, which does not start the per-user
+service manager (`user@UID.service`, about a minute of CPU at 62.5 MHz;
+`sudo systemctl start user@1000` if you want `systemctl --user`); and a
 `SIGIL_LINUX_BOOT_OK` line printed on the console just before the login
 prompt so host tools can tell the boot finished.
 
@@ -157,6 +165,17 @@ The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 
 OpenSBI is built with `FW_JUMP_FDT_ADDR=0x83000000`, so the DTB stays
 where the host put it and the kernel may be up to 46 MiB.
+
+**Power-off, reboot and the disk.** Sigil's L1 D$ is write-back and the
+host's PCIS view of DDR4 does not see dirty lines. Linux therefore
+powers off and reboots only through SBI SRST (the kernel has no syscon
+reset driver), and the Sigil OpenSBI (`sw/linux/opensbi/0001-*.patch`)
+executes `FENCE.I` — which on Sigil writes back every dirty D$ line —
+before it writes the test finisher. After `poweroff` the pmem window in
+DDR4 therefore holds the complete file system and the host can save it.
+`reboot` keeps DDR4: the host must reload OpenSBI, the kernel and the
+DTB (Linux reused that memory) but **not** the disk image, or the
+reboot discards everything written since boot.
 
 ## 5. Logging in
 
@@ -270,6 +289,8 @@ after `poweroff` (F2: `sigil_host` save; QEMU: automatically, the disk
 file is the window). Always `poweroff` (or at least `sync`) before
 saving, or the copy may hold a dirty, unjournaled state.
 
+- **Checking the file system:** there is no fsck at boot. Run
+  `e2fsck -f` on a saved image on the host while nothing uses it.
 - **More room:** the file system is 8 GiB in a 16 GiB window. `sudo
   resize2fs /dev/pmem0` grows it online to 16 GiB (then the saved image
   is 16 GiB too).

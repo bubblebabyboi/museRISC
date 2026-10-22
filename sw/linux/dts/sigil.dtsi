@@ -63,7 +63,10 @@
 		ranges;
 
 		/* Test finisher (QEMU virt semantics): 0x5555 = power off,
-		 * 0x7777 = reboot, (code << 16) | 0x3333 = fail(code). */
+		 * 0x7777 = reboot, (code << 16) | 0x3333 = fail(code).
+		 * OpenSBI drives it through the syscon nodes below; Linux
+		 * powers off and reboots via SBI SRST (OpenSBI first writes
+		 * back the L1 D$, sw/linux/opensbi/). */
 		finisher: test@100000 {
 			compatible = "sifive,test1", "sifive,test0", "syscon";
 			reg = <0x0 0x00100000 0x0 0x1000>;

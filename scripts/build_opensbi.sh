@@ -4,7 +4,9 @@
 #   fw_jump at 0x8000_0000, next stage (Linux Image) at 0x8020_0000,
 #   FDT relocated to / passed at 0x8300_0000 (the boot ROM's a1).
 # Reset/power-off come from the DT (syscon-poweroff/-reboot on the
-# sifive,test1 finisher), so SBI SRST and Linux poweroff work.
+# sifive,test1 finisher), so SBI SRST and Linux poweroff work. Patches
+# in sw/linux/opensbi/ are applied to a copy of the pinned source (today:
+# write back the L1 D$ before a system reset, for the pmem disk).
 # Outputs: build/linux/fw_jump.bin, fw_jump.elf, *.dtb, opensbi.sha256.
 # Toolchain: gcc-riscv64-linux-gnu + device-tree-compiler (Ubuntu
 # 24.04); without them the script re-runs itself in Docker. The host
@@ -39,7 +41,15 @@ REV=$(git -C "$SRC" rev-parse HEAD)
   echo "error: $SRC is at $REV, expected $OSBI_TAG = $OSBI_COMMIT" >&2; exit 1; }
 
 bash scripts/build_dtbs.sh
-make -s -C "$SRC" O="$PWD/build/linux/opensbi-build" PLATFORM=generic \
+WORK=build/linux/opensbi-src
+rm -rf "$WORK" build/linux/opensbi-build
+mkdir -p "$WORK"
+cp -a "$SRC"/. "$WORK"/
+rm -rf "$WORK/.git"
+for p in sw/linux/opensbi/*.patch; do
+  patch -s -p1 -d "$WORK" < "$p"
+done
+make -s -C "$WORK" O="$PWD/build/linux/opensbi-build" PLATFORM=generic \
   CROSS_COMPILE=riscv64-linux-gnu- FW_JUMP_ADDR=0x80200000 \
   FW_JUMP_FDT_ADDR=0x83000000 -j"$(nproc)"
 FW=build/linux/opensbi-build/platform/generic/firmware

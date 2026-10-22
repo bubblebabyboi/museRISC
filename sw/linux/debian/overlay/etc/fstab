@@ -1,4 +1,7 @@
 # Sigil: the root file system is the pmem disk (DT pmem-region,
 # DDR4 window at PA 0xC_8000_0000), loaded by the host before boot.
+# No boot-time fsck (pass 0): at 62.5 MHz it puts the udev coldplug of
+# /dev/pmem0 on the critical path; ext4 replays its journal at mount.
+# Check offline instead: e2fsck -f <image> on the host.
 # <file system> <mount point> <type> <options>                    <dump> <pass>
-/dev/pmem0      /             ext4   defaults,noatime,errors=remount-ro 0   1
+/dev/pmem0      /             ext4   defaults,noatime,errors=remount-ro 0   0

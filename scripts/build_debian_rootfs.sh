@@ -99,7 +99,17 @@ ch usermod -p "$HASH" sigil
 ch usermod -p "$HASH" root
 sed -i 's/^\(password.*pam_unix\.so.*\) yescrypt/\1 sha512 rounds=5000/' "$ROOT/etc/pam.d/common-password"
 sed -i 's/^#\?ENCRYPT_METHOD.*/ENCRYPT_METHOD SHA512/' "$ROOT/etc/login.defs"
+# login(1) gives up 60 s after the user name; a 62.5 MHz hart needs
+# longer than that for PAM + the logind session at the first login.
+sed -i 's/^LOGIN_TIMEOUT.*/LOGIN_TIMEOUT\t\t0/' "$ROOT/etc/login.defs"
+grep -q '^LOGIN_TIMEOUT[[:space:]]*0$' "$ROOT/etc/login.defs"
 grep -q 'sha512 rounds=5000' "$ROOT/etc/pam.d/common-password"
+# Logins register a logind session but do not start the per-user
+# service manager (user@UID.service): starting it costs about a minute
+# of CPU at 62.5 MHz. 'systemctl --user' needs it: sudo systemctl start
+# user@$(id -u).
+sed -i 's/^\(session.*pam_systemd\.so\).*$/\1 class=background-light/' "$ROOT/etc/pam.d/common-session"
+grep -q 'pam_systemd.so class=background-light' "$ROOT/etc/pam.d/common-session"
 
 # Examples for the board's own gcc.
 install -d -o 1000 -g 1000 "$ROOT/home/sigil/examples"
@@ -120,7 +130,9 @@ cp build/linux/fw_jump.bin build/linux/sigil-f2.dtb build/linux/sigil-qemu.dtb "
 ch systemctl enable sigil-boot-ok.service
 ch systemctl mask apt-daily.timer apt-daily-upgrade.timer man-db.timer \
   e2scrub_all.timer e2scrub_reap.service fstrim.timer dpkg-db-backup.timer \
-  systemd-networkd-wait-online.service ndctl-monitor.service cxl-monitor.service
+  systemd-networkd-wait-online.service ndctl-monitor.service cxl-monitor.service \
+  modprobe@drm.service modprobe@efi_pstore.service modprobe@fuse.service \
+  modprobe@configfs.service systemd-binfmt.service
 ch systemctl set-default multi-user.target
 ch ldconfig
 ch systemd-hwdb update
