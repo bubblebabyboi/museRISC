@@ -1,0 +1,12 @@
+[Unit]
+Description=Sigil boot marker on the console (SIGIL_LINUX_BOOT_OK)
+Documentation=https://github.com/bubblebabyboi/sigil/blob/main/docs/LINUX.md
+After=systemd-user-sessions.service
+Before=serial-getty@ttyS0.service getty.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/sigil-boot-ok
+
+[Install]
+WantedBy=multi-user.target

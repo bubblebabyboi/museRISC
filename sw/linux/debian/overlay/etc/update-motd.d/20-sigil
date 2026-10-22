@@ -1,0 +1,23 @@
+#!/bin/sh
+# Sigil board summary in the login banner (run by pam_motd at login).
+# One awk process: forks are expensive on a 62.5 MHz in-order hart.
+model=$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)
+tb=$(od -An -tu4 --endian=big /sys/firmware/devicetree/base/cpus/timebase-frequency 2>/dev/null)
+awk -v model="${model:-Sigil RV64 SoC}" -v tb="$tb" '
+  FILENAME == "/proc/cpuinfo" && /^isa/ && !isa { sub(/^isa[ \t]*: /, ""); isa = $0 }
+  FILENAME == "/proc/cpuinfo" && /^processor/ { harts++ }
+  FILENAME == "/proc/cpuinfo" && /^mmu/ && !mmu { sub(/^mmu[ \t]*: /, ""); mmu = $0 }
+  /MemTotal:/ { n = $2; kb[n] = $4; if (n > maxn) maxn = n }
+  FILENAME ~ /pmem0\/size$/ { pmem = $1 * 512 / 1073741824 }
+  END {
+    printf "\n  %s\n", model
+    printf "  CPU     %d hart%s, %s, %s", harts, harts == 1 ? "" : "s", isa, mmu
+    if (tb > 0) printf ", timebase %.1f MHz", tb / 1e6
+    printf "\n  Memory "
+    for (i = 0; i <= maxn; i++) if (i in kb)
+      printf " node %d %s %.1f GiB ", i, i == 0 ? "(DDR4)" : "(HBM) ", kb[i] / 1048576
+    printf "\n"
+    if (maxn > 0) printf "          default allocations use node 0; HBM: numactl --membind=1 <cmd>\n"
+    if (pmem > 0) printf "  Disk    /dev/pmem0 %.1f GiB (root, ext4); poweroff before saving it back\n", pmem
+    printf "\n"
+  }' /proc/cpuinfo /sys/devices/system/node/node*/meminfo /sys/block/pmem0/size 2>/dev/null

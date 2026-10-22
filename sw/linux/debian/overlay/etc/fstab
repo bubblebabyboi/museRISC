@@ -1,0 +1,4 @@
+# Sigil: the root file system is the pmem disk (DT pmem-region,
+# DDR4 window at PA 0xC_8000_0000), loaded by the host before boot.
+# <file system> <mount point> <type> <options>                    <dump> <pass>
+/dev/pmem0      /             ext4   defaults,noatime,errors=remount-ro 0   1

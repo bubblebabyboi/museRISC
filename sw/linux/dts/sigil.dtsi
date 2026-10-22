@@ -1,0 +1,130 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+ * Sigil SoC: the one device-tree source shared by every platform
+ * (docs/LINUX_PLATFORM.md is the contract). Board files
+ * sigil-f2.dts, sigil-qemu.dts and sigil-sim.dts include this file
+ * and add memory, timebase and the boot command line.
+ *
+ * Single in-order RV64 hart, Sv39, 16550 UART, PLIC, CLINT, test
+ * finisher (sifive,test1 + syscon poweroff/reboot), goldfish RTC and
+ * the crypto/hash engine. The addresses match QEMU's virt machine
+ * wherever Sigil already did, so one kernel runs on both.
+ */
+/dts-v1/;
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+	compatible = "sigil,soc";
+	model = "Sigil RV64 SoC";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* mtime advances once per core clock: boards override this. */
+		timebase-frequency = <10000000>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			status = "okay";
+			compatible = "sigil,core", "riscv";
+			/* RV64IMAFDC + B + Zicond + Zbk* + Zkn* + Zve64d (VLEN 512) + H */
+			riscv,isa = "rv64imafdch_zicntr_zicsr_zifencei_zba_zbb_zbc_zbs_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zca_zcb_zcd_zve32x_zve32f_zve64x_zve64f_zve64d";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "h",
+				"zicntr", "zicsr", "zifencei",
+				"zba", "zbb", "zbc", "zbs",
+				"zbkb", "zbkc", "zbkx", "zkne", "zknd", "zknh",
+				"zicond", "zca", "zcb", "zcd",
+				"zve32x", "zve32f", "zve64x", "zve64f", "zve64d";
+			mmu-type = "riscv,sv39";
+
+			cpu0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+			};
+		};
+	};
+
+	soc {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		compatible = "simple-bus";
+		ranges;
+
+		/* Test finisher (QEMU virt semantics): 0x5555 = power off,
+		 * 0x7777 = reboot, (code << 16) | 0x3333 = fail(code). */
+		finisher: test@100000 {
+			compatible = "sifive,test1", "sifive,test0", "syscon";
+			reg = <0x0 0x00100000 0x0 0x1000>;
+		};
+
+		poweroff {
+			compatible = "syscon-poweroff";
+			regmap = <&finisher>;
+			offset = <0x0>;
+			value = <0x5555>;
+		};
+
+		reboot {
+			compatible = "syscon-reboot";
+			regmap = <&finisher>;
+			offset = <0x0>;
+			value = <0x7777>;
+		};
+
+		/* goldfish RTC, written by the host before reset release. */
+		rtc: rtc@101000 {
+			compatible = "google,goldfish-rtc";
+			reg = <0x0 0x00101000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <11>;
+		};
+
+		clint: clint@2000000 {
+			compatible = "sifive,clint0", "riscv,clint0";
+			reg = <0x0 0x02000000 0x0 0x10000>;
+			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
+		};
+
+		plic: interrupt-controller@c000000 {
+			#address-cells = <0>;
+			#interrupt-cells = <1>;
+			interrupt-controller;
+			compatible = "sifive,plic-1.0.0", "riscv,plic0";
+			reg = <0x0 0x0c000000 0x0 0x04000000>;
+			riscv,ndev = <32>;
+			interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 9>;
+		};
+
+		uart0: serial@10000000 {
+			compatible = "ns16550a";
+			reg = <0x0 0x10000000 0x0 0x100>;
+			reg-shift = <0>;
+			reg-io-width = <1>;
+			clock-frequency = <1843200>;
+			current-speed = <115200>;
+			interrupt-parent = <&plic>;
+			interrupts = <10>;
+			status = "okay";
+		};
+
+		/* SHA-256/SHA-512/field engine (docs/SPEC.md); no kernel
+		 * driver yet, user space reaches it through the SDK. */
+		crypto@20000000 {
+			compatible = "sigil,crypto";
+			reg = <0x0 0x20000000 0x0 0x1000>;
+			status = "okay";
+		};
+	};
+};
