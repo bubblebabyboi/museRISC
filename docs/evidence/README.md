@@ -2226,6 +2226,15 @@ write; a host save after `poweroff` then holds the whole file system.
 1 GiB so the kernel never uses the element-serial vector unit for
 `copy_*_user`. (4) GCC auto-vectorizes for Zve64d only with `_zvl512b`.
 
+**RTL.** The all-RTL SoC model `soc_rtl_tb` (main-checkout build of
+2026-10-21) boots the same kernel as `Image-initramfs` with
+`sigil-sim.dtb` to `SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
+([`soc-rtl-linux-6.12-boot.log`](linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log);
+the 6.6 `defconfig` gate needed 508,905,040 in `soc_tb`). The console
+shows the #63 TX-FIFO character drops of that RTL, not of the kernel.
+`scripts/qemu_reference_boot.sh` (now on `Image-initramfs`, build stamps
+ignored) passes against that log: `QEMU REFERENCE BOOT PASS`.
+
 **Deviations / contract proposals.** QEMU-only: 10 MHz timebase; three
 QEMU NUMA sockets lay out the ranges, so QEMU has two extra harts outside
 the DT (OpenSBI parks them); virtio-mmio slots; no crypto node.

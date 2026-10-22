@@ -54,11 +54,22 @@ build/sim/soc_tb 4000000000 \
   --exit-string SIGIL_LINUX_BOOT_OK
 ```
 
-The recorded gate (#21, `docs/evidence/core-stage6-linux-boot-2026-10-14.log`)
-used Linux 6.6 with riscv `defconfig`; the 6.12 `sigil_defconfig` kernel
-drops the debug instrumentation and the drivers for hardware Sigil does
-not have, so its boot is shorter. `soc_tb` cycle counts with the new
-kernel have not been re-recorded.
+The first recorded gate (#21, `docs/evidence/core-stage6-linux-boot-2026-10-14.log`)
+used Linux 6.6 with riscv `defconfig` (508,905,040 cycles in `soc_tb`).
+The 6.12 `sigil_defconfig` kernel drops the debug instrumentation and
+the drivers for hardware Sigil does not have: on the all-RTL SoC model
+`soc_rtl_tb` (boot ROM in RTL, so no `boot_stub.bin`) it reaches
+`SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
+(`docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log`):
+
+```bash
+build/sim/soc_rtl_tb 6000000000 \
+  --load 0x80000000=build/linux/fw_jump.bin \
+  --load 0x80200000=build/linux/Image-initramfs \
+  --load 0x83000000=build/linux/sigil.dtb \
+  --uart-log build/linux/linux-boot-uart.log \
+  --exit-string SIGIL_LINUX_BOOT_OK
+```
 
 Since the L1-cache stage `soc_tb` simulates `sigil_cpu` (core + L1
 I$/D$) behind a memory-bus model: only DRAM is cacheable, the boot

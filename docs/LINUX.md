@@ -182,6 +182,17 @@ sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.
 file system, and that file boots next time. `--on-reboot exit` until a
 reboot can keep the disk (below).
 
+The QEMU acceptance run drives the F2 the same way (timeouts × 40, no
+reboot round; a second run checks the saved disk):
+
+```sh
+H="sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb --console --on-reboot exit"
+python3 scripts/qemu_sigil_check.py --label F2 --scale 40 --no-reboot --stamp 1 --log f2-check.log \
+  --cmd "$H --load 0xC80000000=sigil-debian-13-riscv64.ext4 --save 0xC80000000=saved.ext4:8G"
+python3 scripts/qemu_sigil_check.py --label F2 --scale 40 --persist-check 1 --log f2-persist.log \
+  --cmd "$H --load 0xC80000000=saved.ext4"
+```
+
 **Power-off, reboot and the disk.** Sigil's L1 D$ is write-back and the
 host's PCIS view of DDR4 does not see dirty lines. Linux therefore
 powers off and reboots only through SBI SRST (the kernel has no syscon
