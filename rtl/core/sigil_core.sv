@@ -111,7 +111,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        mmu_d_ok, mmu_d_fault, mmu_d_fault_page;
   logic        mmu_if_fault_guest, mmu_d_fault_guest;
   logic [63:0] mmu_if_fault_gpa, mmu_d_fault_gpa;
-  logic        walk_req, walk_we, walk_grant;
+  logic        walk_req, walk_we, walk_grant, walk_abandon;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
@@ -1497,11 +1497,13 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // the port while MEM does not need it. A MEM access issues
   // only when no older instruction is trapping (trap_fire) so it
   // always completes; a walker request abandoned by an MMU
-  // flush/abort is marked stale (dq_drop_q) and its response is
-  // swallowed. AMOs are a LOAD (value saved in amo_rdata_q) then
-  // a STORE of the combined value; the port stays MEM's between
-  // the two. A failing SC performs no access. FENCE.I issues a
-  // CLEAN (D$ write-back) and invalidates the I$ on its response.
+  // flush/abort, or by the MMU itself (walk_abandon: a data miss
+  // preempting a fetch walk, a G-stage GPA-width fault), is marked
+  // stale (dq_drop_q) and its response is swallowed. AMOs are a
+  // LOAD (value saved in amo_rdata_q) then a STORE of the combined
+  // value; the port stays MEM's between the two. A failing SC
+  // performs no access. FENCE.I issues a CLEAN (D$ write-back) and
+  // invalidates the I$ on its response.
   logic        dq_pend_q, dq_walk_q, dq_drop_q;
   logic        amo_wr_q;        // AMO read phase done; write next
   logic [63:0] amo_rdata_q;
@@ -1554,8 +1556,14 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
         dq_walk_q <= !mem_issue;
         dq_drop_q <= 1'b0;
       end
-      // MMU flush/abort kills the walk that owns the port.
-      if ((sfence_fire || trap_take) &&
+      // MMU flush/abort kills the walk that owns the port, and the
+      // MMU abandons a walk itself (walk_abandon) when a data miss
+      // preempts a fetch walk or a G-stage GPA is too wide. A
+      // walker read in flight, or issued in this cycle (the data
+      // miss frees the port in the cycle it preempts), then belongs
+      // to no walk: dropping it keeps the next walk (the preempting
+      // data walk) from taking it as its own PTE.
+      if ((sfence_fire || trap_take || walk_abandon) &&
           ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
            (walk_issue && dreq_ready_i))) begin
         dq_drop_q <= 1'b1;
@@ -1928,6 +1936,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_fault_guest_o  (mmu_d_fault_guest),
       .d_fault_gpa_o    (mmu_d_fault_gpa),
       .walk_req_o       (walk_req),
+      .walk_abandon_o   (walk_abandon),
       .walk_addr_o      (walk_addr),
       .walk_we_o        (walk_we),
       .walk_wdata_o     (walk_wdata),
