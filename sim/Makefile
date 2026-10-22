@@ -66,9 +66,9 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
-        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
+        axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
         fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick \
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgatop-f2-quick fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
@@ -521,6 +521,13 @@ $(BUILD)/fpga_top_tb_w512: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_w512 --top-module sigil_fpga_top \
 	  -GAXI_DATA_W=512 -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 \
 	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
+# The F2 map (issues #65, #66): 512-bit AXI, 80 GiB RAM window (DDR4 64 GiB
+# at AXI 0 + HBM 16 GiB at AXI 0x10_0000_0000) over a sparse memory model.
+$(BUILD)/fpga_top_tb_f2: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_f2 --top-module sigil_fpga_top \
+	  -GAXI_DATA_W=512 "-GRAM_SIZE=64'h1400000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 -CFLAGS -DSIGIL_F2_MAP \
+	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
 
 # FPGA smoke firmware: D$-thrashing memory test with partial
 # stores, then a 170-byte line over the virtual UART RX path.
@@ -532,6 +539,18 @@ $(SOCFW)/fpga_smoke_test.bin: $(ROOT)/sw/fpga-tests/fpga_smoke_test.c \
 	  -T $(ROOT)/sw/soc-tests/link.ld \
 	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/fpga_smoke_test.elf
 	$(RISCV_OBJCOPY) -O binary $(SOCFW)/fpga_smoke_test.elf $@
+
+# F2 platform test firmware (issues #62-#67): RTC, window edges of DDR4
+# and HBM, Linux-style 16-byte UART bursts, finisher; and the F2 memory
+# test (sparse DDR4 + HBM test and load latency).
+$(SOCFW)/f2_%.bin: $(ROOT)/sw/fpga-tests/f2_%.c \
+		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/fpga-tests/link.ld
+	mkdir -p $(SOCFW)
+	$(RISCV_GCC) -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+	  -nostdlib -ffreestanding -fno-builtin -O1 \
+	  -T $(ROOT)/sw/fpga-tests/link.ld \
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/f2_$*.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/f2_$*.elf $@
 
 # DDR-like AXI timing for the FPGA-top runs (Shell DDR4 round trips
 # are tens of core cycles; seeded random backpressure on every
@@ -555,7 +574,30 @@ fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	    --uart-in $(abspath $(ROOT)/sw/fpga-tests/fpga_smoke_uart_in.txt) \
 	    --exit-string "FPGA SMOKE PASS" || exit 1; \
 	done
-	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
+	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) --engine-test \
+	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+
+# The F2 map (fpgatop-f2-quick is in `all`): memory engine across 4 GiB
+# and the DDR4/HBM boundary; f2_platform_test with the TX FIFO drained
+# slowly (back-pressure, every burst byte checked), then with an
+# out-of-window read (error capture), a fail code and a reboot through
+# the finisher; sochash on the 80 GiB window.
+F2_RTC_NS := 1761091200000000000
+F2_MAILBOX := 0x80080000
+fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)/hash_soc_test.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --engine-test --rtc-ns $(F2_RTC_NS) \
+	  --uart-pop 3 --check-bursts 64 --finisher \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x1 --expect-err 0x1480000000 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x100 --expect-fin 0x2a3333 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 40000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x200 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 50000000 $(FPGA_AXI_ARGS) \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
 # SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
 # the same binaries and pass/fail strings as `examples`.

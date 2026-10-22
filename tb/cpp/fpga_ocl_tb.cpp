@@ -8,6 +8,12 @@
 // virtual UART (TX popped through UART_TX_DATA, RX pushed through
 // UART_RX_DATA), then holds the SoC again through CTRL.
 //
+// Version 4 registers (issues #62-#67): RAM_SIZE_MB / CAPS / HOST_FLAGS,
+// the RTC time base (set, increment, snapshot read), the memory engine
+// driven over OCL (pattern write, check, injected mismatch), the bridge
+// error capture registers, FIN_STATUS, and the UART drained through
+// UART_TX_DATA3 (up to three bytes per read).
+//
 // Usage: fpga_ocl_tb [max_cycles] --load 0xADDR=FILE [--load ...]
 //          --exit-string TEXT [--uart-in FILE] [--axi-lat A:B]
 //          [--axi-gap N] [--axi-ready PCT] [--axi-seed S]
@@ -33,8 +39,16 @@ enum : uint32_t {
   R_ID = 0x000, R_VERSION = 0x004, R_CTRL = 0x008, R_STATUS = 0x00C,
   R_BOOT_PC_LO = 0x010, R_BOOT_PC_HI = 0x014, R_CYCLE_LO = 0x018,
   R_CYCLE_HI = 0x01C, R_TRAP_COUNT = 0x020, R_CLK_KHZ = 0x024,
-  R_SCRATCH = 0x03C, R_TX_DATA = 0x040, R_TX_STATUS = 0x044,
-  R_RX_DATA = 0x048, R_RX_STATUS = 0x04C,
+  R_HOST_FLAGS = 0x038, R_SCRATCH = 0x03C, R_TX_DATA = 0x040, R_TX_STATUS = 0x044,
+  R_RX_DATA = 0x048, R_RX_STATUS = 0x04C, R_TX_DATA3 = 0x050,
+  R_RAM_SIZE_MB = 0x054, R_CAPS = 0x058, R_ERR_ADDR_LO = 0x060,
+  R_ERR_ADDR_HI = 0x064, R_ERR_INFO = 0x068, R_ERR_COUNT = 0x06C,
+  R_FIN_STATUS = 0x070, R_FIN_VALUE = 0x074, R_RTC_LO = 0x080, R_RTC_HI = 0x084,
+  R_RTC_INC = 0x088, R_MEM_CTRL = 0x0A0, R_MEM_BASE_LO = 0x0A4,
+  R_MEM_BASE_HI = 0x0A8, R_MEM_SIZE_LO = 0x0AC, R_MEM_SIZE_HI = 0x0B0,
+  R_MEM_SEED_LO = 0x0B4, R_MEM_SEED_HI = 0x0B8, R_MEM_MISM = 0x0BC,
+  R_MEM_FADDR_LO = 0x0C0, R_MEM_FADDR_HI = 0x0C4, R_MEM_CYC_LO = 0x0C8,
+  R_MEM_RERR = 0x0D0,
 };
 
 std::vector<uint8_t> ReadFile(const char* path, bool* ok) {
@@ -60,6 +74,7 @@ struct Harness {
     dut->clk_i = 0;
     dut->rst_ni = 0;
     dut->ddr_ready_i = 1;
+    dut->hbm_ready_i = 0;
     dut->s_axil_awvalid = 0;
     dut->s_axil_wvalid = 0;
     dut->s_axil_bready = 1;
@@ -199,6 +214,73 @@ int main(int argc, char** argv) {
   h.Wr(R_BOOT_PC_HI, 0x12345678u);
   h.Check("BOOT_PC_HI rw", h.Rd(R_BOOT_PC_HI), 0x12345678u);
   h.Wr(R_BOOT_PC_HI, 0);
+  h.Check("RAM_SIZE_MB", h.Rd(R_RAM_SIZE_MB), 128u);
+  h.Check("CAPS", h.Rd(R_CAPS), 0u);
+  h.Check("HOST_FLAGS reset", h.Rd(R_HOST_FLAGS), 0u);
+  h.Wr(R_HOST_FLAGS, 0x3);
+  h.Check("HOST_FLAGS rw", h.Rd(R_HOST_FLAGS), 0x3u);
+  h.Check("ERR_INFO clear", h.Rd(R_ERR_INFO), 0u);
+  h.Check("ERR_COUNT clear", h.Rd(R_ERR_COUNT), 0u);
+  h.Check("FIN_STATUS", h.Rd(R_FIN_STATUS), 0u);
+  h.Check("TX_DATA3 empty", h.Rd(R_TX_DATA3), 0u);
+  h.Check("CTRL tx_drop rw", (h.Wr(R_CTRL, 0x7), h.Rd(R_CTRL)), 0x7u);
+  h.Wr(R_CTRL, 0x3);
+  // RTC: default increment 16 ns (62.5 MHz, Q8.24), host set, advance.
+  h.Check("RTC_INC default", h.Rd(R_RTC_INC), 0x10000000u);
+  const uint64_t rtc_set = 1761091200000000000ULL;
+  h.Wr(R_RTC_LO, uint32_t(rtc_set));
+  h.Wr(R_RTC_HI, uint32_t(rtc_set >> 32));
+  {
+    const uint64_t t0 = h.cycle;
+    const uint32_t lo = h.Rd(R_RTC_LO);
+    const uint64_t r = (uint64_t(h.Rd(R_RTC_HI)) << 32) | lo;
+    if (r < rtc_set || r > rtc_set + 16 * (h.cycle - t0 + 64)) {
+      std::fprintf(stderr, "FPGA OCL TB FAIL: RTC read 0x%llx after set 0x%llx\n",
+                   (unsigned long long)r, (unsigned long long)rtc_set);
+      h.fails++;
+    }
+  }
+  // Memory engine over OCL (SoC held): address pattern, check, an
+  // injected mismatch.
+  auto eng = [&](uint32_t mode, uint64_t base, uint64_t size, uint64_t seed) {
+    h.Wr(R_MEM_BASE_LO, uint32_t(base));
+    h.Wr(R_MEM_BASE_HI, uint32_t(base >> 32));
+    h.Wr(R_MEM_SIZE_LO, uint32_t(size));
+    h.Wr(R_MEM_SIZE_HI, uint32_t(size >> 32));
+    h.Wr(R_MEM_SEED_LO, uint32_t(seed));
+    h.Wr(R_MEM_SEED_HI, uint32_t(seed >> 32));
+    h.Wr(R_MEM_CTRL, (mode << 4) | 1);
+    int k = 0;
+    while ((h.Rd(R_MEM_CTRL) & 0x3u) != 0x2u) {
+      if (++k > 1000000) {
+        std::fprintf(stderr, "FPGA OCL TB FAIL: memory engine stuck\n");
+        std::exit(1);
+      }
+    }
+  };
+  const uint64_t eb = 0x400000, es = 0x10000, seed = 0xFEEDFACECAFEF00DULL;
+  eng(1, eb, es, seed);
+  for (uint64_t a = eb; a < eb + es; a += 8) {
+    uint64_t v;
+    std::memcpy(&v, &ddr[a], 8);
+    if (v != (a ^ seed)) {
+      std::fprintf(stderr, "FPGA OCL TB FAIL: engine pattern at 0x%llx\n", (unsigned long long)a);
+      h.fails++;
+      break;
+    }
+  }
+  eng(3, eb, es, seed);
+  h.Check("MEM_CTRL after clean check", h.Rd(R_MEM_CTRL), 0x32u);
+  h.Check("MEM_MISM clean", h.Rd(R_MEM_MISM), 0u);
+  ddr[eb + 0x5018] ^= 0x80;
+  eng(3, eb, es, seed);
+  h.Check("MEM_CTRL after bad check", h.Rd(R_MEM_CTRL), 0x36u);
+  h.Check("MEM_MISM injected", h.Rd(R_MEM_MISM), 1u);
+  h.Check("MEM_FADDR_LO", h.Rd(R_MEM_FADDR_LO), uint32_t(eb + 0x5018));
+  h.Check("MEM_RERR", h.Rd(R_MEM_RERR), 0u);
+  std::fprintf(stderr, "memory engine over OCL: %u core cycles for a 64 KiB check\n",
+               h.Rd(R_MEM_CYC_LO));
+  eng(0, eb, es, 0);  // back to zeros
   // Cycle counter: the delta between two snapshots equals the harness
   // cycles between the two CYCLE_LO reads.
   const uint64_t c0 = h.Cycles();
@@ -218,19 +300,41 @@ int main(int argc, char** argv) {
   std::string out;
   size_t rx_i = 0;
   bool pass = false;
+  uint64_t reads1 = 0, reads3 = 0;
   while (!pass) {
+    // Alternate the one-byte and three-byte drain registers.
     const uint32_t n = h.Rd(R_TX_STATUS) & 0xFFFFu;
-    for (uint32_t k = 0; k < n && !pass; ++k) {
-      const uint32_t d = h.Rd(R_TX_DATA);
-      if (!(d & 0x80000000u)) {
-        std::fprintf(stderr, "FPGA OCL TB FAIL: TX_DATA empty with count %u\n", n);
+    uint32_t got = 0;
+    while (got < n && !pass) {
+      uint8_t b[3];
+      uint32_t nb;
+      if ((reads1 + reads3) % 4 == 0) {
+        const uint32_t d = h.Rd(R_TX_DATA);
+        reads1++;
+        nb = (d >> 31) & 1;
+        b[0] = uint8_t(d);
+      } else {
+        const uint32_t d = h.Rd(R_TX_DATA3);
+        reads3++;
+        nb = (d >> 24) & 3;
+        if (((d >> 31) & 1) != (nb != 0)) {
+          std::fprintf(stderr, "FPGA OCL TB FAIL: TX_DATA3 0x%08x\n", d);
+          return 1;
+        }
+        for (uint32_t i = 0; i < 3; ++i) b[i] = uint8_t(d >> (8 * i));
+      }
+      if (nb == 0) {
+        std::fprintf(stderr, "FPGA OCL TB FAIL: TX empty with count %u\n", n);
         return 1;
       }
-      std::fputc(int(d & 0xFF), stdout);
-      if ((d & 0xFF) == '\n') std::fflush(stdout);
-      out.push_back(char(d & 0xFF));
-      pass = out.size() >= exit_string.size() &&
-             out.compare(out.size() - exit_string.size(), exit_string.size(), exit_string) == 0;
+      for (uint32_t i = 0; i < nb && !pass; ++i) {
+        std::fputc(int(b[i]), stdout);
+        if (b[i] == '\n') std::fflush(stdout);
+        out.push_back(char(b[i]));
+        pass = out.size() >= exit_string.size() &&
+               out.compare(out.size() - exit_string.size(), exit_string.size(), exit_string) == 0;
+      }
+      got += nb;
     }
     if (rx_i < rx.size() && !(h.Rd(R_RX_STATUS) & 0x80000000u)) {
       h.Wr(R_RX_DATA, uint8_t(rx[rx_i++]));
@@ -258,6 +362,9 @@ int main(int argc, char** argv) {
     return 1;
   }
   h.Check("TRAP_COUNT cleared while held", h.Rd(R_TRAP_COUNT), 0u);
+  h.Check("ERR_INFO after the run", h.Rd(R_ERR_INFO), 0u);
+  std::fprintf(stderr, "UART drained with %llu TX_DATA and %llu TX_DATA3 reads\n",
+               (unsigned long long)reads1, (unsigned long long)reads3);
   std::fprintf(stderr, "\n%s\n", axi.Stats().c_str());
   if (h.fails) {
     std::fprintf(stderr, "FPGA OCL TB FAIL: %d register checks\n", h.fails);

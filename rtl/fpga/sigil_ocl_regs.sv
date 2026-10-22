@@ -179,7 +179,8 @@ module sigil_ocl_regs #(
   assign cache_en_o = cache_en_q;
   assign uart_tx_drop_o = tx_drop_q;
   assign rtc_inc_o = rtc_inc_q;
-  assign eng_mode_o = eng_mode_q;
+  // The engine samples its mode with the start pulse (same write).
+  assign eng_mode_o = eng_start_o ? w_data_q[5:4] : eng_mode_q;
   assign eng_base_o = eng_base_q;
   assign eng_size_o = eng_size_q;
   assign eng_seed_o = eng_seed_q;

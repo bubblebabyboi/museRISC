@@ -66,7 +66,7 @@ module sigil_rtc_goldfish (
         3'd0: rdata_o = addr_i[2] ? {time_high_q, 32'd0} : now;
         3'd1: rdata_o = alarm_q;
         3'd2: rdata_o = {32'd0, 31'd0, irq_en_q};
-        3'd3: rdata_o = {31'd0, alarm_run_q, 32'd0};
+        3'd3: rdata_o = {32'd0, 31'd0, alarm_run_q};
         default: rdata_o = 64'd0;
       endcase
     end
