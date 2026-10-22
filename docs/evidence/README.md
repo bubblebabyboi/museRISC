@@ -2124,3 +2124,84 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #56: performance harness, first baseline — Dhrystone 2.1 (2026-10-22)
+
+[`perf-dhrystone-56-2026-10-22/`](perf-dhrystone-56-2026-10-22/report.md):
+`report.md`, `results.csv`, `results.json` (every counter plus
+metadata), `runs/` (UART log and `SIGIL_PERF` record of all 32 runs),
+the build logs with the full compiler command lines, and
+`synth-view-diff.log` and `cross-sim-5.020.log`. Method:
+[`docs/PERFORMANCE.md`](../PERFORMANCE.md).
+
+- **Design.** main `eeaa332` RTL, measured before any #53 pipelining.
+  Harness commit `623c576` (branch `56-perf-harness`) adds only
+  `` `ifndef SYNTHESIS`` code. `scripts/synth_view_diff.sh eeaa332
+  623c576` shows the preprocessed RTL is byte-identical under
+  `SYNTHESIS` alone and with `SIGIL_SRAM_FAKERAM45`,
+  `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_OREG` and `SIGIL_VRF_OREG`.
+- **Run.** `make -C sim perf BENCHES=dhrystone CONFIG="default sky130
+  oreg fpga" MEM="soc axi" JOBS=8 REPEAT=2 VJOBS=4` on sigil-verify
+  (c7i.8xlarge, Ubuntu 24.04), 2026-10-22T06:56Z, with Verilator 5.048
+  and riscv64-unknown-elf-gcc 16.1.0 (`deps/`). 32 simulations took
+  2 min 25 s.
+- **Benchmark.** Dhrystone 2.1 (netlib `dhry-c`, ported:
+  `sw/bench/dhrystone/README.md`), 2000 runs. Flags: `sdk.mk` (`-O2
+  -mstrict-align -mcmodel=medany -ffreestanding -std=gnu11`, separate
+  compilation, no LTO) plus `-fno-inline` (ground rules). Two variants:
+  - `scalar`, the headline:
+    `-march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`;
+  - `sdk`: the SDK default `-march`, with V.
+- **Memory models.**
+  - `soc`: `soc_rtl_tb`, fixed 1-cycle first-beat latency.
+  - `axi`: `fpga_top_tb`, through the 64-bit `sigil_mbus_axi4` bridge,
+    with a fixed 24-cycle AXI latency.
+- **Validation.** 32/32 runs valid:
+  - the program self-checked every final value;
+  - `cycles` = `mcycle` delta and `instret` = `minstret` delta;
+  - the accounting sums to `cycles`;
+  - both repeats are identical in all 91 record fields;
+  - the same images on a Verilator 5.020 build give identical records.
+
+DMIPS/MHz (= 2000 / cycles × 10^6 / 1757, over the `Number_Of_Runs`
+loop):
+
+| Variant | Memory | default | sky130 | oreg | fpga (VRF_OREG) |
+|---|---|---:|---:|---:|---:|
+| **scalar** | soc | **0.371** | **0.216** | 0.225 | **0.371** |
+| scalar | axi | 0.371 | 0.201 | 0.225 | 0.371 |
+| sdk (V) | soc | 0.327 | 0.191 | 0.202 | 0.317 |
+| sdk (V) | axi | 0.327 | 0.173 | 0.202 | 0.317 |
+
+Scalar, default, soc: 3,070,244 cycles and 1,036,022 instructions,
+IPC 0.337, 1,535 cycles per Dhrystone. The cycles break down as:
+
+| Category | % of cycles |
+|---|---:|
+| retire | 33.7 |
+| fetch: I$ hit latency / issue gap | 40.6 |
+| fetch: 32-bit instruction straddles a fetch word | 8.9 |
+| MEM: D$ hit latency | 12.7 |
+| squashed wrong-path instructions | 3.7 |
+| M unit | 0.2 |
+| load-use | 0.1 |
+
+Observations:
+
+- **Fetch dominates.** The core issues one fetch per 2 cycles (3 with
+  `SRAM_OREG`) and refetches the word for the second compressed half.
+  Fetch costs 49.5% of cycles, at 1.45 I$ accesses per instruction.
+- **`SRAM_OREG` alone costs +65% cycles.** On top of that, the sky130
+  4 KiB direct-mapped D$ adds 4 conflict misses per Dhrystone: +4.1%
+  of cycles at 1-cycle memory, +12.0% behind the AXI model. sky130 is
+  the only configuration where Dhrystone is memory-latency sensitive.
+- **V code generation is slower here.** GCC turns the 56-byte record
+  copy into `vle8`/`vse8`, which takes 19.3% of cycles on the
+  element-serial vector LS. The `sdk` build is 13.4% slower than
+  `scalar`.
+- **Effective miss penalties.** I$: 12 cycles (soc) and 37 (axi).
+  D$: 21–27 (soc) and 62–77 (axi).
+- **Projection only:** at F2's 62.5 MHz, the scalar figure is about
+  23 DMIPS. No hardware run.
+
+Gates on the harness branch: `gates.log` in the same directory.
