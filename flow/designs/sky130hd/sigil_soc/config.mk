@@ -40,7 +40,26 @@ export VERILOG_INCLUDE_DIRS = $(DESIGN_HOME)/src/sigil_soc/core
 # Both are intended to build from flops/logic, as in the crypto macro.
 export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE      = $(DESIGN_HOME)/sky130hd/sigil_soc/constraint.sdc
-export CORE_UTILIZATION = 20
+# Floorplan sized for the Caravel user area (2920 x 3520 um): a
+# 2900 x 3500 um die (10.15 mm^2) with a ~10 um core margin. Std
+# cells (~3.0 mm^2 after synthesis) and the 7 macros (2.914 mm^2)
+# give ~45 % std-cell utilization of the space left by the macros
+# and their halos.
+export DIE_AREA  = 0 0 2900 3500
+export CORE_AREA = 10 10 2890 3490
 export PLACE_DENSITY_LB_ADDON = 0.05
 # The OpenRAM macros are up to ~1.1 mm x 0.6 mm; leave room around them.
 export MACRO_PLACE_HALO = 40 40
+# Global-routing capacity derating (default 0.5). At 0.5 FastRoute
+# could not clear the congestion; at 0.2 it ended, after 1.5 h, with
+# 3,431 gcells over by 1-2 tracks (60 % average usage, mostly met2/
+# met4 in the middle of the die) and GRT-0116. ORFS's sky130hd
+# microwatt (also SRAM macros) uses 0.15. Use 0.1 and let the flow
+# carry any small leftover overflow into detailed routing, which is
+# then judged by its own DRC count.
+export ROUTING_LAYER_ADJUSTMENT = 0.1
+export PRE_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_soc/pre_grt.tcl
+export GLOBAL_ROUTE_ARGS = -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
+# Design PDN: the platform one plus met4 straps over the OpenRAM
+# macros' met3 vdd/gnd pins (see pdn.tcl).
+export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_soc/pdn.tcl

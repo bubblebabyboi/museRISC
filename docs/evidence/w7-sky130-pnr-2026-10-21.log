@@ -1,0 +1,78 @@
+W7 (#11): whole-SoC sky130hd ORFS place & route of sigil_soc_top, sized for the Caravel user area
+Branch 11-sky130-pnr; host vivado_rnd (r7i.4xlarge), ORFS image
+openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663,
+NUM_CORES 4-8; 2026-10-21. Config: flow/designs/sky130hd/sigil_soc/ (config.mk,
+constraint.sdc, pdn.tcl, sram_macros.tcl, pre_grt.tcl).
+
+RESULT: NOT ROUTED. Floorplan, PDN, placement, CTS and global routing
+complete in a 2900 x 3500 um die (fits the 2920 x 3520 um Caravel user
+area); detailed routing does not converge (1,036,832 violations after
+iteration 0, 842,148 after iteration 1). No GDS was produced. The
+blocking cause is routing demand: see "Routing demand" below.
+
+== Synthesis (branch RTL; ~/sigil-s130-main)
+  make synth rc=0 wall 3448 s (yosys 57 min, 2.9 GB peak)
+  Chip area 5,921,526 um^2 (std cells 3.007 mm^2 + 7 OpenRAM macros 2.914 mm^2)
+  312,167 cells incl. 7 macros; sequential area 1,016,425 um^2
+
+== Floorplan (2_1..2_4; wall 231 s)
+  DIE_AREA 0 0 2900 3500 (10.15 mm^2); core (10.12,10.88)-(2890,3490) = 10.018 mm^2
+  synthesized area / core = 59 %; std cells / (core - macros) = 42 %
+  RTL macro placement (MACRO_PLACE_HALO 40 40):
+    vregfile[0] (50.44,3046.75) R0; vregfile[1] (50.44,368.365) MX;
+    vregfile[2] (1809.02,3046.75) R0; dcache data (1708.28,763.365) MX;
+    dcache tag (50.44,51.065) R180; icache data (1708.28,51.065) MX;
+    icache tag (575.76,51.065) MX
+  PDN (pdn.tcl): platform std-cell grid + per-macro met4 straps over the
+    OpenRAM met3 vdd/gnd pin columns. Per 64x256 macro: 637 via3 to vdd
+    pins (5 columns x 127), 381 via3 to gnd pins (3 x 127), 40 VDD + 41
+    VSS via4 to the core met5 stripes; every macro has 3 VDD + 3 VSS
+    straps. PDN-0231/PDN-0217 errors of the platform PDN are gone.
+  Undeclared met4 in the macro GDS (bottom strip, layer 71/20, not in
+    the LEF OBS) is covered by a met4 routing obstruction per macro.
+
+== Placement / CTS (40 ns clock, 25 MHz)
+  place rc=0 wall 1332 s; global place 13 min, target density 0.54
+  routability: GPL reported 34-38 % of tiles overflowed (RUDY) and
+    "could not reach target" after the 30 % inflation budget
+  Design area after place 6,163,702 um^2 (62 %), after CTS 6,308,746 um^2
+  cts rc=0 wall 507 s; 36,835 register sinks + 14 macro clock pins
+  setup WNS / TNS: place +3.68 ns / 0; CTS +3.51 / 0; GRT +1.76 / 0
+  period_min (OpenSTA): place 36.32 ns, CTS 36.49 ns, GRT 38.24 ns
+    (~26 MHz after global routing parasitics); hold: 0 violations at GRT
+  power (GRT estimate): 0.764 W total (0.340 internal, 0.424 switching)
+
+== Global routing experiments (Caravel die)
+  ORFS applies ROUTING_LAYER_ADJUSTMENT only in floorplan.tcl, so
+  pre_grt.tcl re-applies it at global route (runs before that change
+  used the floorplan-time value).
+  run                         adj   macro m1-m3 blk   result                      met2 use   wall
+  iter (old RTL)              fp    no                3,431 gcells overflow (GRT-0116)  70.6 %   1 h 30
+  main                        fp    no                3,705 gcells overflow (allowed)   64.8 %   ~2 h 40
+  b                           0.1   no                0 overflow                       57.8 %   55 min
+  b (final)                   0.1   yes               0 overflow                       64.6 %   22 min
+  c                           0.5   yes               met2 demand 121.9 % of capacity, 357,228 overflowed gcells (allowed)
+  d                           0.3   yes               met2 86.9 %, 71,412 overflowed gcells (allowed)
+  c and d then failed in detailed routing with DRT-0218 "Guide is not
+  connected to design" on std-cell-only nets (e.g. net29359: buf_4 ->
+  50 edfxtp DE pins; no macro pins), the usual result of routing
+  guides from a heavily overflowed global route.
+
+== Detailed routing (b: adj 0.1, macro blockages, 0 GRT overflow)
+  iteration 0: 1,036,832 violations (met1 short 598,443; met2 short
+    176,233; met1 spacing 92,570; ...), 52 min with 8 threads
+  iteration 1: 842,148 violations (met1 short 546,723; met2 short 119,323)
+  iteration 2: 833,572 after 30 % of the iteration (stopped)
+  Without the met1-met3 macro blockages: 1,044,616 after iteration 0.
+  The violations are signal-signal (net:net) met1/met2 shorts across
+  the standard-cell area, not macro or PDN conflicts.
+
+== Routing demand (blocking cause)
+  The placed design needs ~1.2-1.3 M met2 and ~1.2-1.4 M met1 track-gcells
+  of global routing (34.8-37.1 m of wire, 337k nets) in a 10 mm^2 die. At the ORFS sky130hd default derating (0.5), global
+  routing needs 122 % of the met2 capacity; it only fits when the
+  derating is lowered to 0.1, and detailed routing cannot realize those
+  guides. The sky130 OpenRAM macros (29 % of the core) block met1-met3
+  for routing. Reaching the derating ORFS sky130hd designs route at
+  needs roughly 1.5-2x the routing area, i.e. a smaller design or a die
+  larger than the Caravel user area.

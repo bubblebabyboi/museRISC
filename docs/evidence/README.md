@@ -2041,3 +2041,28 @@ nangate45 releases reported only the OpenROAD checks. Runs 1–2 failed the
 macro gap with no metal4 strap); fixed with full 60 µm macro channels
 (`RTLMP_MIN_CHANNEL_SIZE`, `RTLMP_PIN_AWARE_CHANNELS 0`). Wording: GDS
 generated / place-and-route complete — not a tapeout.
+
+## W7 / #11: whole-SoC sky130hd place & route in the Caravel user area (2026-10-21) — not routed
+
+Full log: [`w7-sky130-pnr-2026-10-21.log`](w7-sky130-pnr-2026-10-21.log).
+Branch `11-sky130-pnr`, ORFS image `openroad/orfs@sha256:63981d1a…`,
+config `flow/designs/sky130hd/sigil_soc/`:
+
+- **Done:** synthesis (5.92 mm², 312k cells, 7 OpenRAM macros),
+  floorplan in a 2900 × 3500 µm die (inside the 2920 × 3520 µm Caravel
+  user area), a design PDN (`pdn.tcl`) that connects the OpenRAM
+  met3 `vdd`/`gnd` pins through met4 straps (the platform PDN failed
+  with PDN-0217), placement, CTS and global routing. Setup WNS at
+  40 ns (25 MHz): +3.68 ns after placement, +3.51 after CTS, +1.76
+  after global routing (period_min 38.2 ns, ~26 MHz); no hold
+  violations; estimated power 0.76 W.
+- **Not done:** detailed routing does not converge (1,036,832
+  violations after iteration 0, 842,148 after iteration 1, mostly
+  signal-signal met1/met2 shorts). No GDS, DRC, antenna or post-route
+  timing.
+- **Cause:** routing demand. At the ORFS sky130hd default derating
+  (0.5), global routing needs 122 % of the met2 capacity in the
+  Caravel die; it only fits at 0.1, which detailed routing cannot
+  realize. A 3700 × 4400 µm (16.3 mm²) run still had ~20,000
+  overflowed gcells. An owner decision on the sky130 configuration
+  (smaller design, larger die or hierarchical P&R) is needed.

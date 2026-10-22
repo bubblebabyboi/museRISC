@@ -486,6 +486,13 @@ is ≈ 7.6–9.4 mm² against Caravel's 2.92 × 3.52 mm = 10.3 mm² user
 area, before the IO/wrapper overhead: a fit is plausible but must be
 shown by placement.
 
+### Place & route in the Caravel user area (2026-10-21)
+
+A 2900 × 3500 µm floorplan of this configuration places, gets a
+clean PDN and CTS, and meets 25 MHz after global routing (+1.76 ns),
+but does not detail-route: routing demand is about twice what fits.
+See [`evidence/w7-sky130-pnr-2026-10-21.log`](evidence/w7-sky130-pnr-2026-10-21.log).
+
 ## sky130 chip-size estimate (rough, 2026-10-16 configuration)
 
 - **Synthesized (flat):** 2.36 mm² std cells + 6.23 mm² SRAM macros.

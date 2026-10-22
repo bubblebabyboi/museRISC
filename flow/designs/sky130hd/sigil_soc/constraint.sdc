@@ -1,7 +1,8 @@
-# sigil_soc_top @ 40 MHz on sky130hd (estimate run; fmax is read
-# from the reported slack). I/O delays are budget placeholders, as
-# in the nangate45 SDC.
-create_clock [get_ports clk_i] -period 25.0 -name core_clock
+# sigil_soc_top @ 25 MHz on sky130hd (P&R run). Synthesis estimated
+# ~23 MHz unrepaired with every OpenRAM output registered
+# (docs/SOC_AREA.md); fmax is read from the post-route slack. I/O
+# delays are budget placeholders, as in the nangate45 SDC.
+create_clock [get_ports clk_i] -period 40.0 -name core_clock
 set_clock_uncertainty -setup 0.5 [get_clocks core_clock]
 set_clock_uncertainty -hold 0.1 [get_clocks core_clock]
 set_input_delay  5.0 -clock core_clock [all_inputs]
