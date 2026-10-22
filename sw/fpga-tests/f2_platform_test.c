@@ -181,12 +181,9 @@ int main(void) {
     *FINISHER = (1u << 16) | 0x3333;
   } else if (end == 1) {
     *FINISHER = (42u << 16) | 0x3333;
-  } else if (end == 2 && *REBOOT_CNT != 0x5EB007ull) {
-    if ((mode & 2) && *PMEM != PMEM_LOADED) {
-      puts_("F2 PLATFORM FAIL pmem image not loaded\r\n");
-      *FINISHER = (2u << 16) | 0x3333;
-      for (;;) __asm__ volatile("wfi");
-    }
+  } else if (end == 2 && ((mode & 2) ? *PMEM == PMEM_LOADED : *REBOOT_CNT != 0x5EB007ull)) {
+    /* First boot (with bit 1 keyed off the host-loaded pmem marker, so
+     * stale DDR4 contents from an earlier run cannot fake it). */
     if (mode & 2) *PMEM = PMEM_REBOOT;
     *REBOOT_CNT = 0x5EB007ull;
     __asm__ volatile("fence.i" ::: "memory");   /* write the D$ back */
@@ -196,7 +193,7 @@ int main(void) {
     *FINISHER = 0x7777;
   } else {
     if (end == 2 && (mode & 2) && *PMEM != PMEM_REBOOT) {
-      puts_("F2 PLATFORM FAIL pmem disk reloaded on reboot\r\n");
+      puts_("F2 PLATFORM FAIL pmem marker neither loaded nor kept\r\n");
       while ((UART[5] & 0x40) == 0) {
       }
       *FINISHER = (3u << 16) | 0x3333;
