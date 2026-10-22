@@ -201,8 +201,11 @@ Pipeline behaviour:
   through the D$ (coherent with PTE stores by construction;
   A/D updates are D$ stores). MEM has priority; an MMU
   flush/abort (SFENCE.VMA, trap) while a walker request is out
-  drops its response. PMP-denied PTE accesses complete without
-  a memory access.
+  drops its response, and so does a walk the MMU abandons
+  itself (`walk_abandon_o`: a data-TLB miss preempting a fetch
+  walk, a G-stage GPA-width fault), including a read issued in
+  the abandoning cycle (issue #73; `ptw_preempt*_directed.S`).
+  PMP-denied PTE accesses complete without a memory access.
 - **FENCE.I** (MISC-MEM funct3=001) serializes in EX like
   SFENCE (redirect to pc+4, younger instructions flushed), then
   in MEM issues `DOP_CLEAN` (D$ writes back every dirty line)

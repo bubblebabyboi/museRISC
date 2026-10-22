@@ -89,3 +89,9 @@ run mmio_bypass mmio_bypass_directed.bin
 run vm_sfence_cache vm_sfence_cache_directed.bin
 run fp_hold_cache fp_hold_cache_directed.bin
 run ptw_drop ptw_drop_directed.bin
+# Data-miss preemption of a fetch walk (issue #73): the fetch walk's
+# PTE read in flight (uncached / evicted tables) or issued in the
+# preempting cycle must not reach the data walk.
+run ptw_preempt ptw_preempt_directed.bin
+run ptw_preempt_cached ptw_preempt_cached_directed.bin
+run ptw_preempt_twoload ptw_preempt_twoload_directed.bin
