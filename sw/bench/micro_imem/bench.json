@@ -1,0 +1,36 @@
+{
+  "name": "micro_imem",
+  "description": "Microbenchmarks: instruction fetch over straight-line code footprints 1..32 KiB (cycles per instruction)",
+  "iterations": 49152,
+  "max_cycles": 40000000,
+  "expect": [
+    "MICRO CHECK OK micro_imem iterations={iterations} regions=11"
+  ],
+  "units": "instructions per region (cycles/iter = cycles per instruction)",
+  "regions": {
+    "1": "empty",
+    "2": "ifoot_1k",
+    "3": "ifoot_2k",
+    "4": "ifoot_3k",
+    "5": "ifoot_4k",
+    "6": "ifoot_6k",
+    "7": "ifoot_8k",
+    "8": "ifoot_12k",
+    "9": "ifoot_16k",
+    "10": "ifoot_24k",
+    "11": "ifoot_32k"
+  },
+  "region_ops": {
+    "1": "region overhead: call + return of an empty kernel (cycles/iter is not per-op)",
+    "2": "addi (32-bit) of a 1 KiB straight-line footprint, run repeatedly",
+    "3": "addi (32-bit) of a 2 KiB straight-line footprint, run repeatedly",
+    "4": "addi (32-bit) of a 3 KiB straight-line footprint, run repeatedly",
+    "5": "addi (32-bit) of a 4 KiB straight-line footprint, run repeatedly",
+    "6": "addi (32-bit) of a 6 KiB straight-line footprint, run repeatedly",
+    "7": "addi (32-bit) of a 8 KiB straight-line footprint, run repeatedly",
+    "8": "addi (32-bit) of a 12 KiB straight-line footprint, run repeatedly",
+    "9": "addi (32-bit) of a 16 KiB straight-line footprint, run repeatedly",
+    "10": "addi (32-bit) of a 24 KiB straight-line footprint, run repeatedly",
+    "11": "addi (32-bit) of a 32 KiB straight-line footprint, run repeatedly"
+  }
+}
