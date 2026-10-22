@@ -6,7 +6,7 @@ Two benchmarks share the implementations in this directory:
 
 | Benchmark | Work per region | `iterations` (default) | Harness metric |
 |---|---|---|---|
-| `sha256chain` | hash chain h<sub>i+1</sub> = H(h<sub>i</sub>), *N* hashes | *N* hashes (1024) | cycles/iter = cycles/hash |
+| `sha256chain` | hash chain h<sub>i+1</sub> = H(h<sub>i</sub>), *N* hashes | *N* hashes (1024) | cycles/iter = cycles/hash; bytes/cycle (32 message bytes per hash, 64 for the SHA-512 chain) |
 | [`sha256chain_bulk`](../sha256chain_bulk/) | hash a buffer once | buffer size in KiB (64) | bytes/cycle (`bytes_per_iteration` 1024) |
 
 ```sh
@@ -155,7 +155,9 @@ with:
 On hardware, where only `mcycle`/`minstret` exist, this is the
 measurement. Measured numbers are kept in `docs/evidence/`, not here.
 
-The harness's bytes/cycle metric takes one `bytes_per_iteration` for
-every region of a bench. `sha256chain` mixes 32- and 64-byte messages,
-so it declares no harness metric: its rows report cycles/hash
-(`cycles/iter`), and bytes/cycle is in the `RESULT` lines.
+`sha256chain` mixes 32- and 64-byte messages, so its `bench.json`
+gives the SHA-512 region its own `bytes_per_iteration` (64; the bench's
+is 32). The harness's bytes/cycle then matches the `RESULT` lines. The
+SHA-256 regions declare plain C (region 0) as their `baseline`, so
+`report.md` lists their speedups over it; `sha256chain_bulk` does the
+same for Zknh and RVV.

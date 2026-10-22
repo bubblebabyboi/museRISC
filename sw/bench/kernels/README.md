@@ -12,9 +12,13 @@ sw/bench/kernels/kernels_report.py build/perf/run --md kernels.md --csv kernels.
 ```
 
 The harness tabulates every region on its own (cycles, IPC,
-cycles/iteration, accounting). `kernels_report.py` pairs each kernel's
-regions and adds the work per call from `bench.json`: work units per
-cycle and the speedup of RVV over C.
+cycles/iteration, accounting). Each region in `bench.json` declares its
+work per call (`work_per_iteration`, `work_unit`) and, for the RVV
+regions, the C region as `baseline`, so `report.md` also has work per
+cycle and the RVV speedups. `kernels_report.py` pairs each kernel's
+regions into one row per kernel (work from `bench.json`'s `kernels`
+list), with the vector-unit shares and the GCC auto-vectorization
+comparison across the two variants.
 
 ## Kernels
 

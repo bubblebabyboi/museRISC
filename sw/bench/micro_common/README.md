@@ -89,8 +89,10 @@ number includes:
 - the **window overhead**: the marker CSR writes, the counter reads and
   the kernel call and return: 66 to 131 cycles per region in the
   default configuration. Each
-  benchmark's `empty` region measures it, and `micro_table.py`
-  subtracts it in the *net of window* column. It is 0.016 cycles/op in
+  benchmark's `empty` region measures it. It is the bench's
+  `window_region`, so the harness's `report.md` has a *Net cycles/iter*
+  column, and `micro_table.py` subtracts it in its *net of window*
+  column. It is 0.016 cycles/op in
   `micro_pipe`, 0.07 in `micro_units` and 0.3 in `micro_vec`.
 - the **loop overhead**: one `addi` and one taken `bnez` per trip.
   `micro_pipe`'s `loop` region measures that trip at 6 cycles, which is

@@ -26,6 +26,8 @@ make -C sim perf                                  # every bench, default config,
 make -C sim perf BENCHES=dhrystone CONFIG="default sky130 fpga" JOBS=8
 make -C sim perf BENCHES=dhrystone MEM=soc REPEAT=2   # determinism check
 make -C sim perf ITER=200                         # quick smoke (not a result)
+make -C sim perf BENCHES=kernels VARIANTS=scalar CLOCK_MHZ="62.5 100"
+make -C sim perf BENCHES=coremark VARIANTS=scalar ITER=1000 MAX_CYCLES=1500000000
 ```
 
 | Variable | Default | Meaning |
@@ -36,6 +38,9 @@ make -C sim perf ITER=200                         # quick smoke (not a result)
 | `JOBS` | 4 | simulations run in parallel |
 | `REPEAT` | 1 | runs of each simulation; >1 checks determinism (§6) |
 | `ITER` | bench.json | overrides every bench's iteration count |
+| `VARIANTS` | every variant | build variants to run, by name; a selected bench with none of them is skipped |
+| `MAX_CYCLES` | bench.json | overrides every bench's `max_cycles` simulation limit (long runs) |
+| `CLOCK_MHZ` | none | clocks for the report's projected-throughput table (§8), e.g. `"62.5 100"` |
 | `PERF_OUT` | `build/perf/run` | output directory |
 | `PERF_SOC_ARGS`, `PERF_AXI_ARGS` | §4 | memory model arguments |
 | `VJOBS` | 0 (all cores) | Verilator build threads (shared with the rest of `sim/`) |
@@ -272,10 +277,27 @@ directory and runs `<dir>/<name>.bin`.
 | `max_cycles` | no (2e8) | simulation cycle limit |
 | `expect` | no | lines that must appear in the UART output (`{iterations}` is substituted), e.g. a checksum line |
 | `metrics` | no | any of `dmips_per_mhz`, `coremark_per_mhz`, `bytes_per_cycle` (§7) |
-| `bytes_per_iteration` | for `bytes_per_cycle` | bytes processed per iteration |
-| `regions` | no (`{"0": "main"}`) | measured regions, `{"<id>": "<label>"}`; one result row per region |
-| `variants` | no (`{"default": {}}`) | build variants, `{"<variant>": {"description": "...", "make": {"VAR": "value"}}}`; each is built once and run on every configuration and memory model |
+| `bytes_per_iteration` | for `bytes_per_cycle` | bytes processed per iteration; a region can override it |
+| `regions` | no (`{"0": "main"}`) | measured regions, `{"<id>": "<label>"}` or `{"<id>": {"label": "...", ...}}` with the region fields below; ids 0–255; one result row per region |
+| `window_region` | no | id of a region that measures an empty window (the region's own cost); the report adds cycles/iteration net of it |
+| `variants` | no (`{"default": {}}`) | build variants, `{"<variant>": {"description": "...", "make": {"VAR": "value"}, "regions": [...], "expect": [...]}}`; each is built once and run on every configuration and memory model. `regions` (optional) lists the region ids this variant measures (default: all). `expect` (optional) adds lines for this variant only |
 | `units` | no | what one iteration is |
+
+Region fields, all optional apart from `label`:
+
+| Field | Meaning |
+|---|---|
+| `label` | the row label |
+| `bytes_per_iteration` | bytes per iteration for this region (`bytes_per_cycle`), when it differs from the bench's |
+| `work_per_iteration`, `work_unit` | work per iteration in a unit of the bench's choosing (`elem`, `mac`, `byte`, ...); the report adds work/cycle |
+| `baseline` | id of another region of the same image; the report adds this region's speedup over it (same configuration and memory model) |
+
+`perf_run.py` checks these fields and fails with the bench.json path on
+the first error. Any other key, such as `region_ops` in the `micro_*`
+benches or `kernels` in `kernels`, is carried into `results.json`
+(`meta.benches.<name>`) unchanged, for a bench's own report script. A
+bench Makefile may run `python3`, which the harness needs anyway, for
+example to generate known answers.
 
 To run one benchmark: `make -C sim perf BENCHES=<name>`, with `CONFIG`,
 `MEM` and the other variables as needed. To debug it outside the
@@ -290,9 +312,11 @@ tables, and makes `make perf` fail:
 
 1. the testbench exits 0 on `SIGIL TEST PASS <name>`, and the program
    printed it only after its own checks passed;
-2. every `expect` line is in the UART output;
-3. there is exactly one `SIGIL_PERF` record per declared region, and no
-   record for an undeclared one;
+2. every `expect` line, the bench's and the variant's, is in the UART
+   output;
+3. there is exactly one `SIGIL_PERF` record per declared region (the
+   variant's `regions`, if it lists them), and no record for any other
+   region;
 4. in each record, `cycles == mcycle_delta`,
    `instret == minstret_delta` and `stk_sum == cycles`;
 5. the program's `SIGIL PERF region=<id>` line is present, and its
@@ -315,11 +339,29 @@ benchmarks have no input. A seeded random model (for example
 | cycles/iter | `cycles / iterations` |
 | DMIPS/MHz | `iterations / cycles × 10^6 / 1757` (Dhrystones per second at 1 MHz over the VAX 11/780's 1757) |
 | CoreMark/MHz | `iterations / cycles × 10^6` |
-| bytes/cycle | `iterations × bytes_per_iteration / cycles` |
+| bytes/cycle | `iterations × bytes_per_iteration / cycles`, with the region's `bytes_per_iteration` if it has one |
+| work/cycle | `iterations × work_per_iteration / cycles`, in the region's `work_unit` |
+| net cycles/iter | `(cycles − window region cycles) / iterations`, against the `window_region` of the same simulation |
+| speedup | baseline region cycles / region cycles, same simulation |
 
 All metrics use the simulation window (`cycles`). Per-MHz figures are
 clock-independent. To get absolute figures, multiply by the clock: for
-example, F2 runs at 62.5 MHz today (`docs/FPGA_F2.md`).
+example, F2 runs at 62.5 MHz today (`docs/FPGA_F2.md`). `CLOCK_MHZ`
+adds that projection to the report; it is arithmetic on simulation
+cycles, not a hardware measurement.
+
+**Code placement.** On this core a 32-bit instruction that straddles a
+4-byte fetch word costs a second fetch (`stk_fetch_straddle`), so the
+same instructions at a different address can take a different number
+of cycles. Shifting the `kernels` C code by 2 bytes moved its cycles by
+−24% to +26%, and without `-falign-functions=64` the `sha256chain`
+SHA-512 accelerator chain took 43% more cycles
+([`docs/evidence/`](evidence/README.md), `perf-kernels-56-*` and
+`perf-sha256chain-56-*`). `kernels` and `sha256chain*` therefore align
+their measured functions to 64 bytes. Dhrystone and CoreMark use the
+SDK flags unchanged, so their figures can move when unrelated code
+changes size. Compare images (`bin_sha256` in `results.json`), not only
+sources.
 
 ## 8. Reports and diffs
 
@@ -328,14 +370,27 @@ scripts/perf_report.py build/perf/run --csv out.csv --md out.md   # tables from 
 scripts/perf_report.py --diff build/perf/base build/perf/new      # A vs B, run by run
 ```
 
-`report.md` has four parts: a summary (cycles, instret, IPC, CPI,
-cycles/iteration, metric, hardware-counter cycles), *Where the cycles
-go* (every `stk_*` category as a percentage of cycles), and *Events*
-(instruction mix, redirect rate, I$/D$ and bus activity, unit busy
-time). `results.csv` has one row per run with every counter.
-`results.json` adds the metadata: UTC date, commit, merge base with
-`main`, `rtl/` tree hash, Verilator and compiler versions, host, memory
-model arguments, image hashes and build commands. The diff matches runs
+`report.md` has these parts:
+
+- the configurations, as the counter records report them;
+- a summary: cycles, instret, IPC, CPI, cycles/iteration, net
+  cycles/iteration (benches with a `window_region`), metric and
+  hardware-counter cycles;
+- *Speedups* over each region's `baseline`, if any region has one;
+- *Projected throughput* at the `CLOCK_MHZ` clocks, if given:
+  iterations/s and bytes/s or work/s;
+- *Where the cycles go*: every `stk_*` category as a percentage of
+  cycles;
+- *Events*: instruction mix, redirect rate, I$/D$ and bus activity,
+  unit busy time.
+
+The last two have one column per run when there are at most 8 runs,
+and one row per run otherwise. `results.csv` has one row per run with
+every counter and metric. `results.json` adds the metadata: UTC date,
+commit, merge base with `main`, `rtl/` tree hash, Verilator and
+compiler versions, host, memory model arguments, any `ITER`,
+`MAX_CYCLES` or `VARIANTS` override, image hashes and build commands
+(`cc_commands`: every compiler line of the build). The diff matches runs
 by bench, variant, region, configuration and memory model. It reports
 the change in cycles, IPC and metric, and which accounting categories
 moved.
@@ -345,7 +400,8 @@ moved.
 | Benchmark | What | Metric | Variants |
 |---|---|---|---|
 | [`dhrystone`](../sw/bench/dhrystone/README.md) | Dhrystone 2.1, netlib C source. Ground rules: separate compilation and `-fno-inline`; `-O2`, otherwise the SDK flags. | DMIPS/MHz | `scalar`: `-march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`, the headline. `sdk`: SDK default `-march` with V, where GCC turns the 56-byte struct assignment into a `vle8`/`vse8` loop. |
-
-Planned (issue #56): CoreMark (pinned EEMBC source fetched into the
-git-ignored `third_party/`), vector/FPU kernels (scalar vs RVV), and the
-SHA-256 chain from #10 (scalar vs RVV vs accelerator, bytes/cycle).
+| [`coremark`](../sw/bench/coremark/README.md) | EEMBC CoreMark 1.0, unmodified upstream source at a pinned commit, fetched and sha256/md5-checked into the git-ignored `third_party/coremark` (network on first build). Timed region = CoreMark's `iterate()`; `portable_fini` checks every CRC against references. `-O2`. | CoreMark/MHz | `scalar` (the headline, same `-march` as Dhrystone's), `sdk` (with V), `validation` (seeds `0x3415`, EEMBC run rule 2). |
+| [`kernels`](../sw/bench/kernels/README.md) | 13 vector/FP kernels (int/fp add, axpy, dot, memcpy/memset, 32×32 gemm, FIR, int8/int16 MAC), each as portable C and as RVV intrinsics, checked bit for bit against a scalar reference and a host known answer. Regions `10k` (C), `10k+1` (RVV), `10k+2` (RVV e8). | work/cycle, RVV speedup over C (plus `kernels_report.py`) | `scalar`: C without V, `-O2`. `autovec`: the same C with V at `-O3` (GCC auto-vectorization). |
+| [`micro_pipe`, `micro_units`, `micro_dmem`, `micro_imem`, `micro_vec`](../sw/bench/micro_common/README.md) | Calibration microbenchmarks: one mechanism per region, assembly kernels running exactly `iterations` operations, results checked in C. Pipeline/branches/load-use/CSR; M unit and FPU latency and throughput; D$ working-set and stream sweeps; I$ footprint sweep; vector ops versus VL. | cycles per operation, net of the `empty` window region (plus `micro_table.py`) | `default`: C for the scalar `-march`; `micro_vec`'s assembly enables V itself |
+| [`sha256chain`](../sw/bench/sha256chain/README.md) | SHA-256 hash chain (#10): plain C, Zknh, RVV ×16 multi-buffer, the accelerator (block and byte APIs), plus SHA-512 and SHA3-256 chains on the accelerator. FIPS 180-4/202 known answers first; every result checked against Python `hashlib`. Functions 64-byte aligned. | cycles/hash, bytes/cycle (64-byte messages for SHA-512), speedup over plain C | `sdk` |
+| [`sha256chain_bulk`](../sw/bench/sha256chain_bulk/README.md) | Hashing one 64 KiB buffer: SHA-256 plain C, Zknh, RVV ×16 (16 segments), accelerator SHA-512 and SHA3-256. Same checks. | bytes/cycle, speedup over plain C | `sdk` |
