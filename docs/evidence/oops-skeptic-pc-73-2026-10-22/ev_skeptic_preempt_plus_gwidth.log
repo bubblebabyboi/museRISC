@@ -1,0 +1,102 @@
+# RTL: 73-linux-release + experiment-preempt-drop.patch + gwidth-ext.patch (this directory)
+# host sigil-fpga-build, Verilator 5.048, oops_core_tb = core_tb + sigil_oops_chk + sigil_ptw_inv (sim/Makefile.oops)
+# make -C sim -f Makefile.oops oops-ptw-skeptic : hunters' 3 tests + 7 skeptic tests x (--mem-lat 1 | 1:6 gap 2 ready 70 | 40:50)
+2026-10-22T12:44:20Z
+== ptw_preempt_directed --mem-lat 1
+CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
+PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_directed.bin (44603 cycles)
+PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_directed.bin (178421 cycles)
+PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_cached_directed --mem-lat 1
+CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles)
+PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_cached_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles)
+PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_cached_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles)
+PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_twoload_directed --mem-lat 1
+CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles)
+PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_twoload_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles)
+PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_twoload_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles)
+PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_b2b_directed --mem-lat 1
+CORE TB PASS ptw_preempt_b2b_directed.bin (55386 cycles)
+PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_b2b_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_b2b_directed.bin (72011 cycles)
+PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_b2b_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_b2b_directed.bin (295600 cycles)
+PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_trapdrop_directed --mem-lat 1
+CORE TB PASS ptw_preempt_trapdrop_directed.bin (103117 cycles)
+PTWCOV pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_trapdrop_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_trapdrop_directed.bin (122578 cycles)
+PTWCOV pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_trapdrop_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_trapdrop_directed.bin (390903 cycles)
+PTWCOV pre=384 inflight=370 inflight_drp=12 rsp_same=0 rsp_drp_same=2 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_hyp_directed --mem-lat 1
+CORE TB PASS ptw_preempt_hyp_directed.bin (411755 cycles)
+PTWCOV pre=24 inflight=12 inflight_drp=0 rsp_same=12 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_hyp_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_hyp_directed.bin (471578 cycles)
+PTWCOV pre=42 inflight=29 inflight_drp=0 rsp_same=6 rsp_drp_same=0 issue_acc=7 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_preempt_hyp_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles)
+PTWCOV pre=329 inflight=313 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=8 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+PTWINV violations=0
+== ptw_gwidth_directed --mem-lat 1
+CORE TB PASS ptw_gwidth_directed.bin (411585 cycles)
+PTWCOV pre=4 inflight=2 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=644 gw_issue=644
+PTWINV violations=0
+== ptw_gwidth_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_gwidth_directed.bin (471566 cycles)
+PTWCOV pre=11 inflight=6 inflight_drp=0 rsp_same=4 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+PTWINV violations=0
+== ptw_gwidth_directed --mem-lat 40:50
+CORE TB PASS ptw_gwidth_directed.bin (1310591 cycles)
+PTWCOV pre=90 inflight=83 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=558 gw_issue=558
+PTWINV violations=0
+== ptw_gwidth_load_directed --mem-lat 1
+CORE TB PASS ptw_gwidth_load_directed.bin (409917 cycles)
+PTWCOV pre=3 inflight=1 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+PTWINV violations=0
+== ptw_gwidth_load_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_gwidth_load_directed.bin (468924 cycles)
+PTWCOV pre=12 inflight=5 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=628 gw_issue=628
+PTWINV violations=0
+== ptw_gwidth_load_directed --mem-lat 40:50
+CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles)
+PTWCOV pre=92 inflight=90 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=548 gw_issue=548
+PTWINV violations=0
+real	1m24.102s
+make-status=0

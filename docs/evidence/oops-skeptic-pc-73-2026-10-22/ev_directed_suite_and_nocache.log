@@ -1,0 +1,27 @@
+# Full directed suite (sim/run_directed.sh: 37 tests incl. the IRQ-offset sweeps) on oops_core_tb, i.e. with sigil_ptw_inv bound in.
+# CORE_TB=./oops_core_tb bash sim/run_directed.sh <tag> <args>; PTWINV/PTWCOV summed over the run and its per-offset logs.
+# base = 73-linux-release RTL; patch = + experiment-preempt-drop.patch; fix2 = + gwidth-ext.patch
+[base/rand --mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=91s
+[base/long --mem-lat 40:50] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=92s
+[patch/rand --mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=89s
+[patch/long --mem-lat 40:50] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=90s
+[fix2/rand --mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=89s
+[fix2/long --mem-lat 40:50] rc=0 PASS-lines=37 PTWINV-violations=0 (runs with violations: 0) stale-walk-rsp=0 preempt-cycles=0 wall=89s
+
+# The ptw tests with caches off (--no-cache --mem-lat 1:6 --mem-gap 2 --mem-ready 70), first result line of each:
+[patch nocache] CORE TB PASS ptw_preempt_directed.bin (104231 cycles)
+[patch nocache] CORE TB PASS ptw_preempt_cached_directed.bin (153526 cycles)
+[patch nocache] CORE TB PASS ptw_preempt_twoload_directed.bin (135320 cycles)
+[patch nocache] CORE TB PASS ptw_preempt_b2b_directed.bin (173949 cycles)
+[patch nocache] CORE TB PASS ptw_preempt_trapdrop_directed.bin (324190 cycles)
+[patch nocache] CORE TB PASS ptw_preempt_hyp_directed.bin (1293954 cycles)
+[patch nocache] OOPSCHK stale-walk-rsp cyc=218714 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=0 walker_va=0x80000fa0 level=2 priv=1 fetch_va=0x80000fa0 mem_va=0x80000fa0 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+[patch nocache] OOPSCHK stale-walk-rsp cyc=219316 req_pa=0x20020010 req_we=0 walker_pa=0x20020000 walker_we=0 data=0x0000000000000000 walker_is_data=1 walker_va=0xc0000000 level=2 priv=1 fetch_va=0x80000fa4 mem_va=0xc0000000 pte_at_walker_pa=0x0000000000000000 verdict=unknown
+[fix2 nocache] CORE TB PASS ptw_preempt_directed.bin (104231 cycles)
+[fix2 nocache] CORE TB PASS ptw_preempt_cached_directed.bin (153526 cycles)
+[fix2 nocache] CORE TB PASS ptw_preempt_twoload_directed.bin (135320 cycles)
+[fix2 nocache] CORE TB PASS ptw_preempt_b2b_directed.bin (173949 cycles)
+[fix2 nocache] CORE TB PASS ptw_preempt_trapdrop_directed.bin (324190 cycles)
+[fix2 nocache] CORE TB PASS ptw_preempt_hyp_directed.bin (1293954 cycles)
+[fix2 nocache] CORE TB PASS ptw_gwidth_directed.bin (1286557 cycles)
+[fix2 nocache] CORE TB PASS ptw_gwidth_load_directed.bin (1281850 cycles)
