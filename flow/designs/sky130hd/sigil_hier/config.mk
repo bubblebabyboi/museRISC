@@ -28,7 +28,8 @@
 #                     fabric, CLINT, PLIC, UART, boot ROM, crypto
 #                     bridge; all SoC pins on the left die edge
 #   sigil_cpu         (140, 10)    2770 x 2680, pins on its left edge
-#   sigil_crypto_top  (140, 2700)  2770 x 810,  pins on its left edge
+#   sigil_crypto_top  (140, 2730)  2770 x 780,  pins on its bottom edge,
+#                     reached through the 40 um gap above the CPU
 # (v1 put the glue in a 90 um channel between the blocks with the
 # CPU pins on its 2900 um top edge; global routing overflowed on
 # 79k gcells: ~400 nets had to run sideways to the die-edge pins.)

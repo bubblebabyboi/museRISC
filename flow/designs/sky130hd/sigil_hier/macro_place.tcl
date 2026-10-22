@@ -4,7 +4,7 @@
 # names do not matter.
 set sigil_pos {
   sigil_cpu        {140 10}
-  sigil_crypto_top {140 2700}
+  sigil_crypto_top {140 2730}
 }
 set sigil_block [ord::get_db_block]
 set sigil_dbu [$sigil_block getDbUnitsPerMicron]
