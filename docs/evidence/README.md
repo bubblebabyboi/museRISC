@@ -2191,7 +2191,9 @@ Verilator 5.048, Python 3.12.3.
   memory budget (`--gen-mem-gb`, default 75% of MemAvailable; per-test
   `gen_mem_gb` in `testlist.yaml`, 9 for `riscv_amo_test`, default 2.5),
   queues jobs seed-major, records pygen's peak RSS (`gen_rss_mb`) and
-  labels a SIGKILLed pygen as a likely OOM kill.
+  labels a SIGKILLed pygen as a likely OOM kill. Later commits
+  (`74d5673` comments, `59fd02a` a `%` in the `--help` text) do not
+  change what a run does, so the runs below at `d02176b` stand.
 - **Peak RSS per test** (one seed each, 20/20 PASS): amo 7.8 GiB, all
   others 0.9-1.9 GiB:
   [`measure-peak-rss.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/measure-peak-rss.txt).
