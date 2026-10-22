@@ -745,18 +745,19 @@ module sigil_csr #(
 
   // Parallel form of pmp_check (FPGA_TIMING, #53), same verdict:
   // every entry's match and permission are computed side by side
-  // and the lowest-numbered match is picked by a prefix-OR mask
-  // instead of a 16-deep priority chain. TOR takes its lower bound
-  // from entry i-1's upper compare (a >= prev is !(a < prev)), so a
-  // port needs 16 magnitude comparators instead of 32.
+  // and the lowest-numbered match is picked by a mask (no match
+  // below it) instead of a 16-deep priority chain. TOR takes its
+  // lower bound from entry i-1's upper compare (a >= prev is
+  // !(a < prev)), so a port needs 16 magnitude comparators instead
+  // of 32. Written as vector reductions: an accumulating loop
+  // synthesizes back into a chain.
   /* verilator lint_off UNUSEDSIGNAL */
   function automatic logic pmp_check_par(
       input logic [63:0] addr,
       input logic [1:0]  acc,
       input logic [1:0]  priv);
     logic [53:0] a54, enc, napot_mask;
-    logic [15:0] lt, ge_prev, hit, perm;
-    logic        lower, allow;
+    logic [15:0] lt, ge_prev, hit, perm, first;
     a54 = addr[55:2];
     for (int i = 0; i < 16; i++) lt[i] = (a54 < pmpaddr_q[i][53:0]);
     ge_prev[0] = 1'b1;
@@ -776,13 +777,10 @@ module sigil_csr #(
       else if (acc == 2'd3) perm[i] = pmpcfg_q[i][0] && pmpcfg_q[i][2];
       else                  perm[i] = pmpcfg_q[i][2];
     end
-    allow = (priv == PRIV_M) && (hit == 16'd0);
-    lower = 1'b0;  // a lower-numbered entry matched
     for (int i = 0; i < 16; i++) begin
-      allow = allow || (hit[i] && !lower && perm[i]);
-      lower = lower || hit[i];
+      first[i] = hit[i] && ((hit & ((16'd1 << i) - 16'd1)) == 16'd0);
     end
-    return allow;
+    return ((priv == PRIV_M) && (hit == 16'd0)) || |(first & perm);
   endfunction
   /* verilator lint_on UNUSEDSIGNAL */
 

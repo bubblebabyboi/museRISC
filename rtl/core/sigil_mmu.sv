@@ -211,31 +211,34 @@ module sigil_mmu #(
 
   // One-hot form of lookup_idx (FPGA_TIMING, #53), same result on a
   // hit: the match bits, the highest matching index kept by a mask
-  // (find_entry's rule), and an AND-OR select of the entry and of
-  // per-entry verdicts computed beside the match, instead of a
-  // priority encoder feeding a 32:1 entry mux and the verdicts.
+  // (no match above it: find_entry's rule), and an AND-OR select of
+  // the entry and of per-entry verdicts computed beside the match,
+  // instead of a priority encoder feeding a 32:1 entry mux and the
+  // verdicts. Written as vector reductions: an accumulating loop
+  // synthesizes back into a chain.
   function automatic lookup_t lookup_1h(
       input logic [63:0] va, input logic [15:0] asid,
       input logic guest, input logic [15:0] vmid, input logic g_on,
       input logic vs_on, input logic [1:0] priv, input logic [1:0] acc,
       input logic write);
-    logic [31:0] m;
-    logic        above, sel;
+    logic [31:0] m, sel, perm_v, gok_v, col;
+    logic [$bits(tlb_entry_t)-1:0] e;
     lookup_t     r;
     for (int i = 0; i < 32; i++) begin
       m[i] = entry_match(tlb_q[i], va, asid, guest, vmid, g_on, vs_on);
+      perm_v[i] = perm_ok(tlb_q[i], priv, acc, sum_i, mxr_i);
+      gok_v[i] = g_perm_ok(tlb_q[i], acc, hs_mxr_i) && tlb_q[i].a &&
+                 (!write || tlb_q[i].d);
     end
-    r = '0;
-    above = 1'b0;  // a higher-numbered entry matched
-    for (int i = 31; i >= 0; i--) begin
-      sel = m[i] && !above;
-      above = above || m[i];
-      r.e = r.e | (tlb_q[i] & {$bits(tlb_entry_t){sel}});
-      r.perm = r.perm || (sel && perm_ok(tlb_q[i], priv, acc, sum_i, mxr_i));
-      r.gok = r.gok || (sel && g_perm_ok(tlb_q[i], acc, hs_mxr_i) &&
-                        tlb_q[i].a && (!write || tlb_q[i].d));
+    for (int i = 0; i < 32; i++) sel[i] = m[i] && ((m >> (i + 1)) == 32'd0);
+    for (int b = 0; b < $bits(tlb_entry_t); b++) begin
+      for (int i = 0; i < 32; i++) col[i] = tlb_q[i][b];
+      e[b] = |(sel & col);
     end
-    r.hit = above;
+    r.hit = |m;
+    r.perm = |(sel & perm_v);
+    r.gok = |(sel & gok_v);
+    r.e = e;
     return r;
   endfunction
 
