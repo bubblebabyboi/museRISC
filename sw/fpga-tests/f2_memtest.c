@@ -112,6 +112,10 @@ static int sparse(const char *name, uint64_t base, uint64_t size, uint64_t skip,
 static void latency(const char *name, uint64_t base, unsigned nlat_sh) {
   const uint64_t n = 1ull << nlat_sh;
   uint64_t mn = ~0ull, mx = 0, sum = 0, acc = 0;
+  /* Read 64 KiB elsewhere first: the D$ then holds only clean lines, so
+   * no timed refill includes a victim write-back. */
+  for (uint64_t off = 0; off < 0x10000; off += 64)
+    acc += *(volatile uint64_t *)(base + 0x7000000ull + off);
   for (uint64_t i = 0; i < n; i++) {
     const uint64_t a = base + i * (0x100000ull + 64);
     uint64_t t0, t1, v;
