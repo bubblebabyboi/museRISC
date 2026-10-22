@@ -422,6 +422,36 @@ die").
           neighbourhood changed in the ECO legalization, and pin
           access is computed per cell-plus-neighbours pattern). w34b
           is dropped; w34m carries on.
+  w34m up to detailed routing (20:53-21:11Z, 18 min): placement
+    repair_design (40 %) 1,883 slew / 148 cap violations, 1,677
+    resized, 244 buffers; after CTS utilization 46.3 %, setup WS
+    +11.88 ns, hold +0.36; GRT stage repair_design 475 slew / 35 cap,
+    421 resized, 59 buffers; GRT antenna repair 1,364 -> 2 nets
+    (3,294 diodes, 759 jumpers); setup WS +11.62, hold +0.39; global
+    route 9.42 m.
+  Estimated slew after the global-route stage (5_1_grt.odb, global-
+  route parasitics; pins above a fraction of the 1.5 ns limit; script
+  slew_hist: set_max_transition <t>, report_check_types):
+                  > 1.5 ns   > 1.35   > 1.2   > 1.05   > 0.9 (0.6 x)
+    w34 (0 %)          14       346    1,907    5,387   14,193
+    w34m (40 %)         0         0       34       34      402
+  w34m's 34 pins above 1.2 ns are one net: buffer _166510_ driving a
+  single gate (_166511_/A3) over a long route with 32 antenna diodes on
+  it (1.237 ns); the GRT stage's antenna repair runs after its
+  repair_design. With the routed / estimated ratios above (median
+  1.25) such nets still end above the limit after routing, so w34m is
+  expected to finish with a few max-slew nets.
+  Fix: POST_GLOBAL_ROUTE_TCL = sigil_hier/post_grt_repair.tcl (commit
+  9545a27): the stage's repair_design sequence once more after the
+  antenna repair (repair_design_helper, legalization, incremental
+  global route). Tried on w34m's 5_1_grt.odb (no write): 33 slew / 5
+  cap nets at the 40 % margin, 24 resized, 11 buffers in 11 nets,
+  utilization 46.7 %; afterwards no pin above 0.9 ns (11,566 above
+  0.8 ns), setup WS +11.625, hold +0.393.
+    w34n  w34m's floorplan .. CTS results (copied; mtimes re-stamped in
+          their original order) + the config at 9545a27; make starts
+          at 5_1_grt. 12 threads, started 21:22:55Z. With w34m still
+          running, two crypto runs on the host.
 
 == CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
   Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
