@@ -1,0 +1,17 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded /tmp/sigil-big.bin: 4294967296 bytes at 0x100000000 (PCIS 0x80000000) in 1.190 s = 3.61 GB/s, fully verified in 27.604 s
+[sigil_host]   read-back rate 0.16 GB/s
+[sigil_host] loaded /tmp/sigil-big.bin: 4294967296 bytes at 0x1100000000 (PCIS 0x1080000000) in 1.095 s = 3.92 GB/s, fully verified in 13.557 s
+[sigil_host]   read-back rate 0.32 GB/s
+[sigil_host] loaded /home/ubuntu/pay/fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 2.75 GB/s, fully verified in 0.000 s
+[sigil_host]   read-back rate 0.47 GB/s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 105817 core cycles
+[sigil_host] measured core clock: 62.496 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000003 pc 0x0000000080000a1e, STATUS 0x000002e0
+[sigil_host] saved 0x100000000+0x100000000 (PCIS 0x80000000) to /tmp/sigil-ddr.out: PCIS read 11.560 s = 0.37 GB/s, file write 31.913 s
+[sigil_host] saved 0x1100000000+0x100000000 (PCIS 0x1080000000) to /tmp/sigil-hbm.out: PCIS read 12.163 s = 0.35 GB/s, file write 31.912 s

@@ -1,0 +1,12 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded /home/ubuntu/pay/linux/fw_jump.bin: 279048 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 3.64 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded /home/ubuntu/pay/linux/Image: 26496000 bytes at 0x80200000 (PCIS 0x200000) in 0.008 s = 3.48 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded /home/ubuntu/pay/linux/muserisc.dtb: 1583 bytes at 0x83000000 (PCIS 0x3000000) in 0.000 s = 2.58 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 900 s
+
+[sigil_host] result: PASS (LINUX_BOOT_OK) after 64.343 s, 4021420999 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 286503, last cause 0x8000000000000009 pc 0xffffffff80d2f35a, STATUS 0x000002d0

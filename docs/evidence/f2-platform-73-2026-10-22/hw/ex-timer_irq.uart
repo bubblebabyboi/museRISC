@@ -1,0 +1,2 @@
+10 timer interrupts in 18310 cycles; latency: first 902 (held by MIE=0), worst of the rest 206 cycles
+SIGIL TEST PASS timer_irq

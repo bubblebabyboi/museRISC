@@ -1,0 +1,35 @@
+== load agfi-0a1fd54ef68bdc754
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-0a1fd54ef68bdc754  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+ecc62-noscrub          rc=1 (want 1) OK  [1.5 s]  FAIL (memory error (STATUS.mem_err)) after 0.000 s, 7182 core cycles
+hash-scrub             rc=0 (want 0) OK  [18.6 s]  PASS (SOC HASH PASS) after 0.002 s, 109828 core cycles
+memtest-engine         rc=0 (want 0) OK  [87.3 s]  
+platform               rc=0 (want 0) OK  [1.4 s]  PASS (F2 PLATFORM PASS) after 0.012 s, 763575 core cycles
+platform-oob           rc=0 (want 0) OK  [1.4 s]  PASS (F2 PLATFORM PASS) after 0.012 s, 765292 core cycles
+platform-failcode      rc=0 (want 1) MISMATCH  [1.4 s]  PASS (F2 PLATFORM PASS) after 0.012 s, 759631 core cycles
+platform-reboot        rc=0 (want 0) OK  [1.4 s]  PASS (F2 PLATFORM PASS) after 0.012 s, 769200 core cycles
+pmem after reboot + power off: REBOOTED
+memtest-core           rc=2 (want 0) MISMATCH  [601.4 s]  TIMEOUT (timeout) after 600.000 s, 37500049892 core cycles
+smoke                  rc=0 (want 0) OK  [1.7 s]  PASS (FPGA SMOKE PASS) after 0.187 s, 11717736 core cycles
+crypto                 rc=0 (want 0) OK  [2.3 s]  PASS (SOC CRYPTO PASS) after 0.443 s, 27691651 core cycles
+ed25519                rc=0 (want 0) OK  [1.8 s]  PASS (SOC CRYPTO PASS) after 0.458 s, 28617882 core cycles
+s_hello                rc=0 (want 0) OK  [1.7 s]  PASS (HELLO FROM S-MODE) after 0.184 s, 11469721 core cycles
+ex-ed25519_verify      rc=0 (want 0) OK  [1.7 s]  PASS (SIGIL TEST PASS) after 0.234 s, 14630117 core cycles
+ex-fp_math             rc=0 (want 0) OK  [1.4 s]  PASS (SIGIL TEST PASS) after 0.001 s, 53019 core cycles
+ex-hash_stream         rc=0 (want 0) OK  [1.4 s]  PASS (SIGIL TEST PASS) after 0.004 s, 266819 core cycles
+ex-hello               rc=0 (want 0) OK  [1.4 s]  PASS (SIGIL TEST PASS) after 0.001 s, 56565 core cycles
+ex-sha256_accel        rc=0 (want 0) OK  [1.5 s]  PASS (SIGIL TEST PASS) after 0.024 s, 1478216 core cycles
+ex-timer_irq           rc=0 (want 0) OK  [1.4 s]  PASS (SIGIL TEST PASS) after 0.001 s, 54610 core cycles
+ex-vector_dot          rc=0 (want 0) OK  [1.4 s]  PASS (SIGIL TEST PASS) after 0.013 s, 821450 core cycles
+console                rc=4 (want 4: detached)  1 x FPGA SMOKE PASS
+6a3207c307055069735745c831388014366c25b6b9e7c2831cb5182b430a2c63  /tmp/sigil-big.bin
+bulk-t1                rc=0 (want 0) OK  [133.9 s]  PASS (SOC HASH PASS) after 0.002 s, 105817 core cycles
+6a3207c307055069735745c831388014366c25b6b9e7c2831cb5182b430a2c63  /tmp/sigil-ddr.out
+6a3207c307055069735745c831388014366c25b6b9e7c2831cb5182b430a2c63  /tmp/sigil-hbm.out
+bulk-t8                rc=0 (want 0) OK  [96.6 s]  PASS (SOC HASH PASS) after 0.002 s, 108718 core cycles
+6a3207c307055069735745c831388014366c25b6b9e7c2831cb5182b430a2c63  /tmp/sigil-ddr.out
+6a3207c307055069735745c831388014366c25b6b9e7c2831cb5182b430a2c63  /tmp/sigil-hbm.out
+linux                  rc=0 (want 0) OK  [65.9 s]  PASS (LINUX_BOOT_OK) after 64.343 s, 4021420999 core cycles
+done Thu Oct 22 08:57:27 UTC 2026
