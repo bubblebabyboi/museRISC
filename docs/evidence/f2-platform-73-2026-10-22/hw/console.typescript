@@ -1,0 +1,20 @@
+Script started on 2026-10-22 08:51:57+00:00 [COMMAND="sudo /home/ubuntu/sigil/fpga/host/sigil_host --console --bin /home/ubuntu/pay/fw/fpga_smoke_test.bin --log /home/ubuntu/out/console.uart" <not executed on terminal>]
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded /home/ubuntu/pay/fw/fpga_smoke_test.bin: 1074 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 1.21 GB/s, head/tail verified in 0.000 s
+[sigil_host] console: Ctrl-] detaches
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 0 s
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+
+[sigil_host] result: DETACHED (console detached (Ctrl-])) after 5.443 s, 340196408 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000003 pc 0x0000000080000a1e, STATUS 0x000002c0
+[sigil_host] SoC left running (UART TX in drop mode until the next sigil_host run)
+
+Script done on 2026-10-22 08:52:03+00:00 [COMMAND_EXIT_CODE="4"]

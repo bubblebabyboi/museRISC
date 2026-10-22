@@ -1,0 +1,58 @@
+#-----------------------------------------------------------
+# xsim v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Thu Oct 22 07:10:31 2026
+# Process ID         : 260096
+# Current directory  : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast
+# Command line       : xsim -log test_sigil_host_cosim.log -mode tcl -source {xsim.dir/tb/xsim_script.tcl}
+# Log file           : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast/test_sigil_host_cosim.log
+# Journal file       : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast/xsim.jou
+# Running On         : ip-172-31-66-228
+# Platform           : Ubuntu
+# Operating System   : Ubuntu 24.04.1 LTS
+# Processor Detail   : Intel(R) Xeon(R) Gold 6455B
+# CPU Frequency      : 3888.752 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 32
+# Host memory        : 265990 MB
+# Swap memory        : 10737 MB
+# Total Virtual      : 276728 MB
+# Available Virtual  : 263199 MB
+#-----------------------------------------------------------
+source xsim.dir/tb/xsim_script.tcl
+# xsim {tb} -autoloadwcfg -tclbatch {/home/ubuntu/plat-sim/fpga/cl_sigil/verif/scripts/waves.tcl}
+Time resolution is 1 ps
+source /home/ubuntu/plat-sim/fpga/cl_sigil/verif/scripts/waves.tcl
+## run -all
+[sigil_host] slot 0: AFI xsim-cl_sigil, shell 0x10212415
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x51
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x51
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+[sigil_host] AWS_CLK_GEN: group B recipe B1 (A1 C0 H0 for the other groups)
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000000c1)
+[sigil_host] loaded ../../../fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 0.36 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 0.02 s
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 105247 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x000000c0
+[ 1757944.000 ns] cosim: sigil_host returned 0
+[ 1759044.000 ns] : Detected   0 errors
+[ 1759044.000 ns] : Checking protocol checker error status...
+*** TEST PASSED ***
+$finish called at time : 1759044 ns : File "/home/ubuntu/plat-sim/fpga/cl_sigil/verif/tests/sigil_test_utils.svh" Line 278
+run: Time (s): cpu = 00:00:00.46 ; elapsed = 00:04:44 . Memory (MB): peak = 1570.078 ; gain = 128.000 ; free physical = 201142 ; free virtual = 231090
+## quit
+INFO: xsimkernel Simulation Memory Usage: 339196 KB (Peak: 380076 KB), Simulation CPU Usage: 285010 ms
+INFO: [Common 17-206] Exiting xsim at Thu Oct 22 07:15:18 2026...

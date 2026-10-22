@@ -32,18 +32,40 @@
 // the core runs; UART RX bytes are held off for RX_HOLDOFF cycles
 // after release so none land in a UART still in reset.
 //
-// Virtual UART: every byte the SoC writes to the 16550 THR is
-// pushed into the TX FIFO (uart_tx_*); if it is full the byte is
-// dropped and uart_tx_overflow_o sets (cleared by the next SoC
-// reset). The 16550 paces the CPU at one byte per 160*divisor
-// clocks (its serial shifter still runs), so a host draining a
-// 1 KiB FIFO every few hundred microseconds keeps up at 100 MHz.
+// Virtual UART: every byte the 16550 transmits (as it enters its
+// serial shifter) is pushed into the TX FIFO (uart_tx_*). By default
+// the FIFO back-pressures the 16550 (uart_tx_stall_i): while it is
+// full the UART holds its own 16-byte TX FIFO and the CPU sees
+// LSR.THRE low, so no byte is ever lost however slowly the host
+// drains (#63). With uart_tx_drop_i = 1 (host detached) a byte that
+// finds the FIFO full is dropped instead and uart_tx_overflow_o sets
+// (cleared by the next SoC reset). The 16550 paces the CPU at one
+// byte per 160*divisor clocks.
 // Host bytes pushed into the RX FIFO (uart_rx_*) are fed to the
 // 16550 RX FIFO whenever it has room, so none are lost. A SoC
 // reset requested while running discards RX bytes not yet taken
 // (the RX FIFO is flushed as the SoC enters reset); bytes pushed
 // while the SoC is held are kept and delivered after release.
 // The TX FIFO is never flushed: the host drains what is left.
+//
+// RAM window (issues #65, #66): SoC [0x8000_0000, +RAM_SIZE) -> AXI
+// [DDR_BASE, +RAM_SIZE), no aliasing; other RAM-space addresses get a
+// local error response (sigil_mbus_axi4). Simulation builds keep the
+// 128 MiB default; the F2 CL sets 80 GiB (DDR4 at AXI 0x0, HBM at AXI
+// 0x10_0000_0000, docs/LINUX_PLATFORM.md) and the same span is
+// cacheable. err_* report the bridge's error capture (#62).
+//
+// Memory engine (sigil_axi_memeng): owns the AXI port while it runs.
+// eng_start_i is taken only while the SoC is held and the bridge is
+// idle, and the SoC is not released before the engine finishes. The
+// host uses it to scrub DDR4 (ECC) after an AFI load and for
+// full-range memory tests.
+//
+// Platform devices (#67): the finisher event (power off / reboot /
+// fail, from the SoC's test finisher) is latched in fin_* until the
+// next release. The RTC time base rtc_ns (ns since the epoch,
+// advancing rtc_inc_i ns per cycle in Q8.24) lives in this reset domain, so the host can set it
+// (rtc_set_i) while the SoC is held.
 `default_nettype none
 module sigil_fpga_top #(
     // SoC L1 geometry (sigil_soc_top defaults).
@@ -56,8 +78,9 @@ module sigil_fpga_top #(
     parameter int unsigned AXI_ADDR_W = 64,
     parameter int unsigned AXI_DATA_W = 64,
     parameter logic [AXI_ID_W-1:0] AXI_ID = '0,
-    // SoC RAM window [0x8000_0000, +RAM_SIZE) -> DDR [DDR_BASE, +RAM_SIZE).
-    // RAM_SIZE must match the DTS memory node (128 MiB).
+    // SoC RAM window [0x8000_0000, +RAM_SIZE) -> AXI [DDR_BASE, +RAM_SIZE).
+    // 128 MiB for the simulation builds (sw/linux/sigil.dts); the F2 CL
+    // sets 80 GiB (DDR4 + HBM).
     parameter logic [63:0] RAM_SIZE = 64'h0000_0000_0800_0000,
     parameter logic [63:0] DDR_BASE = 64'h0,
     // Virtual UART FIFO depths (powers of two).
@@ -73,7 +96,11 @@ module sigil_fpga_top #(
     input  wire        cache_en_i,        // L1 strap, sampled while in reset
     output logic       soc_in_reset_o,
     output logic [63:0] cycle_count_o,    // clk_i cycles since rst_ni release
-    output logic       mem_err_o,         // sticky AXI error (SLVERR/DECERR/ID)
+    output logic       mem_err_o,         // sticky AXI error (SLVERR/DECERR/ID/window)
+    input  wire        err_clr_i,         // clear mem_err_o and the capture
+    output logic [63:0] err_addr_o,       // first error: SoC address
+    output logic [31:0] err_info_o,       // first error: see sigil_mbus_axi4
+    output logic [31:0] err_count_o,
     output logic       trap_o,            // core trap pulse (debug)
     output logic [63:0] trap_cause_o,
     output logic [63:0] trap_pc_o,
@@ -83,11 +110,33 @@ module sigil_fpga_top #(
     input  wire        uart_tx_pop_i,     // take uart_tx_data_o
     output logic [$clog2(UART_TX_DEPTH):0] uart_tx_count_o,
     output logic       uart_tx_overflow_o,
+    input  wire        uart_tx_drop_i,    // 1 = drop when full (else back-pressure)
     // Virtual UART RX (host -> SoC).
     input  wire [7:0]  uart_rx_data_i,
     input  wire        uart_rx_push_i,    // ignored when uart_rx_full_o
     output logic       uart_rx_full_o,
     output logic [$clog2(UART_RX_DEPTH):0] uart_rx_count_o,
+    // Test finisher event, latched until the next release.
+    output logic       fin_event_o,
+    output logic [31:0] fin_value_o,
+    // RTC time base.
+    input  wire        rtc_set_i,
+    input  wire [63:0] rtc_set_ns_i,
+    input  wire [31:0] rtc_inc_i,          // ns per cycle, Q8.24
+    output logic [63:0] rtc_ns_o,
+    // Memory engine (sigil_axi_memeng).
+    input  wire        eng_start_i,
+    input  wire [1:0]  eng_mode_i,
+    input  wire [63:0] eng_base_i,
+    input  wire [63:0] eng_size_i,
+    input  wire [63:0] eng_seed_i,
+    output logic       eng_busy_o,
+    output logic       eng_done_o,
+    output logic       eng_fail_o,
+    output logic [31:0] eng_mism_o,
+    output logic [63:0] eng_fail_addr_o,
+    output logic [31:0] eng_rerr_o,
+    output logic [63:0] eng_cycles_o,
     // AXI4 master (DDR).
     output logic [AXI_ID_W-1:0]     m_axi_awid,
     output logic [AXI_ADDR_W-1:0]   m_axi_awaddr,
@@ -128,6 +177,9 @@ module sigil_fpga_top #(
     output logic                    m_axi_rready
 );
   localparam logic [63:0] RAM_BASE = 64'h0000_0000_8000_0000;
+  // Cacheable span: the RAM window, at least the 2 GiB default.
+  localparam logic [63:0] CACHE_SIZE =
+      (RAM_SIZE > 64'h8000_0000) ? RAM_SIZE : 64'h8000_0000;
 
   // Reset synchronizer for the FPGA-side logic (same structure as
   // sigil_soc_top's: the released reset is never a flop data input).
@@ -170,7 +222,7 @@ module sigil_fpga_top #(
           soc_rst_n_q <= 1'b0;
           rx_flush_q <= 1'b1;
         end
-        default: if (!soc_reset_req_i) begin  // C_HOLD
+        default: if (!soc_reset_req_i && !eng_busy) begin  // C_HOLD
           cst_q <= C_RUN;
           soc_rst_n_q <= 1'b1;
         end
@@ -183,6 +235,35 @@ module sigil_fpga_top #(
   assign soc_in_reset_o = (cst_q == C_HOLD);
   assign cycle_count_o = cycle_q;
 
+  // Finisher latch (cleared when the SoC is released) and RTC.
+  logic        fin_valid;
+  logic [31:0] fin_data;
+  logic [63:0] rtc_ns_q;
+  logic [23:0] rtc_frac_q;
+  always_ff @(posedge clk_i or negedge rst_n) begin
+    if (!rst_n) begin
+      fin_event_o <= 1'b0;
+      fin_value_o <= 32'd0;
+      rtc_ns_q <= 64'd0;
+      rtc_frac_q <= 24'd0;
+    end else begin
+      if (cst_q == C_HOLD && !soc_reset_req_i && !eng_busy) begin
+        fin_event_o <= 1'b0;
+        fin_value_o <= 32'd0;
+      end else if (fin_valid) begin
+        fin_event_o <= 1'b1;
+        fin_value_o <= fin_data;
+      end
+      if (rtc_set_i) begin
+        rtc_ns_q <= rtc_set_ns_i;
+        rtc_frac_q <= 24'd0;
+      end else begin
+        {rtc_ns_q, rtc_frac_q} <= {rtc_ns_q, rtc_frac_q} + {56'd0, rtc_inc_i};
+      end
+    end
+  end
+  assign rtc_ns_o = rtc_ns_q;
+
   // SoC.
   logic        mem_req_valid, mem_req_ready, mem_req_write, mem_req_last;
   logic        mem_req_inst, mem_rsp_valid, mem_rsp_last;
@@ -190,13 +271,15 @@ module sigil_fpga_top #(
   logic [7:0]  mem_req_len, mem_req_be;
   logic [7:0]  soc_tx_data, rxf_data;
   logic        soc_tx_valid, soc_rx_ready, soc_rx_valid, rxf_empty;
+  logic        soc_tx_stall;
   /* verilator lint_off UNUSEDSIGNAL */
   logic        uart_tx_serial;
   /* verilator lint_on UNUSEDSIGNAL */
 
   sigil_soc_top #(
       .IC_SETS(IC_SETS), .IC_WAYS(IC_WAYS),
-      .DC_SETS(DC_SETS), .DC_WAYS(DC_WAYS)
+      .DC_SETS(DC_SETS), .DC_WAYS(DC_WAYS),
+      .RAM_CACHE_SIZE(CACHE_SIZE)
   ) u_soc (
       .clk_i           (clk_i),
       .rst_ni          (soc_rst_n_q),
@@ -221,23 +304,56 @@ module sigil_fpga_top #(
       .uart_rx_data_i  (rxf_data),
       .uart_rx_valid_i (soc_rx_valid),
       .uart_rx_ready_o (soc_rx_ready),
+      .uart_tx_stall_i (soc_tx_stall),
+      .fin_valid_o     (fin_valid),
+      .fin_data_o      (fin_data),
+      .rtc_ns_i        (rtc_ns_q),
       .ext_irq_i       (32'd0),
       .trap_o          (trap_o),
       .trap_cause_o    (trap_cause_o),
       .trap_pc_o       (trap_pc_o)
   );
 
+  // Bridge-side AXI master (muxed with the memory engine below).
+  logic [AXI_ID_W-1:0]     b_awid, b_arid, b_bid, b_rid;
+  logic [AXI_ADDR_W-1:0]   b_awaddr, b_araddr;
+  logic [7:0]              b_awlen, b_arlen;
+  logic [2:0]              b_awsize, b_arsize, b_awprot, b_arprot;
+  logic [1:0]              b_awburst, b_arburst, b_bresp, b_rresp;
+  logic                    b_awlock, b_arlock;
+  logic [3:0]              b_awcache, b_arcache, b_awqos, b_arqos;
+  logic                    b_awvalid, b_awready, b_wvalid, b_wready, b_wlast;
+  logic                    b_bvalid, b_bready, b_arvalid, b_arready;
+  logic                    b_rvalid, b_rready, b_rlast;
+  logic [AXI_DATA_W-1:0]   b_wdata, b_rdata;
+  logic [AXI_DATA_W/8-1:0] b_wstrb;
+  assign b_awready = !eng_busy && m_axi_awready;
+  assign b_wready  = !eng_busy && m_axi_wready;
+  assign b_bvalid  = !eng_busy && m_axi_bvalid;
+  assign b_arready = !eng_busy && m_axi_arready;
+  assign b_rvalid  = !eng_busy && m_axi_rvalid;
+  assign b_bid = m_axi_bid;
+  assign b_bresp = m_axi_bresp;
+  assign b_rid = m_axi_rid;
+  assign b_rdata = m_axi_rdata;
+  assign b_rresp = m_axi_rresp;
+  assign b_rlast = m_axi_rlast;
+
   sigil_mbus_axi4 #(
       .AXI_ID_W(AXI_ID_W), .AXI_ADDR_W(AXI_ADDR_W),
       .AXI_DATA_W(AXI_DATA_W), .AXI_ID(AXI_ID),
-      .MEM_BASE(RAM_BASE), .MEM_MASK(RAM_SIZE - 64'd1),
+      .MEM_BASE(RAM_BASE), .MEM_SIZE(RAM_SIZE),
       .AXI_BASE(DDR_BASE)
   ) u_bridge (
       .clk_i         (clk_i),
       .rst_ni        (rst_n),
       .quiesce_i     (cst_q != C_RUN),
       .idle_o        (br_idle),
+      .err_clr_i     (err_clr_i),
       .err_o         (mem_err_o),
+      .err_addr_o    (err_addr_o),
+      .err_info_o    (err_info_o),
+      .err_count_o   (err_count_o),
       .req_valid_i   (mem_req_valid),
       .req_ready_o   (mem_req_ready),
       .req_addr_i    (mem_req_addr),
@@ -250,47 +366,144 @@ module sigil_fpga_top #(
       .rsp_valid_o   (mem_rsp_valid),
       .rsp_rdata_o   (mem_rsp_rdata),
       .rsp_last_o    (mem_rsp_last),
-      .m_axi_awid    (m_axi_awid),
-      .m_axi_awaddr  (m_axi_awaddr),
-      .m_axi_awlen   (m_axi_awlen),
-      .m_axi_awsize  (m_axi_awsize),
-      .m_axi_awburst (m_axi_awburst),
-      .m_axi_awlock  (m_axi_awlock),
-      .m_axi_awcache (m_axi_awcache),
-      .m_axi_awprot  (m_axi_awprot),
-      .m_axi_awqos   (m_axi_awqos),
-      .m_axi_awvalid (m_axi_awvalid),
-      .m_axi_awready (m_axi_awready),
-      .m_axi_wdata   (m_axi_wdata),
-      .m_axi_wstrb   (m_axi_wstrb),
-      .m_axi_wlast   (m_axi_wlast),
-      .m_axi_wvalid  (m_axi_wvalid),
-      .m_axi_wready  (m_axi_wready),
+      .m_axi_awid (b_awid),
+      .m_axi_awaddr (b_awaddr),
+      .m_axi_awlen (b_awlen),
+      .m_axi_awsize (b_awsize),
+      .m_axi_awburst (b_awburst),
+      .m_axi_awlock (b_awlock),
+      .m_axi_awcache (b_awcache),
+      .m_axi_awprot (b_awprot),
+      .m_axi_awqos (b_awqos),
+      .m_axi_awvalid (b_awvalid),
+      .m_axi_awready (b_awready),
+      .m_axi_wdata (b_wdata),
+      .m_axi_wstrb (b_wstrb),
+      .m_axi_wlast (b_wlast),
+      .m_axi_wvalid (b_wvalid),
+      .m_axi_wready (b_wready),
+      .m_axi_bid (b_bid),
+      .m_axi_bresp (b_bresp),
+      .m_axi_bvalid (b_bvalid),
+      .m_axi_bready (b_bready),
+      .m_axi_arid (b_arid),
+      .m_axi_araddr (b_araddr),
+      .m_axi_arlen (b_arlen),
+      .m_axi_arsize (b_arsize),
+      .m_axi_arburst (b_arburst),
+      .m_axi_arlock (b_arlock),
+      .m_axi_arcache (b_arcache),
+      .m_axi_arprot (b_arprot),
+      .m_axi_arqos (b_arqos),
+      .m_axi_arvalid (b_arvalid),
+      .m_axi_arready (b_arready),
+      .m_axi_rid (b_rid),
+      .m_axi_rdata (b_rdata),
+      .m_axi_rresp (b_rresp),
+      .m_axi_rlast (b_rlast),
+      .m_axi_rvalid (b_rvalid),
+      .m_axi_rready (b_rready)
+  );
+
+  // Memory engine + AXI mux (the engine owns the port while busy;
+  // it starts only with the SoC held and the bridge idle).
+  logic eng_busy, eng_go;
+  assign eng_go = eng_start_i && (cst_q == C_HOLD) && br_idle;
+  assign eng_busy_o = eng_busy;
+  logic [AXI_ID_W-1:0]     e_awid, e_arid;
+  logic [AXI_ADDR_W-1:0]   e_awaddr, e_araddr;
+  logic [7:0]              e_awlen, e_arlen;
+  logic [2:0]              e_awsize, e_arsize;
+  logic [1:0]              e_awburst, e_arburst;
+  logic                    e_awvalid, e_wvalid, e_wlast, e_bready;
+  logic                    e_arvalid, e_rready;
+  logic [AXI_DATA_W-1:0]   e_wdata;
+  logic [AXI_DATA_W/8-1:0] e_wstrb;
+  sigil_axi_memeng #(
+      .AXI_ID_W(AXI_ID_W), .AXI_ADDR_W(AXI_ADDR_W),
+      .AXI_DATA_W(AXI_DATA_W), .AXI_ID(AXI_ID)
+  ) u_eng (
+      .clk_i         (clk_i),
+      .rst_ni        (rst_n),
+      .start_i       (eng_go),
+      .mode_i        (eng_mode_i),
+      .base_i        (eng_base_i),
+      .size_i        (eng_size_i),
+      .seed_i        (eng_seed_i),
+      .busy_o        (eng_busy),
+      .done_o        (eng_done_o),
+      .fail_o        (eng_fail_o),
+      .mism_count_o  (eng_mism_o),
+      .fail_addr_o   (eng_fail_addr_o),
+      .resp_err_o    (eng_rerr_o),
+      .cycles_o      (eng_cycles_o),
+      .m_axi_awid    (e_awid),
+      .m_axi_awaddr  (e_awaddr),
+      .m_axi_awlen   (e_awlen),
+      .m_axi_awsize  (e_awsize),
+      .m_axi_awburst (e_awburst),
+      .m_axi_awvalid (e_awvalid),
+      .m_axi_awready (eng_busy && m_axi_awready),
+      .m_axi_wdata   (e_wdata),
+      .m_axi_wstrb   (e_wstrb),
+      .m_axi_wlast   (e_wlast),
+      .m_axi_wvalid  (e_wvalid),
+      .m_axi_wready  (eng_busy && m_axi_wready),
       .m_axi_bid     (m_axi_bid),
       .m_axi_bresp   (m_axi_bresp),
-      .m_axi_bvalid  (m_axi_bvalid),
-      .m_axi_bready  (m_axi_bready),
-      .m_axi_arid    (m_axi_arid),
-      .m_axi_araddr  (m_axi_araddr),
-      .m_axi_arlen   (m_axi_arlen),
-      .m_axi_arsize  (m_axi_arsize),
-      .m_axi_arburst (m_axi_arburst),
-      .m_axi_arlock  (m_axi_arlock),
-      .m_axi_arcache (m_axi_arcache),
-      .m_axi_arprot  (m_axi_arprot),
-      .m_axi_arqos   (m_axi_arqos),
-      .m_axi_arvalid (m_axi_arvalid),
-      .m_axi_arready (m_axi_arready),
+      .m_axi_bvalid  (eng_busy && m_axi_bvalid),
+      .m_axi_bready  (e_bready),
+      .m_axi_arid    (e_arid),
+      .m_axi_araddr  (e_araddr),
+      .m_axi_arlen   (e_arlen),
+      .m_axi_arsize  (e_arsize),
+      .m_axi_arburst (e_arburst),
+      .m_axi_arvalid (e_arvalid),
+      .m_axi_arready (eng_busy && m_axi_arready),
       .m_axi_rid     (m_axi_rid),
       .m_axi_rdata   (m_axi_rdata),
       .m_axi_rresp   (m_axi_rresp),
       .m_axi_rlast   (m_axi_rlast),
-      .m_axi_rvalid  (m_axi_rvalid),
-      .m_axi_rready  (m_axi_rready)
+      .m_axi_rvalid  (eng_busy && m_axi_rvalid),
+      .m_axi_rready  (e_rready)
   );
+  always_comb begin
+    if (eng_busy) begin
+      m_axi_awid = e_awid;       m_axi_awaddr = e_awaddr;
+      m_axi_awlen = e_awlen;     m_axi_awsize = e_awsize;
+      m_axi_awburst = e_awburst; m_axi_awlock = 1'b0;
+      m_axi_awcache = 4'b0011;   m_axi_awprot = 3'b000;
+      m_axi_awqos = 4'd0;        m_axi_awvalid = e_awvalid;
+      m_axi_wdata = e_wdata;     m_axi_wstrb = e_wstrb;
+      m_axi_wlast = e_wlast;     m_axi_wvalid = e_wvalid;
+      m_axi_bready = e_bready;
+      m_axi_arid = e_arid;       m_axi_araddr = e_araddr;
+      m_axi_arlen = e_arlen;     m_axi_arsize = e_arsize;
+      m_axi_arburst = e_arburst; m_axi_arlock = 1'b0;
+      m_axi_arcache = 4'b0011;   m_axi_arprot = 3'b000;
+      m_axi_arqos = 4'd0;        m_axi_arvalid = e_arvalid;
+      m_axi_rready = e_rready;
+    end else begin
+      m_axi_awid = b_awid;       m_axi_awaddr = b_awaddr;
+      m_axi_awlen = b_awlen;     m_axi_awsize = b_awsize;
+      m_axi_awburst = b_awburst; m_axi_awlock = b_awlock;
+      m_axi_awcache = b_awcache; m_axi_awprot = b_awprot;
+      m_axi_awqos = b_awqos;     m_axi_awvalid = b_awvalid;
+      m_axi_wdata = b_wdata;     m_axi_wstrb = b_wstrb;
+      m_axi_wlast = b_wlast;     m_axi_wvalid = b_wvalid;
+      m_axi_bready = b_bready;
+      m_axi_arid = b_arid;       m_axi_araddr = b_araddr;
+      m_axi_arlen = b_arlen;     m_axi_arsize = b_arsize;
+      m_axi_arburst = b_arburst; m_axi_arlock = b_arlock;
+      m_axi_arcache = b_arcache; m_axi_arprot = b_arprot;
+      m_axi_arqos = b_arqos;     m_axi_arvalid = b_arvalid;
+      m_axi_rready = b_rready;
+    end
+  end
 
-  // Virtual UART TX: SoC THR writes -> FIFO -> host.
+  // Virtual UART TX: bytes the 16550 transmits -> FIFO -> host.
   logic txf_full, txf_empty, tx_ovf_q;
+  assign soc_tx_stall = txf_full && !uart_tx_drop_i;
   sigil_fifo #(.WIDTH(8), .DEPTH(UART_TX_DEPTH)) u_txf (
       .clk_i(clk_i), .rst_ni(rst_n), .flush_i(1'b0),
       .push_i(soc_tx_valid), .data_i(soc_tx_data), .full_o(txf_full),

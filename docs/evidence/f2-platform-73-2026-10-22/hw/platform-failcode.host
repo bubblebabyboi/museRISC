@@ -1,0 +1,12 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x00000ac3)
+[sigil_host] loaded /home/ubuntu/pay/fw/f2_platform_test.bin: 2368 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 2.66 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 30 s
+
+[sigil_host] finisher fail code 42 (0x002a3333)
+
+[sigil_host] result: FAIL (finisher: fail) after 0.014 s, 901754 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000009 pc 0xffffffff80d2f35a, STATUS 0x00000ac0

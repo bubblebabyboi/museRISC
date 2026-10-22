@@ -1,9 +1,12 @@
-# XSIM file list for the Sigil CL (issue #54). Maintained by hand:
+# XSIM file list for the Sigil CL (issues #54, #66). Maintained by hand:
 # keep the SoC part in sync with rtl/sigil_soc_files.mk + rtl/fpga.
 
 -define CL_NAME=cl_sigil
 -define DISABLE_VJTAG_DEBUG
 -define SIGIL_CORE_CLK_KHZ=62500
+# XSIM cannot simulate the HBM IP (the HDK needs VCS/Questa for it): a
+# behavioural memory stands in for cl_sigil_hbm's HBM stack.
+-define SIGIL_HBM_BFM
 
 -include $CL_DIR/../../rtl/core
 $CL_DIR/../../rtl/core/sigil_pkg.sv
@@ -40,17 +43,21 @@ $CL_DIR/../../rtl/soc/sigil_clint.sv
 $CL_DIR/../../rtl/soc/sigil_plic.sv
 $CL_DIR/../../rtl/soc/sigil_uart16550.sv
 $CL_DIR/../../rtl/soc/sigil_bootrom.sv
+$CL_DIR/../../rtl/soc/sigil_test_finisher.sv
+$CL_DIR/../../rtl/soc/sigil_rtc_goldfish.sv
 $CL_DIR/../../rtl/soc/sigil_crypto_bridge.sv
 $CL_DIR/../../rtl/soc/sigil_soc_fabric.sv
 $CL_DIR/../../rtl/soc/sigil_soc_top.sv
 $CL_DIR/../../rtl/fpga/sigil_fifo.sv
 $CL_DIR/../../rtl/fpga/sigil_mbus_axi4.sv
+$CL_DIR/../../rtl/fpga/sigil_axi_memeng.sv
 $CL_DIR/../../rtl/fpga/sigil_fpga_top.sv
 $CL_DIR/../../rtl/fpga/sigil_ocl_regs.sv
 $CL_DIR/../../rtl/fpga/sigil_fpga_ocl.sv
 $CL_DIR/../../rtl/fpga/sigil_axi_decerr.sv
 
 -include $CL_DIR/design
+$CL_DIR/design/cl_sigil_hbm.sv
 $CL_DIR/design/cl_sigil.sv
 
 -include $CL_DIR/verif/tests

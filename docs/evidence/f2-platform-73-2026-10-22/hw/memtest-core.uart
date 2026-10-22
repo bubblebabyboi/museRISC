@@ -1,0 +1,6 @@
+F2 MEMTEST: start
+MEMTEST ddr points 1048576 stride 65536 errors 0 write_cycles 255275562 verify_cycles 255278803
+MEMTEST hbm points 262144 stride 65536 errors 0 write_cycles 64027255 verify_cycles 61058847
+LATENCY ddr refill_cycles min 42 avg_x100 4558 max 78 n 4096 hit_cycles 9 seq_read_4MiB_cycles 3419812 (1)
+LATENCY hbm refill_cycles min 49 avg_x100 5081 max 61 n 4096 hit_cycles 9 seq_read_4MiB_cycles 3758451 (1)
+F2 MEMTEST PASS

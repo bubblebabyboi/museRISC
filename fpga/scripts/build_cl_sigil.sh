@@ -2,7 +2,7 @@
 # Build the Sigil AWS F2 CL design checkpoint (issue #54) with the
 # aws-fpga HDK (v2.3.5, Small Shell) on an F2 Developer AMI.
 #
-#   fpga/scripts/build_cl_sigil.sh [--recipe-b B1] [--tag YYYY_MM_DD-HHMMSS]
+#   fpga/scripts/build_cl_sigil.sh [--recipe-b B1] [--recipe-hbm H0] [--tag YYYY_MM_DD-HHMMSS]
 #                                  [--flow BuildAll|SynthCL|ImplCL]
 #
 # Needs AWS_FPGA_REPO_DIR (an aws-fpga checkout at tag v2.3.5) or
@@ -13,7 +13,11 @@
 # Core clock = AWS_CLK_GEN clk_extra_b1, frequency by group-B recipe:
 #   B1 (default) 62.5 MHz  -- interim label until #53 closes 100 MHz
 #   B4 75 MHz, B5 100 MHz  (B0 125, B2 225, B3 62.5)
-# Groups A/C/HBM are unused by the SoC and left at the HDK defaults.
+# Groups A/C are unused (HDK defaults A1, C0). HBM group: clk_hbm_axi
+# for the HBM AXI port, recipe H0 = 250 MHz by default (one port at
+# 32 B x 250 MHz is twice what the core-clock memory engine can use; the
+# HDK's 450 MHz H2 does not close the HBM port -> AXI3 slice CE path
+# with the SoC floorplan, see docs/FPGA_F2.md).
 #
 # Output: fpga/cl_sigil/build/checkpoints/<TAG>.Developer_CL.tar
 # (+ <TAG>.sigil_source.txt: the Sigil and aws-fpga commits built;
@@ -22,11 +26,13 @@
 # fpga/cl_sigil/build/reports/.
 set -euo pipefail
 RECIPE_B=B1
+RECIPE_HBM=H0
 TAG=""
 FLOW=BuildAll
 while [ $# -gt 0 ]; do
   case "$1" in
     --recipe-b) RECIPE_B="$2"; shift 2 ;;
+    --recipe-hbm) RECIPE_HBM="$2"; shift 2 ;;
     --tag) TAG="$2"; shift 2 ;;
     --flow) FLOW="$2"; shift 2 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
@@ -52,7 +58,7 @@ done
 cd "$S"
 args=(-c cl_sigil --mode small_shell --flow "$FLOW" --aws_clk_gen --no-encrypt
       --clock_recipe_a A1 --clock_recipe_b "$RECIPE_B"
-      --clock_recipe_c C0 --clock_recipe_hbm H2)
+      --clock_recipe_c C0 --clock_recipe_hbm "$RECIPE_HBM")
 # The HDK writes the tag into the AFI manifest "date" field, so keep the
 # HDK's own timestamp format.
 [ -n "$TAG" ] || TAG=$(date +%Y_%m_%d-%H%M%S)
@@ -61,7 +67,7 @@ args=(-c cl_sigil --mode small_shell --flow "$FLOW" --aws_clk_gen --no-encrypt
 args+=(--tag "$TAG")
 REV=$(cat "$REPO/.git-rev" 2>/dev/null || git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)
 mkdir -p "$CL_DIR/build/checkpoints"
-echo "sigil $REV recipe_b=$RECIPE_B aws-fpga $(git -C "$AWS_FPGA_REPO_DIR" rev-parse HEAD 2>/dev/null)" \
+echo "sigil $REV recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM aws-fpga $(git -C "$AWS_FPGA_REPO_DIR" rev-parse HEAD 2>/dev/null)" \
   > "$CL_DIR/build/checkpoints/$TAG.sigil_source.txt"
-echo "build_cl_sigil: tag $TAG, sigil $REV, recipe_b=$RECIPE_B"
+echo "build_cl_sigil: tag $TAG, sigil $REV, recipe_b=$RECIPE_B recipe_hbm=$RECIPE_HBM"
 python3 ./aws_build_dcp_from_cl.py "${args[@]}"

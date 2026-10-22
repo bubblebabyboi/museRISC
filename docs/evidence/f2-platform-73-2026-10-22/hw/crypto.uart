@@ -1,0 +1,13 @@
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASS
