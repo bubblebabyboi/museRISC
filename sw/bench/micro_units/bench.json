@@ -31,7 +31,7 @@
     "3": "mul, independent (back-to-back throughput)",
     "4": "div, dependent, 63 significant quotient bits (x / 1)",
     "5": "div, independent, 63 significant quotient bits",
-    "6": "div, independent, |dividend| < |divisor| (3 / 7)",
+    "6": "div, independent, dividend smaller than divisor (3 / 7)",
     "7": "divw, dependent, 31 significant quotient bits",
     "8": "rem, independent, 62 significant quotient bits (x % 3)",
     "9": "fadd.d, dependent",

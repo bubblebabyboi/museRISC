@@ -54,6 +54,11 @@ def fmt(x, nd=3):
     return f"{x:,.{nd}f}"
 
 
+def cell(text):
+    """Text for a markdown table cell."""
+    return str(text).replace("|", "\\|")
+
+
 def bench_table(name, meta, runs):
     notes = meta.get("region_ops", {})
     combos = sorted({(r["config"], r["mem"]) for r in runs},
@@ -81,7 +86,7 @@ def bench_table(name, meta, runs):
         if label == "empty":
             cells = [f"{by[(rid, cm[0], cm[1])]['counters']['cycles']} cycles"
                      if (rid, cm[0], cm[1]) in by else "-" for cm in combos]
-            out.append(f"| {label} | {notes.get(str(rid), '')} | " + " | ".join(cells)
+            out.append(f"| {label} | {cell(notes.get(str(rid), ''))} | " + " | ".join(cells)
                        + f" | - | {c['instret']} instr | (window overhead, not per op) | "
                        f"{c['ic_miss']} | {c['dc_miss']} |")
             continue
@@ -92,7 +97,7 @@ def bench_table(name, meta, runs):
         stk = sorted(((c.get("stk_" + k, 0) / ops, k) for k in STK), reverse=True)
         where = ", ".join(f"{k} {v:.2f}" for v, k in stk if v >= 0.05)
         net = fmt((c["cycles"] - empty["counters"]["cycles"]) / ops) if empty else "-"
-        out.append(f"| {label} | {notes.get(str(rid), '')} | " + " | ".join(cells)
+        out.append(f"| {label} | {cell(notes.get(str(rid), ''))} | " + " | ".join(cells)
                    + f" | {net} | {c['instret'] / ops:.3f} | {where} | {c['ic_miss'] / ops:.4f} | "
                    f"{c['dc_miss'] / ops:.4f} |")
     out.append("")
