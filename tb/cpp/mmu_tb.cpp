@@ -63,8 +63,10 @@ int main(int argc, char** argv) {
   int pmp_mode = 0;  // 0 allow, 2 deny A/D writebacks only
   // The data lookup port (dl_*, read with FPGA_TIMING) mirrors MEM's
   // access and reloads every cycle, as the core's port does while MEM
-  // waits for its translation.
+  // waits for its translation (dl_mem_i); the capture before MEM's
+  // access is valid stands for the core's EX capture.
   auto mirror_dl = [&]() {
+    d->dl_mem_i = d->d_valid_i;
     d->dl_va_i = d->d_va_i;
     d->dl_write_i = d->d_write_i;
     d->dl_exec_i = d->d_exec_i;
@@ -193,6 +195,30 @@ int main(int argc, char** argv) {
   // Unmapped neighbors fault at L0 (!V) and L1 (missing pointer).
   CHECK(xlate_d(0x401000ull, false, 1, &pa) == 1);
   CHECK(xlate_d(0x600000ull, false, 1, &pa) == 1);
+#ifdef MMU_TB_DREG
+  // The recorded walk fault applies to MEM's own lookup only: with
+  // the fault of 0x401000 left unconsumed (as after a fault-only-first
+  // trim), an EX capture of the same VA is not valid, and MEM's
+  // replay of its own lookup takes the record.
+  d->d_satp_i = d->satp_i;
+  d->d_va_i = 0x401000ull;
+  d->d_write_i = 0;
+  d->d_priv_i = 1;
+  d->d_valid_i = 1;
+  d->eval();
+  for (int i = 0; i < 120 && !d->d_fault_o; ++i) tick();
+  CHECK(d->d_fault_o);
+  d->d_valid_i = 0;
+  tick();  // EX's capture (dl_mem_i = 0)
+  d->d_valid_i = 1;
+  d->eval();
+  CHECK(!d->d_fault_o && !d->d_ok_o);
+  tick();  // MEM's replay
+  CHECK(d->d_fault_o && d->d_fault_page_o);
+  d->d_valid_i = 0;
+  d->eval();
+  consume_fault();
+#endif
   // Non-canonical Sv39 VA faults without walking.
   CHECK(xlate_d(1ull << 39, false, 1, &pa) == 1);
   CHECK(xlate_if(0x8000000000000000ull, 1, &pa) == 1);
