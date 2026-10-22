@@ -95,3 +95,17 @@ run ptw_drop ptw_drop_directed.bin
 run ptw_preempt ptw_preempt_directed.bin
 run ptw_preempt_cached ptw_preempt_cached_directed.bin
 run ptw_preempt_twoload ptw_preempt_twoload_directed.bin
+# Review of that fix (issue #73): back-to-back preemptions, a
+# preemption with a trap in the same cycle (dropped read still in
+# flight), and preemption of two-stage (V=1) fetch walks in
+# W_G_READ / W_VS_READ, also with HLV.
+run ptw_preempt_b2b ptw_preempt_b2b_directed.bin 4000000
+run ptw_preempt_trapdrop ptw_preempt_trapdrop_directed.bin 4000000
+run ptw_preempt_hyp ptw_preempt_hyp_directed.bin 4000000
+run ptw_preempt_guest ptw_preempt_guest_directed.bin 4000000
+# A G-stage GPA-width fault ends a walk in the W_G_READ cycle that
+# may issue its read; a later fetch, data or redirect walk must
+# not take it.
+run ptw_gwidth ptw_gwidth_directed.bin 4000000
+run ptw_gwidth_load ptw_gwidth_load_directed.bin 4000000
+run ptw_gwidth_redirect ptw_gwidth_redirect_directed.bin 4000000
