@@ -20,7 +20,11 @@
  *     bits 15:8 = how to end: 0 power off (finisher 0x5555), 1 fail
  *     code 42 ((42 << 16) | 0x3333), 2 reboot once (0x7777; a counter
  *     at REBOOT_CNT, outside the image and flushed with FENCE.I,
- *     survives the SoC reset), then power off.
+ *     survives the SoC reset), then power off; bit 1 with the reboot:
+ *     the pmem disk window survives the reboot -- the host loads
+ *     "PMEMDISK" at PMEM (0xC_8000_0000), the first boot finds it and
+ *     writes "REBOOTED", the second boot must find "REBOOTED" (the host
+ *     reloads only the boot images on a reboot).
  * Prints "F2 PLATFORM PASS" (or "F2 PLATFORM FAIL <n>") before the
  * finisher write. */
 #include <stdint.h>
@@ -32,6 +36,9 @@
 #define PLIC_PENDING ((volatile uint32_t *)0x0C001000UL)
 #define MAILBOX ((volatile uint64_t *)0x80080000UL)
 #define REBOOT_CNT ((volatile uint64_t *)0x80090000UL)
+#define PMEM ((volatile uint64_t *)0xC80000000UL)
+#define PMEM_LOADED 0x4B5349444D454D50ull   /* "PMEMDISK" */
+#define PMEM_REBOOT 0x4445544F4F424552ull   /* "REBOOTED" */
 #define EVICT_BASE 0x80200000UL
 
 static void putc_(char c) {
@@ -175,6 +182,12 @@ int main(void) {
   } else if (end == 1) {
     *FINISHER = (42u << 16) | 0x3333;
   } else if (end == 2 && *REBOOT_CNT != 0x5EB007ull) {
+    if ((mode & 2) && *PMEM != PMEM_LOADED) {
+      puts_("F2 PLATFORM FAIL pmem image not loaded\r\n");
+      *FINISHER = (2u << 16) | 0x3333;
+      for (;;) __asm__ volatile("wfi");
+    }
+    if (mode & 2) *PMEM = PMEM_REBOOT;
     *REBOOT_CNT = 0x5EB007ull;
     __asm__ volatile("fence.i" ::: "memory");   /* write the D$ back */
     puts_("F2 PLATFORM: reboot\r\n");
@@ -182,7 +195,15 @@ int main(void) {
     }
     *FINISHER = 0x7777;
   } else {
+    if (end == 2 && (mode & 2) && *PMEM != PMEM_REBOOT) {
+      puts_("F2 PLATFORM FAIL pmem disk reloaded on reboot\r\n");
+      while ((UART[5] & 0x40) == 0) {
+      }
+      *FINISHER = (3u << 16) | 0x3333;
+      for (;;) __asm__ volatile("wfi");
+    }
     if (end == 2) {
+      if (mode & 2) puts_("F2 PLATFORM: pmem kept across the reboot\r\n");
       *REBOOT_CNT = 0;
       __asm__ volatile("fence.i" ::: "memory");
       puts_("F2 PLATFORM: rebooted once\r\n");

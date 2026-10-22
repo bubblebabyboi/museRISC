@@ -58,7 +58,13 @@ step memtest-engine 0 --memtest all --scrub never
 step platform 0 --bin "$FW/f2_platform_test.bin" --mailbox 0 --timeout 30
 step platform-oob 0 --bin "$FW/f2_platform_test.bin" --mailbox 1 --ignore-mem-err --timeout 30
 step platform-failcode 1 --bin "$FW/f2_platform_test.bin" --mailbox 0x100 --timeout 30
-step platform-reboot 0 --bin "$FW/f2_platform_test.bin" --mailbox 0x200 --timeout 30
+# Reboot through the finisher: boot images reloaded, the pmem window kept
+# ("PMEMDISK" loaded at 0xC_8000_0000, rewritten to "REBOOTED" by the
+# first boot, checked by the second, then saved back).
+printf 'PMEMDISK' > "$OUT/pmem-marker.bin"
+step platform-reboot 0 --bin "$FW/f2_platform_test.bin" --mailbox 0x202 --timeout 30 \
+  --load 0xC80000000="$OUT/pmem-marker.bin" --save 0xC80000000="$OUT/pmem-after.bin:4K"
+echo "pmem after reboot + power off: $(head -c 8 "$OUT/pmem-after.bin")" | tee -a "$R"
 # 5. Sparse test of all DDR4 + HBM from the core, latency, read rate.
 step memtest-core 0 --bin "$FW/f2_memtest.bin" --timeout 600
 # 6. Existing firmware and SDK examples (no --ignore-mem-err).

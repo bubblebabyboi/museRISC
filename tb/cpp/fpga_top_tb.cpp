@@ -215,10 +215,12 @@ int main(int argc, char** argv) {
   Axi4SlaveModel axi(axi_cfg, kDw, kDdrBase, &ddr);
 #endif
   // Images (and pokes) only; with clear = false the rest of RAM is kept
-  // (a reboot after a finisher 0x7777).
+  // and, like sigil_host, images in the pmem window (0xC_8000_0000 ..
+  // 0x10_7FFF_FFFF) are not reloaded (a reboot after a finisher 0x7777).
   auto load_all = [&](bool clear) {
     if (clear) ram_clear();
     for (size_t k = 0; k < loads.size(); ++k) {
+      if (!clear && loads[k].first >= 0xC80000000ULL && loads[k].first < 0x1080000000ULL) continue;
       ram_write(loads[k].first - kRamBase, images[k].data(), images[k].size());
     }
     for (const auto& [a, v] : pokes) ram_wr64(a - kRamBase, v);
