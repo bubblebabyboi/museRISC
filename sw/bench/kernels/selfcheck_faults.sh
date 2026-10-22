@@ -3,7 +3,8 @@
 # "Validation"). Each case copies this directory to a scratch
 # directory, applies one wrong-result edit, builds it
 # (BENCH_ITERATIONS=1) and runs it on soc_rtl_tb. Every case must make
-# the program fail; the script exits 1 if any run passes.
+# the program fail; the script exits 1 if any run passes (or an edit
+# no longer applies to the sources).
 #
 #   sw/bench/kernels/selfcheck_faults.sh [soc_rtl_tb] [scratch-dir]
 #
@@ -27,6 +28,11 @@ run_case() { # name file sed-script
   cp -r "$here" "$d"
   rm -rf "$d/build"
   sed -i "$script" "$d/$file"
+  if cmp -s "$here/$file" "$d/$file"; then
+    printf '## case %s: %s\n   the edit did not apply: test setup error\n\n' "$name" "$file" \
+      >"$scratch/$name.out"
+    return 1
+  fi
   {
     echo "## case $name: $file"
     diff "$here/$file" "$d/$file" | sed 's/^/   /'
@@ -54,10 +60,10 @@ run_case() { # name file sed-script
 cases=(
   "kat_wrong|kernels_kat.h|s/^#define KAT_VADD_I32 0x6c3c6ed2b2e5e720ull/#define KAT_VADD_I32 0x6c3c6ed2b2e5e721ull/"
   "rvv_vadd_short_store|kern_rvv.c|s/__riscv_vadd_vv_i32m8(va, vb, vl), vl);/__riscv_vadd_vv_i32m8(va, vb, vl), vl > 1 ? vl - 1 : vl);/"
-  "c_daxpy_one_element|kern_c.c|/^void daxpy_c/,/^}/ s/y\[i\] = a \* x\[i\] + y\[i\];/y[i] = a * x[i] + y[i] + (i == 300 ? 0.0625 : 0.0);/"
+  "c_daxpy_one_element|kern_c.c|/ daxpy_c(/,/^}/ s/y\[i\] = a \* x\[i\] + y\[i\];/y[i] = a * x[i] + y[i] + (i == 300 ? 0.0625 : 0.0);/"
   "rvv_ddot_wrong_operand|kern_rvv.c|s/acc = __riscv_vfmacc_vv_f64m8_tu(acc, vx, vy, vl);/acc = __riscv_vfmacc_vv_f64m8_tu(acc, vx, vx, vl);/"
   "rvv_memcpy_overrun|kern_rvv.c|s|for (size_t vl, w = n / 8; w > 0; w -= vl, sp += vl, dp += vl) {|for (size_t vl, w = n / 8 + 1; w > 0; w -= vl, sp += vl, dp += vl) {|"
-  "ref_sgemm_one_element|ref.c|/^void sgemm_ref/,/^}/ s/      c\[i \* n + j\] = s;/      c[i * n + j] = (i == 5 \&\& j == 7) ? s + 1.0f : s;/"
+  "ref_sgemm_one_element|ref.c|/ sgemm_ref(/,/^}/ s/      c\[i \* n + j\] = s;/      c[i * n + j] = (i == 5 \&\& j == 7) ? s + 1.0f : s;/"
   "rvv_mac_i16_last_strip|kern_rvv.c|s/acc = __riscv_vwmacc_vv_i32m8_tu(acc, vx, vy, vl);/acc = __riscv_vwmacc_vv_i32m8_tu(acc, vx, vy, n > vl ? vl : vl - 1);/"
 )
 pids=()
@@ -70,7 +76,7 @@ bad=0
 for p in "${pids[@]}"; do wait "$p" || bad=1; done
 cat "$scratch"/*.out
 if [ $bad -ne 0 ]; then
-  echo "RESULT: at least one injected fault was NOT detected"
+  echo "RESULT: at least one injected fault was NOT detected (or did not apply)"
   exit 1
 fi
 echo "RESULT: all ${#cases[@]} injected faults detected (every run failed)"
