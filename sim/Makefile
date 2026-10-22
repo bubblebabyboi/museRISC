@@ -140,7 +140,7 @@ $(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/csr_tb) $(RTL)/sigil_csr.sv \
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
-# FPGA_TIMING form (#53).
+# FPGA_TIMING form (#53): write-intent read-only check, parallel PMP.
 $(BUILD)/csr_tb_fpga: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/csr_fpga --top-module sigil_csr -GFPGA_TIMING=1 \
 	  -o $(abspath $(BUILD)/csr_tb_fpga) $(RTL)/sigil_csr.sv \
