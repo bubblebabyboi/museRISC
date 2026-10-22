@@ -185,7 +185,8 @@ about 70 minutes.
   F2 clock. It is not an F2 hardware measurement and has not been
   submitted to EEMBC. Both seed sets validate at ≥ 10 s, so EEMBC run
   rules 1 and 2 are both met in simulated time.
-- **The 20-iteration window is representative.** 716,834 cycles per
-  iteration at 1000 iterations against 716,890 at 20 is a 0.008%
-  difference. The extra cycles at 20 iterations are cold misses.
-  CoreMark/MHz is 1.395 either way (1.39502 vs 1.39491).
+- **The 20-iteration window is representative.** At 1000 iterations a
+  run takes 716,834 cycles per iteration; at 20 it takes 716,890. The
+  0.008% difference is a fixed start-up cost: the 20-iteration window is
+  1,124 cycles longer than 20 × 716,834. CoreMark/MHz is 1.395 either
+  way (1.39502 vs 1.39491).
