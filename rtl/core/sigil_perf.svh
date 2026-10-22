@@ -23,7 +23,8 @@
 // Output: one line per end marker,
 //   SIGIL_PERF v1 region=<id> seq=<n> <key>=<value> ...
 // appended to the file named by the plusarg +sigil_perf=<file>, or
-// written to stderr without it.
+// written to stderr without it (plusargs are read at the first end
+// marker only).
 //
 // Accounting. Every cycle in the window is charged to exactly one
 // stk_* category (they sum to `cycles`; checked at each dump):
@@ -349,21 +350,28 @@
     end
   end
 
-  // Record output (+sigil_perf=<file>, else stderr).
+  // Record output (+sigil_perf=<file>, else stderr), opened at the
+  // first end marker: a harness that never runs a marked region never
+  // reads plusargs (Verilator aborts on $value$plusargs when the C++
+  // harness did not call Verilated::commandArgs).
   int    perf_fd;
-  string perf_path;
-  initial begin
-    perf_fd = 32'h8000_0002;  // STDERR
-    if ($value$plusargs("sigil_perf=%s", perf_path)) begin
-      perf_fd = $fopen(perf_path, "a");
-      if (perf_fd == 0) $fatal(1, "sigil_perf: cannot open %s", perf_path);
-    end
-  end
+  initial perf_fd = 0;
   // (perf_end is low in reset: no instruction is in EX.)
   always @(posedge clk_i) begin
     if (perf_end) begin
+      int    fd;
+      string path;
+      fd = perf_fd;
+      if (fd == 0) begin
+        fd = 32'h8000_0002;  // STDERR
+        if ($value$plusargs("sigil_perf=%s", path)) begin
+          fd = $fopen(path, "a");
+          if (fd == 0) $fatal(1, "sigil_perf: cannot open %s", path);
+        end
+        perf_fd <= fd;
+      end
       if (!perf_on_q) begin
-        $fwrite(perf_fd, "SIGIL_PERF warning: end marker (region %0d) without begin\n",
+        $fwrite(fd, "SIGIL_PERF warning: end marker (region %0d) without begin\n",
                 perf_mark_region);
       end else begin
         logic [63:0] stk_sum, mc_d, mi_d;
@@ -373,23 +381,23 @@
         for (int i = 0; i < PerfStkN; i++) stk_sum += perf_cnt_q[i];
         mc_d = u_core.u_csr.mcycle_q - perf_mc_b_q;
         mi_d = u_core.u_csr.minstret_q - perf_mi_b_q;
-        $fwrite(perf_fd, "SIGIL_PERF v1 region=%0d seq=%0d", perf_region_q, perf_seq_q);
+        $fwrite(fd, "SIGIL_PERF v1 region=%0d seq=%0d", perf_region_q, perf_seq_q);
         if (perf_mark_region != perf_region_q)
-          $fwrite(perf_fd, " end_region=%0d", perf_mark_region);
+          $fwrite(fd, " end_region=%0d", perf_mark_region);
         for (int i = 0; i < PerfN; i++) begin
           ev = perf_ev_e'(i);
           nm = ev.name();
           nm = nm.substr(3, nm.len() - 1);  // drop "PE_"
           nm = nm.tolower();
-          $fwrite(perf_fd, " %s=%0d", nm, perf_cnt_q[i]);
+          $fwrite(fd, " %s=%0d", nm, perf_cnt_q[i]);
         end
-        $fwrite(perf_fd, " mcycle_begin=%0d mcycle_delta=%0d minstret_delta=%0d",
+        $fwrite(fd, " mcycle_begin=%0d mcycle_delta=%0d minstret_delta=%0d",
                 perf_mc_b_q, mc_d, mi_d);
-        $fwrite(perf_fd, " cfg_sram_oreg=%0d cfg_vrf_oreg=%0d cfg_ic=%0dx%0dx%0d",
+        $fwrite(fd, " cfg_sram_oreg=%0d cfg_vrf_oreg=%0d cfg_ic=%0dx%0dx%0d",
                 SRAM_OREG, VRF_OREG, IC_SETS, IC_WAYS, LINE_BYTES);
-        $fwrite(perf_fd, " cfg_dc=%0dx%0dx%0d cfg_cache_en=%0d stk_sum=%0d\n",
+        $fwrite(fd, " cfg_dc=%0dx%0dx%0d cfg_cache_en=%0d stk_sum=%0d\n",
                 DC_SETS, DC_WAYS, LINE_BYTES, cache_en_i, stk_sum);
-        $fflush(perf_fd);
+        $fflush(fd);
         // Internal consistency (a failure is a counter bug).
         if (stk_sum != perf_cnt_q[PE_CYCLES])
           $error("sigil_perf: accounting slots %0d != cycles %0d", stk_sum,
