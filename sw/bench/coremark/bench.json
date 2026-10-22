@@ -1,0 +1,23 @@
+{
+  "name": "coremark",
+  "description": "EEMBC CoreMark 1.0 (eembc/coremark b56889a7, unmodified), 2K performance run, -O2",
+  "iterations": 20,
+  "max_cycles": 200000000,
+  "expect": ["COREMARK CHECK OK iterations={iterations}"],
+  "metrics": ["coremark_per_mhz"],
+  "units": "CoreMark iterations",
+  "variants": {
+    "scalar": {
+      "description": "performance seeds 0,0,0x66; scalar ISA -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh",
+      "make": {"SIGIL_MARCH": "rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh"}
+    },
+    "sdk": {
+      "description": "performance seeds 0,0,0x66; SDK default -march (with V)",
+      "make": {}
+    },
+    "validation": {
+      "description": "validation seeds 0x3415,0x3415,0x66 (EEMBC run rule 2), scalar ISA; a correctness run, not the score",
+      "make": {"SIGIL_MARCH": "rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh", "COREMARK_RUN": "validation"}
+    }
+  }
+}
