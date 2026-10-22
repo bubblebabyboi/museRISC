@@ -533,6 +533,16 @@ exactly 2N + 2. Today's pipeline is in-order and single-issue with
 blocking caches. A cache hit costs 2 cycles, and a taken branch flushes
 2 slots, so a tight loop runs at about 4 cycles per instruction.
 
+For a benchmark, use `sigil_perf_begin()` / `sigil_perf_end()` instead.
+They read the same counters, print
+`SIGIL PERF region=0 cycles=<n> instret=<n>`, and also mark the region
+for the simulation-only event counters. The markers are writes to
+`mhpmevent31`, which the core ignores. In simulation those counters
+break every cycle of the region down by cause (fetch, branches, D$,
+multi-cycle units, ...). The performance harness (`make -C sim perf`,
+benchmarks in `sw/bench/`) runs and validates such programs; see
+[`docs/PERFORMANCE.md`](PERFORMANCE.md).
+
 ## 14. Limits and gotchas
 
 - **No OS services.** The SDK provides only what is in `sigil.h`: no

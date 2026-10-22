@@ -76,7 +76,8 @@ Key files: [`rtl/core/sigil_core.sv`](rtl/core/sigil_core.sv),
 [`rtl/fpga/sigil_fpga_top.sv`](rtl/fpga/sigil_fpga_top.sv),
 [`fpga/cl_sigil/`](fpga/cl_sigil/). Design records:
 [`docs/CORE.md`](docs/CORE.md) · [`docs/SPEC.md`](docs/SPEC.md) ·
-[`docs/SOC_AREA.md`](docs/SOC_AREA.md) · [`docs/FPGA_F2.md`](docs/FPGA_F2.md).
+[`docs/SOC_AREA.md`](docs/SOC_AREA.md) · [`docs/FPGA_F2.md`](docs/FPGA_F2.md) ·
+[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
 
 ## Run it yourself
 
