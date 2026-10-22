@@ -1,0 +1,1096 @@
+# Kernel functions of kernels-autovec (kernels.bin sha256 44822b77c88564db2ca1b0d1bce4e089e378dabd9e59c82dba143b0326e905cf)
+# GNU objdump (GNU Binutils) 2.47.20260726
+# census: function, instructions (not counting the nop padding after it: every kernel is 64-byte aligned), vector instructions (mnemonic starting with v), distinct vector mnemonics
+vadd_i32_rvv     12    5  vsetvli vle32.v vadd.vv vse32.v
+vadd_i64_rvv     12    5  vsetvli vle64.v vadd.vv vse64.v
+daxpy_rvv        11    5  vsetvli vle64.v vfmacc.vf vse64.v
+saxpy_rvv        11    5  vsetvli vle32.v vfmacc.vf vse32.v
+ddot_rvv         16   10  vsetvli vmv.v.i vle64.v vfmacc.vv vmv.s.x vfredusum.vs vfmv.f.s
+idot_rvv         16   10  vsetvli vmv.v.i vle32.v vwmacc.vv vmv.s.x vredsum.vs vmv.x.s
+memcpy_rvv       10    3  vsetvli vle64.v vse64.v
+memcpy_rvv8       9    3  vsetvli vle8.v vse8.v
+memset_rvv       15    4  vsetvli vmv.v.x vse64.v
+memset_rvv8       9    4  vsetvli vmv.v.x vse8.v
+dgemm_rvv        28    5  vsetvli vmv.v.i vle64.v vfmacc.vf vse64.v
+sgemm_rvv        28    5  vsetvli vmv.v.i vle32.v vfmacc.vf vse32.v
+fir_f32_rvv      21    5  vsetvli vmv.v.i vle32.v vfmacc.vf vse32.v
+mac_i8_rvv       16   10  vsetivli vmv.s.x vsetvli vle8.v vwmul.vv vwredsum.vs vmv.x.s
+mac_i16_rvv      16   10  vsetvli vmv.v.i vle16.v vwmacc.vv vmv.s.x vredsum.vs vmv.x.s
+vadd_i32_c       32    5  vsetvli vle32.v vadd.vv vse32.v
+vadd_i64_c       32    5  vsetvli vle64.v vadd.vv vse64.v
+daxpy_c          32    7  vsetvli vfmv.v.f vle64.v vfmadd.vv vse64.v
+saxpy_c          31    7  vsetvli vfmv.v.f vle32.v vfmadd.vv vse32.v
+ddot_c           17    9  vsetvli vle64.v vsetivli vfmv.s.f vfmul.vv vfredosum.vs vfmv.f.s
+idot_c           16   10  vsetvli vmv.v.i vle32.v vwmacc.vv vmv.s.x vredsum.vs vmv.x.s
+memcpy_c          1    0 
+memset_c          1    0 
+dgemm_c          31    0 
+sgemm_c          31    0 
+fir_f32_c        32    9  vsetvli vle32.v vsetivli vfmv.s.f vfmul.vv vfredosum.vs vfmv.f.s
+mac_i8_c         19   13  vsetvli vmv.v.i vle8.v vwmul.vv vmv1r.v vwadd.wv vmv.s.x vredsum.vs vmv.x.s
+mac_i16_c        16   10  vsetvli vmv.v.i vle16.v vwmacc.vv vmv.s.x vredsum.vs vmv.x.s
+vadd_i32_ref     12    0 
+vadd_i64_ref     12    0 
+daxpy_ref        12    0 
+saxpy_ref        12    0 
+ddot_ref         14    0 
+idot_ref         12    0 
+memcpy_ref        9    0 
+memset_ref        7    0 
+dgemm_ref        36    0 
+sgemm_ref        36    0 
+fir_f32_ref      22    0 
+mac_i8_ref       12    0 
+mac_i16_ref      12    0 
+
+0000000080003080 <vadd_i32_rvv>:
+    80003080:	beqz	a3,800030a6 <vadd_i32_rvv+0x26>
+    80003082:	vsetvli	a5,a3,e32,m8,ta,ma
+    80003086:	vle32.v	v8,(a1)
+    8000308a:	vle32.v	v16,(a2)
+    8000308e:	sub	a3,a3,a5
+    80003090:	sh2add	a1,a5,a1
+    80003094:	sh2add	a2,a5,a2
+    80003098:	vadd.vv	v8,v8,v16
+    8000309c:	vse32.v	v8,(a0)
+    800030a0:	sh2add	a0,a5,a0
+    800030a4:	bnez	a3,80003082 <vadd_i32_rvv+0x2>
+    800030a6:	ret
+    800030a8:	nop
+    800030aa:	nop
+    800030ae:	nop
+    800030b2:	nop
+    800030b6:	nop
+    800030ba:	nop
+    800030be:	nop
+	...
+
+0000000080003100 <vadd_i64_rvv>:
+    80003100:	beqz	a3,80003126 <vadd_i64_rvv+0x26>
+    80003102:	vsetvli	a5,a3,e64,m8,ta,ma
+    80003106:	vle64.v	v8,(a1)
+    8000310a:	vle64.v	v16,(a2)
+    8000310e:	sub	a3,a3,a5
+    80003110:	sh3add	a1,a5,a1
+    80003114:	sh3add	a2,a5,a2
+    80003118:	vadd.vv	v8,v8,v16
+    8000311c:	vse64.v	v8,(a0)
+    80003120:	sh3add	a0,a5,a0
+    80003124:	bnez	a3,80003102 <vadd_i64_rvv+0x2>
+    80003126:	ret
+    80003128:	nop
+    8000312a:	nop
+    8000312e:	nop
+    80003132:	nop
+    80003136:	nop
+    8000313a:	nop
+    8000313e:	nop
+	...
+
+0000000080003180 <daxpy_rvv>:
+    80003180:	beqz	a0,800031a2 <daxpy_rvv+0x22>
+    80003182:	vsetvli	a5,a0,e64,m8,ta,ma
+    80003186:	vle64.v	v16,(a1)
+    8000318a:	vle64.v	v8,(a2)
+    8000318e:	sub	a0,a0,a5
+    80003190:	sh3add	a1,a5,a1
+    80003194:	vfmacc.vf	v8,fa0,v16
+    80003198:	vse64.v	v8,(a2)
+    8000319c:	sh3add	a2,a5,a2
+    800031a0:	bnez	a0,80003182 <daxpy_rvv+0x2>
+    800031a2:	ret
+    800031a4:	nop
+    800031a6:	nop
+    800031aa:	nop
+    800031ae:	nop
+    800031b2:	nop
+    800031b6:	nop
+    800031ba:	nop
+    800031be:	nop
+	...
+
+0000000080003200 <saxpy_rvv>:
+    80003200:	beqz	a0,80003222 <saxpy_rvv+0x22>
+    80003202:	vsetvli	a5,a0,e32,m8,ta,ma
+    80003206:	vle32.v	v16,(a1)
+    8000320a:	vle32.v	v8,(a2)
+    8000320e:	sub	a0,a0,a5
+    80003210:	sh2add	a1,a5,a1
+    80003214:	vfmacc.vf	v8,fa0,v16
+    80003218:	vse32.v	v8,(a2)
+    8000321c:	sh2add	a2,a5,a2
+    80003220:	bnez	a0,80003202 <saxpy_rvv+0x2>
+    80003222:	ret
+    80003224:	nop
+    80003226:	nop
+    8000322a:	nop
+    8000322e:	nop
+    80003232:	nop
+    80003236:	nop
+    8000323a:	nop
+    8000323e:	nop
+	...
+
+0000000080003280 <ddot_rvv>:
+    80003280:	vsetvli	a4,zero,e64,m8,ta,ma
+    80003284:	vmv.v.i	v8,0
+    80003288:	beqz	a0,800032aa <ddot_rvv+0x2a>
+    8000328a:	vsetvli	a5,a0,e64,m8,tu,ma
+    8000328e:	vle64.v	v24,(a1)
+    80003292:	vle64.v	v16,(a2)
+    80003296:	sub	a0,a0,a5
+    80003298:	sh3add	a1,a5,a1
+    8000329c:	sh3add	a2,a5,a2
+    800032a0:	vfmacc.vv	v8,v24,v16
+    800032a4:	bnez	a0,8000328a <ddot_rvv+0xa>
+    800032a6:	vsetvli	a4,zero,e64,m8,ta,ma
+    800032aa:	vmv.s.x	v1,zero
+    800032ae:	vfredusum.vs	v8,v8,v1
+    800032b2:	vfmv.f.s	fa0,v8
+    800032b6:	ret
+    800032b8:	nop
+    800032ba:	nop
+    800032be:	nop
+	...
+
+0000000080003300 <idot_rvv>:
+    80003300:	vsetvli	a4,zero,e64,m8,ta,ma
+    80003304:	vmv.v.i	v8,0
+    80003308:	beqz	a0,8000332a <idot_rvv+0x2a>
+    8000330a:	vsetvli	a5,a0,e32,m4,tu,ma
+    8000330e:	vle32.v	v16,(a1)
+    80003312:	vle32.v	v4,(a2)
+    80003316:	sub	a0,a0,a5
+    80003318:	sh2add	a1,a5,a1
+    8000331c:	sh2add	a2,a5,a2
+    80003320:	vwmacc.vv	v8,v16,v4
+    80003324:	bnez	a0,8000330a <idot_rvv+0xa>
+    80003326:	vsetvli	a4,zero,e64,m8,ta,ma
+    8000332a:	vmv.s.x	v1,zero
+    8000332e:	vredsum.vs	v8,v8,v1
+    80003332:	vmv.x.s	a0,v8
+    80003336:	ret
+    80003338:	nop
+    8000333a:	nop
+    8000333e:	nop
+	...
+
+0000000080003380 <memcpy_rvv>:
+    80003380:	srli	a2,a2,0x3
+    80003382:	beqz	a2,8000339c <memcpy_rvv+0x1c>
+    80003384:	vsetvli	a5,a2,e8,m1,ta,ma
+    80003388:	vle64.v	v8,(a1)
+    8000338c:	sub	a2,a2,a5
+    8000338e:	sh3add	a1,a5,a1
+    80003392:	vse64.v	v8,(a0)
+    80003396:	sh3add	a0,a5,a0
+    8000339a:	bnez	a2,80003384 <memcpy_rvv+0x4>
+    8000339c:	ret
+    8000339e:	nop
+    800033a2:	nop
+    800033a6:	nop
+    800033aa:	nop
+    800033ae:	nop
+    800033b2:	nop
+    800033b6:	nop
+    800033ba:	nop
+    800033be:	nop
+	...
+
+0000000080003400 <memcpy_rvv8>:
+    80003400:	beqz	a2,80003416 <memcpy_rvv8+0x16>
+    80003402:	vsetvli	a5,a2,e8,m8,ta,ma
+    80003406:	vle8.v	v8,(a1)
+    8000340a:	sub	a2,a2,a5
+    8000340c:	add	a1,a1,a5
+    8000340e:	vse8.v	v8,(a0)
+    80003412:	add	a0,a0,a5
+    80003414:	bnez	a2,80003402 <memcpy_rvv8+0x2>
+    80003416:	ret
+    80003418:	nop
+    8000341a:	nop
+    8000341e:	nop
+    80003422:	nop
+    80003426:	nop
+    8000342a:	nop
+    8000342e:	nop
+    80003432:	nop
+    80003436:	nop
+    8000343a:	nop
+    8000343e:	nop
+	...
+
+0000000080003480 <memset_rvv>:
+    80003480:	srli	a2,a2,0x3
+    80003482:	beqz	a2,800034ac <memset_rvv+0x2c>
+    80003484:	lui	a5,0x1010
+    80003488:	addi	a5,a5,257 # 1010101 <__stack_size+0x1000101>
+    8000348c:	pack	a5,a5,a5
+    80003490:	zext.b	a1,a1
+    80003492:	mul	a1,a1,a5
+    80003494:	vsetvli	a5,zero,e64,m8,ta,ma
+    80003498:	vmv.v.x	v8,a1
+    8000349c:	vsetvli	a5,a2,e8,m1,ta,ma
+    800034a0:	vse64.v	v8,(a0)
+    800034a4:	sub	a2,a2,a5
+    800034a6:	sh3add	a0,a5,a0
+    800034aa:	bnez	a2,8000349c <memset_rvv+0x1c>
+    800034ac:	ret
+    800034ae:	nop
+    800034b2:	nop
+    800034b6:	nop
+    800034ba:	nop
+    800034be:	nop
+	...
+
+0000000080003500 <memset_rvv8>:
+    80003500:	beqz	a2,80003518 <memset_rvv8+0x18>
+    80003502:	vsetvli	a5,zero,e8,m8,ta,ma
+    80003506:	vmv.v.x	v8,a1
+    8000350a:	vsetvli	a5,a2,e8,m8,ta,ma
+    8000350e:	vse8.v	v8,(a0)
+    80003512:	sub	a2,a2,a5
+    80003514:	add	a0,a0,a5
+    80003516:	bnez	a2,8000350a <memset_rvv8+0xa>
+    80003518:	ret
+    8000351a:	nop
+    8000351e:	nop
+    80003522:	nop
+    80003526:	nop
+    8000352a:	nop
+    8000352e:	nop
+    80003532:	nop
+    80003536:	nop
+    8000353a:	nop
+    8000353e:	nop
+	...
+
+0000000080003580 <dgemm_rvv>:
+    80003580:	beqz	a0,800035d6 <dgemm_rvv+0x56>
+    80003582:	mv	t1,a1
+    80003584:	sh3add	a6,a0,a1
+    80003588:	li	t3,0
+    8000358a:	li	t4,0
+    8000358c:	li	a7,0
+    8000358e:	sub	a1,a0,a7
+    80003592:	vsetvli	a1,a1,e64,m8,ta,ma
+    80003596:	vmv.v.i	v8,0
+    8000359a:	sh3add	a4,a7,a2
+    8000359e:	mv	a5,t1
+    800035a0:	vle64.v	v16,(a4)
+    800035a4:	fld	fa5,0(a5)
+    800035a6:	addi	a5,a5,8
+    800035a8:	sh3add	a4,a0,a4
+    800035ac:	vfmacc.vf	v8,fa5,v16
+    800035b0:	bne	a5,a6,800035a0 <dgemm_rvv+0x20>
+    800035b4:	add	a5,t3,a7
+    800035b8:	sh3add	a5,a5,a3
+    800035bc:	vse64.v	v8,(a5)
+    800035c0:	add	a7,a7,a1
+    800035c2:	bltu	a7,a0,8000358e <dgemm_rvv+0xe>
+    800035c6:	addi	t4,t4,1
+    800035c8:	add	t3,t3,a0
+    800035ca:	sh3add	t1,a0,t1
+    800035ce:	sh3add	a6,a0,a6
+    800035d2:	bne	a0,t4,8000358c <dgemm_rvv+0xc>
+    800035d6:	ret
+    800035d8:	nop
+    800035da:	nop
+    800035de:	nop
+    800035e2:	nop
+    800035e6:	nop
+    800035ea:	nop
+    800035ee:	nop
+    800035f2:	nop
+    800035f6:	nop
+    800035fa:	nop
+    800035fe:	nop
+	...
+
+0000000080003640 <sgemm_rvv>:
+    80003640:	beqz	a0,80003698 <sgemm_rvv+0x58>
+    80003642:	mv	t1,a1
+    80003644:	sh2add	a6,a0,a1
+    80003648:	li	t3,0
+    8000364a:	li	t4,0
+    8000364c:	li	a7,0
+    8000364e:	sub	a1,a0,a7
+    80003652:	vsetvli	a1,a1,e32,m8,ta,ma
+    80003656:	vmv.v.i	v8,0
+    8000365a:	sh2add	a4,a7,a2
+    8000365e:	mv	a5,t1
+    80003660:	vle32.v	v16,(a4)
+    80003664:	flw	fa5,0(a5)
+    80003668:	addi	a5,a5,4
+    8000366a:	sh2add	a4,a0,a4
+    8000366e:	vfmacc.vf	v8,fa5,v16
+    80003672:	bne	a5,a6,80003660 <sgemm_rvv+0x20>
+    80003676:	add	a5,t3,a7
+    8000367a:	sh2add	a5,a5,a3
+    8000367e:	vse32.v	v8,(a5)
+    80003682:	add	a7,a7,a1
+    80003684:	bltu	a7,a0,8000364e <sgemm_rvv+0xe>
+    80003688:	addi	t4,t4,1
+    8000368a:	add	t3,t3,a0
+    8000368c:	sh2add	t1,a0,t1
+    80003690:	sh2add	a6,a0,a6
+    80003694:	bne	a0,t4,8000364c <sgemm_rvv+0xc>
+    80003698:	ret
+    8000369a:	nop
+    8000369e:	nop
+    800036a2:	nop
+    800036a6:	nop
+    800036aa:	nop
+    800036ae:	nop
+    800036b2:	nop
+    800036b6:	nop
+    800036ba:	nop
+    800036be:	nop
+	...
+
+0000000080003700 <fir_f32_rvv>:
+    80003700:	beqz	a0,80003742 <fir_f32_rvv+0x42>
+    80003702:	sh2add	t1,a1,a2
+    80003706:	li	t3,0
+    80003708:	sub	a7,a0,t3
+    8000370c:	vsetvli	a7,a7,e32,m8,ta,ma
+    80003710:	vmv.v.i	v8,0
+    80003714:	slli	t4,t3,0x2
+    80003718:	sh2add	a6,t3,a3
+    8000371c:	mv	a5,a2
+    8000371e:	beqz	a1,80003734 <fir_f32_rvv+0x34>
+    80003720:	vle32.v	v16,(a6)
+    80003724:	flw	fa5,0(a5)
+    80003728:	addi	a5,a5,4
+    8000372a:	addi	a6,a6,4
+    8000372c:	vfmacc.vf	v8,fa5,v16
+    80003730:	bne	a5,t1,80003720 <fir_f32_rvv+0x20>
+    80003734:	add	a5,a4,t4
+    80003738:	vse32.v	v8,(a5)
+    8000373c:	add	t3,t3,a7
+    8000373e:	bltu	t3,a0,80003708 <fir_f32_rvv+0x8>
+    80003742:	ret
+    80003744:	nop
+    80003746:	nop
+    8000374a:	nop
+    8000374e:	nop
+    80003752:	nop
+    80003756:	nop
+    8000375a:	nop
+    8000375e:	nop
+    80003762:	nop
+    80003766:	nop
+    8000376a:	nop
+    8000376e:	nop
+    80003772:	nop
+    80003776:	nop
+    8000377a:	nop
+    8000377e:	nop
+	...
+
+00000000800037c0 <mac_i8_rvv>:
+    800037c0:	vsetivli	zero,1,e32,m1,ta,ma
+    800037c4:	vmv.s.x	v1,zero
+    800037c8:	beqz	a0,800037ee <mac_i8_rvv+0x2e>
+    800037ca:	vsetvli	a5,a0,e8,m4,ta,ma
+    800037ce:	vle8.v	v16,(a1)
+    800037d2:	vle8.v	v4,(a2)
+    800037d6:	sub	a0,a0,a5
+    800037d8:	add	a1,a1,a5
+    800037da:	add	a2,a2,a5
+    800037dc:	vwmul.vv	v8,v16,v4
+    800037e0:	vsetvli	zero,zero,e16,m8,ta,ma
+    800037e4:	vwredsum.vs	v1,v8,v1
+    800037e8:	bnez	a0,800037ca <mac_i8_rvv+0xa>
+    800037ea:	vsetivli	zero,0,e32,m1,ta,ma
+    800037ee:	vmv.x.s	a0,v1
+    800037f2:	ret
+    800037f4:	nop
+    800037f6:	nop
+    800037fa:	nop
+    800037fe:	nop
+	...
+
+0000000080003840 <mac_i16_rvv>:
+    80003840:	vsetvli	a4,zero,e32,m8,ta,ma
+    80003844:	vmv.v.i	v8,0
+    80003848:	beqz	a0,8000386a <mac_i16_rvv+0x2a>
+    8000384a:	vsetvli	a5,a0,e16,m4,tu,ma
+    8000384e:	vle16.v	v16,(a1)
+    80003852:	vle16.v	v4,(a2)
+    80003856:	sub	a0,a0,a5
+    80003858:	sh1add	a1,a5,a1
+    8000385c:	sh1add	a2,a5,a2
+    80003860:	vwmacc.vv	v8,v16,v4
+    80003864:	bnez	a0,8000384a <mac_i16_rvv+0xa>
+    80003866:	vsetvli	a4,zero,e32,m8,ta,ma
+    8000386a:	vmv.s.x	v1,zero
+    8000386e:	vredsum.vs	v8,v8,v1
+    80003872:	vmv.x.s	a0,v8
+    80003876:	ret
+    80003878:	nop
+    8000387a:	nop
+    8000387e:	nop
+	...
+
+00000000800038c0 <vadd_i32_c>:
+    800038c0:	beqz	a3,80003922 <vadd_i32_c+0x62>
+    800038c2:	addi	a7,a0,-4
+    800038c6:	sub	t3,a7,a2
+    800038ca:	csrr	t1,vlenb
+    800038ce:	sub	a7,a7,a1
+    800038d2:	minu	t3,t3,a7
+    800038d6:	addi	a7,t1,-8
+    800038da:	mv	a6,a0
+    800038dc:	mv	a4,a2
+    800038de:	mv	a5,a1
+    800038e0:	bgeu	a7,t3,8000390a <vadd_i32_c+0x4a>
+    800038e4:	vsetvli	a5,a3,e32,m1,ta,ma
+    800038e8:	vle32.v	v2,(a1)
+    800038ec:	vle32.v	v1,(a2)
+    800038f0:	sub	a3,a3,a5
+    800038f2:	sh2add	a1,a5,a1
+    800038f6:	sh2add	a2,a5,a2
+    800038fa:	vadd.vv	v1,v1,v2
+    800038fe:	vse32.v	v1,(a0)
+    80003902:	sh2add	a0,a5,a0
+    80003906:	bnez	a3,800038e4 <vadd_i32_c+0x24>
+    80003908:	ret
+    8000390a:	sh2add	a3,a3,a1
+    8000390e:	lw	a1,0(a5)
+    80003910:	lw	a2,0(a4)
+    80003912:	addi	a5,a5,4
+    80003914:	addi	a4,a4,4
+    80003916:	addw	a2,a2,a1
+    80003918:	sw	a2,0(a6)
+    8000391c:	addi	a6,a6,4
+    8000391e:	bne	a5,a3,8000390e <vadd_i32_c+0x4e>
+    80003922:	ret
+    80003924:	nop
+    80003926:	nop
+    8000392a:	nop
+    8000392e:	nop
+    80003932:	nop
+    80003936:	nop
+    8000393a:	nop
+    8000393e:	nop
+	...
+
+0000000080003980 <vadd_i64_c>:
+    80003980:	beqz	a3,800039e2 <vadd_i64_c+0x62>
+    80003982:	addi	a5,a3,-1 # fff <__stack_size-0xf001>
+    80003986:	li	a4,2
+    80003988:	bgeu	a4,a5,800039cc <vadd_i64_c+0x4c>
+    8000398c:	addi	a5,a0,-8
+    80003990:	sub	a6,a5,a1
+    80003994:	csrr	a4,vlenb
+    80003998:	sub	a5,a5,a2
+    8000399a:	minu	a6,a6,a5
+    8000399e:	addi	a5,a4,-16
+    800039a2:	bgeu	a5,a6,800039cc <vadd_i64_c+0x4c>
+    800039a6:	vsetvli	a5,a3,e64,m1,ta,ma
+    800039aa:	vle64.v	v2,(a1)
+    800039ae:	vle64.v	v1,(a2)
+    800039b2:	sub	a3,a3,a5
+    800039b4:	sh3add	a1,a5,a1
+    800039b8:	sh3add	a2,a5,a2
+    800039bc:	vadd.vv	v1,v1,v2
+    800039c0:	vse64.v	v1,(a0)
+    800039c4:	sh3add	a0,a5,a0
+    800039c8:	bnez	a3,800039a6 <vadd_i64_c+0x26>
+    800039ca:	ret
+    800039cc:	sh3add	a3,a3,a1
+    800039d0:	ld	a5,0(a1)
+    800039d2:	ld	a4,0(a2)
+    800039d4:	addi	a1,a1,8
+    800039d6:	addi	a2,a2,8
+    800039d8:	add	a5,a5,a4
+    800039da:	sd	a5,0(a0)
+    800039dc:	addi	a0,a0,8
+    800039de:	bne	a1,a3,800039d0 <vadd_i64_c+0x50>
+    800039e2:	ret
+    800039e4:	nop
+    800039e6:	nop
+    800039ea:	nop
+    800039ee:	nop
+    800039f2:	nop
+    800039f6:	nop
+    800039fa:	nop
+    800039fe:	nop
+	...
+
+0000000080003a40 <daxpy_c>:
+    80003a40:	beqz	a0,80003aa4 <daxpy_c+0x64>
+    80003a42:	addi	a5,a0,-1
+    80003a46:	li	a4,2
+    80003a48:	bgeu	a4,a5,80003a8c <daxpy_c+0x4c>
+    80003a4c:	addi	a5,a2,-8
+    80003a50:	csrr	a4,vlenb
+    80003a54:	sub	a5,a5,a1
+    80003a56:	addi	a4,a4,-16
+    80003a58:	bgeu	a4,a5,80003a8c <daxpy_c+0x4c>
+    80003a5c:	vsetvli	a5,zero,e64,m1,ta,ma
+    80003a60:	vfmv.v.f	v3,fa0
+    80003a64:	mv	a4,a2
+    80003a66:	vsetvli	a5,a0,e64,m1,ta,ma
+    80003a6a:	vle64.v	v1,(a1)
+    80003a6e:	vle64.v	v2,(a2)
+    80003a72:	sub	a0,a0,a5
+    80003a74:	sh3add	a1,a5,a1
+    80003a78:	sh3add	a2,a5,a2
+    80003a7c:	vfmadd.vv	v1,v3,v2
+    80003a80:	vse64.v	v1,(a4)
+    80003a84:	sh3add	a4,a5,a4
+    80003a88:	bnez	a0,80003a66 <daxpy_c+0x26>
+    80003a8a:	ret
+    80003a8c:	sh3add	a0,a0,a2
+    80003a90:	fld	fa5,0(a1)
+    80003a92:	fld	fa4,0(a2)
+    80003a94:	addi	a2,a2,8
+    80003a96:	addi	a1,a1,8
+    80003a98:	fmadd.d	fa5,fa0,fa5,fa4
+    80003a9c:	fsd	fa5,-8(a2)
+    80003aa0:	bne	a2,a0,80003a90 <daxpy_c+0x50>
+    80003aa4:	ret
+    80003aa6:	nop
+    80003aaa:	nop
+    80003aae:	nop
+    80003ab2:	nop
+    80003ab6:	nop
+    80003aba:	nop
+    80003abe:	nop
+	...
+
+0000000080003b00 <saxpy_c>:
+    80003b00:	beqz	a0,80003b62 <saxpy_c+0x62>
+    80003b02:	addi	a3,a2,-4
+    80003b06:	csrr	a6,vlenb
+    80003b0a:	sub	a3,a3,a1
+    80003b0c:	addi	a6,a6,-8
+    80003b0e:	mv	a5,a2
+    80003b10:	mv	a4,a1
+    80003b12:	bgeu	a6,a3,80003b46 <saxpy_c+0x46>
+    80003b16:	vsetvli	a5,zero,e32,m1,ta,ma
+    80003b1a:	vfmv.v.f	v3,fa0
+    80003b1e:	mv	a4,a2
+    80003b20:	vsetvli	a5,a0,e32,m1,ta,ma
+    80003b24:	vle32.v	v1,(a1)
+    80003b28:	vle32.v	v2,(a2)
+    80003b2c:	sub	a0,a0,a5
+    80003b2e:	sh2add	a1,a5,a1
+    80003b32:	sh2add	a2,a5,a2
+    80003b36:	vfmadd.vv	v1,v3,v2
+    80003b3a:	vse32.v	v1,(a4)
+    80003b3e:	sh2add	a4,a5,a4
+    80003b42:	bnez	a0,80003b20 <saxpy_c+0x20>
+    80003b44:	ret
+    80003b46:	sh2add	a0,a0,a2
+    80003b4a:	flw	fa5,0(a4)
+    80003b4e:	flw	fa4,0(a5)
+    80003b52:	addi	a5,a5,4
+    80003b54:	addi	a4,a4,4
+    80003b56:	fmadd.s	fa5,fa0,fa5,fa4
+    80003b5a:	fsw	fa5,-4(a5)
+    80003b5e:	bne	a5,a0,80003b4a <saxpy_c+0x4a>
+    80003b62:	ret
+    80003b64:	nop
+    80003b66:	nop
+    80003b6a:	nop
+    80003b6e:	nop
+    80003b72:	nop
+    80003b76:	nop
+    80003b7a:	nop
+    80003b7e:	nop
+	...
+
+0000000080003bc0 <ddot_c>:
+    80003bc0:	fmv.d.x	fa0,zero
+    80003bc4:	beqz	a0,80003bf8 <ddot_c+0x38>
+    80003bc6:	vsetvli	a5,a0,e8,mf8,ta,ma
+    80003bca:	vle64.v	v3,(a1)
+    80003bce:	vle64.v	v2,(a2)
+    80003bd2:	vsetivli	zero,1,e64,m1,ta,ma
+    80003bd6:	vfmv.s.f	v1,fa0
+    80003bda:	vsetvli	zero,a5,e64,m1,ta,ma
+    80003bde:	sub	a0,a0,a5
+    80003be0:	sh3add	a1,a5,a1
+    80003be4:	vfmul.vv	v2,v2,v3
+    80003be8:	sh3add	a2,a5,a2
+    80003bec:	vfredosum.vs	v1,v2,v1
+    80003bf0:	vfmv.f.s	fa0,v1
+    80003bf4:	bnez	a0,80003bc6 <ddot_c+0x6>
+    80003bf6:	ret
+    80003bf8:	ret
+    80003bfa:	nop
+    80003bfe:	nop
+	...
+
+0000000080003c40 <idot_c>:
+    80003c40:	beqz	a0,80003c76 <idot_c+0x36>
+    80003c42:	vsetvli	a5,zero,e64,m1,ta,ma
+    80003c46:	vmv.v.i	v1,0
+    80003c4a:	vsetvli	a5,a0,e32,mf2,tu,ma
+    80003c4e:	vle32.v	v2,(a2)
+    80003c52:	vle32.v	v3,(a1)
+    80003c56:	sub	a0,a0,a5
+    80003c58:	sh2add	a2,a5,a2
+    80003c5c:	sh2add	a1,a5,a1
+    80003c60:	vwmacc.vv	v1,v3,v2
+    80003c64:	bnez	a0,80003c4a <idot_c+0xa>
+    80003c66:	vsetvli	a5,zero,e64,m1,ta,ma
+    80003c6a:	vmv.s.x	v2,zero
+    80003c6e:	vredsum.vs	v1,v1,v2
+    80003c72:	vmv.x.s	a0,v1
+    80003c76:	ret
+    80003c78:	nop
+    80003c7a:	nop
+    80003c7e:	nop
+	...
+
+0000000080003cc0 <memcpy_c>:
+    80003cc0:	j	800009ca <memcpy>
+    80003cc4:	nop
+    80003cc6:	nop
+    80003cca:	nop
+    80003cce:	nop
+    80003cd2:	nop
+    80003cd6:	nop
+    80003cda:	nop
+    80003cde:	nop
+    80003ce2:	nop
+    80003ce6:	nop
+    80003cea:	nop
+    80003cee:	nop
+    80003cf2:	nop
+    80003cf6:	nop
+    80003cfa:	nop
+	...
+
+0000000080003d00 <memset_c>:
+    80003d00:	j	8000096c <memset>
+    80003d04:	nop
+    80003d06:	nop
+    80003d0a:	nop
+    80003d0e:	nop
+    80003d12:	nop
+    80003d16:	nop
+    80003d1a:	nop
+    80003d1e:	nop
+    80003d22:	nop
+    80003d26:	nop
+    80003d2a:	nop
+    80003d2e:	nop
+    80003d32:	nop
+    80003d36:	nop
+    80003d3a:	nop
+	...
+
+0000000080003d40 <dgemm_c>:
+    80003d40:	beqz	a0,80003d92 <dgemm_c+0x52>
+    80003d42:	mv	t3,a3
+    80003d44:	mv	t1,a1
+    80003d46:	sh3add	a3,a0,a1
+    80003d4a:	li	t4,0
+    80003d4c:	mv	a6,a2
+    80003d4e:	mv	a1,t3
+    80003d50:	li	a7,0
+    80003d52:	fmv.d.x	fa5,zero
+    80003d56:	mv	a4,a6
+    80003d58:	mv	a5,t1
+    80003d5a:	fld	fa3,0(a5)
+    80003d5c:	fld	fa4,0(a4)
+    80003d5e:	addi	a5,a5,8
+    80003d60:	sh3add	a4,a0,a4
+    80003d64:	fmadd.d	fa5,fa3,fa4,fa5
+    80003d68:	bne	a3,a5,80003d5a <dgemm_c+0x1a>
+    80003d6c:	fsd	fa5,0(a1)
+    80003d6e:	addi	a5,a7,1
+    80003d72:	addi	a1,a1,8
+    80003d74:	addi	a6,a6,8
+    80003d76:	beq	a0,a5,80003d7e <dgemm_c+0x3e>
+    80003d7a:	mv	a7,a5
+    80003d7c:	j	80003d52 <dgemm_c+0x12>
+    80003d7e:	sh3add	t1,a0,t1
+    80003d82:	sh3add	a3,a0,a3
+    80003d86:	sh3add	t3,a0,t3
+    80003d8a:	beq	t4,a7,80003d92 <dgemm_c+0x52>
+    80003d8e:	addi	t4,t4,1
+    80003d90:	j	80003d4c <dgemm_c+0xc>
+    80003d92:	ret
+    80003d94:	nop
+    80003d96:	nop
+    80003d9a:	nop
+    80003d9e:	nop
+    80003da2:	nop
+    80003da6:	nop
+    80003daa:	nop
+    80003dae:	nop
+    80003db2:	nop
+    80003db6:	nop
+    80003dba:	nop
+    80003dbe:	nop
+	...
+
+0000000080003e00 <sgemm_c>:
+    80003e00:	beqz	a0,80003e58 <sgemm_c+0x58>
+    80003e02:	mv	t3,a3
+    80003e04:	mv	t1,a1
+    80003e06:	sh2add	a3,a0,a1
+    80003e0a:	li	t4,0
+    80003e0c:	mv	a6,a2
+    80003e0e:	mv	a1,t3
+    80003e10:	li	a7,0
+    80003e12:	fmv.w.x	fa5,zero
+    80003e16:	mv	a4,a6
+    80003e18:	mv	a5,t1
+    80003e1a:	flw	fa3,0(a5)
+    80003e1e:	flw	fa4,0(a4)
+    80003e22:	addi	a5,a5,4
+    80003e24:	sh2add	a4,a0,a4
+    80003e28:	fmadd.s	fa5,fa3,fa4,fa5
+    80003e2c:	bne	a3,a5,80003e1a <sgemm_c+0x1a>
+    80003e30:	fsw	fa5,0(a1)
+    80003e34:	addi	a5,a7,1
+    80003e38:	addi	a1,a1,4
+    80003e3a:	addi	a6,a6,4
+    80003e3c:	beq	a0,a5,80003e44 <sgemm_c+0x44>
+    80003e40:	mv	a7,a5
+    80003e42:	j	80003e12 <sgemm_c+0x12>
+    80003e44:	sh2add	t1,a0,t1
+    80003e48:	sh2add	a3,a0,a3
+    80003e4c:	sh2add	t3,a0,t3
+    80003e50:	beq	t4,a7,80003e58 <sgemm_c+0x58>
+    80003e54:	addi	t4,t4,1
+    80003e56:	j	80003e0c <sgemm_c+0xc>
+    80003e58:	ret
+    80003e5a:	nop
+    80003e5e:	nop
+    80003e62:	nop
+    80003e66:	nop
+    80003e6a:	nop
+    80003e6e:	nop
+    80003e72:	nop
+    80003e76:	nop
+    80003e7a:	nop
+    80003e7e:	nop
+	...
+
+0000000080003ec0 <fir_f32_c>:
+    80003ec0:	beqz	a0,80003f26 <fir_f32_c+0x66>
+    80003ec2:	sh2add	t1,a0,a4
+    80003ec6:	beqz	a1,80003f10 <fir_f32_c+0x50>
+    80003ec8:	fmv.w.x	fa5,zero
+    80003ecc:	mv	a7,a3
+    80003ece:	mv	a0,a1
+    80003ed0:	mv	a6,a2
+    80003ed2:	vsetvli	a5,a0,e8,mf4,ta,ma
+    80003ed6:	vle32.v	v3,(a6)
+    80003eda:	vle32.v	v2,(a7)
+    80003ede:	vsetivli	zero,1,e32,m1,ta,ma
+    80003ee2:	vfmv.s.f	v1,fa5
+    80003ee6:	vsetvli	zero,a5,e32,m1,ta,ma
+    80003eea:	sub	a0,a0,a5
+    80003eec:	sh2add	a6,a5,a6
+    80003ef0:	vfmul.vv	v2,v2,v3
+    80003ef4:	sh2add	a7,a5,a7
+    80003ef8:	vfredosum.vs	v1,v2,v1
+    80003efc:	vfmv.f.s	fa5,v1
+    80003f00:	bnez	a0,80003ed2 <fir_f32_c+0x12>
+    80003f02:	fsw	fa5,0(a4)
+    80003f06:	addi	a4,a4,4
+    80003f08:	addi	a3,a3,4
+    80003f0a:	bne	t1,a4,80003ec8 <fir_f32_c+0x8>
+    80003f0e:	ret
+    80003f10:	sw	zero,0(a4)
+    80003f14:	addi	a5,a4,4
+    80003f18:	beq	a5,t1,80003f26 <fir_f32_c+0x66>
+    80003f1c:	sw	zero,4(a4)
+    80003f20:	addi	a4,a4,8
+    80003f22:	bne	t1,a4,80003f10 <fir_f32_c+0x50>
+    80003f26:	ret
+    80003f28:	nop
+    80003f2a:	nop
+    80003f2e:	nop
+    80003f32:	nop
+    80003f36:	nop
+    80003f3a:	nop
+    80003f3e:	nop
+	...
+
+0000000080003f80 <mac_i8_c>:
+    80003f80:	beqz	a0,80003fbe <mac_i8_c+0x3e>
+    80003f82:	vsetvli	a5,zero,e32,m1,ta,ma
+    80003f86:	vmv.v.i	v1,0
+    80003f8a:	vsetvli	a5,a0,e8,mf4,ta,ma
+    80003f8e:	vle8.v	v3,(a2)
+    80003f92:	vle8.v	v4,(a1)
+    80003f96:	sub	a0,a0,a5
+    80003f98:	add	a1,a1,a5
+    80003f9a:	add	a2,a2,a5
+    80003f9c:	vwmul.vv	v2,v4,v3
+    80003fa0:	vmv1r.v	v3,v1
+    80003fa4:	vsetvli	zero,zero,e16,mf2,tu,ma
+    80003fa8:	vwadd.wv	v1,v3,v2
+    80003fac:	bnez	a0,80003f8a <mac_i8_c+0xa>
+    80003fae:	vsetvli	a5,zero,e32,m1,ta,ma
+    80003fb2:	vmv.s.x	v2,zero
+    80003fb6:	vredsum.vs	v1,v1,v2
+    80003fba:	vmv.x.s	a0,v1
+    80003fbe:	ret
+    80003fc0:	nop
+	...
+
+0000000080004000 <mac_i16_c>:
+    80004000:	beqz	a0,80004036 <mac_i16_c+0x36>
+    80004002:	vsetvli	a5,zero,e32,m1,ta,ma
+    80004006:	vmv.v.i	v1,0
+    8000400a:	vsetvli	a5,a0,e16,mf2,tu,ma
+    8000400e:	vle16.v	v2,(a2)
+    80004012:	vle16.v	v3,(a1)
+    80004016:	sub	a0,a0,a5
+    80004018:	sh1add	a2,a5,a2
+    8000401c:	sh1add	a1,a5,a1
+    80004020:	vwmacc.vv	v1,v3,v2
+    80004024:	bnez	a0,8000400a <mac_i16_c+0xa>
+    80004026:	vsetvli	a5,zero,e32,m1,ta,ma
+    8000402a:	vmv.s.x	v2,zero
+    8000402e:	vredsum.vs	v1,v1,v2
+    80004032:	vmv.x.s	a0,v1
+    80004036:	ret
+    80004038:	nop
+    8000403a:	nop
+    8000403e:	nop
+
+0000000080004042 <vadd_i32_ref>:
+    80004042:	beqz	a3,8000405c <vadd_i32_ref+0x1a>
+    80004044:	mv	a5,a1
+    80004046:	sh2add	a3,a3,a1
+    8000404a:	lw	a1,0(a5)
+    8000404c:	lw	a4,0(a2)
+    8000404e:	addw	a4,a4,a1
+    80004050:	sw	a4,0(a0)
+    80004052:	addi	a5,a5,4
+    80004054:	addi	a2,a2,4
+    80004056:	addi	a0,a0,4
+    80004058:	bne	a5,a3,8000404a <vadd_i32_ref+0x8>
+    8000405c:	ret
+
+000000008000405e <vadd_i64_ref>:
+    8000405e:	beqz	a3,80004078 <vadd_i64_ref+0x1a>
+    80004060:	mv	a5,a1
+    80004062:	sh3add	a3,a3,a1
+    80004066:	ld	a4,0(a5)
+    80004068:	ld	a1,0(a2)
+    8000406a:	add	a4,a4,a1
+    8000406c:	sd	a4,0(a0)
+    8000406e:	addi	a5,a5,8
+    80004070:	addi	a2,a2,8
+    80004072:	addi	a0,a0,8
+    80004074:	bne	a5,a3,80004066 <vadd_i64_ref+0x8>
+    80004078:	ret
+
+000000008000407a <daxpy_ref>:
+    8000407a:	beqz	a0,80004098 <daxpy_ref+0x1e>
+    8000407c:	mv	a5,a2
+    8000407e:	sh3add	a0,a0,a2
+    80004082:	fld	fa4,0(a1)
+    80004084:	fmul.d	fa4,fa0,fa4
+    80004088:	fld	fa5,0(a5)
+    8000408a:	fadd.d	fa5,fa5,fa4
+    8000408e:	fsd	fa5,0(a5)
+    80004090:	addi	a1,a1,8
+    80004092:	addi	a5,a5,8
+    80004094:	bne	a5,a0,80004082 <daxpy_ref+0x8>
+    80004098:	ret
+
+000000008000409a <saxpy_ref>:
+    8000409a:	beqz	a0,800040be <saxpy_ref+0x24>
+    8000409c:	mv	a5,a2
+    8000409e:	sh2add	a0,a0,a2
+    800040a2:	flw	fa4,0(a1)
+    800040a6:	fmul.s	fa4,fa0,fa4
+    800040aa:	flw	fa5,0(a5)
+    800040ae:	fadd.s	fa5,fa5,fa4
+    800040b2:	fsw	fa5,0(a5)
+    800040b6:	addi	a1,a1,4
+    800040b8:	addi	a5,a5,4
+    800040ba:	bne	a5,a0,800040a2 <saxpy_ref+0x8>
+    800040be:	ret
+
+00000000800040c0 <ddot_ref>:
+    800040c0:	beqz	a0,800040e2 <ddot_ref+0x22>
+    800040c2:	mv	a5,a1
+    800040c4:	sh3add	a0,a0,a1
+    800040c8:	fmv.d.x	fa0,zero
+    800040cc:	fld	fa5,0(a5)
+    800040ce:	fld	fa4,0(a2)
+    800040d0:	fmul.d	fa5,fa5,fa4
+    800040d4:	fadd.d	fa0,fa0,fa5
+    800040d8:	addi	a5,a5,8
+    800040da:	addi	a2,a2,8
+    800040dc:	bne	a5,a0,800040cc <ddot_ref+0xc>
+    800040e0:	ret
+    800040e2:	fmv.d.x	fa0,zero
+    800040e6:	ret
+
+00000000800040e8 <idot_ref>:
+    800040e8:	beqz	a0,80004102 <idot_ref+0x1a>
+    800040ea:	mv	a5,a1
+    800040ec:	sh2add	a1,a0,a1
+    800040f0:	li	a0,0
+    800040f2:	lw	a4,0(a5)
+    800040f4:	lw	a3,0(a2)
+    800040f6:	mul	a4,a4,a3
+    800040f8:	add	a0,a0,a4
+    800040fa:	addi	a5,a5,4
+    800040fc:	addi	a2,a2,4
+    800040fe:	bne	a5,a1,800040f2 <idot_ref+0xa>
+    80004102:	ret
+
+0000000080004104 <memcpy_ref>:
+    80004104:	beqz	a2,80004116 <memcpy_ref+0x12>
+    80004106:	mv	a5,a1
+    80004108:	add	a1,a1,a2
+    8000410a:	lbu	a4,0(a5)
+    8000410c:	sb	a4,0(a0)
+    8000410e:	addi	a5,a5,1
+    80004110:	addi	a0,a0,1
+    80004112:	bne	a5,a1,8000410a <memcpy_ref+0x6>
+    80004116:	ret
+
+0000000080004118 <memset_ref>:
+    80004118:	beqz	a2,80004126 <memset_ref+0xe>
+    8000411a:	mv	a5,a0
+    8000411c:	add	a0,a0,a2
+    8000411e:	sb	a1,0(a5)
+    80004120:	addi	a5,a5,1
+    80004122:	bne	a5,a0,8000411e <memset_ref+0x6>
+    80004126:	ret
+
+0000000080004128 <dgemm_ref>:
+    80004128:	mv	t1,a0
+    8000412a:	mv	t5,a2
+    8000412c:	mv	t3,a3
+    8000412e:	beqz	a0,80004182 <dgemm_ref+0x5a>
+    80004130:	slli	a3,a0,0x3
+    80004134:	mv	a7,a1
+    80004136:	sh3add	a2,a0,a1
+    8000413a:	li	t4,0
+    8000413c:	j	8000414e <dgemm_ref+0x26>
+    8000413e:	addi	a5,t4,1
+    80004142:	add	a7,a7,a3
+    80004144:	add	a2,a2,a3
+    80004146:	add	t3,t3,a3
+    80004148:	beq	t4,a6,80004182 <dgemm_ref+0x5a>
+    8000414c:	mv	t4,a5
+    8000414e:	mv	a0,t5
+    80004150:	mv	a1,t3
+    80004152:	li	a6,0
+    80004154:	mv	a4,a0
+    80004156:	mv	a5,a7
+    80004158:	fmv.d.x	fa4,zero
+    8000415c:	fld	fa5,0(a5)
+    8000415e:	fld	fa3,0(a4)
+    80004160:	fmul.d	fa5,fa5,fa3
+    80004164:	fadd.d	fa4,fa4,fa5
+    80004168:	addi	a5,a5,8
+    8000416a:	add	a4,a4,a3
+    8000416c:	bne	a5,a2,8000415c <dgemm_ref+0x34>
+    80004170:	fsd	fa4,0(a1)
+    80004172:	addi	a5,a6,1
+    80004176:	addi	a1,a1,8
+    80004178:	addi	a0,a0,8
+    8000417a:	beq	t1,a5,8000413e <dgemm_ref+0x16>
+    8000417e:	mv	a6,a5
+    80004180:	j	80004154 <dgemm_ref+0x2c>
+    80004182:	ret
+
+0000000080004184 <sgemm_ref>:
+    80004184:	mv	t1,a0
+    80004186:	mv	t5,a2
+    80004188:	mv	t3,a3
+    8000418a:	beqz	a0,800041e4 <sgemm_ref+0x60>
+    8000418c:	slli	a3,a0,0x2
+    80004190:	mv	a7,a1
+    80004192:	sh2add	a2,a0,a1
+    80004196:	li	t4,0
+    80004198:	j	800041aa <sgemm_ref+0x26>
+    8000419a:	addi	a5,t4,1
+    8000419e:	add	a7,a7,a3
+    800041a0:	add	a2,a2,a3
+    800041a2:	add	t3,t3,a3
+    800041a4:	beq	t4,a6,800041e4 <sgemm_ref+0x60>
+    800041a8:	mv	t4,a5
+    800041aa:	mv	a0,t5
+    800041ac:	mv	a1,t3
+    800041ae:	li	a6,0
+    800041b0:	mv	a4,a0
+    800041b2:	mv	a5,a7
+    800041b4:	fmv.w.x	fa4,zero
+    800041b8:	flw	fa5,0(a5)
+    800041bc:	flw	fa3,0(a4)
+    800041c0:	fmul.s	fa5,fa5,fa3
+    800041c4:	fadd.s	fa4,fa4,fa5
+    800041c8:	addi	a5,a5,4
+    800041ca:	add	a4,a4,a3
+    800041cc:	bne	a5,a2,800041b8 <sgemm_ref+0x34>
+    800041d0:	fsw	fa4,0(a1)
+    800041d4:	addi	a5,a6,1
+    800041d8:	addi	a1,a1,4
+    800041da:	addi	a0,a0,4
+    800041dc:	beq	t1,a5,8000419a <sgemm_ref+0x16>
+    800041e0:	mv	a6,a5
+    800041e2:	j	800041b0 <sgemm_ref+0x2c>
+    800041e4:	ret
+
+00000000800041e6 <fir_f32_ref>:
+    800041e6:	beqz	a0,80004222 <fir_f32_ref+0x3c>
+    800041e8:	sh2add	a7,a1,a2
+    800041ec:	li	t1,0
+    800041ee:	j	80004216 <fir_f32_ref+0x30>
+    800041f0:	flw	fa5,0(a5)
+    800041f4:	flw	fa3,0(a6)
+    800041f8:	fmul.s	fa5,fa5,fa3
+    800041fc:	fadd.s	fa4,fa4,fa5
+    80004200:	addi	a5,a5,4
+    80004202:	addi	a6,a6,4
+    80004204:	bne	a5,a7,800041f0 <fir_f32_ref+0xa>
+    80004208:	fsw	fa4,0(a4)
+    8000420c:	addi	t1,t1,1
+    8000420e:	addi	a4,a4,4
+    80004210:	addi	a3,a3,4
+    80004212:	beq	a0,t1,80004222 <fir_f32_ref+0x3c>
+    80004216:	mv	a6,a3
+    80004218:	mv	a5,a2
+    8000421a:	fmv.w.x	fa4,zero
+    8000421e:	bnez	a1,800041f0 <fir_f32_ref+0xa>
+    80004220:	j	80004208 <fir_f32_ref+0x22>
+    80004222:	ret
+
+0000000080004224 <mac_i8_ref>:
+    80004224:	beqz	a0,80004242 <mac_i8_ref+0x1e>
+    80004226:	mv	a5,a1
+    80004228:	add	a1,a1,a0
+    8000422a:	li	a0,0
+    8000422c:	lb	a4,0(a5)
+    80004230:	lb	a3,0(a2)
+    80004234:	mulw	a4,a4,a3
+    80004238:	addw	a0,a0,a4
+    8000423a:	addi	a5,a5,1
+    8000423c:	addi	a2,a2,1
+    8000423e:	bne	a5,a1,8000422c <mac_i8_ref+0x8>
+    80004242:	ret
+
+0000000080004244 <mac_i16_ref>:
+    80004244:	beqz	a0,80004260 <mac_i16_ref+0x1c>
+    80004246:	mv	a5,a1
+    80004248:	sh1add	a1,a0,a1
+    8000424c:	li	a0,0
+    8000424e:	lh	a4,0(a5)
+    80004250:	lh	a3,0(a2)
+    80004252:	mulw	a4,a4,a3
+    80004256:	addw	a0,a0,a4
+    80004258:	addi	a5,a5,2
+    8000425a:	addi	a2,a2,2
+    8000425c:	bne	a5,a1,8000424e <mac_i16_ref+0xa>
+    80004260:	ret
