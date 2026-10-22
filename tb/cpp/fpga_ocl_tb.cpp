@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
 
   // Register map after reset.
   h.Check("ID", h.Rd(R_ID), 0x5349474Cu);
-  h.Check("VERSION", h.Rd(R_VERSION), 0x00030001u);
+  h.Check("VERSION", h.Rd(R_VERSION), 0x00040001u);
   h.Check("CLK_KHZ", h.Rd(R_CLK_KHZ), 62500u);
   h.Check("CTRL", h.Rd(R_CTRL), 0x3u);
   h.Check("STATUS", h.Rd(R_STATUS), 0x41u);  // held, DDR ready
