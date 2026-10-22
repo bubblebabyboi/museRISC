@@ -1,0 +1,46 @@
+# ptw_lock_fencei_directed (FENCE.I in MEM during a fetch walk's A/D lock) under the oops checkers, 8M-cycle cap
+# off = oops_core_tb (FPGA_TIMING=0) at b1c0c44 + test, fpga = oops_core_tb_fpga at b1c0c44 + test, naive = fpga with naive.diff (mem_port_sel not masked by walk_lock: the plain textual merge)
+off [--mem-lat 1] rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (15060 cycles) | PTWINV violations=0 0 stale | 
+off [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 0s | CORE TB PASS ptw_lock_fencei_directed.bin (17909 cycles) | PTWINV violations=0 0 stale | 
+off [--mem-lat 40:50] rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (38061 cycles) | PTWINV violations=0 0 stale | 
+fpga [--mem-lat 1] rc=0 0s | CORE TB PASS ptw_lock_fencei_directed.bin (15124 cycles) | PTWINV violations=0 0 stale | 
+fpga [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (18031 cycles) | PTWINV violations=0 0 stale | 
+fpga [--mem-lat 40:50] rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (38125 cycles) | PTWINV violations=0 0 stale | 
+naive [--mem-lat 1] rc=2 155s | CORE TB TIMEOUT ptw_lock_fencei_directed.bin after 8000000 cycles (fetch pa 0x1000; bus lat 1:1 gap 0 ready 100% seed 1) | PTWINV violations=0 0 stale | 
+naive [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=2 155s | CORE TB TIMEOUT ptw_lock_fencei_directed.bin after 8000000 cycles (fetch pa 0x1000; bus lat 1:6 gap 2 ready 70% seed 1) | PTWINV violations=0 0 stale | 
+naive [--mem-lat 40:50] rc=2 155s | CORE TB TIMEOUT ptw_lock_fencei_directed.bin after 8000000 cycles (fetch pa 0x1000; bus lat 40:50 gap 0 ready 100% seed 1) | PTWINV violations=0 0 stale | 
+DONE
+
+# naive variant on the three A/D race tests (4M-cycle cap): they pass, so they never reach the FENCE.I case
+start 2026-10-22T16:56:16Z head b1c0c442bebbae58cae7646f871a6083af667b3a + naive.diff (3 changed lines)
+build rc=0
+ptw_ad_store_race_directed [--mem-lat 1] rc=0 1s | CORE TB PASS ptw_ad_store_race_directed.bin (10668 cycles)
+ptw_ad_store_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 0s | CORE TB PASS ptw_ad_store_race_directed.bin (12730 cycles)
+ptw_ad_store_race_directed [--mem-lat 40:50] rc=0 1s | CORE TB PASS ptw_ad_store_race_directed.bin (41793 cycles)
+ptw_svadu_race_directed [--mem-lat 1] rc=0 8s | CORE TB PASS ptw_svadu_race_directed.bin (360611 cycles)
+ptw_svadu_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 9s | CORE TB PASS ptw_svadu_race_directed.bin (416315 cycles)
+ptw_svadu_race_directed [--mem-lat 40:50] rc=0 13s | CORE TB PASS ptw_svadu_race_directed.bin (619948 cycles)
+ptw_svadu_race_hyp_directed [--mem-lat 1] rc=0 9s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (414529 cycles)
+ptw_svadu_race_hyp_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 10s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (473903 cycles)
+ptw_svadu_race_hyp_directed [--mem-lat 40:50] rc=0 14s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (692178 cycles)
+DONE
+
+# --no-cache, at c8f7bcd
+lockfi-nocache-oops_core_tb rc=0 0s | CORE TB PASS ptw_lock_fencei_directed.bin (15940 cycles) | PTWINV violations=0
+lockfi-nocache-oops_core_tb_fpga rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (16100 cycles) | PTWINV violations=0
+
+# naive.diff
+diff --git a/rtl/core/sigil_core.sv b/rtl/core/sigil_core.sv
+index 6149a7f..2ce6af2 100644
+--- a/rtl/core/sigil_core.sv
++++ b/rtl/core/sigil_core.sv
+@@ -1588,8 +1588,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+   // the walker's for the whole lock and the walker never waits on MEM.
+   logic mem_port_sel;
+   if (FPGA_TIMING) begin : g_port_sel
+-    assign mem_port_sel = ((data_access && mmu_d_ok) || mem_fencei) &&
+-                          !walk_lock;
++    assign mem_port_sel = (data_access && mmu_d_ok) || mem_fencei;
+   end else begin : g_port_sel_off
+     assign mem_port_sel = mem_issue;
+   end

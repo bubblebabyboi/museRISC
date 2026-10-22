@@ -1,0 +1,141 @@
+# FPGA-configuration controls for the walker race fixes (sigil-fpga-build, oops_core_tb_fpga: SIGIL_VRF_OREG + SIGIL_FPGA_TIMING, checkers + PTWINV, --assert)
+
+## Mutations at 990c5de (worktrees ~/mhz100/mut-nodrop, mut-nolock; 4M-cycle cap)
+# nodrop: the stale-response drop without walk_abandon. Caught by a_walk_live in every run.
+# nolock: no A/D lock in the core. The A/D race tests pass with the gate's cycle counts (see the probe below).
+start 2026-10-22T20:43:31Z sha 990c5de1167bf1cbcd3af166fcac451ca5ec95e8 nodrop.diff=2 nolock.diff=9 changed lines
+build nodrop rc=0
+build nolock rc=0
+nodrop ptw_preempt_directed [--mem-lat 1] exit=1 0s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_b2b_directed [--mem-lat 1] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_trapdrop_directed [--mem-lat 1] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_b2b_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 2s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_directed [--mem-lat 40:50] exit=1 3s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_trapdrop_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_hyp_directed [--mem-lat 1] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_hyp_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 2s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_trapdrop_directed [--mem-lat 40:50] exit=1 3s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_preempt_b2b_directed [--mem-lat 40:50] exit=1 5s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_directed [--mem-lat 1] exit=1 1s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 2s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_load_directed [--mem-lat 1] exit=1 2s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_load_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=1 2s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nolock ptw_ad_store_race_directed [--mem-lat 1] exit=0 1s | CORE TB PASS ptw_ad_store_race_directed.bin (10668 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_ad_store_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=0 0s | CORE TB PASS ptw_ad_store_race_directed.bin (12730 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_ad_store_race_directed [--mem-lat 40:50] exit=0 1s | CORE TB PASS ptw_ad_store_race_directed.bin (41793 cycles) | stale=0 ptwinv=0 err=0 | 
+nodrop ptw_preempt_hyp_directed [--mem-lat 40:50] exit=1 8s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_directed [--mem-lat 40:50] exit=1 7s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nodrop ptw_gwidth_load_directed [--mem-lat 40:50] exit=1 7s |  | stale=0 ptwinv=0 err=2 | [0] %Error: sigil_core.sv:1707: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping 
+nolock ptw_svadu_race_directed [--mem-lat 1] exit=0 9s | CORE TB PASS ptw_svadu_race_directed.bin (360611 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_svadu_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=0 9s | CORE TB PASS ptw_svadu_race_directed.bin (416315 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_svadu_race_hyp_directed [--mem-lat 1] exit=0 9s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (414529 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_svadu_race_directed [--mem-lat 40:50] exit=0 13s | CORE TB PASS ptw_svadu_race_directed.bin (619948 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_svadu_race_hyp_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] exit=0 10s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (473903 cycles) | stale=0 ptwinv=0 err=0 | 
+nolock ptw_svadu_race_hyp_directed [--mem-lat 40:50] exit=0 14s | CORE TB PASS ptw_svadu_race_hyp_directed.bin (692178 cycles) | stale=0 ptwinv=0 err=0 | 
+DONE
+diff --git a/rtl/core/sigil_core.sv b/rtl/core/sigil_core.sv
+index ebe714f..69c7424 100644
+--- a/rtl/core/sigil_core.sv
++++ b/rtl/core/sigil_core.sv
+@@ -1637,7 +1637,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+       // miss frees the port in the cycle it preempts), then belongs
+       // to no walk: dropping it keeps the next walk (the preempting
+       // data walk) from taking it as its own PTE.
+-      if ((sfence_fire || trap_take || walk_abandon) &&
++      if ((sfence_fire || trap_take) &&
+           ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
+            (walk_issue && dreq_ready_i))) begin
+         dq_drop_q <= 1'b1;
+diff --git a/rtl/core/sigil_core.sv b/rtl/core/sigil_core.sv
+index ebe714f..9646e55 100644
+--- a/rtl/core/sigil_core.sv
++++ b/rtl/core/sigil_core.sv
+@@ -1570,7 +1570,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+                           mem_fencei;
+   assign mem_write_phase = exmem_ctrl_q.mem_write &&
+                            (!exmem_ctrl_q.amo || amo_wr_q);
+-  assign mem_issue = mem_needs_port && !walk_lock && !dq_pend_q &&
++  assign mem_issue = mem_needs_port && !dq_pend_q &&
+                      !trap_fire && !freeze;
+   assign mem_rsp = drsp_valid_i && dq_pend_q && !dq_walk_q;
+   // The final (or only) phase of MEM's access responds.
+@@ -1591,16 +1591,15 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+   // grant; FENCE.I has no translation): ptw_lock_fencei_directed.
+   logic mem_port_sel;
+   if (FPGA_TIMING) begin : g_port_sel
+-    assign mem_port_sel = ((data_access && mmu_d_ok) || mem_fencei) &&
+-                          !walk_lock;
++    assign mem_port_sel = (data_access && mmu_d_ok) || mem_fencei;
+   end else begin : g_port_sel_off
+     assign mem_port_sel = mem_issue;
+   end
+   assign walk_issue = walk_req && pmp_allow_walk && !dq_pend_q &&
+-                      (!mem_needs_port || walk_lock) && !trap_fire && !freeze &&
++                      !mem_needs_port && !trap_fire && !freeze &&
+                       !(FPGA_TIMING && mem_port_sel);
+   assign walk_skip = walk_req && !pmp_allow_walk && !dq_pend_q &&
+-                     (!mem_needs_port || walk_lock) && !trap_fire && !freeze;
++                     !mem_needs_port && !trap_fire && !freeze;
+   assign walk_rsp = drsp_valid_i && dq_pend_q && dq_walk_q && !dq_drop_q;
+   assign walk_grant = walk_skip || walk_rsp;
+   assign dreq_valid_o = mem_issue || walk_issue;
+
+## Lock probe at 990c5de + probe.diff (sim-only counters over the cycles walk_lock is set; 8M-cycle cap)
+# lock: cycles with walk_lock; needs: && mem_needs_port; data: && data_access; unxl: && data_access && !mmu_d_ok (MEM replaying its lookup);
+# fencei: && mem_fencei; block: && mem_needs_port && port free && !trap_fire && !freeze (MEM would issue but for the lock);
+# wwait: && walk_req && port free && no walk_issue/walk_skip (the walker waits inside its own lock)
+build off rc=0
+build fpga rc=0
+oops_core_tb ptw_ad_store_race_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (10251 cycles) | LOCKPROBE lock=256 needs=256 data=256 unxl=0 fencei=0 block=64 wwait=0
+oops_core_tb ptw_ad_store_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (12365 cycles) | LOCKPROBE lock=412 needs=412 data=412 unxl=0 fencei=0 block=64 wwait=0
+oops_core_tb ptw_ad_store_race_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (41952 cycles) | LOCKPROBE lock=3036 needs=3036 data=3036 unxl=0 fencei=0 block=64 wwait=0
+oops_core_tb ptw_svadu_race_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (356051 cycles) | LOCKPROBE lock=2176 needs=80 data=80 unxl=0 fencei=0 block=32 wwait=0
+oops_core_tb ptw_svadu_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (411698 cycles) | LOCKPROBE lock=2176 needs=80 data=80 unxl=0 fencei=0 block=32 wwait=0
+oops_core_tb ptw_svadu_race_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (615388 cycles) | LOCKPROBE lock=2176 needs=80 data=80 unxl=0 fencei=0 block=32 wwait=0
+oops_core_tb ptw_svadu_race_hyp_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (410033 cycles) | LOCKPROBE lock=4352 needs=224 data=224 unxl=0 fencei=0 block=96 wwait=0
+oops_core_tb ptw_svadu_race_hyp_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (469142 cycles) | LOCKPROBE lock=4352 needs=224 data=224 unxl=0 fencei=0 block=96 wwait=0
+oops_core_tb ptw_svadu_race_hyp_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (687682 cycles) | LOCKPROBE lock=4352 needs=224 data=224 unxl=0 fencei=0 block=96 wwait=0
+oops_core_tb ptw_lock_fencei_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (15060 cycles) | LOCKPROBE lock=128 needs=128 data=0 unxl=0 fencei=128 block=32 wwait=0
+oops_core_tb ptw_lock_fencei_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (17909 cycles) | LOCKPROBE lock=221 needs=221 data=0 unxl=0 fencei=221 block=32 wwait=0
+oops_core_tb ptw_lock_fencei_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (38061 cycles) | LOCKPROBE lock=1543 needs=1543 data=0 unxl=0 fencei=1543 block=32 wwait=0
+oops_core_tb_fpga ptw_ad_store_race_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (10668 cycles) | LOCKPROBE lock=128 needs=0 data=0 unxl=0 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_ad_store_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (12730 cycles) | LOCKPROBE lock=219 needs=0 data=0 unxl=0 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_ad_store_race_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_ad_store_race_directed.bin (41793 cycles) | LOCKPROBE lock=1534 needs=0 data=0 unxl=0 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (360611 cycles) | LOCKPROBE lock=2176 needs=112 data=208 unxl=96 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (416315 cycles) | LOCKPROBE lock=2176 needs=112 data=208 unxl=96 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_svadu_race_directed.bin (619948 cycles) | LOCKPROBE lock=2176 needs=112 data=208 unxl=96 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_hyp_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (414529 cycles) | LOCKPROBE lock=4352 needs=448 data=864 unxl=416 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_hyp_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (473903 cycles) | LOCKPROBE lock=4352 needs=448 data=864 unxl=416 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_svadu_race_hyp_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_svadu_race_hyp_directed.bin (692178 cycles) | LOCKPROBE lock=4352 needs=448 data=864 unxl=416 fencei=0 block=0 wwait=0
+oops_core_tb_fpga ptw_lock_fencei_directed [--mem-lat 1] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (15124 cycles) | LOCKPROBE lock=128 needs=128 data=0 unxl=0 fencei=128 block=32 wwait=0
+oops_core_tb_fpga ptw_lock_fencei_directed [--mem-lat 1:6 --mem-gap 2 --mem-ready 70] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (18031 cycles) | LOCKPROBE lock=238 needs=238 data=0 unxl=0 fencei=238 block=32 wwait=0
+oops_core_tb_fpga ptw_lock_fencei_directed [--mem-lat 40:50] rc=0 | CORE TB PASS ptw_lock_fencei_directed.bin (38125 cycles) | LOCKPROBE lock=1543 needs=1543 data=0 unxl=0 fencei=1543 block=32 wwait=0
+DONE
+diff --git a/rtl/core/sigil_core.sv b/rtl/core/sigil_core.sv
+index ebe714f..e303850 100644
+--- a/rtl/core/sigil_core.sv
++++ b/rtl/core/sigil_core.sv
+@@ -1651,6 +1651,22 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+     end
+   end
+ 
++`ifndef SYNTHESIS
++  // verilator lint_off PROCASSINIT
++  int unsigned lp_lock = 0, lp_needs = 0, lp_data = 0, lp_unxl = 0, lp_fencei = 0, lp_block = 0, lp_wwait = 0;
++  always @(posedge clk_i) if (rst_ni && walk_lock) begin
++    lp_lock <= lp_lock + 1;
++    if (mem_needs_port) lp_needs <= lp_needs + 1;
++    if (data_access) lp_data <= lp_data + 1;
++    if (data_access && !mmu_d_ok) lp_unxl <= lp_unxl + 1;
++    if (mem_fencei) lp_fencei <= lp_fencei + 1;
++    if (mem_needs_port && !dq_pend_q && !trap_fire && !freeze) lp_block <= lp_block + 1;
++    if (walk_req && !dq_pend_q && !walk_issue && !walk_skip) lp_wwait <= lp_wwait + 1;
++  end
++  final $display("LOCKPROBE lock=%0d needs=%0d data=%0d unxl=%0d fencei=%0d block=%0d wwait=%0d",
++                 lp_lock, lp_needs, lp_data, lp_unxl, lp_fencei, lp_block, lp_wwait);
++  // verilator lint_on PROCASSINIT
++`endif
+   // A MEM access in flight is never abandoned: nothing older can
+   // trap while it waits (WB is frozen behind mem_stall).
+ `ifndef SYNTHESIS

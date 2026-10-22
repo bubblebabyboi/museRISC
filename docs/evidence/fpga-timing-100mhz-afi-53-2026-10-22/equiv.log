@@ -1,0 +1,17 @@
+# REF=origin/73-oops-fix SV2V=<sv2v> scripts/fpga_timing_equiv.sh   (default list: sigil_csr sigil_mmu sigil_dcache sigil_icache sigil_core)
+# head 990c5de1167bf1cbcd3af166fcac451ca5ec95e8 dirty=[0], REF=origin/73-oops-fix, Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000334), sv2v 0.0.13, Darwin arm64, start 2026-10-22T20:17:29Z
+sigil_csr vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 3936 are proven and 0 are unproven, 50 s
+sigil_mmu vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 5128 are proven and 0 are unproven, 1282 s
+sigil_dcache vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 2076 are proven and 0 are unproven, 7 s
+sigil_icache vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 768 are proven and 0 are unproven, 1 s
+sigil_core (default) vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 66 s
+sigil_core (SIGIL_SRAM_OREG) vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 66 s
+rc=0 end 2026-10-22T20:42:08Z
+
+# Mutations of the FPGA_TIMING=0 path in rtl/core/sigil_core.sv (at a67e932, same core_eq; tree restored after each):
+# M1: walk_issue's (!mem_needs_port || walk_lock) -> !mem_needs_port
+# M2: drop condition (sfence_fire || trap_take || walk_abandon) -> (sfence_fire || trap_take)
+M1 walk_issue without the A/D lock term:
+sigil_core (default) vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: FAILED, 12 paired submodules, 10536 are proven and 1 are unproven, 117 s
+M2 drop condition without walk_abandon:
+sigil_core (default) vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: FAILED, 12 paired submodules, 10536 are proven and 1 are unproven, 141 s

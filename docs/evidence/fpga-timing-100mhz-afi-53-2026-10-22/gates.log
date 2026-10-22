@@ -1,0 +1,135 @@
+# 53-100mhz-afi gates (sigil-fpga-build r7iz.8xlarge, Verilator 5.048 deps; 5.020 Ubuntu package for lint)
+
+## Chain HEAD-off at a67e932 (SIGIL_FPGA_TIMING undefined; RTL = 990c5de)
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T19:53:46Z mode off
+head a67e932c504802d36c356e968824664693521c3f dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=4
+/dev/root       484G  222G  262G  46% /
+lint-5.048 rc=0 30s 19:54:17
+lint-5.020 rc=0 24s 19:54:41
+oops-ptw-walker rc=0 114s 19:56:35
+core-test rc=0 2995s 20:46:30
+riscv-tests rc=0 21s 20:46:51
+end 2026-10-22T20:46:51Z porcelain-after=[0]
+DONE
+core-test:
+  TB PASS lines: 304, TB FAIL lines: 0, %Error lines: 0
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro fakeram45]
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro sky130]
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro oreg]
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro vrforeg]
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro fpga]
+riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+oops-ptw-walker: 42 CORE TB PASS (14 tests x 3 timings), 42 'PTWINV violations=0'
+lint lines (both versions, after make lint):
+  5.048 lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_mmu -GFPGA_TIMING=1'b1
+  5.048 lint OK sigil_csr -GFPGA_TIMING=1'b1
+  5.020 lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_mmu -GFPGA_TIMING=1'b1
+  5.020 lint OK sigil_csr -GFPGA_TIMING=1'b1
+
+## Chain HEAD-fpga at a67e932 (+define+SIGIL_FPGA_TIMING +define+SIGIL_VRF_OREG on every Verilator build)
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T19:53:47Z mode fpga
+head a67e932c504802d36c356e968824664693521c3f dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=4
+VERILATOR=verilator +define+SIGIL_FPGA_TIMING +define+SIGIL_VRF_OREG
+/dev/root       484G  222G  262G  46% /
+oops-ptw-walker-fpga rc=0 297s 19:58:45
+core-test-fpga rc=0 3324s 20:54:09
+riscv-tests-fpga rc=0 24s 20:54:33
+end 2026-10-22T20:54:33Z porcelain-after=[0]
+DONE
+core-test (SRAM_MACROS=vrforeg fpga):
+  TB PASS lines: 295, TB FAIL lines: 0, %Error lines: 0
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro vrforeg]
+  CORE TB PASS: 51 directed runs, 0 FAIL [SRAM macro fpga]
+riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+oops-ptw-walker OOPS_CFG=fpga: 42 CORE TB PASS, 42 'PTWINV violations=0'
+
+## Lint on macOS (Verilator 5.044) at a67e932
+head a67e932c504802d36c356e968824664693521c3f dirty=[0]
+make lint rc=0
+lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+lint OK sigil_mmu -GFPGA_TIMING=1'b1
+lint OK sigil_csr -GFPGA_TIMING=1'b1
+lintx rc=0
+
+## Chain ACT at b1c0c44 (core_tb_fpga: SIGIL_VRF_OREG + SIGIL_FPGA_TIMING; the 2578 ELFs of the 73-oops-fix gate)
+start 2026-10-22T16:55:26Z head b1c0c442bebbae58cae7646f871a6083af667b3a elfs-fingerprint 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f
+build-core-tb-fpga rc=0 25s 16:55:52
+act-fpga rc=1 2742s 17:41:34
+end 2026-10-22T17:41:34Z
+DONE
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 2742s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18056
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+test,result,cycles
+PMPSm_cfg_A_tor_zero-00,FAIL,18056
+
+## Chain BOOT at b1c0c44 (soc_rtl_tb_fpga, Linux 6.12 initramfs)
+start 2026-10-22T16:55:26Z head b1c0c442bebbae58cae7646f871a6083af667b3a Verilator 5.048 2026-04-26 rev v5.048
+build-socrtl-fpga rc=0 14s 16:55:40
+linux-boot-fpga rc=0 3436s 17:52:56
+end 2026-10-22T17:52:56Z
+DONE
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+console: identical to docs/evidence/oops-fix-gaps-73-2026-10-22/linux_boot.log (soc_rtl_tb, FPGA_TIMING off, efe871d) after removing printk timestamps, usecs and BogoMIPS values
+cycles: SOC RTL TB PASS (exit string at 262556808 cycles) vs 261247447 at efe871d (FPGA_TIMING off)
+
+## Earlier chains at b1c0c44 (same RTL logic; before ptw_lock_fencei joined core-test)
+OFF:
+  lint-5.048 rc=0 29s 16:47:44
+  lint-5.020 rc=1 21s 16:48:05
+  oops-ptw-walker rc=0 113s 16:49:58
+  lint-5.020-rerun rc=0 24s 16:57:31 (lintx.sh -GFPGA_TIMING=1'b1)
+  core-test rc=0 2984s 17:39:42
+  riscv-tests rc=0 21s 17:40:03
+  end 2026-10-22T17:40:03Z porcelain-after=[0]
+  DONE
+  (lint-5.020 rc=1: lintx.sh then passed -GFPGA_TIMING=1, which 5.020 -Wall flags WIDTHTRUNC on the 1-bit parameter; rerun with 1'b1)
+  core-test:
+    TB PASS lines: 300, TB FAIL lines: 0, %Error lines: 0
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fakeram45]
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro sky130]
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro oreg]
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro vrforeg]
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fpga]
+FPGA:
+  oops-ptw-walker-fpga rc=0 294s 16:52:09
+  core-test-fpga rc=0 3318s 17:47:27
+  riscv-tests-fpga rc=0 24s 17:47:51
+  end 2026-10-22T17:47:51Z porcelain-after=[0]
+  DONE
+  core-test-fpga:
+    TB PASS lines: 291, TB FAIL lines: 0, %Error lines: 0
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro vrforeg]
+    CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fpga]
+
+## Chain FINAL at c8f7bcd (lint, walker set in both configurations, ptw_lock_fencei --no-cache)
+start 2026-10-22T17:15:02Z head c8f7bcd3447ad23dc004ec32c834684b7e0aed1a dirty=[0]
+lint-5.048 rc=0 27s 17:15:29
+lint-5.020 rc=0 22s 17:15:51
+oops-ptw-walker rc=0 129s 17:18:00
+oops-ptw-walker-fpga rc=0 309s 17:23:09
+lockfi-nocache-oops_core_tb rc=0 0s | CORE TB PASS ptw_lock_fencei_directed.bin (15940 cycles) | PTWINV violations=0
+lockfi-nocache-oops_core_tb_fpga rc=0 1s | CORE TB PASS ptw_lock_fencei_directed.bin (16100 cycles) | PTWINV violations=0
+end 2026-10-22T17:23:10Z
+DONE

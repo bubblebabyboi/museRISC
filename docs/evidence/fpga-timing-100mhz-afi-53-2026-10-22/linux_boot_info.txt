@@ -1,0 +1,11 @@
+start 2026-10-22T16:55:26Z head b1c0c442bebbae58cae7646f871a6083af667b3a Verilator 5.048 2026-04-26 rev v5.048
+build-socrtl-fpga rc=0 14s 16:55:40
+linux-boot-fpga rc=0 3436s 17:52:56
+end 2026-10-22T17:52:56Z
+DONE
+inputs (~/os-artifacts, same as the 73-oops-fix gate boot):
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+console: identical to docs/evidence/oops-fix-gaps-73-2026-10-22/linux_boot.log (soc_rtl_tb, FPGA_TIMING off, efe871d) after removing printk timestamps, usecs and BogoMIPS values
+cycles: SOC RTL TB PASS (exit string at 262556808 cycles) vs 261247447 at efe871d (FPGA_TIMING off)

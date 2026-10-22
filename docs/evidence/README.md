@@ -2437,3 +2437,29 @@ built from this branch is still to come.
 
 Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
 runs).
+
+## #53 on the #73 oops fix: FPGA_TIMING with the walker race fixes (2026-10-22, branch `53-100mhz-afi`)
+
+- Artifacts: [`fpga-timing-100mhz-afi-53-2026-10-22/`](fpga-timing-100mhz-afi-53-2026-10-22/README.md)
+- What: `73-oops-fix` with `53-mem-stage-pipeline` merged in. This is
+  the source for the 100 MHz AFI.
+  - FPGA_TIMING=0: Yosys proves the RTL equivalent to `73-oops-fix`
+    (sigil_csr, sigil_mmu, both caches, and sigil_core in the default
+    and `SIGIL_SRAM_OREG` configurations).
+  - FPGA_TIMING=1: the walker's A/D lock also masks #53's flop-driven
+    data-port select. Without the mask, a FENCE.I in MEM during the lock
+    deadlocks; the new `ptw_lock_fencei_directed` reaches that case.
+- Gates in both configurations:
+  - lint clean on Verilator 5.048, 5.020 and 5.044;
+  - walker race set 42/42 under the checkers;
+  - walker matrix 133/133;
+  - core-test rc 0;
+  - riscv-tests 123/123.
+- With FPGA_TIMING on:
+  - Linux 6.12 boot reaches `SIGIL_LINUX_BOOT_OK`;
+  - full ACT is 2577/2578 (only `PMPSm_cfg_A_tor_zero-00`).
+- Caveat: with FPGA_TIMING the A/D race tests pass even with the lock
+  removed. Each walker grant forces MEM to replay its translation, so
+  the write-back always gets the port first. The lock still holds
+  FENCE.I back, and it is the guarantee for any case where the
+  write-back misses that cycle (README, `fpga_controls.log`).
