@@ -66,7 +66,7 @@ step platform-reboot 0 --no-markers --bin "$FW/f2_platform_test.bin" --mailbox 0
   --load 0xC80000000="$OUT/pmem-marker.bin" --save 0xC80000000="$OUT/pmem-after.bin:4K"
 echo "pmem after reboot + power off: $(head -c 8 "$OUT/pmem-after.bin")" | tee -a "$R"
 # 5. Sparse test of all DDR4 + HBM from the core, latency, read rate.
-step memtest-core 0 --no-markers --bin "$FW/f2_memtest.bin" --timeout 600
+step memtest-core 0 --no-markers --bin "$FW/f2_memtest.bin" --mailbox 0 --timeout 600
 # 6. Existing firmware and SDK examples (no --ignore-mem-err).
 step smoke 0 --stdin --bin "$FW/fpga_smoke_test.bin" < "$FW/fpga_smoke_uart_in.txt"
 step crypto 0 --bin "$FW/crypto_soc_test.bin"
