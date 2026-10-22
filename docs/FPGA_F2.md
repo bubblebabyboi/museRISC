@@ -448,8 +448,13 @@ devices are the contract in [`LINUX_PLATFORM.md`](LINUX_PLATFORM.md).
   global addressing, so AXI port 0 reaches all 32 pseudo channels; ECC off;
   the IP's "Customer Address Map" option stays **disabled**, AWS ERRATA:
   address aliasing in 16 GB mode). `clk_hbm_axi` = AWS_CLK_GEN HBM group,
-  recipe **H2 = 450 MHz** (as `cl_mem_perf`); the Shell HBM monitor APB
-  ports are connected. STATUS bit 7 = both stacks initialized.
+  recipe **H0 = 250 MHz** (`build_cl_sigil.sh --recipe-hbm`): the HDK
+  default H2 (450 MHz) missed timing by 0.92 ns post-place on the HBM
+  port → AXI3 slice `WREADY` → payload-register CE path, and one port at
+  32 B × 250 MHz = 8 GB/s is still twice what the core-clock memory engine
+  can use. The build's HBM recipe is in OCL `CAPS[7:4]` so `sigil_host
+  --recipe-b` reprograms the same one. The Shell HBM monitor APB ports are
+  connected. STATUS bit 7 = both stacks initialized.
 - PCIS also crosses SLR1 → SLR2 through two register slices (PCIS enters the
   CL in SLR1); the SmartConnect, DDR4 controller, SoC and its clock
   converter stay in SLR2 so the SoC → DDR4 path never leaves SLR2.
@@ -537,7 +542,7 @@ Registers `0x000`–`0x04C` as in F3, with these additions/changes:
 | 0x038 | HOST_FLAGS | RW | host bookkeeping, cleared only by a CL reset (`sigil_host`: bit 0 DDR4 scrubbed, bit 1 HBM scrubbed) |
 | 0x050 | UART_TX_DATA3 | RO, pops | bits 25:24 = n (0–3) bytes popped, bytes in 7:0, 15:8, 23:16; bit 31 = n ≠ 0 |
 | 0x054 | RAM_SIZE_MB | RO | SoC RAM window (81920 = 80 GiB) |
-| 0x058 | CAPS | RO | bit 0 HBM present |
+| 0x058 | CAPS | RO | bit 0 HBM present, bits 7:4 HBM clock recipe + 1 (`0x11` = H0) |
 | 0x060 / 0x064 | ERR_ADDR_LO / HI | RO | SoC address of the first memory error since clear |
 | 0x068 | ERR_INFO | RO | 31 valid, 30 write, 29 out of window, 28 ID mismatch, 27:26 xRESP, 23:16 request length, 15:0 response ID |
 | 0x06C | ERR_COUNT | RO | memory errors since clear |
