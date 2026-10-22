@@ -493,6 +493,25 @@ clean PDN and CTS, and meets 25 MHz after global routing (+1.76 ns),
 but does not detail-route: routing demand is about twice what fits.
 See [`evidence/w7-sky130-pnr-2026-10-21.log`](evidence/w7-sky130-pnr-2026-10-21.log).
 
+### Hierarchical place & route (2026-10-22)
+
+Hard blocks `sigil_cpu` (with the 7 OpenRAM macros) and
+`sigil_crypto_top`, plus a small top level, in the 2920 × 3520 µm
+Caravel die (`flow/designs/sky130hd/sigil_hier/`). Per-block synthesis:
+
+| Block | Std cells | Macros | Caravel share | Global route in that share |
+|---|---:|---:|---:|---|
+| `sigil_cpu` | 1.896 mm² | 2.914 mm² | 7.42 mm² | 45k–101k overflowed gcells, 77–78 % usage |
+| `sigil_crypto_top` | 1.074 mm² | — | 2.2 mm² | 0 overflow, 63–68 % usage; @@CRYPTO_AREA@@ |
+| top glue (fabric, CLINT, PLIC, UART, ROM, bridge) | 0.060 mm² | — | 0.47 mm² column | works (dry run) |
+
+The CPU block global-routes cleanly only at about **11.2 mm²** (9.9 mm²
+still overflows), so the whole SoC needs **≈ 14 mm²** on sky130hd,
+about 1.4× the Caravel user area. It does not fit Caravel in this
+configuration. The crypto engine is a third of the SoC's std-cell
+area since W3 (Keccak f1600, SHA-512). See
+[`evidence/w7-sky130-hier-2026-10-22.log`](evidence/w7-sky130-hier-2026-10-22.log).
+
 ## sky130 chip-size estimate (rough, 2026-10-16 configuration)
 
 - **Synthesized (flat):** 2.36 mm² std cells + 6.23 mm² SRAM macros.

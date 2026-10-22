@@ -2066,3 +2066,44 @@ config `flow/designs/sky130hd/sigil_soc/`:
   realize. A 3700 × 4400 µm (16.3 mm²) run still had ~20,000
   overflowed gcells. An owner decision on the sky130 configuration
   (smaller design, larger die or hierarchical P&R) is needed.
+
+## W7 / #11: hierarchical sky130hd P&R for the Caravel user area (2026-10-22) — does not fit
+
+Full log: [`w7-sky130-hier-2026-10-22.log`](w7-sky130-hier-2026-10-22.log).
+Branch `11-sky130-hier`, same ORFS image and sky130 configuration as the
+flat run; config `flow/designs/sky130hd/sigil_hier/` (top) with
+`sigil_cpu/` and `sigil_crypto_top/` hard-block configs. RTL unchanged.
+
+- **Partition:** `sigil_cpu` (core, vector unit, FPU, L1s, the 7 OpenRAM
+  macros; 1.90 mm² std cells + 2.91 mm² macros) and `sigil_crypto_top`
+  (1.07 mm², a third of the SoC's std cells) as Caravel-style hard
+  blocks (met1–met4 signals, met4 VDD/VSS pins incl. the straps over
+  the OpenRAM supply columns); the top keeps the fabric, CLINT, PLIC,
+  UART, boot ROM and bridge (0.06 mm²) and connects the blocks with
+  met5. Top-level synthesis uses port-only block stubs: ORFS's `BLOCKS`
+  liberty blackboxing fails on `sigil_cpu`'s parameters.
+- **Top level works:** with provisional block abstracts, the v2 floorplan
+  (left glue column, block pins on their left/bottom edges) runs synth →
+  PDN (block power pins connected) → place → CTS → GRT (3,536 overflowed
+  gcells) → DRT converging (20,045 → 1,009 by iteration 15).
+- **Crypto block** in its Caravel slot: @@CRYPTO_README@@
+- **CPU block does not fit.** In its 7.42 mm² share of the die, global
+  routing overflows on 45,096–100,783 gcells at 77–78 % usage (28.4–28.6 m
+  of wire for 1.90 mm² of cells). GRT-only sizing: 9.92 mm² still
+  overflows (17,997 gcells, 57.5 %); **11.22 mm²** is clean (177 gcells,
+  51.4 %). With the crypto block (~2.2 mm²) and the glue column, the
+  whole SoC needs **≈ 14 mm²**, about 1.4× the 10.28 mm² Caravel user area.
+  Splitting the CPU block further cannot help: the overflow is global
+  (all four layers at 65–84 %), not a local hotspot.
+- **Correction to the flat-run reading:** stock ORFS `aes` in the same
+  image goes 19,752 → 15,827 → 14,498 → 3,795 → … → 0 (iteration 7), and the
+  hierarchical crypto block goes 263,961 → 193,866 → 182,045 → 60,919 → … →
+  5,184 (iteration 8). Detailed routing only starts to converge at
+  iteration 3, so the flat run, stopped during iteration 2, did not
+  show non-convergence by itself. Its conclusion still stands, on the
+  global-routing overflow evidence above.
+- **No GDS.** Options for the owner (#13): drop the vector unit for
+  sky130 (the recorded RV64GC + crypto fallback: frees the 3 VRF macros,
+  1.26 mm² + halos, and ~0.3 mm² of logic), trim the crypto engine for
+  sky130 (Keccak/SHA-512), a smaller SRAM option (DFFRAM, custom
+  single-port OpenRAM), or a ~14 mm² non-Caravel die.
