@@ -1,0 +1,39 @@
+# 73-oops-fix quick gates on sigil-fpga-build (clone ~/oops/fix/sigil)
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T13:12:02Z
+head efe871d12f937c81a59ac0b3669a7f5b894fdb1e dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=6
+
+lint-5.048 rc=0 14s
+lint-5.020 rc=0 11s
+core-test rc=0 2192s
+riscv-tests rc=0 19s
+end 2026-10-22T13:49:18Z
+DONE
+
+## lint (both versions): warnings/errors
+lint-5.048.log:0
+lint-5.020.log:0
+
+## core-test
+TB PASS lines: 293
+CORE TB FAIL lines: 0
+assertion failures: 0
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fakeram45]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro sky130]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro oreg]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro vrforeg]
+### the 10 new directed tests, runs per run_directed.sh configuration
+     10 [nocache]
+     10 [rand]
+     10 [xinit1]
+     10 [xinit3]
+### their PASS lines: 40
+
+## riscv-tests
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+## lint, third Verilator (macOS, Verilator 5.044), same RTL as efe871d
+make lint rc=0, warnings/errors: 0
