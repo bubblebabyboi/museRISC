@@ -15,7 +15,7 @@ module test_sigil_regs();
     sigil_ocl_rd(`SIGIL_CTRL, d);     sigil_check("CTRL reset value", d, 32'h3);
     sigil_ocl_rd(`SIGIL_STATUS, d);   sigil_check("STATUS (in reset, DDR + HBM ready)", d, 32'hC1);
     sigil_ocl_rd(32'h054, d);         sigil_check("RAM_SIZE_MB (DDR4 + HBM)", d, 32'd81920);
-    sigil_ocl_rd(32'h058, d);         sigil_check("CAPS (HBM present)", d, 32'h1);
+    sigil_ocl_rd(32'h058, d);         sigil_check("CAPS (HBM present, recipe H0)", d, 32'h11);
     sigil_ocl_rd(`SIGIL_BOOT_PC_LO, d); sigil_check("BOOT_PC_LO reset", d, 32'h1000);
     sigil_ocl_rd(`SIGIL_BOOT_PC_HI, d); sigil_check("BOOT_PC_HI reset", d, 32'h0);
     sigil_ocl_wr(`SIGIL_SCRATCH, 32'hA5C3_0F96);

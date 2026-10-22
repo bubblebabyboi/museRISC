@@ -53,7 +53,7 @@ module test_sigil_platform();
     sigil_check("STATUS DDR4 + HBM ready, held", d & 32'hC1, 32'hC1);
     sigil_ocl_rd(`SIGIL_VERSION, d); sigil_check("VERSION", d, 32'h0004_0001);
     sigil_ocl_rd(32'h054, d);        sigil_check("RAM_SIZE_MB", d, 32'd81920);
-    sigil_ocl_rd(32'h058, d);        sigil_check("CAPS.hbm", d, 32'h1);
+    sigil_ocl_rd(32'h058, d);        sigil_check("CAPS (HBM, recipe H0)", d, 32'h11);
 
     // 2. Memory engine.
     eng_run(1, 64'h0_FFFF_C000, 64'h8000, SEED, ctrl);
