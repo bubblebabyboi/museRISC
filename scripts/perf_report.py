@@ -162,6 +162,20 @@ def markdown(data):
     if not runs:
         return "\n".join(out) + "\n"
 
+    out += ["## Configurations (as reported by the counter records)", "",
+            "| Config | Memory | Testbench | I$ sets x ways x line | D$ sets x ways x line | SRAM_OREG | VRF_OREG | L1 on |",
+            "|---|---|---|---|---|---:|---:|---:|"]
+    seen = set()
+    for r in runs:
+        c = r["counters"]
+        k = (r["config"], r["mem"])
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(f"| {r['config']} | {r['mem']} | `{os.path.basename(r['tb'])}` | {c.get('cfg_ic')} | "
+                   f"{c.get('cfg_dc')} | {c.get('cfg_sram_oreg')} | {c.get('cfg_vrf_oreg')} | "
+                   f"{c.get('cfg_cache_en')} |")
+    out.append("")
     out += ["## Summary", "",
             "| Benchmark | Config | Memory | Iterations | Cycles | Instret | IPC | CPI | Cycles/iter | Metric | HW-counter cycles |",
             "|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|"]
