@@ -61,7 +61,49 @@ Useful driver options: `--instr-cnt N` (override every test's
 `+instr_cnt`, for quick runs), `--out DIR` (default
 `build/riscv-dv/run`), `--keep` (keep Spike logs and DUT traces of
 passing runs too), `--core-tb PATH` (e.g. a harness built with another
-Verilator), `--max-cycles`, `--gen-timeout`, `--sim-timeout`.
+Verilator), `--gen-mem-gb` (below), `--max-cycles`, `--gen-timeout`,
+`--sim-timeout`.
+
+### Generator memory
+
+pygen needs far more memory than Spike or the core. Peak resident set
+size per program, all generated tests x seeds 100000-100009 on
+sigil-verify (`gen_rss_mb`):
+
+| Test | pygen peak RSS |
+|---|---|
+| `riscv_amo_test` (randomizing the LR/SC and AMO streams) | 7.8-8.4 GiB |
+| `riscv_mmu_stress_test`, `riscv_floating_point_mmu_stress_test`, `riscv_rand_instr_test` | 1.8-2.0 GiB |
+| the other 14 generated tests | 0.9-1.8 GiB |
+
+Started together, the ten seeds of `riscv_amo_test` need about 80 GiB;
+sigil-verify has 61 GiB and no swap. In round 1 (seeds
+100000-100009, 16 jobs, all ten `riscv_amo_test` generations started
+within 90 s) the kernel's OOM killer stopped four of them: `GEN_FAIL`
+with `pygen rc=-9`, `gen.log` ending at "Start generating 5000
+instruction", no traceback, no program. A harness failure, not a core
+result: no program existed for the core to run, and the four programs,
+regenerated alone (pygen is deterministic), match Spike.
+
+The driver therefore runs generations under a memory budget. Each
+generation reserves its test's `gen_mem_gb` from `testlist.yaml` (9 for
+`riscv_amo_test`; 2.5 for tests without the key, `DEFAULT_GEN_MEM_GB`
+in `rdv_regress.py`) while pygen runs, and waits, in submission order,
+until it fits in `--gen-mem-gb` (default 75% of `MemAvailable` when the
+driver starts: about 44 GiB on an idle sigil-verify, so four
+`riscv_amo_test` generations at a time; 0 turns the limit off). A
+generation larger than the whole budget still runs, alone. Jobs are
+queued seed by seed (every test's seed 1, then seed 2, ...), so the
+seeds of one test are spread over the run. The budget is fixed at
+start: pass a lower `--gen-mem-gb` when another job will start using
+memory during the run. GB here are GiB.
+
+pygen's peak resident set size goes into the `gen_rss_mb` column, the
+driver prints the maximum per test at the end, and it prints a note
+when a generation exceeds its test's `gen_mem_gb`. A pygen killed by
+SIGKILL is reported as `pygen rc=-9 (SIGKILL: out of memory? ...)`:
+check `dmesg` for an OOM kill, then lower `--gen-mem-gb` or raise the
+test's `gen_mem_gb`.
 
 ### Results
 
@@ -73,6 +115,7 @@ Verilator), `--max-cycles`, `--gen-timeout`, `--sim-timeout`.
 | `first_divergence` | first differing record: index, pc, instruction, Spike's disassembly, and each differing field (`x: dut {...} ref {...}`, `store: ...`, `csr 0x300 (mstatus): ...`, `cause: ...`) |
 | `ref_records`, `dut_records` | records compared (up to and including the `tohost` store) |
 | `dut_cycles`, `gen_s`, `spike_s`, `dut_s` | core cycles to `tohost`, wall-clock seconds per step |
+| `gen_rss_mb` | pygen's peak resident set size (MiB) |
 | `dir`, `asm`, `elf`, `spike_log`, `dut_trace`, `ref_csv`, `dut_csv`, `report` | artifacts of the run |
 
 | Status | Meaning |
@@ -81,7 +124,7 @@ Verilator), `--max-cycles`, `--gen-timeout`, `--sim-timeout`.
 | `MISMATCH` | the core finished, but its trace diverges from Spike's |
 | `DUT_TIMEOUT` | `core_tb` reached `--max-cycles` (or `--sim-timeout`); `first_divergence` says where the traces split, if they did |
 | `DUT_FAIL` | `core_tb` reported a failing `tohost` value or crashed |
-| `GEN_FAIL` | pygen or the assembler failed (`gen.out`, `gcc.out`) |
+| `GEN_FAIL` | pygen or the assembler failed (`gen.out`, `gcc.out`); `pygen rc=-9` is usually an out-of-memory kill ("Generator memory") |
 | `SPIKE_FAIL` | Spike failed or did not end with `tohost` = 1 (a generator or config problem, not a core bug) |
 
 Each run directory holds `<test>_0.S`, `<test>.elf`, `gen.log`
@@ -318,6 +361,15 @@ Evidence: [`evidence/riscv-dv-8-2026-10-22/`](evidence/riscv-dv-8-2026-10-22/), 
   through `make -C sim riscv-dv`: 60/60 PASS, 673,480 records.
 - No divergence attributable to a Sigil bug was found. The work went
   into the generator (patches A-AD) and the comparison rules.
+- Round 1, all tests x seeds 100000-100009 with 16 jobs (`b86bc8d`):
+  196 PASS and 4 `GEN_FAIL` (`riscv_amo_test` seeds 100000, 100001,
+  100002 and 100006, `pygen rc=-9`), out-of-memory kills of the
+  generator, not core results ("Generator memory" above); regenerated
+  alone, the four programs match Spike (4553, 4635, 4215 and 4304
+  records). With the memory budget (`d02176b`) the same command gives
+  200/200 PASS and 2,231,764 records compared, and the ten
+  `riscv_amo_test` seeds queued at once generate four at a time, 10/10
+  PASS ([`pygen-amo-oom/`](evidence/riscv-dv-8-2026-10-22/pygen-amo-oom/)).
 - LR/SC of different widths (`lr.w` then `sc.d` to the same address):
   Sigil's SC fails (its reservation covers exactly the LR's 4 bytes),
   Spike's succeeds. Both are allowed: the SC may only succeed if the

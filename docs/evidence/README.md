@@ -2169,3 +2169,40 @@ trace); every retired instruction and trap is compared. sigil-verify
   delegation, sub-programs, random CSR accesses; V/Zk/Zicond only via the
   directed programs; 18 riscv-dv tests excluded with reasons in
   `sim/riscv-dv/testlist.yaml`. Not in CI yet.
+
+## #8: riscv-dv round-1 GEN_FAILs were generator out-of-memory kills (2026-10-22)
+
+[`riscv-dv-8-2026-10-22/pygen-amo-oom/`](riscv-dv-8-2026-10-22/pygen-amo-oom/).
+Flow and the fix: [`docs/VERIFICATION.md`](../VERIFICATION.md)
+("Generator memory"). sigil-verify (c7i.8xlarge, 61 GiB, no swap,
+shared with the perf harness); Spike `2c300cd9`, riscv-dv `0d71c2b6`,
+Verilator 5.048, Python 3.12.3.
+
+- **Cause** (round 1, `--tests all --seeds 100000-100009 --jobs 16`,
+  runner at `b86bc8d`): 196 PASS, 4 `GEN_FAIL` `pygen rc=-9`
+  (`riscv_amo_test` 100000/100001/100002/100006). All ten amo
+  generations ran at once at about 8 GiB each; the kernel OOM-killed
+  four python3 processes (anon-rss 7.3-8.0 GiB, 10:38-10:40 UTC); each
+  killed `gen.log` stops at "Start generating 5000 instruction" with no
+  traceback, and no program was written, so the core never ran them.
+  Rerun alone they match Spike (4553/4635/4215/4304 records):
+  [`round1-gen-fail.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/round1-gen-fail.txt).
+- **Fix** (`9e64bc3`, `d02176b`): `rdv_regress.py` runs pygen under a
+  memory budget (`--gen-mem-gb`, default 75% of MemAvailable; per-test
+  `gen_mem_gb` in `testlist.yaml`, 9 for `riscv_amo_test`, default 2.5),
+  queues jobs seed-major, records pygen's peak RSS (`gen_rss_mb`) and
+  labels a SIGKILLed pygen as a likely OOM kill.
+- **Peak RSS per test** (one seed each, 20/20 PASS): amo 7.8 GiB, all
+  others 0.9-1.9 GiB:
+  [`measure-peak-rss.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/measure-peak-rss.txt).
+- **Representative rerun, 10/10 PASS** (`--tests riscv_amo_test --seeds
+  100000-100009 --jobs 16`, `d02176b`): budget 44.4 GiB, generations
+  ran four at a time (never more than 4 pygen processes above 1 GiB),
+  lowest MemAvailable 26.9 GiB; records match the round-1 reruns:
+  [`amo10-rerun.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/amo10-rerun.txt).
+- **Round-1 command on the fixed runner, 200/200 PASS** (`d02176b`,
+  3209 s): 2,231,764 records compared (the same total as round 1 after
+  its rerun), pygen peaks amo 7.8-8.4 GiB and others 0.9-2.0 GiB over 10
+  seeds, lowest MemAvailable 37.0 GiB, no new kernel OOM kill:
+  [`full-regression.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-regression.txt),
+  [`full-results.csv`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-results.csv).

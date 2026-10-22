@@ -1,0 +1,79 @@
+# Round-1 command again on the fixed runner: all tests x seeds 100000-100009, 16 jobs (sigil-verify, 2026-10-22 UTC)
+# start Thu Oct 22 11:55:44 UTC 2026
+# commit d02176b6bf2ec273379625c4ce38f447278a6afc
+# args --tests all --seeds 100000-100009 --jobs 16
+# rc 0
+# end Thu Oct 22 12:49:13 UTC 2026
+# Command: scripts/riscv_dv_regress.sh --tests all --seeds 100000-100009 --jobs 16 --out ~/riscv-dv-runs/amo-oom-fix/full
+# Shared machine: the perf-harness workflow ran up to ~12 RTL sims at the same time. Per-run rows: full-results.csv
+
+## Driver log (PASS lines counted, other lines verbatim)
+PASS lines: 200
+riscv-dv regression: 20 tests x 10 seeds = 200 runs, 16 parallel, pygen memory budget 45.2 GB, out /home/ubuntu/riscv-dv-runs/amo-oom-fix/full
+pygen peak RSS (GB): riscv_amo_test 8.4, riscv_mmu_stress_test 2.0, riscv_rand_instr_test 1.9, riscv_floating_point_mmu_stress_test 1.9, riscv_floating_point_rand_test 1.8, riscv_loop_test 1.8, riscv_no_fence_test 1.6, riscv_unaligned_load_store_test 1.6, riscv_illegal_instr_test 1.5, riscv_machine_mode_rand_test 1.5, riscv_privileged_mode_rand_test 1.5, riscv_u_mode_rand_test 1.5, riscv_b_ext_test 1.5, riscv_arithmetic_basic_test 1.4, riscv_non_compressed_instr_test 1.3, riscv_floating_point_arithmetic_test 1.2, riscv_ebreak_test 1.0, riscv_jump_stress_test 0.9
+summary: PASS 200 (200 runs, 3209 s) -> /home/ubuntu/riscv-dv-runs/amo-oom-fix/full/results.csv
+
+## /usr/bin/time -v (driver and children)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 53:28.77
+	Maximum resident set size (kbytes): 8850916
+	Exit status: 0
+
+## Per test: runs, PASS, records compared, pygen peak RSS min-max (MiB), gen_s min-max
+riscv_arithmetic_basic_test            10 10  121322 1389-1412 165-180
+riscv_rand_instr_test                  10 10  132112 1874-1991 232-258
+riscv_jump_stress_test                 10 10   53894 925-946 95-108
+riscv_loop_test                        10 10  244664 1813-1841 275-298
+riscv_no_fence_test                    10 10   94957 1629-1653 196-230
+riscv_illegal_instr_test               10 10  111741 1546-1581 183-216
+riscv_ebreak_test                      10 10  165838 979-995 111-130
+riscv_unaligned_load_store_test        10 10    2472 1578-1612 194-222
+riscv_mmu_stress_test                  10 10  158304 1967-2012 253-281
+riscv_machine_mode_rand_test           10 10   86779 1549-1570 185-207
+riscv_privileged_mode_rand_test        10 10   88095 1550-1568 185-218
+riscv_u_mode_rand_test                 10 10   88562 1539-1568 181-214
+riscv_non_compressed_instr_test        10 10   85568 1337-1351 148-167
+riscv_amo_test                         10 10   43961 7946-8643 455-506
+riscv_floating_point_arithmetic_test   10 10  103546 1257-1266 131-138
+riscv_floating_point_rand_test         10 10  136242 1729-1878 200-222
+riscv_floating_point_mmu_stress_test   10 10  167576 1946-1976 234-273
+riscv_b_ext_test                       10 10   96391 1492-1517 166-198
+sigil_bitmanip_crypto_test             10 10  249210 - 0-0
+sigil_vector_test                      10 10     530 - 0-0
+total records compared: 2231764
+
+## riscv_amo_test: seed, gen_seed, status, records (ref/dut), gen_rss_mb
+100000 1400526329 PASS 4553 4553 7946
+100001 1400526330 PASS 4635 4635 8607
+100002 1400526331 PASS 4215 4215 8643
+100003 1400526332 PASS 4437 4437 7997
+100004 1400526333 PASS 4331 4331 8356
+100005 1400526334 PASS 4556 4556 8421
+100006 1400526335 PASS 4304 4304 8620
+100007 1400526336 PASS 4313 4313 8519
+100008 1400526337 PASS 4069 4069 8440
+100009 1400526338 PASS 4548 4548 8491
+
+## Memory sampler (5 s): samples by number of python3 processes above 1 GiB RSS
+  0: 21 samples
+  1: 42 samples
+  2: 14 samples
+  3: 29 samples
+  4: 117 samples
+  5: 73 samples
+  6: 100 samples
+  7: 90 samples
+  8: 51 samples
+  9: 70 samples
+  10: 19 samples
+  11: 5 samples
+  12: 9 samples
+## Lowest MemAvailable sample (time, MemAvailable kB, python3 RSS sum kB, # >1 GiB)
+12:33:56 38787972 21938512 4
+## Highest python3 RSS sum sample
+12:14:48 39016996 24270024 7
+
+## Kernel OOM kills on the host (sudo dmesg -T): still only the 4 of round 1
+[Thu Oct 22 10:38:24 2026] Out of memory: Killed process 755159 (python3) total-vm:9106952
+[Thu Oct 22 10:39:09 2026] Out of memory: Killed process 755631 (python3) total-vm:9813472
+[Thu Oct 22 10:39:53 2026] Out of memory: Killed process 755985 (python3) total-vm:9730280
+[Thu Oct 22 10:40:39 2026] Out of memory: Killed process 755503 (python3) total-vm:9850392

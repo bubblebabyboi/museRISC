@@ -17,9 +17,9 @@ per (test, seed):
 The first-divergence column is filled for MISMATCH and, when the
 traces differ, for DUT_FAIL / DUT_TIMEOUT too.
 
-pygen needs gigabytes per program (riscv_amo_test about 8-9 GB), far
+pygen needs gigabytes per program (riscv_amo_test about 8 GiB), far
 more than Spike or the core. Generations therefore run under a memory
-budget (--gen-mem-gb, default 75% of MemAvailable at start): each
+budget (--gen-mem-gb, in GiB, default 75% of MemAvailable at start): each
 reserves its test's gen_mem_gb from testlist.yaml (default
 DEFAULT_GEN_MEM_GB) while pygen runs, and waits, in submission order,
 until it fits. Its peak RSS goes into the gen_rss_mb column.
@@ -78,8 +78,8 @@ FIELDS = ["test", "seed", "gen_seed", "status", "first_divergence", "ref_records
           "asm", "elf", "spike_log", "dut_trace", "ref_csv", "dut_csv", "report"]
 
 # Estimated pygen peak memory (GB = GiB) for a test without gen_mem_gb in
-# testlist.yaml: the other generated tests peak at 0.9-1.9 GB
-# (docs/VERIFICATION.md).
+# testlist.yaml: the other generated tests peak at 0.9-2.0 GiB
+# (docs/VERIFICATION.md, "Generator memory").
 DEFAULT_GEN_MEM_GB = 2.5
 # Default --gen-mem-gb: this fraction of MemAvailable at start.
 GEN_MEM_FRACTION = 0.75
