@@ -56,8 +56,9 @@ SLUB red-zoning is off (no SLUB_DEBUG_ON / slub_debug=, no KFENCE).
              libc from pmem), low-PA DTB + small.ext4
 
 Measured on the way (run 1, full map, sigil-f2.dtb): host load of the 8 GiB
-disk 2.38 s (3.61 GB/s); release -> "Run /sbin/init" 8.2 s kernel time (memory
-init of 48 + 16 GiB included); systemd 257 starts at 12.2 s; "Queued start
+disk 2.38 s (3.61 GB/s); "Run /sbin/init" at 8.2 s kernel time (the kernel
+clock starts only after ~2 min of OpenSBI + early memory setup, measured on
+the fixed AFI); systemd 257 starts at 12.2 s; "Queued start
 job for default target" at 73.5 s; first oops 89.5 s. No login prompt.
 
 Conclusion (11:35): the trigger is the Debian/systemd workload itself
@@ -94,3 +95,8 @@ Platform side notes (for a platform issue, not fixed here):
   given; sigil_host printed no "finisher" message). exp-nohbm.host also
   starts with "discarded 1024 UART bytes from a previous run": the SIGINT'd
   previous sigil_host had left the SoC running (drop mode).
+
+Follow-up (16:34-17:21 UTC): the same OS artifacts on the fixed AFI
+agfi-0c8aa56fde1a48495 (73-oops-fix, RTL 31a1568) boot to the login prompt
+in 347.9 s after release with no oops, pass 22/22 checks and the
+save/reload persistence check: f2-boot-fixed/ and docs/evidence/README.md.

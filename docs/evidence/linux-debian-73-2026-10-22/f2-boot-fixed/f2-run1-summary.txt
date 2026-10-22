@@ -1,0 +1,58 @@
+[    21.4 s] SoC released (host: SoC released)
+[   359.1 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie)
+[   369.3 s] login prompt
+[   392.9 s] logged in as sigil
+[   393.8 s] PASS: kernel 6.12 + Debian 13
+[   394.6 s] PASS: cpu isa has zve64d
+[   398.0 s] PASS: systemd running, no failed units
+[   399.5 s] PASS: root on /dev/pmem0 (ext4, rw)
+[   400.5 s] PASS: nodes 0-1 online
+[   400.9 s] PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+[   424.2 s] PASS: gcc hello.c && ./a.out
+[   426.0 s] PASS: gcc 14 / binutils / glibc versions
+[   809.4 s] PASS: make examples
+[   894.5 s] PASS: malloc test
+[  1093.2 s] PASS: numa_hbm (libnuma onnode 0 and 1)
+[  1252.2 s] PASS: default malloc lands in node 0
+[  1419.7 s] PASS: numactl --membind=1 lands in node 1
+[  1590.5 s] PASS: numactl --interleave=0,1 splits
+[  1591.2 s] PASS: RVV Zve64d user program
+[  1592.7 s] PASS: gcc auto-vectorized Zve64d program
+[  1607.4 s] PASS: sudo
+[  1617.4 s] PASS: python3
+[  1661.8 s] PASS: GNU tools present
+[  1825.7 s] PASS: systemd-analyze
+[  1828.3 s] PASS: write file on pmem disk
+[  1828.4 s] poweroff requested
+[  1893.4 s] PASS: poweroff
+
+Summary (F2):
+      21.4 s  SoC released (host: SoC released)
+     359.1 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie)
+     369.3 s  login prompt
+     392.9 s  logged in as sigil
+     393.8 s  PASS: kernel 6.12 + Debian 13
+     394.6 s  PASS: cpu isa has zve64d
+     398.0 s  PASS: systemd running, no failed units
+     399.5 s  PASS: root on /dev/pmem0 (ext4, rw)
+     400.5 s  PASS: nodes 0-1 online
+     400.9 s  PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+     424.2 s  PASS: gcc hello.c && ./a.out
+     426.0 s  PASS: gcc 14 / binutils / glibc versions
+     809.4 s  PASS: make examples
+     894.5 s  PASS: malloc test
+    1093.2 s  PASS: numa_hbm (libnuma onnode 0 and 1)
+    1252.2 s  PASS: default malloc lands in node 0
+    1419.7 s  PASS: numactl --membind=1 lands in node 1
+    1590.5 s  PASS: numactl --interleave=0,1 splits
+    1591.2 s  PASS: RVV Zve64d user program
+    1592.7 s  PASS: gcc auto-vectorized Zve64d program
+    1607.4 s  PASS: sudo
+    1617.4 s  PASS: python3
+    1661.8 s  PASS: GNU tools present
+    1825.7 s  PASS: systemd-analyze
+    1828.3 s  PASS: write file on pmem disk
+    1828.4 s  poweroff requested
+    1893.4 s  PASS: poweroff
+22/22 checks passed
+F2 SIGIL DEBIAN CHECK PASS

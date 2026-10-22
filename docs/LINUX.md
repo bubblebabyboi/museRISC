@@ -150,12 +150,12 @@ HBM), the test finisher and RTC (epic #73, phase 1–2) and a
 `sigil_host` that can bulk-load the disk image into the pmem window
 (PCIS offset `0x0C_0000_0000`) and save it back after power-off.
 
-> **Status (2026-10-22):** first F2 attempt on AFI `agfi-0a1fd54ef68bdc754`:
-> the disk loads in 2.4 s, Linux reaches `/sbin/init` 8.2 s after release
-> with all 64 + 16 GiB, systemd starts, but the kernel oopses 35–130 s
-> into userspace because of a core MMU walker race (found and fixed on the
-> RTL side; see `docs/evidence/linux-debian-73-2026-10-22/f2-oops-ab.txt`).
-> The login prompt, check results and boot times come with the next AFI.
+> **Status (2026-10-22): works.** On the AFI with the MMU walker-race fix
+> (`agfi-0c8aa56fde1a48495`) Debian boots to the login prompt in 5 min 48 s
+> after release and passes the 22-check acceptance plus the save/reload
+> persistence check (`docs/evidence/README.md`, "Debian on the F2 with the
+> walker-race fix"). The earlier AFI `agfi-0a1fd54ef68bdc754` oopses
+> 35–130 s into systemd startup (`linux-debian-73-2026-10-22/f2-oops-ab.txt`).
 
 The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 
@@ -332,22 +332,24 @@ saving, or the copy may hold a dirty, unjournaled state.
 
 ## 10. Boot time and speed
 
-| | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | F2 estimate (62.5 MHz) |
+| | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | **F2, measured** (62.5 MHz) |
 |---|---:|---:|---:|
-| reset → `/sbin/init` (kernel) | 2 s | 2.1 s | **8.2 s measured** (64 + 16 GiB) |
-| reset → login prompt | 21 s | 42 s | ≈ 9 min (estimate) |
-| `gcc -O2 hello.c` | < 1 s | 4.9 s | ≈ 1 min |
-| `python3 -c 'print(42)'` | < 1 s | 1.0 s | ≈ 15 s |
+| release → login prompt | 21 s | 42 s | **5 min 48 s** |
+| of which before the kernel clock starts (OpenSBI, memory setup) | < 1 s | — | ≈ 2 min 9 s |
+| `systemd-analyze` (kernel + userspace) | 0.5 + 9.8 s | 2.1 + 41 s | 10.6 s + 3 min 25 s |
+| `gcc hello.c && ./a.out` | < 1 s | 4.9 s | 22.9 s |
+| `make` of the 6 examples | 13 s | — | 6 min 23 s |
+| `python3 -c 'print(...)'` | < 1 s | 1.0 s | 9.9 s |
+| `poweroff` → host saved the 8 GiB disk | — | — | ≈ 1 min |
 
 QEMU's own speed says nothing about the FPGA. `scripts/qemu_sigil_check.py
 --icount` runs QEMU so that guest time advances 16 ns per instruction —
 a 62.5 MHz hart executing one instruction per cycle, a lower bound. The
 F2 hart (in order, blocking L1 caches, one memory request in flight)
-needed about 13 cycles per instruction on the #55 Linux 6.6 boot
-(calibrated by running that exact payload in the same icount QEMU), so
-the F2 column is the icount column × 13. Measured F2 numbers replace it
-in the evidence when the run happens. A faster FPGA clock (#53) scales
-everything.
+averages about 5 cycles per instruction on this workload (the icount
+column × 5; an earlier calibration on the 6.6 boot suggested 13). Most
+of the boot is systemd's userspace start-up (`systemd-analyze blame` on
+the board). A faster FPGA clock (#53) scales everything.
 
 The image is tuned for this (§1); `systemd-analyze blame` on the board
 shows where the time goes.
