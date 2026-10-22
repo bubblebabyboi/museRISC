@@ -1,0 +1,19 @@
+Sigil riscv-dv vs Spike, regression round 2
+Date (UTC): Thu Oct 22 12:54:09 UTC 2026 .. Thu Oct 22 15:09:55 UTC 2026 (runner wall time 8146 s)
+Host: sigil-verify (c7i.8xlarge, 32 vCPU, 61 GB), worktree ~/wt/rdv-round2 (detached)
+Commit: 84974af5c1512d36396b041fd46cf389397776c8 (origin/8-riscv-dv head at start)
+riscv-dv: 0d71c2b666dec48dde0b804a2138426da56aa252, pygen stamp d4b9ec8d0412c910a753e0daf9be15d6a019315388fea9c0350dfa6ee480f390
+Spike: 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c (Spike RISC-V ISA Simulator 1.1.1-dev)
+Verilator: Verilator 5.048 2026-04-26 rev v5.048 (core_tb rebuilt in the worktree, build.log)
+GCC: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+Python: Python 3.12.3
+Command: scripts/riscv_dv_regress.sh --tests all --seeds 200000-200024 --jobs 16 --out ~/riscv-dv-runs/round2/run
+         (20 supported tests x 25 fresh seeds = 500 runs; pygen memory budget 44.5 GB = 75% of MemAvailable)
+Result: PASS 500/500 (25/25 for every test). No MISMATCH / DUT_TIMEOUT / DUT_FAIL / GEN_FAIL / SPIKE_FAIL.
+        5,487,995 reference records compared; 25,211,404 DUT cycles.
+        sigil_bitmanip_crypto_test and sigil_vector_test are fixed directed programs: their seed only varies core_tb bus timing.
+Non-PASS artifacts: none (no non-PASS run). Passing runs keep ELF, asm, ref.csv, dut.csv, compare.txt; Spike log and DUT trace are deleted on PASS.
+Memory: no OOM kill during the run (last kernel OOM entries are 10:39-11:16 UTC, from round 1 / amo-oom work).
+        pygen peak RSS max per test (GB): riscv_amo_test 9.0 (max 9231 MB, seed 200024, 15 MB over its gen_mem_gb: 9 estimate; 1 of 25),
+        all others <= 2.0.
+Files: run.meta, regress.log (incl. /usr/bin/time -v), build.log, run/results.csv

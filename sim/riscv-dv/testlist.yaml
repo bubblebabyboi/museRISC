@@ -299,7 +299,8 @@
   source: target/rv32imc/testlist.yaml
   excluded: >
     pygen's HINT generation (+hint_instr_ratio, riscv_illegal_instr hint
-    path) fails with a constraint solve failure for every seed tried.
+    path) fails with a constraint solve failure for every seed tried
+    (docs/evidence/riscv-dv-8-2026-10-22/critic/hint-test-gen-fail.txt).
 
 - test: riscv_misaligned_instr_test
   source: target/rv32i/testlist.yaml

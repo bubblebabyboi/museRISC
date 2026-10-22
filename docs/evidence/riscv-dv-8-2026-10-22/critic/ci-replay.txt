@@ -1,0 +1,129 @@
+# Issue #8 completeness review: replay of .github/workflows/riscv-dv.yml on sigil-verify
+# The workflow cannot be dispatched on GitHub before it is on the default branch
+# (workflow_dispatch and schedule only), so its job was replayed step by step
+# on sigil-verify (Ubuntu 24.04.5, the runner image's OS) by tools/ci_replay.py:
+#  - a fresh clone of origin/8-riscv-dv in ~/rdvcrit/ci/sigil, HOME a new sandbox
+#    directory (no ~/opt/spike, no ~/.cache, no deps/ on PATH);
+#  - every `run:` step executed as written (bash -eo pipefail), with the
+#    workflow_dispatch input defaults (tests all, seeds 1, instr_cnt 0);
+#  - actions/checkout = the clone, actions/cache = miss (so the toolchain
+#    download, the Spike build and the riscv-dv clone + venv all ran),
+#    actions/upload-artifact = list the paths it would upload;
+#  - `nproc` reports 4 (a GitHub ubuntu-24.04 runner has 4 vCPUs), so the
+#    driver ran 4 jobs; memory was not limited to the runner's 16 GB (pygen
+#    budget 34.6 GB here; on the runner about 11 GB, so riscv_amo_test, 10 GB,
+#    generates alone there);
+#  - "Install host tools" not executed (no sudo apt in a replay); the packages
+#    it installs are present from Ubuntu's archive:
+#      build-essential            12.10ubuntu1
+#      curl                       8.5.0-2ubuntu10.16
+#      device-tree-compiler       1.7.0-2build1
+#      libboost-regex-dev:amd64   1.83.0.1ubuntu2
+#      libboost-system-dev:amd64  1.83.0.1ubuntu2
+#      python3-venv               3.12.3-0ubuntu2.1
+#      verilator                  5.020-1
+#    /usr/bin/verilator: Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+# start Thu Oct 22 21:04:09 UTC 2026 commit e1c433852fabd48670fbd5a33d112e19bee29fb8
+# rc 0 end Thu Oct 22 21:36:19 UTC 2026
+# clone head: e1c433852fabd48670fbd5a33d112e19bee29fb8
+# toolchain: riscv-toolchain/riscv/bin/riscv64-unknown-elf-gcc -> riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# spike: 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c
+
+## Replay log (step lines; the verilator/g++ command lines of the harness build are left out)
+== Check out Sigil: emulated (clone at /home/ubuntu/rdvcrit/ci/sigil)
+== Install host tools: skipped (see host tool check)
+== Cache RISC-V GCC toolchain: emulated (cache miss)
+== Install RISC-V GCC toolchain
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+== Install RISC-V GCC toolchain: rc=0, 37 s
+== Cache Spike: emulated (cache miss)
+== Build pinned Spike
+spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c installed in /home/ubuntu/rdvcrit/ci/home/opt/spike (Spike RISC-V ISA Simulator 1.1.1-dev)
+== Build pinned Spike: rc=0, 256 s
+== Cache riscv-dv clone and Python venv: emulated (cache miss)
+== Set up the generator (riscv-dv pin, patched pygen, venv)
+riscv-dv 0d71c2b666dec48dde0b804a2138426da56aa252: patched pygen in build/riscv-dv/gen, venv build/riscv-dv/venv (Python 3.12.3)
+== Set up the generator (riscv-dv pin, patched pygen, venv): rc=0, 14 s
+== Build the core harness with the retire trace
+make: Entering directory '/home/ubuntu/rdvcrit/ci/sigil/sim'
+mkdir -p ../build/sim
+mkdir -p ../build/sim/obj
+rm Vsigil_cpu__ALL.verilator_deplist.tmp
+make: Leaving directory '/home/ubuntu/rdvcrit/ci/sigil/sim'
+== Build the core harness with the retire trace: rc=0, 317 s
+== Run riscv-dv regression
+riscv-dv regression: 20 tests x 1 seeds = 20 runs, 4 parallel, pygen memory budget 34.6 GB, out /home/ubuntu/rdvcrit/ci/sigil/build/riscv-dv/ci
+PASS        riscv_jump_stress_test seed 1 
+PASS        riscv_arithmetic_basic_test seed 1 
+PASS        riscv_rand_instr_test seed 1 
+PASS        riscv_loop_test seed 1 
+PASS        riscv_no_fence_test seed 1 
+PASS        riscv_ebreak_test seed 1 
+PASS        riscv_illegal_instr_test seed 1 
+PASS        riscv_machine_mode_rand_test seed 1 
+PASS        riscv_privileged_mode_rand_test seed 1 
+PASS        riscv_mmu_stress_test seed 1 
+PASS        riscv_unaligned_load_store_test seed 1 
+PASS        riscv_non_compressed_instr_test seed 1 
+PASS        riscv_u_mode_rand_test seed 1 
+PASS        riscv_floating_point_arithmetic_test seed 1 
+PASS        riscv_floating_point_rand_test seed 1 
+PASS        sigil_bitmanip_crypto_test seed 1 
+PASS        riscv_b_ext_test seed 1 
+PASS        riscv_floating_point_mmu_stress_test seed 1 
+PASS        riscv_amo_test seed 1 
+PASS        sigil_vector_test seed 1 
+pygen peak RSS (GB): riscv_amo_test 8.1, riscv_mmu_stress_test 1.9, riscv_floating_point_mmu_stress_test 1.9, riscv_rand_instr_test 1.9, riscv_loop_test 1.8, riscv_floating_point_rand_test 1.8, riscv_no_fence_test 1.6, riscv_unaligned_load_store_test 1.6, riscv_machine_mode_rand_test 1.5, riscv_privileged_mode_rand_test 1.5, riscv_illegal_instr_test 1.5, riscv_u_mode_rand_test 1.5, riscv_b_ext_test 1.5, riscv_arithmetic_basic_test 1.4, riscv_non_compressed_instr_test 1.3, riscv_floating_point_arithmetic_test 1.2, riscv_ebreak_test 1.0, riscv_jump_stress_test 0.9
+summary: PASS 20 (20 runs, 1305 s) -> /home/ubuntu/rdvcrit/ci/sigil/build/riscv-dv/ci/results.csv
+== Run riscv-dv regression: rc=0, 1305 s
+== Summarize results
+== Summarize results: rc=0, 0 s
+== Upload riscv-dv results: would upload:
+   build-ci-riscv-dv.log -> build-ci-riscv-dv.log
+   build/riscv-dv/ci/results.csv -> build/riscv-dv/ci/results.csv
+   build-ci-riscv-dv-failures/ -> build-ci-riscv-dv-failures
+== job wall time 1929 s
+== step summary:
+## riscv-dv vs Spike
+
+tests `all`, seeds `1`, instr_cnt `0` (0 = test list), Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+
+| status | runs |
+|---|---|
+| PASS | 20 |
+
+20 runs, 523511 records compared
+
+
+## Per test (tools/pertest.py over results.csv and tools/stats2.py rows from the reference traces)
+test                                   runs pass   records  traps dut_cycles boot modes / pygen peak MiB
+riscv_arithmetic_basic_test               1    1     12209      1      53640 M:1 / 1394
+riscv_rand_instr_test                     1    1     14440      1      65073 S:1 / 1913
+riscv_jump_stress_test                    1    1      5281      1      29594 M:1 / 931
+riscv_loop_test                           1    1     31507      1     116149 S:1 / 1822
+riscv_no_fence_test                       1    1      9413      1      49096 S:1 / 1641
+riscv_illegal_instr_test                  1    1     11470     29      55108 U:1 / 1555
+riscv_ebreak_test                         1    1     19255    153      75087 S:1 / 985
+riscv_unaligned_load_store_test           1    1    204456   2019     560694 M:1 / 1589
+riscv_mmu_stress_test                     1    1     15881      1      74404 M:1 / 1987
+riscv_machine_mode_rand_test              1    1      9267      1      47129 M:1 / 1563
+riscv_privileged_mode_rand_test           1    1      8926      1      47125 U:1 / 1558
+riscv_u_mode_rand_test                    1    1      8798      1      45696 U:1 / 1541
+riscv_non_compressed_instr_test           1    1      8569      1      40509 S:1 / 1342
+riscv_amo_test                            1    1      4163      1      20645 U:1 / 8340
+riscv_floating_point_arithmetic_test      1    1     10354      1      50746 M:1 / 1261
+riscv_floating_point_rand_test            1    1     16207      1      76500 U:1 / 1798
+riscv_floating_point_mmu_stress_test      1    1     16752      1      80685 U:1 / 1972
+riscv_b_ext_test                          1    1      9461      1      48605 S:1 / 1504
+sigil_bitmanip_crypto_test                1    1     24924      0      90839 M(directed):1 / 0
+sigil_vector_test                         1    1     82178      0    1160582 M(directed):1 / 0
+total runs 20, PASS 20, records 523511, dut cycles 2787906, runs with ref != dut records 0
+# runs 20 (PASS 20), records 523511, traps 2216 (causes 2:28 3:152 4:1259 6:759 8:6 9:6 11:6), FP-write records 10603, vector-write records 3825
+Rows: ci-replay-results.csv. Same programs and results as seed 1 of the
+Verilator 5.048 run on the same commit (full-regression.txt, section 3):
+the harness built with apt Verilator 5.020 and the riscv-collab 2026.08.27
+toolchain gives the same 20 PASS with the same record and core cycle counts per run.

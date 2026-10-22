@@ -1,0 +1,67 @@
+# Issue #8 completeness review: two core divergences from Spike found by the random RVV program
+# sigil-verify (c7i.8xlarge, Ubuntu 24.04), 2026-10-22 UTC. Spike 2c300cd9, Verilator 5.048,
+# riscv64-unknown-elf GCC 16.1.0 (deps/). Program: sim/riscv-dv/directed/sigil_vector_test.S
+# as first written (committed in e7a82fe with four more .vf instructions).
+
+## Run on the RTL before the fixes (branch head 84974af), 19:53Z
+scripts/riscv_dv_regress.sh --tests sigil_vector_test --seeds 1-8 --jobs 8 --keep
+summary: MISMATCH 8 (8 runs, 22 s)
+
+First divergence per seed (vtype from the program's `csrr a5, vtype`, vl from its vsetvl):
+seed 1 record 3344 vtype 0xd1 (e32 m2) vl 17  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+seed 2 record 3344 vtype 0xc9 (e16 m2) vl 40  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+seed 3 record 6738 vtype 0x51 (e32 m2) vl 13  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+seed 4 record 3346 vtype 0x9a (e64 m4) vl 23  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+seed 5 record 3443 vtype 0xd0 (e32 m1) vl 5   : vfmv.v.f v16, fa1       DUT value differs
+seed 6 record 3343 vtype 0xd3 (e32 m8) vl 115 : viota.m v16, v4         DUT illegal-instruction trap
+seed 7 record 3343 vtype 0x89 (e16 m2) vl 58  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+seed 8 record 3341 vtype 0x02 (e8 m4)  vl 26  : viota.m v24, v5, v0.t   DUT illegal-instruction trap
+
+seed 1 compare.txt:
+  ok   #3342 pc=0x8000095a insn=0x524123d7 priv=3 (vmsof.m v7, v4)
+  ok   #3343 pc=0x8000095e insn=0x52482857 priv=3 (viota.m v16, v4)
+  REF  #3344 pc=0x80000962 insn=0x50582c57 priv=3 (viota.m v24, v5, v0.t)
+  DUT  #3344 trap cause=0x2 epc=0x80000962 tval=0x50582c57
+seed 5 compare.txt (fa1 holds 64 random bits, not a NaN-boxed single):
+  REF  #3443 pc=0x80000ae4 insn=0x5e05d857 priv=3 (vfmv.v.f v16, fa1)
+    v16: dut 0x1d00...0017 6f637345 6f637345 6f637345 6f637345 6f637345
+         ref 0x1d00...0017 7fc00000 7fc00000 7fc00000 7fc00000 7fc00000
+  (elements 0-4 = vl 5; the tail is undisturbed on both)
+
+## Root causes (rtl/core/sigil_core.sv at 84974af)
+
+1. viota.m: the vector legality check (vec_align_bad) gave VOP_IOTA the
+   default group sizes, ex_vs2_log2 = LMUL, so vs2 had to be aligned to
+   LMUL. vs2 of viota.m is a mask register (EEW=1, a single register),
+   like vmsbf.m's (VOP_MSBIT, already a single register). Legal programs
+   using a mask register that is not a multiple of LMUL trapped. Spec:
+   RVV 1.0 sec. 15.8 (viota.m vd, vs2, vm: vs2 is a mask register).
+2. .vf scalar operands: the vector unit received f[rs1] unmodified. The
+   FPU-computed .vf forms (vfadd.vf, vmfle.vf, ...) treat a non-NaN-boxed
+   single as the canonical NaN inside the FPU, but vfmv.v.f, vfmv.s.f,
+   vfmerge.vfm and vfslide1up/down.vf write the scalar directly and took
+   its low 32 bits. Spec: RVV 1.0 sec. 13 (vector-scalar FP forms: when
+   FLEN > SEW, an f register value that is not validly NaN-boxed is
+   replaced by the canonical NaN; Spike gives 0x7fc00000).
+
+Fix (63a50a5): VOP_IOTA checks vs2 as a single register; the core
+presents the canonical NaN (0xffffffff_7fc00000) as the .vf scalar when
+SEW=32 and f[rs1][63:32] != 0xffffffff, for every .vf form.
+
+## Directed regression checks (added in 63a50a5), 20:05Z
+sw/core-tests/vec_directed.S test 25 (viota.m v8, v5 at e32 m2), sw/core-tests/fpvec_directed.S
+test 11 (vfmv.v.f, vfmv.s.f, vfmerge.vfm, vfslide1up.vf with a non-boxed fa0; a boxed 1.0f as is).
+core_tb <bin> --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 1:
+== core_tb built from 84974af (before)
+CORE TB FAIL fpvec_directed.bin test 11 (1411 cycles)
+CORE TB FAIL vec_directed.bin test 25 (3033 cycles)
+== core_tb built from the fixed RTL
+CORE TB PASS fpvec_directed.bin (1520 cycles)
+CORE TB PASS vec_directed.bin (3332 cycles)
+
+## After the fixes
+With the core fixes, the remaining divergence in every seed was a
+trace-probe artifact (trace-snapshot.txt). With that fixed too, 20:03Z:
+scripts/riscv_dv_regress.sh --tests sigil_vector_test --seeds 1-16 --jobs 16 --keep
+summary: PASS 16 (16 runs, 41 s), 81,825-82,376 records per run, 0.97-1.23 M core cycles.
+The full regression on the final head is in full-regression.txt.

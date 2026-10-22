@@ -1,0 +1,20 @@
+Sigil riscv-dv vs Spike, regression round 3
+Date (UTC): Thu Oct 22 15:14:53 UTC 2026 .. Thu Oct 22 18:29:53 UTC 2026 (runner wall time 11699 s; /usr/bin/time 3:14:59)
+Host: sigil-verify (c7i.8xlarge, 32 vCPU, 61 GB), worktree ~/wt/rdv-round3 (detached)
+Commit: 84974af5c1512d36396b041fd46cf389397776c8 (origin/8-riscv-dv head at start; still head at 2026-10-22 19:35 UTC)
+riscv-dv: 0d71c2b666dec48dde0b804a2138426da56aa252, pygen stamp d4b9ec8d0412c910a753e0daf9be15d6a019315388fea9c0350dfa6ee480f390
+Spike: 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c (Spike RISC-V ISA Simulator 1.1.1-dev)
+Verilator: Verilator 5.048 2026-04-26 rev v5.048 (core_tb rebuilt in the worktree, build.log, SETUP_RC=0)
+GCC: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+Python: Python 3.12.3
+Command: scripts/riscv_dv_regress.sh --tests all --seeds 300000-300039 --jobs 16 --out ~/riscv-dv-runs/round3/run
+         (20 supported tests x 40 fresh seeds = 800 runs; pygen memory budget 44.2 GB)
+Seeds: 300000-300039, disjoint from earlier rounds (builder 1-6, round 1 100000-100009, amo-oom-fix 100000-100009 amo only, round 2 200000-200024).
+Result: PASS 800/800 (40/40 for every test). No MISMATCH / DUT_TIMEOUT / DUT_FAIL / GEN_FAIL / SPIKE_FAIL.
+        8,814,169 reference records compared (ref == dut count in all 800 rows); 40,412,402 DUT cycles; 720 distinct pygen gen_seeds.
+        sigil_bitmanip_crypto_test (24,921 records) and sigil_vector_test (53 records) are fixed directed programs: identical .S for every seed;
+        the seed only varies core_tb bus timing.
+Non-PASS artifacts: none (no non-PASS run). Passing runs keep ELF, asm, ref.csv, dut.csv, compare.txt; Spike log and DUT trace are deleted on PASS.
+Memory: no OOM kill during the run (last kernel OOM entry 11:16 UTC, from round 1 / amo-oom work).
+        pygen peak RSS max per test (MB): riscv_amo_test 9005 (seed 300021; 0 of 40 above its gen_mem_gb: 9), all others <= 2019.
+Files: run.meta, regress.log (incl. /usr/bin/time -v), build.log, run/results.csv

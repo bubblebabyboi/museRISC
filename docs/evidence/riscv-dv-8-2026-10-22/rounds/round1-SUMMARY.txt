@@ -1,0 +1,14 @@
+Sigil riscv-dv vs Spike, regression round 1
+Date (UTC): Thu Oct 22 10:01:25 UTC 2026 .. Thu Oct 22 11:00:08 UTC 2026
+Host: sigil-verify (c7i.8xlarge, 32 vCPU, 61 GB), worktree ~/wt/rdv-round1 (detached)
+Commit: b86bc8dd0cf07925ee970499a6dc7e2d455c82e5 (origin/8-riscv-dv head at start)
+riscv-dv: 0d71c2b666dec48dde0b804a2138426da56aa252, pygen stamp d4b9ec8d0412c910a753e0daf9be15d6a019315388fea9c0350dfa6ee480f390
+Spike: 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c (Spike RISC-V ISA Simulator 1.1.1-dev)
+Verilator: Verilator 5.048 2026-04-26 rev v5.048
+GCC: riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+Python: Python 3.12.3
+Command: scripts/riscv_dv_regress.sh --tests all --seeds 100000-100009 --jobs 16 --out ~/riscv-dv-runs/round1/run
+Result: PASS 196, GEN_FAIL 4 (riscv_amo_test seeds 100000,100001,100002,100006: pygen python3 OOM-killed by the kernel, rc=-9,
+        ~8-9.7 GB RSS each while 10 amo generators ran at once; kernel log 10:38:24-10:40:39 UTC)
+Rerun:  scripts/riscv_dv_regress.sh --tests riscv_amo_test --seeds 100000,100001,100002,100006 --jobs 4 --out ~/riscv-dv-runs/round1/rerun_amo_oom -> PASS 4/4
+Final:  200/200 PASS, 2,231,764 records compared (results_final.csv). No MISMATCH / DUT_TIMEOUT / DUT_FAIL / SPIKE_FAIL.
