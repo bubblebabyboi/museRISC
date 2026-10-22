@@ -90,7 +90,9 @@ _start:
     li s2, 0                      // passes
     li s6, VA_D
     la t1, page_d
-    ld s7, 0x800(t1)              // MAGIC
+    li t2, 0x800
+    add t1, t1, t2
+    ld s7, 0(t1)                  // MAGIC
     li s8, 0                      // S-side failure flag
     li t1, VA_CODE                // s_loop is the first word of vcode
     csrw mepc, t1
