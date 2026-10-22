@@ -698,13 +698,15 @@ core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TEST
 # behavioural arrays and cache geometry with SIGIL_SRAM_OREG: the
 # two-cycle read pipelines with multi-way caches; srammacro also
 # reruns the small-geometry I$/D$ unit tests with that latency. The
-# "vrforeg" family is the FPGA configuration (#53): SIGIL_VRF_OREG
-# registers only the VRF read outputs, caches unchanged.
+# "vrforeg" family registers only the VRF read outputs (SIGIL_VRF_OREG),
+# caches unchanged. The "fpga" family is the FPGA configuration (#53):
+# SIGIL_VRF_OREG plus the SIGIL_FPGA_TIMING structures.
 include $(ROOT)/rtl/sigil_soc_files.mk
 SRAM_DEF_fakeram45 := +define+SIGIL_SRAM_FAKERAM45
 SRAM_DEF_sky130    := +define+SIGIL_SRAM_SKY130
 SRAM_DEF_oreg      := +define+SIGIL_SRAM_OREG
 SRAM_DEF_vrforeg   := +define+SIGIL_VRF_OREG
+SRAM_DEF_fpga      := +define+SIGIL_VRF_OREG +define+SIGIL_FPGA_TIMING
 # Cache geometry overrides (sigil_cpu / sigil_soc_top parameters).
 SRAM_GEO_sky130    := $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130))
 SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/sigil_soc/sram/,\
@@ -713,7 +715,8 @@ SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/sigil_soc/sram/,\
   sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
 SRAM_MOD_oreg :=
 SRAM_MOD_vrforeg :=
-SRAM_MACROS := fakeram45 sky130 oreg vrforeg
+SRAM_MOD_fpga :=
+SRAM_MACROS := fakeram45 sky130 oreg vrforeg fpga
 .SECONDEXPANSION:
 $(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(FPU_INC) $(RTL)/sigil_vec_pkg.sv \
                  $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \

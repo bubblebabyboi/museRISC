@@ -36,6 +36,18 @@ package sigil_cache_pkg;
 `else
   localparam bit VRF_OREG = SRAM_OREG;
 `endif
+  // FPGA timing structures (#53, docs/FPGA_TIMING_53.md). Every #53
+  // RTL change is selected by this parameter (generate-if or a
+  // constant select, both forms always elaborated), so with it off
+  // the default and ASIC configurations keep the main logic exactly.
+  // SIGIL_FPGA_TIMING turns it on for the FPGA build, together with
+  // SIGIL_VRF_OREG. Modules also built without the packages
+  // (sigil_csr, sigil_mmu) take it as a parameter from sigil_core.
+`ifdef SIGIL_FPGA_TIMING
+  localparam bit FPGA_TIMING = 1'b1;
+`else
+  localparam bit FPGA_TIMING = 1'b0;
+`endif
   /* verilator lint_off UNUSEDPARAM */
   // Core data-port operations (dreq_op).
   localparam logic [1:0] DOP_LOAD  = 2'd0;  // read the aligned 64-bit word
