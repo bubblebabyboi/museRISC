@@ -1,0 +1,544 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Thu Oct 22 11:28:40 2026
+| Host         : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command      : report_methodology -file /home/ubuntu/oops/axi/vivado/methodology.rpt
+| Design       : top
+| Device       : xcvu47p-fsvh2892-2-e
+| Speed File   : -2
+| Design State : Fully Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Methodology
+
+Table of Contents
+-----------------
+1. REPORT SUMMARY
+2. REPORT DETAILS
+
+1. REPORT SUMMARY
+-----------------
+            Netlist: netlist
+          Floorplan: checkpoint_cl_sigil.2026_10_22-070909.post_route
+      Design limits: <entire design considered>
+             Max checks: <unlimited>
+             Checks found: 376
++-----------+------------------+-------------------------------------------------------------------------------------+--------+
+| Rule      | Severity         | Description                                                                         | Checks |
++-----------+------------------+-------------------------------------------------------------------------------------+--------+
+| TIMING-17 | Critical Warning | Non-clocked sequential cell                                                         | 35     |
+| TIMING-54 | Critical Warning | Scoped false path, clock group or max delay datapath only constraint between clocks | 1      |
+| CKLD-2    | Warning          | Clock Net has IO Driver, not a Clock Buf, and/or non-Clock loads                    | 1      |
+| LUTAR-1   | Warning          | LUT drives async reset alert                                                        | 9      |
+| SYNTH-6   | Warning          | Timing of a RAM block might be sub-optimal                                          | 9      |
+| SYNTH-10  | Warning          | Wide multiplier                                                                     | 28     |
+| TIMING-9  | Warning          | Unknown CDC Logic                                                                   | 1      |
+| TIMING-18 | Warning          | Missing input or output delay                                                       | 2      |
+| TIMING-24 | Warning          | Overridden Max delay datapath only                                                  | 14     |
+| TIMING-28 | Warning          | Auto-derived clock referenced by a timing constraint                                | 256    |
+| XDCC-1    | Warning          | Scoped Clock constraint overwritten with the same name                              | 2      |
+| XDCC-7    | Warning          | Scoped Clock constraint overwritten on the same source                              | 2      |
+| CLKC-3    | Advisory         | Clock Buffer has LOC and not CLOCK_REGION                                           | 9      |
+| CLKC-15   | Advisory         | MMCME4 clkouts drive nothing                                                        | 2      |
+| CLKC-40   | Advisory         | Substitute PLLE4 for MMCME4 check                                                   | 1      |
+| CLKC-56   | Advisory         | MMCME4 with global clock driver has no LOC                                          | 4      |
++-----------+------------------+-------------------------------------------------------------------------------------+--------+
+
+2. REPORT DETAILS
+-----------------
+TIMING-17#1 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/IPIC_IF_I/eos_int_i_reg/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#2 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[0]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#3 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[10]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#4 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[11]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#5 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[12]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#6 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[13]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#7 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[14]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#8 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[15]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#9 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[16]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#10 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[17]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#11 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[18]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#12 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[19]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#13 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[1]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#14 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[20]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#15 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[21]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#16 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[22]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#17 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[23]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#18 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[2]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#19 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[3]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#20 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[4]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#21 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[5]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#22 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[6]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#23 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[7]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#24 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[8]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#25 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_dataout_i_reg[9]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#26 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[0]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#27 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[1]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#28 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[2]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#29 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[3]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#30 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[4]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#31 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[5]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#32 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[6]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#33 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/AXI_HWICAP/U0/ICAP_SHARED.HWICAP_CTRL_I/icap_statemachine_I1/icap_status_i_reg[7]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#34 Critical Warning
+Non-clocked sequential cell  
+The clock pin SL/SH_ICAP/ICAP/CLK is not reached by a timing clock
+Related violations: <none>
+
+TIMING-17#35 Critical Warning
+Non-clocked sequential cell  
+The clock pin WRAPPER/RL/HOST_PCIE4C/inst/sys_reset_in_async_rst_inst/arststages_ff_reg[0]/C is not reached by a timing clock
+Related violations: <none>
+
+TIMING-54#1 Critical Warning
+Scoped false path, clock group or max delay datapath only constraint between clocks  
+A scoped Clock Group timing constraint is set between clocks clk_main_a0 and mmcm_clkout0 (see constraint position 113 in the Timing Constraint window in Vivado IDE). It is not recommended to define such scoped constraints between clocks as the constraint impacts timing paths outside of the scope.
+Related violations: <none>
+
+CKLD-2#1 Warning
+Clock Net has IO Driver, not a Clock Buf, and/or non-Clock loads  
+Clock net WRAPPER/IO_SHIM/IBUF_SCK/O is directly driven by an IO rather than a Clock Buffer or may be an IO driving a mix of Clock Buffer and non-Clock loads. This connectivity should be reviewed and corrected as appropriate. Driver(s): WRAPPER/IO_SHIM/IBUF_SCK/O
+Related violations: <none>
+
+LUTAR-1#1 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/AWS_CLK_GEN/CDC_RST_CORE_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/CDC_RST_CORE/arststages_ff_reg[0]/CLR,
+WRAPPER/CL/CDC_RST_CORE/arststages_ff_reg[1]/CLR,
+WRAPPER/CL/CDC_RST_CORE/arststages_ff_reg[2]/CLR,
+WRAPPER/CL/CDC_RST_CORE/arststages_ff_reg[3]/CLR,
+WRAPPER/CL/CDC_RST_CVT_MAIN/arststages_ff_reg[0]/CLR,
+WRAPPER/CL/CDC_RST_CVT_MAIN/arststages_ff_reg[1]/CLR,
+WRAPPER/CL/CDC_RST_CVT_MAIN/arststages_ff_reg[2]/CLR
+WRAPPER/CL/CDC_RST_CVT_MAIN/arststages_ff_reg[3]/CLR. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#2 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/SH_DDR/SYNC_RST/genblk1.IS_DDR_PRESENT.DDR4_0_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_infrastructure/rst_input_async_reg[0]/PRE
+WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_infrastructure/rst_input_async_reg[1]/PRE. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#3 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/SH_DDR/SYNC_RST/in_q[0]_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/SH_DDR/CCF_DDR_STAT_ACK/sync_rd_rst/in_q_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_ACK/sync_rd_rst/sync_out_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_ACK/sync_wr_rst/in_q_reg[0]/CLR
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_ACK/sync_wr_rst/sync_out_reg[0]/CLR. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#4 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/SH_DDR/SYNC_RST/in_q[0]_i_1__0, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_ACK/sync_rd_rst/in_q_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_ACK/sync_rd_rst/sync_out_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_ACK/sync_wr_rst/in_q_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_ACK/sync_wr_rst/sync_out_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_REQ/sync_rd_rst/in_q_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_REQ/sync_rd_rst/sync_out_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_REQ/sync_wr_rst/in_q_reg[0]/CLR
+WRAPPER/CL/SH_DDR/ddr_stat.CCF_XSDB_REQ/sync_wr_rst/sync_out_reg[0]/CLR. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#5 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/SH_DDR/SYNC_STAT_RST/in_q[0]_i_1__1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/SH_DDR/CCF_DDR_STAT_REQ/sync_rd_rst/in_q_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_REQ/sync_rd_rst/sync_out_reg[0]/CLR,
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_REQ/sync_wr_rst/in_q_reg[0]/CLR
+WRAPPER/CL/SH_DDR/CCF_DDR_STAT_REQ/sync_wr_rst/sync_out_reg[0]/CLR. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#6 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/plle_loop[0].gen_plle4.PLLE4_BASE_INST_OTHER_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/plle_loop[0].gen_plle4.PLLE4_BASE_INST_OTHER/RST,
+WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/plle_loop[1].gen_plle4.PLLE4_BASE_INST_OTHER/RST
+WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/u_ddr4_phy_pll/plle_loop[2].gen_plle4.PLLE4_BASE_INST_OTHER/RST. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#7 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe[0][21]_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/HBM_SHIM/PIPE_STRB_0/pipe_reg[0][0]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_0/pipe_reg[0][1]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_0/pipe_reg[0][2]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_0/pipe_reg[0][3]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][29]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][2]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][30]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][31]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][3]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][4]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][5]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][6]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][7]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][8]/CLR,
+WRAPPER/HBM_SHIM/PIPE_WDATA_0/pipe_reg[0][9]/CLR
+ (the first 15 of 98 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#8 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/HBM_SHIM/PIPE_WDATA_1/pipe[0][21]_i_1__0, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][29]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][2]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][30]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][31]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][3]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][4]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][5]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][6]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][7]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][8]/CLR,
+WRAPPER/HBM_SHIM/PIPE_RDATA_1/pipe_reg[0][9]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_1/pipe_reg[0][0]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_1/pipe_reg[0][1]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_1/pipe_reg[0][2]/CLR,
+WRAPPER/HBM_SHIM/PIPE_STRB_1/pipe_reg[0][3]/CLR
+ (the first 15 of 98 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#9 Warning
+LUT drives async reset alert  
+LUT cell WRAPPER/IO_SHIM/CDC_ASYNC_CLK_EN_N_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) WRAPPER/IO_SHIM/CDC_ASYNC_CLK_EN_N/arststages_ff_reg[0]/PRE,
+WRAPPER/IO_SHIM/CDC_ASYNC_CLK_EN_N/arststages_ff_reg[1]/PRE,
+WRAPPER/IO_SHIM/CDC_ASYNC_CLK_EN_N/arststages_ff_reg[2]/PRE
+WRAPPER/IO_SHIM/CDC_ASYNC_CLK_EN_N/arststages_ff_reg[3]/PRE. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+SYNTH-6#1 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vregfile/g_port[0].u_bank/mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#2 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vregfile/g_port[1].u_bank/mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#3 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vregfile/g_port[2].u_bank/mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#4 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_dcache/g_way[0].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#5 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_dcache/g_way[1].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#6 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_dcache/g_way[2].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#7 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_dcache/g_way[3].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#8 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_icache/g_way[0].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#9 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_icache/g_way[1].u_data/g_behav.mem_q_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-10#1 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/fp_mul_pp[hi]_return__0 of size 18x27, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#2 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/fp_mul_pp[lo]_return of size 20x18, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#3 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/fp_mul_pp[lo]_return__0 of size 18x18, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#4 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/fp_mul_pp[lo]_return__1 of size 18x18, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#5 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/pp_q_reg[hi] of size 18x27, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#6 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/pp_q_reg[lo] of size 20x11, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#7 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/pp_q_reg[lo]__0 of size 18x11, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#8 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_fpu/pp_q_reg[lo]__1 of size 18x11, it is decomposed from a wide multipler into 6 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#9 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hh of size 16x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#10 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hh__0 of size 16x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#11 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hh__1 of size 18x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#12 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hh__2 of size 18x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#13 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hl of size 16x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#14 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hl__0 of size 16x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#15 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hl__1 of size 18x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#16 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_hl__2 of size 18x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#17 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_lh of size 16x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#18 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_lh__0 of size 16x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#19 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_lh__1 of size 18x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#20 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_lh__2 of size 18x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#21 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_ll of size 16x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#22 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_ll__0 of size 16x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#23 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_ll__1 of size 18x18, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#24 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_muldiv/g_mc.p_ll__2 of size 18x16, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#25 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vec/mul_pp of size 18x17, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#26 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vec/mul_pp__0 of size 14x17, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#27 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vec/mul_pp__1 of size 18x17, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+SYNTH-10#28 Warning
+Wide multiplier  
+Detected multiplier at WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_vec/mul_pp__2 of size 18x17, it is decomposed from a wide multipler into 4 DSP blocks.
+Related violations: <none>
+
+TIMING-9#1 Warning
+Unknown CDC Logic  
+One or more asynchronous Clock Domain Crossing has been detected between 2 clock domains through a set_false_path or a set_clock_groups or set_max_delay -datapath_only constraint but no double-registers logic synchronizer has been found on the side of the capture clock. It is recommended to run report_cdc for a complete and detailed CDC coverage. Please consider using XPM_CDC to avoid Critical severities
+Related violations: <none>
+
+TIMING-18#1 Warning
+Missing input or output delay  
+An input delay is missing on SPI_CS2_N_SLAVE_R relative to the rising and/or falling clock edge(s) of clk_spi.
+Related violations: <none>
+
+TIMING-18#2 Warning
+Missing input or output delay  
+An output delay is missing on SPI_MISO_SLAVE_R relative to the rising and/or falling clock edge(s) of clk_spi.
+Related violations: <none>
+
+TIMING-24#1 Warning
+Overridden Max delay datapath only  
+An asynchronous set_clock_groups or a set_false path (see constraint position 113 in the Timing Constraints window in Vivado IDE) between clocks clk_main_a0 and mmcm_clkout0 overrides a set_max_delay -datapath_only (position 238). It is not recommended to override a set_max_delay -datapath_only constraint. Replace the set_clock_groups or set_false_path between clocks with point-to-point set_false_path constraints
+Related violations: <none>
+
+TIMING-24#2 Warning
+Overridden Max delay datapath only  
+An asynchronous set_clock_groups or a set_false path (see constraint position 113 in the Timing Constraints window in Vivado IDE) between clocks clk_main_a0 and mmcm_clkout0 overrides a set_max_delay -datapath_only (position 258). It is not recommended to override a set_max_delay -datapath_only constraint. Replace the set_clock_groups or set_false_path between clocks with point-to-point set_false_path constraints
+Related violations: <n

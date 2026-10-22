@@ -1,0 +1,8 @@
+
+FPGA TOP TB PASS run 0 (finisher at 24584147 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 57236 W 56253 AR 121939 R 0 B 0; rw races 0, stale reads 0
+
+FPGA TOP TB PASS run 0 (finisher at 24587258 cycles after reset release)
+reboots: 0
+AXI: 30481 AR (30481 R beats), 14311 AW (14311 W beats, 14311 B); stall cycles AW 58569 W 57871 AR 122036 R 0 B 0; rw races 0, stale reads 0
