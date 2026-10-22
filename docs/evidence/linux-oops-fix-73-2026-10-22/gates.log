@@ -32,11 +32,11 @@ Linux RTL boot (soc_rtl_tb, Image-initramfs)            PASS    1081s   SIGIL_LI
 make -f Makefile.oops oops-ptw-preempt (checker)        PASS    7s      9/9 (3 hunter tests x lat1 / rand / 40:50), 0 stale-walk-rsp
 make -f Makefile.oops oops-ptw-walker (checkers)        PASS    121s    39/39 (13 tests x 3 timings), 0 stale-walk-rsp, PTWINV violations=0 x 39
 before/after, same 39 runs on 5458d16 RTL               FAIL as expected  0/39 pass on the base RTL: 30 stale-walk-rsp, 271 PTWINV reports (before_after.log)
-Linux stress, oops_soc_rtl_tb (checkers), fixed RTL:
+Linux stress, oops_soc_rtl_tb (checkers), fixed RTL (execstress cannot finish in simulation; 2G-cycle budget each):
   ptwstress v2, --mem-lat 40:50                         PASS    2767s   PTWSTRESS DONE at 689,559,153 cycles, 400 passes bad=0; stale-walk-rsp 0
   ptwstress v2, --mem-lat 1                             PASS    1257s   PTWSTRESS DONE at 308,934,879 cycles, 400 passes bad=0; stale-walk-rsp 0
-  Image-execstress, --mem-lat 40:50 (2G-cycle budget)   running   -       2G-cycle budget (ends ~16:45Z); at 15:35Z past "execstress: start 76.87", stale-walk-rsp 0
-  Image-execstress, --mem-lat 1 (2G-cycle budget)       running   -       2G-cycle budget; at 15:35Z past "execstress: start 36.70", stale-walk-rsp 0
+  Image-execstress, --mem-lat 40:50 (2G-cycle budget)   PASS    8102s   2G-cycle budget reached (TIMEOUT by design) past "execstress: start 76.87"; stale-walk-rsp 0, PTWINV 0, PTWCOV pre=0
+  Image-execstress, --mem-lat 1 (2G-cycle budget)       PASS    8237s   2G-cycle budget reached past "execstress: start 36.70"; stale-walk-rsp 0, PTWINV 0, PTWCOV pre=1 rsp_same=1
 
 == Notes
 1. The disk filled during the first run. At 14:27Z the instance's root volume was 100% full with 7 MiB free. The
@@ -60,8 +60,11 @@ Linux stress, oops_soc_rtl_tb (checkers), fixed RTL:
 3. Before side: a worktree at 5458d16 with the gate tree's simulation-only checkers (sim/Makefile.oops,
    tb/sv/sigil_oops_chk.sv, tb/sv/sigil_ptw_inv.sv, tb/cpp/oops_chk_dpi.cpp) copied in untracked. It ran the same test
    binaries. The RTL diff between base and gate is only rtl/core/sigil_core.sv and rtl/core/sigil_mmu.sv.
-4. Linux simulation does not exercise the race. On the fixed RTL, both ptwstress runs end with PTWCOV pre=0: no fetch
-   walk was preempted at all (the base RTL's hunter checker build has no PTWCOV). The hunters' unpatched runs of the same
+4. Linux simulation does not reach the harmful case. On the fixed RTL, PTWCOV counts fetch-walk preemptions:
+   - both ptwstress runs and execstress at 40:50: pre=0;
+   - execstress at lat 1: one preemption in 2G cycles, with the fetch response arriving in the same cycle
+     (rsp_same=1). The fix handled it with no stale response and no PTWINV violation.
+   The base RTL's hunter checker build has no PTWCOV. The hunters' unpatched runs of the same
    images end with stale-walk-rsp 0 at exactly the same cycle counts as the fixed RTL (ptwstress 308,934,879 and
    689,559,153; boot 261,247,447). The race is exercised by the directed tests (before_after.log), and it showed up on
    the F2.

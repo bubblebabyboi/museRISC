@@ -2430,7 +2430,9 @@ oops PC is the second of two dependent loads.
 
 **Linux stress under the checkers** (ptwstress v2, execstress): 0
 `stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
-counts, so simulated Linux never reaches the race. The F2 boot with an AFI
+counts. In simulated Linux there was at most one fetch-walk preemption per
+run, in the benign same-cycle-response corner, so simulation does not reach
+the harmful case. The F2 boot with an AFI
 built from this branch is still to come.
 
 Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same

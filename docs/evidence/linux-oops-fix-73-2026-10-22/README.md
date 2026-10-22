@@ -17,8 +17,10 @@ signatures follow from the kernel's page-table layout (below). The fix makes
 the core drop the response of a walk that the MMU abandons. The Svadu A/D
 write-back, found in the same review, is now atomic too. All gates pass at
 the gate SHA. The 13 walker race tests fail 39/39 on the base RTL and pass
-39/39 on the fix. Still to do: the Debian boot on F2 with an AFI built from
-this branch.
+39/39 on the fix. An AFI has been built from the gate SHA:
+afi-059766f9a85c6d39a / agfi-0c8aa56fde1a48495, evidence in
+[`f2-platform-73-oopsfix-2026-10-22/`](../f2-platform-73-oopsfix-2026-10-22/).
+Still to do: the Debian boot on F2 with that AFI.
 
 ## Root cause
 
@@ -150,17 +152,23 @@ with the same checker, in `~/oops/dcache/runs/`.
 |---|---|---|
 | ptwstress v2, `--mem-lat 40:50` | PASS: `PTWSTRESS DONE` at 689,559,153 cycles; 400 passes, bad=0; stale 0 | `PTWSTRESS DONE` at 689,559,153 cycles; stale 0 |
 | ptwstress v2, `--mem-lat 1` | PASS at 308,934,879 cycles; stale 0 | 308,934,879 cycles; stale 0 |
-| `Image-execstress`, `--mem-lat 40:50` | running (2G-cycle budget, ends about 16:45Z). At commit time (15:35Z): execstress started at kernel time 76.87 s; 0 stale, 0 PTWINV, no oops | running since 11:21Z (4.2 h CPU). execstress started at 76.87 s, no worker progress line yet; stale 0 |
-| `Image-execstress`, `--mem-lat 1` | running (2G-cycle budget). At commit time: execstress started at 36.70 s; 0 stale, 0 PTWINV, no oops | running since 11:21Z (4.2 h CPU). execstress started at 36.70 s, no progress line; stale 0 |
+| `Image-execstress`, `--mem-lat 40:50` | 2G-cycle budget reached (TIMEOUT by design, 8102 s), past `execstress: start 76.87`; stale 0, PTWINV 0, no oops; PTWCOV `pre=0` | still running at 16:49Z (5.5 h CPU); past `execstress: start 76.87`, no worker progress line; stale 0 |
+| `Image-execstress`, `--mem-lat 1` | 2G-cycle budget reached (8237 s), past `execstress: start 36.70`; stale 0, PTWINV 0, no oops; PTWCOV `pre=1 rsp_same=1` | still running at 16:49Z (5.5 h CPU); past `execstress: start 36.70`, no progress line; stale 0 |
 | `Image-initramfs` boot, lat 1 | (plain `soc_rtl_tb` above) 261,247,447 cycles | 261,247,447 cycles; stale 0 |
 
 Zero `stale-walk-rsp` on the fixed RTL is expected. It is not a
-discriminating result, because the unpatched runs report zero too. On the
-fixed RTL, the ptwstress runs end with PTWCOV `pre=0`: no fetch walk was
-preempted at all. The fixed and unpatched runs reach identical cycle counts.
-In simulation these workloads never reach the race; the directed tests above
-do. The F2 Debian boot on an AFI built from this branch is the remaining
-check.
+discriminating result, because the unpatched runs report zero too. PTWCOV on
+the fixed RTL counts fetch-walk preemptions:
+- both ptwstress runs and execstress at 40:50 end with `pre=0`;
+- execstress at lat 1 ends with exactly one preemption. In it the fetch
+  walk's response arrives in the same cycle (`rsp_same=1`), the corner where
+  nothing is left in flight. The fix handled it with no stale response and
+  no PTWINV violation.
+
+Where both RTLs ran, the cycle counts are identical. In simulation these
+workloads do not reach the harmful case (a fetch-walk read in flight, or
+issued in the preempting cycle); the directed tests above do. The
+remaining check is the F2 Debian boot on an AFI built from this branch.
 
 ## Files
 
