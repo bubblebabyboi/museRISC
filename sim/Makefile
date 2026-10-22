@@ -141,8 +141,9 @@ $(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
 # FPGA_TIMING form (#53): write-intent read-only check, parallel PMP.
+# (1'b1: CI's Verilator 5.020 -Wall rejects a 32-bit 1 for the bit parameter.)
 $(BUILD)/csr_tb_fpga: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/csr_fpga --top-module sigil_csr -GFPGA_TIMING=1 \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/csr_fpga --top-module sigil_csr "-GFPGA_TIMING=1'b1" \
 	  -o $(abspath $(BUILD)/csr_tb_fpga) $(RTL)/sigil_csr.sv \
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
@@ -168,7 +169,7 @@ $(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
 
 # FPGA_TIMING form (#53): one-hot port lookups, registered data port.
 $(BUILD)/mmu_tb_fpga: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu_fpga --top-module sigil_mmu -GFPGA_TIMING=1 \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu_fpga --top-module sigil_mmu "-GFPGA_TIMING=1'b1" \
 	  -CFLAGS -DMMU_TB_DREG \
 	  -o $(abspath $(BUILD)/mmu_tb_fpga) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
