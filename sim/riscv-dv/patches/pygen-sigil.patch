@@ -55,8 +55,17 @@ R  riscv_amo_instr_lib.py: LR and SC of the same width. A mismatched pair
    (e.g. lr.w + sc.d) has an implementation-defined SC outcome (the
    reservation set must contain the SC's bytes: Sigil reserves exactly
    the LR's bytes, Spike accepts any SC to the LR address).
+S  riscv_load_store_instr_lib.py: load/store streams as in SV: address =
+   base + offset exactly, inside the data page, offset within the
+   locality range (pygen used base+offset-1 or base+offset and never
+   range-checked); the allowed instruction list starts afresh for each
+   access (pygen kept extending one list, so c.lwsp etc. allowed for a
+   small offset stayed allowed for offsets the encoding cannot hold:
+   assembler "illegal operands"); the base register is never x0 or a
+   reserved register (rs1_c was commented out: "la zero, ..."), and the
+   SP-reserved check tests membership in either list.
 
-diff -ruN a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
 --- a/pygen/pygen_src/isa/riscv_b_instr.py
 +++ b/pygen/pygen_src/isa/riscv_b_instr.py
 @@ -75,6 +75,19 @@
@@ -98,7 +107,7 @@ diff -ruN a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_i
  
      # Coverage related functions
      def update_src_regs(self, operands):
-diff -ruN a/pygen/pygen_src/isa/riscv_instr.py b/pygen/pygen_src/isa/riscv_instr.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_instr.py b/pygen/pygen_src/isa/riscv_instr.py
 --- a/pygen/pygen_src/isa/riscv_instr.py
 +++ b/pygen/pygen_src/isa/riscv_instr.py
 @@ -15,7 +15,7 @@
@@ -229,7 +238,7 @@ diff -ruN a/pygen/pygen_src/isa/riscv_instr.py b/pygen/pygen_src/isa/riscv_instr
          name = load_store_instr[cls.idx]
          instr_h = copy.copy(cls.instr_template[name])
          return instr_h
-diff -ruN a/pygen/pygen_src/riscv_amo_instr_lib.py b/pygen/pygen_src/riscv_amo_instr_lib.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_amo_instr_lib.py b/pygen/pygen_src/riscv_amo_instr_lib.py
 --- a/pygen/pygen_src/riscv_amo_instr_lib.py
 +++ b/pygen/pygen_src/riscv_amo_instr_lib.py
 @@ -37,8 +37,6 @@
@@ -308,7 +317,7 @@ diff -ruN a/pygen/pygen_src/riscv_amo_instr_lib.py b/pygen/pygen_src/riscv_amo_i
              self.instr_list.insert(0, self.amo_instr[i])
  
  
-diff -ruN a/pygen/pygen_src/riscv_asm_program_gen.py b/pygen/pygen_src/riscv_asm_program_gen.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/pygen/pygen_src/riscv_asm_program_gen.py
 --- a/pygen/pygen_src/riscv_asm_program_gen.py
 +++ b/pygen/pygen_src/riscv_asm_program_gen.py
 @@ -100,7 +100,13 @@
@@ -342,7 +351,7 @@ diff -ruN a/pygen/pygen_src/riscv_asm_program_gen.py b/pygen/pygen_src/riscv_asm
          misa = vsc.bit_t(rcs.XLEN)
          if rcs.XLEN == 32:
              misa[rcs.XLEN - 1:rcs.XLEN - 2] = 1
-diff -ruN a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_callstack_gen.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_callstack_gen.py
 --- a/pygen/pygen_src/riscv_callstack_gen.py
 +++ b/pygen/pygen_src/riscv_callstack_gen.py
 @@ -127,7 +127,7 @@
@@ -354,7 +363,7 @@ diff -ruN a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_calls
                  sub_program_cnt[caller_id] += 1
  
              for j in range(len(program_list)):
-diff -ruN a/pygen/pygen_src/riscv_data_page_gen.py b/pygen/pygen_src/riscv_data_page_gen.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_data_page_gen.py b/pygen/pygen_src/riscv_data_page_gen.py
 --- a/pygen/pygen_src/riscv_data_page_gen.py
 +++ b/pygen/pygen_src/riscv_data_page_gen.py
 @@ -37,7 +37,7 @@
@@ -366,7 +375,7 @@ diff -ruN a/pygen/pygen_src/riscv_data_page_gen.py b/pygen/pygen_src/riscv_data_
                  data[i] = temp_data
              elif pattern == data_pattern_t.INCR_VAL:
                  data[i] = (idx + i) % 256
-diff -ruN a/pygen/pygen_src/riscv_directed_instr_lib.py b/pygen/pygen_src/riscv_directed_instr_lib.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_directed_instr_lib.py b/pygen/pygen_src/riscv_directed_instr_lib.py
 --- a/pygen/pygen_src/riscv_directed_instr_lib.py
 +++ b/pygen/pygen_src/riscv_directed_instr_lib.py
 @@ -274,7 +274,7 @@
@@ -378,7 +387,7 @@ diff -ruN a/pygen/pygen_src/riscv_directed_instr_lib.py b/pygen/pygen_src/riscv_
          else:
              self.enable_branch = 0
          if self.enable_branch:
-diff -ruN a/pygen/pygen_src/riscv_instr_sequence.py b/pygen/pygen_src/riscv_instr_sequence.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_instr_sequence.py b/pygen/pygen_src/riscv_instr_sequence.py
 --- a/pygen/pygen_src/riscv_instr_sequence.py
 +++ b/pygen/pygen_src/riscv_instr_sequence.py
 @@ -255,7 +255,7 @@
@@ -399,7 +408,7 @@ diff -ruN a/pygen/pygen_src/riscv_instr_sequence.py b/pygen/pygen_src/riscv_inst
          if jump_instr[i] == riscv_instr_name_t.C_JALR:
              routine_str = prefix + "c.jalr x{}".format(ra.get_val())
          elif jump_instr[i] == riscv_instr_name_t.C_JR:
-diff -ruN a/pygen/pygen_src/riscv_instr_stream.py b/pygen/pygen_src/riscv_instr_stream.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_instr_stream.py b/pygen/pygen_src/riscv_instr_stream.py
 --- a/pygen/pygen_src/riscv_instr_stream.py
 +++ b/pygen/pygen_src/riscv_instr_stream.py
 @@ -14,6 +14,7 @@
@@ -442,7 +451,63 @@ diff -ruN a/pygen/pygen_src/riscv_instr_stream.py b/pygen/pygen_src/riscv_instr_
  
      def randomize_gpr(self, instr):
          with instr.randomize_with() as it:
-diff -ruN a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_instr.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_load_store_instr_lib.py b/pygen/pygen_src/riscv_load_store_instr_lib.py
+--- a/pygen/pygen_src/riscv_load_store_instr_lib.py
++++ b/pygen/pygen_src/riscv_load_store_instr_lib.py
+@@ -91,9 +91,16 @@
+                     offset_ = random.randrange(-256, 256)
+                 elif self.locality == locality_e.SPARSE:
+                     offset_ = random.randrange(-2048, 2047)
+-                var1 = self.base + offset_ - 1
+-                var2 = self.base + offset_ + 1
+-                addr_ = random.randrange(var1, var2)
++                # Sigil patch: addr == base + offset inside the page, offset
++                # within the locality range (and a 12-bit immediate).
++                addr_ = self.base + offset_
++                if not 0 <= addr_ < self.max_load_store_offset:
++                    span = {locality_e.NARROW: 16, locality_e.HIGH: 64,
++                            locality_e.MEDIUM: 256}.get(self.locality, 2048)
++                    lo = max(-span, -self.base)
++                    hi = min(span - 1, self.max_load_store_offset - 1 - self.base)
++                    offset_ = random.randint(lo, hi) if lo <= hi else 0
++                    addr_ = self.base + offset_
+             except Exception:
+                 logging.critical("Cannot randomize load/store offset")
+                 sys.exit(1)
+@@ -102,13 +109,20 @@
+ 
+     def pre_randomize(self):
+         super().pre_randomize()
+-        if(riscv_reg_t.SP in [cfg.reserved_regs, self.reserved_rd]):
++        # Sigil patch: membership in either list (not in a list of lists).
++        if riscv_reg_t.SP in list(cfg.reserved_regs) + list(self.reserved_rd):
+             self.use_sp_as_rs1 = 0
+             with vsc.raw_mode():
+                 self.use_sp_as_rs1.rand_mode = False
+             self.sp_rnd_order_c.constraint_mode(False)
+ 
+     def post_randomize(self):
++        # Sigil patch: rs1_c from SV (commented out in pygen).
++        banned = set(cfg.reserved_regs) | set(self.reserved_rd) | {riscv_reg_t.ZERO}
++        if self.use_sp_as_rs1 and riscv_reg_t.SP not in banned:
++            self.rs1_reg = riscv_reg_t.SP
++        elif self.rs1_reg in banned:
++            self.rs1_reg = random.choice([r for r in riscv_reg_t if r not in banned])
+         self.randomize_offset()
+         # rs1 cannot be modified by other instructions
+         if not(self.rs1_reg in self.reserved_rd):
+@@ -131,8 +145,8 @@
+             # Assign the allowed load/store instructions based on address alignment
+             # This is done separately rather than a constraint to improve the randomization
+             # performance
+-            allowed_instr.extend(
+-                [riscv_instr_name_t.LB, riscv_instr_name_t.LBU, riscv_instr_name_t.SB])
++            # Sigil patch: a fresh list per access (SV assigns, pygen extended).
++            allowed_instr = [riscv_instr_name_t.LB, riscv_instr_name_t.LBU, riscv_instr_name_t.SB]
+             if not cfg.enable_unaligned_load_store:
+                 if (self.addr[i] & 1) == 0:
+                     allowed_instr.extend(
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_instr.py
 --- a/pygen/pygen_src/riscv_loop_instr.py
 +++ b/pygen/pygen_src/riscv_loop_instr.py
 @@ -133,6 +133,16 @@
@@ -568,7 +633,7 @@ diff -ruN a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_ins
 +                                self.loop_update_instr[i]] +
 +                               self.loop_instr + [self.loop_branch_instr[i]])
          logging.info("Totally {} instructions have been added".format(len(self.loop_instr)))
-diff -ruN a/pygen/pygen_src/riscv_privileged_common_seq.py b/pygen/pygen_src/riscv_privileged_common_seq.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_privileged_common_seq.py b/pygen/pygen_src/riscv_privileged_common_seq.py
 --- a/pygen/pygen_src/riscv_privileged_common_seq.py
 +++ b/pygen/pygen_src/riscv_privileged_common_seq.py
 @@ -182,7 +182,7 @@
@@ -580,7 +645,7 @@ diff -ruN a/pygen/pygen_src/riscv_privileged_common_seq.py b/pygen/pygen_src/ris
              self.sie = riscv_privil_reg()
              self.sie.init_reg(privileged_reg_t.SIE)
              if cfg.randomize_csr:
-diff -ruN a/pygen/pygen_src/test/riscv_instr_base_test.py b/pygen/pygen_src/test/riscv_instr_base_test.py
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/test/riscv_instr_base_test.py b/pygen/pygen_src/test/riscv_instr_base_test.py
 --- a/pygen/pygen_src/test/riscv_instr_base_test.py
 +++ b/pygen/pygen_src/test/riscv_instr_base_test.py
 @@ -11,6 +11,7 @@
