@@ -2214,3 +2214,30 @@ Gates on `534f846` (`gates.log`):
   Every cycle count is the same, including the SDK examples. Coverage
   is identical: 55.00% (3491/6252).
 - riscv-tests: 123/123.
+
+## #56: vector and FP kernels, C vs RVV (2026-10-22)
+
+[`perf-kernels-56-2026-10-22/`](perf-kernels-56-2026-10-22/README.md):
+13 kernels from `sw/bench/kernels`: int32/int64 add, daxpy, saxpy, fp64
+and int32 dot products, memcpy and memset (e64 and e8), 32x32
+dgemm/sgemm, a 16-tap fp32 FIR, and int8/int16 widening MACs. Each runs
+as scalar C and as RVV intrinsics and is checked bit for bit against a
+scalar reference, which is in turn checked against a known answer from
+an exact host model.
+
+- **Run.** Default configuration, `soc` and `axi` memory models, two
+  repeats. Commit `7ea3e51` (branch `56-perf-kernels`), main `eeaa332`
+  design, Verilator 5.048, GCC 16.1.0.
+- **Validation.** 224/224 region results valid and deterministic. Fault
+  injection: 7 wrong results, 7 failed runs.
+- **RVV speedup over scalar C** (soc): 1.51–2.96x (memset 2.96x,
+  fir_f32 2.56x, memcpy 2.51x, sgemm 2.07x, dgemm 1.85x, idot 1.51x).
+  The e8 forms of memcpy/memset are 2.5–3x *slower* than scalar.
+- **Bottlenecks.**
+  - Vector load/store: about 3 cycles per element.
+  - FP vector ops: 8 cycles per element (`vfmacc` = 8N + 4).
+  - Scalar C: front-end bound, IPC 0.22–0.42.
+- **GCC 16 `-O3` auto-vectorization** reaches 1.0–1.67x.
+- **Caveat.** Shifting the scalar C code by 2 bytes moves its cycles by
+  -24% to +26%, from 32-bit instructions straddling a 4-byte fetch
+  word. The kernels are therefore 64-byte aligned.
