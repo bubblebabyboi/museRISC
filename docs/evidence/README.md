@@ -2585,3 +2585,47 @@ How closely the hardware matches the simulation:
   In all 61 regions where the two configurations differ, the hardware
   is closer to `default`: for example, `vse8` at vl=512 takes 1,537.8
   cycles, against 2,049.8 with `VRF_OREG`.
+
+## #56: deterministic simulation baseline of main `eeaa332`, three configurations (2026-10-22)
+
+[`perf-baseline-56-2026-10-22/`](perf-baseline-56-2026-10-22/README.md):
+`headline.md` (cross-configuration tables), and per configuration
+(`default/`, `sky130/`, `fpga/`) `results.csv`, `report.md`
+(`scripts/perf_report.py`), `results.json`, `runs/`, `build-logs/` and
+`perf-run.log`. Also `env.log`, `synth-view-diff.log`, `tb-build.log`,
+`compare-prior-evidence.log`, `micro_table.md`, `kernels_report.md`,
+`run_baseline.sh` and `baseline_tables.py`. This is the reference
+against which #53 and later changes are compared.
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  simulation-only counters. The synthesis views are byte-identical to
+  `eeaa332` for every flow's defines. No #53 pipelining.
+- **Run.** `run_baseline.sh` at `8d15410` on sigil-verify,
+  2026-10-22T11:20:07Z–11:40:57Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. Fresh testbench builds, then `make
+  -C sim perf CONFIG=<default|sky130|fpga> MEM="soc axi" REPEAT=2
+  JOBS=12`. Every benchmark and variant: 14 images, 168 simulations.
+- **Validation.**
+  - 2136/2136 region results valid, every program self-checked
+    (CRCs, known answers, `hashlib`).
+  - Both repeats identical in every counter.
+  - The 14 images are bit-identical across the three builds.
+  - `default` is identical to `perf-suite-56-2026-10-22` (712/712) and
+    to the branch evidence. The `sky130`/`fpga` Dhrystone results are
+    identical to `perf-dhrystone-56-2026-10-22`.
+- **Headline** (`soc` / `axi`):
+
+  | | default | sky130 | fpga (VRF_OREG) |
+  |---|---:|---:|---:|
+  | Dhrystone `scalar` DMIPS/MHz | 0.371 / 0.371 | 0.216 / 0.201 | 0.371 / 0.371 |
+  | CoreMark `scalar` CoreMark/MHz | 1.395 / 1.395 | 0.868 / 0.867 | 1.395 / 1.395 |
+  | SHA-256 cycles/hash: C, Zknh, RVV ×16, accel block (`soc`) | 9,918 / 6,753 / 4,642 / 572 | 15,634 / 10,747 / 4,949 / 792 | 9,918 / 6,753 / 4,855 / 572 |
+
+- **`fpga`** changes only vector code. Regions with no vector
+  instruction have identical counters. Vector arithmetic costs 1 more
+  cycle per instruction and unit-stride stores 1 more cycle per
+  element (Dhrystone `sdk` +3.2%, SHA-256 RVV +4.6%, memset RVV +29%).
+- **`sky130`** is 1.58–1.85x slower on scalar code. The fetch issue gap
+  is 3 cycles instead of 2, a load takes 5 cycles instead of 2.5, and
+  the 4 KiB direct-mapped D$ misses on every access from an 8 KiB
+  working set.
