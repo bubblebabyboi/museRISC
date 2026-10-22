@@ -6,10 +6,11 @@
 #   impl_fail_paths.rpt      worst path to each failing endpoint (first 500)
 #   impl_fail_endpoints.tsv  every failing endpoint: slack, levels, delays,
 #                            start/end pin and register group, hierarchies
-#                            the path runs through
-#   impl_fail_groups.rpt     failing endpoints by end register group and by
-#                            start -> end group pair, then report_timing
-#                            -from/-to summaries for the 100 worst pairs
+#                            and RTL-named nets the path runs through
+#   impl_fail_groups.rpt     failing endpoints by end register group and pin
+#                            (D, CE, R, ...) and by start -> end group pair,
+#                            then report_timing -from/-to summaries for the
+#                            100 worst pairs
 #   impl_fail_hier.rpt       failing endpoints by owning hierarchy (depth 1-4)
 #   impl_design_analysis.rpt report_design_analysis -timing, 100 worst paths
 #   impl_logic_levels.rpt    logic level distribution over the failing paths
@@ -71,16 +72,22 @@ report_timing -max_paths 500 -nworst 1 -unique_pins -slack_lesser_than 0 \
 
 array set ends {keys {}}; array set pairs {keys {}}; array set hier {keys {}}
 set fh [open $out/impl_fail_endpoints.tsv w]
-puts $fh [join {slack levels datapath logic net start_pin end_pin start_group end_group through} \t]
+puts $fh [join {slack levels datapath logic net start_pin end_pin start_group end_group through nets} \t]
 foreach p $paths slack [get_property SLACK $paths] lvl [get_property LOGIC_LEVELS $paths] \
     dp [get_property DATAPATH_DELAY $paths] dl [get_property DATAPATH_LOGIC_DELAY $paths] \
     dn [get_property DATAPATH_NET_DELAY $paths] \
     sp [get_property STARTPOINT_PIN $paths] ep [get_property ENDPOINT_PIN $paths] {
   set ec [get_cells -of_objects $ep]
   set sg [f0_reg_group [get_cells -of_objects $sp]]
-  set eg [f0_reg_group $ec]
+  regsub {\[[0-9]+\]$} [get_property REF_PIN_NAME $ep] {} epin
+  set eg [f0_reg_group $ec]/$epin
   set thru [lsort -unique [get_property PARENT [get_cells -of_objects $p]]]
-  puts $fh [join [list $slack $lvl $dp $dl $dn $sp $ep $sg $eg [join $thru ,]] \t]
+  # Nets that kept their RTL name (not synthesis-generated), in path order.
+  set nets {}
+  foreach n [get_nets -of_objects $p] {
+    if {![regexp {_n_[0-9]+$|/p_[0-9]+_(in|out)(\[[0-9]+\])?$} $n]} { lappend nets $n }
+  }
+  puts $fh [join [list $slack $lvl $dp $dl $dn $sp $ep $sg $eg [join $thru ,] [join $nets ,]] \t]
   f0_add ends $eg $slack $lvl $sp $ep
   f0_add pairs "$sg\t$eg" $slack $lvl $sp $ep
   set owner [split [get_property PARENT $ec] /]
