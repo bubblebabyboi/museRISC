@@ -2531,3 +2531,57 @@ It is an integration check, not a new baseline.
   row-per-run layout for wide reports (`docs/PERFORMANCE.md`). The
   options this run does not use are smoke-tested in
   `harness-options-smoke.log`.
+
+## #56: the benchmark suite on AWS F2 hardware (2026-10-22)
+
+[`perf-f2-56-2026-10-22/`](perf-f2-56-2026-10-22/README.md):
+`README.md` (analysis), `tables.md`, `regions.md`, `results.json`,
+`logs/` (UART capture and host report of all 46 runs),
+`instance-info.txt`, `aws-lifecycle.txt`, `SHA256SUMS` and `scripts/`.
+The #56 benchmark images ran on a real F2 FPGA with the public AFI.
+
+- **Hardware.** One `f2.6xlarge` (`i-0fa8f24634bfa912f`, us-east-1a,
+  FPGA Developer AMI 1.19.2) ran public AFI `agfi-035116450e0a0d093`
+  (Small Shell `0x10212415`). The measured core clock was
+  62.500–62.501 MHz.
+- **Design.** The AFI (built from `4058108`) runs the `default`
+  configuration of the main `eeaa332` design: it predates `VRF_OREG`
+  (#53), and there is no #53 pipelining.
+- **Run.** `sigil_host --ignore-mem-err` (aws-fpga v2.3.5), from
+  2026-10-22T11:25:40Z to 11:27:43Z.
+- **F2 time.** 5 min 35 s running (0.093 instance-hours); the instance
+  is terminated.
+- **Images.** The 16 images are byte-identical to the simulation
+  evidence: the 14 of `perf-suite-56-2026-10-22` and the 2
+  1000-iteration CoreMark images of `perf-coremark-56-2026-10-22`.
+  They were built at `8d15410` with GCC 16.1.0.
+- **Validation.** 46/46 runs are valid. Each run printed `SIGIL TEST
+  PASS` after its own CRC, KAT or known-answer checks, every expect
+  line was present, and there was one `SIGIL PERF` line per region.
+  The UART output equals the simulation's line for line, except
+  numbers on timing lines; no byte was dropped and nothing overflowed.
+  178 of 180 regions retire exactly the simulated `minstret`. The
+  exceptions are the two SHA-512 accelerator poll loops.
+
+| Benchmark | F2 hardware | Simulation, default/axi |
+|---|---:|---:|
+| Dhrystone 2.1, scalar | 0.371 DMIPS/MHz = **23.17 DMIPS** | 0.371 |
+| CoreMark 1.0, 1000 iterations (11.47 s on hardware, `Correct operation validated`) | 1.395 CoreMark/MHz = **87.19 CoreMark** | 1.395 (soc) |
+| SHA-256 accelerator `sigil_sha256_block`, cycles/hash | 572.1 = 109,250 hashes/s | 572.1 |
+| SHA-256 plain C / Zknh / RVV x16, cycles/hash | 9,918.4 / 6,753.4 / 4,642.6 | identical |
+
+How closely the hardware matches the simulation:
+
+- **Agreement.** 145 of 180 regions are within 0.1% of the
+  default-configuration simulation behind the 24-cycle AXI DDR model,
+  and 165 are within 1%. Regions without cache misses repeat
+  cycle-exactly.
+- **Memory-bound regions.** All the larger gaps are cache-miss
+  microbenchmarks:
+  - a refill costs about 1.5 cycles more on the real DDR4 path (D$
+    dependent miss 40.6 against 39.1 cycles);
+  - a dirty write-back costs about 10 cycles less.
+- **The `fpga` (VRF_OREG) simulation.** It is not this AFI's design.
+  In all 61 regions where the two configurations differ, the hardware
+  is closer to `default`: for example, `vse8` at vl=512 takes 1,537.8
+  cycles, against 2,049.8 with `VRF_OREG`.
