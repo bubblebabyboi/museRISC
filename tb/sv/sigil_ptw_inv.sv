@@ -19,6 +19,7 @@
 //   inflight     fetch request in flight, no response this cycle
 //   inflight_drp request in flight that is already dropped
 //   rsp_same     the fetch request's response arrives this cycle
+//   rsp_drp_same the response of an already dropped request arrives
 //   issue_acc    walk_issue accepted this cycle (same-cycle issue)
 //   issue_nacc   walk_issue offered but not accepted (ready low)
 //   trap         trap_take in the same cycle
@@ -72,7 +73,7 @@ module sigil_ptw_inv (
   longint      cyc_q;
   logic [63:0] rq_addr_q;
   logic        rq_we_q;
-  longint      n_viol, n_pre, n_inflight, n_inflight_drp, n_rsp_same,
+  longint      n_viol, n_pre, n_inflight, n_inflight_drp, n_rsp_same, n_rsp_drp_same,
                n_issue_acc, n_issue_nacc, n_trap, n_idle, n_gw, n_gw_issue;
   int          max_rep;
   bit          ev_trace;  // +ptwcovtrace: one line per preemption / width-fault exit
@@ -82,6 +83,7 @@ module sigil_ptw_inv (
     if (!$value$plusargs("ptwpipe_to=%d", pipe_to)) pipe_to = -1;
     ev_trace = $test$plusargs("ptwcovtrace");
     n_viol = 0; n_pre = 0; n_inflight = 0; n_inflight_drp = 0; n_rsp_same = 0;
+    n_rsp_drp_same = 0;
     n_issue_acc = 0; n_issue_nacc = 0; n_trap = 0; n_idle = 0; n_gw = 0;
     n_gw_issue = 0;
     if (!$value$plusargs("ptwinvmax=%d", max_rep)) max_rep = 20;
@@ -128,6 +130,7 @@ module sigil_ptw_inv (
         if (dq_pend && dq_walk && !dq_drop && !drsp_valid) n_inflight <= n_inflight + 1;
         if (dq_pend && dq_walk && dq_drop && !drsp_valid) n_inflight_drp <= n_inflight_drp + 1;
         if (dq_pend && dq_walk && !dq_drop && drsp_valid) n_rsp_same <= n_rsp_same + 1;
+        if (dq_pend && dq_walk && dq_drop && drsp_valid) n_rsp_drp_same <= n_rsp_drp_same + 1;
         if (walk_issue && dreq_ready) n_issue_acc <= n_issue_acc + 1;
         if (walk_issue && !dreq_ready) n_issue_nacc <= n_issue_nacc + 1;
         if (trap_take) n_trap <= n_trap + 1;
@@ -141,8 +144,8 @@ module sigil_ptw_inv (
   end
 
   final begin
-    $display("PTWCOV pre=%0d inflight=%0d inflight_drp=%0d rsp_same=%0d issue_acc=%0d issue_nacc=%0d trap=%0d idle=%0d gw=%0d gw_issue=%0d",
-             n_pre, n_inflight, n_inflight_drp, n_rsp_same, n_issue_acc,
+    $display("PTWCOV pre=%0d inflight=%0d inflight_drp=%0d rsp_same=%0d rsp_drp_same=%0d issue_acc=%0d issue_nacc=%0d trap=%0d idle=%0d gw=%0d gw_issue=%0d",
+             n_pre, n_inflight, n_inflight_drp, n_rsp_same, n_rsp_drp_same, n_issue_acc,
              n_issue_nacc, n_trap, n_idle, n_gw, n_gw_issue);
     $display("PTWINV violations=%0d", n_viol);
   end
