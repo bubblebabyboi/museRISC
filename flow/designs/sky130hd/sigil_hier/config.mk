@@ -24,11 +24,14 @@
 #
 # Floorplan (um, die coordinates; core margin 2, block halos 5; RTLMP
 # checks that every macro plus halo lies inside the core):
-#   sigil_cpu         (10, 10)     2900 x 2560, pins on its top edge
-#   glue channel      y 2570..2660, full width, plus 160 um columns
-#                     left and right of the crypto block
-#   sigil_crypto_top  (170, 2660)  2590 x 850, pins on its bottom edge
-#   SoC pins          left and right die edges above the CPU block
+#   glue column       x 2..135, full height: reset synchronizer,
+#                     fabric, CLINT, PLIC, UART, boot ROM, crypto
+#                     bridge; all SoC pins on the left die edge
+#   sigil_cpu         (140, 10)    2770 x 2680, pins on its left edge
+#   sigil_crypto_top  (140, 2700)  2770 x 810,  pins on its left edge
+# (v1 put the glue in a 90 um channel between the blocks with the
+# CPU pins on its 2900 um top edge; global routing overflowed on
+# 79k gcells: ~400 nets had to run sideways to the die-edge pins.)
 export DESIGN_NICKNAME = sigil_hier
 export DESIGN_NAME = sigil_soc_top
 export PLATFORM    = sky130hd
