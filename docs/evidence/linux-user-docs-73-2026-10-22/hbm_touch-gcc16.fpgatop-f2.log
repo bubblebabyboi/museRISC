@@ -1,0 +1,9 @@
+loaded 4208 bytes at 0x80000000 from /home/ubuntu/docs73/sigil/build/examples/hbm_touch/hbm_touch.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+256 KiB per buffer, 4096 lines
+HBM       0x1080000000: write 190, read 180 cycles per line, 0 bad words
+HBM end   0x147ffc0000: write 192, read 181 cycles per line, 0 bad words
+DDR4 32G  0x0880000000: write 192, read 180 cycles per line, 0 bad words
+SIGIL TEST PASS hbm_touch
+FPGA TOP TB PASS run 0 (exit string at 5370652 cycles after reset release)
+AXI: 28514 AR (28514 R beats), 12290 AW (12290 W beats, 12290 B); stall cycles AW 5463 W 5333 AR 12325 R 0 B 0

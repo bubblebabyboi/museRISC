@@ -1,15 +1,17 @@
 # Programming the Sigil SoC
 
 This guide covers writing bare-metal C programs for the Sigil SoC, running
-them in the RTL simulator today, and running them on an AWS EC2 F2 FPGA
-with the host runtime once the Sigil AFI is available. Programs use the
+them in the RTL simulator, and running them on an AWS EC2 F2 FPGA with
+the host runtime and Sigil's public AFI. Programs use the
 small SDK in `sw/sdk/`. The examples in `sw/examples/` are short,
 commented templates. Each one checks its own results, so they also
 serve as regression tests (`make -C sim examples`).
 
 Everything below matches the code in this repository. Every cycle count
 quoted here comes from running the examples on `soc_rtl_tb`, the
-cycle-accurate Verilator model of the real SoC RTL.
+cycle-accurate Verilator model of the real SoC RTL, unless a number is
+marked as measured on the F2. For Linux (Debian with gcc and glibc) on
+the same hardware, see [`LINUX.md`](LINUX.md).
 
 ## Contents
 
@@ -20,7 +22,7 @@ cycle-accurate Verilator model of the real SoC RTL.
 5. [SDK reference](#5-sdk-reference)
 6. [Pass/fail convention](#6-passfail-convention)
 7. [Running in simulation](#7-running-in-simulation)
-8. [Running on AWS F2](#8-running-on-aws-f2)
+8. [Running on AWS F2](#8-running-on-aws-f2) — [the F2 memory map: 64 GiB DDR4 and 16 GiB HBM](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)
 9. [Crypto and hash accelerator](#9-crypto-and-hash-accelerator)
 10. [Interrupts and the timer](#10-interrupts-and-the-timer)
 11. [Vector code](#11-vector-code)
@@ -39,8 +41,10 @@ cycle-accurate Verilator model of the real SoC RTL.
   Zicond, scalar crypto Zbkb/Zbkx/Zkne/Zknd/Zknh, and the vector
   extension RVV 1.0 with VLEN = 512 and ELEN = 64. `misa` reads
   `0x8000_0000_0034_11AF` (RV64 ABCDFHIMSUV). See `docs/CORE.md`.
-- **Memory:** 128 MiB of RAM at `0x8000_0000`, the only cacheable
-  region. The core has an 8 KiB L1 I$ and a 16 KiB write-back L1 D$.
+- **Memory:** RAM from `0x8000_0000`, the only cacheable region: 128
+  MiB in the simulators and in the SDK's link script; on the F2, 64 GiB
+  of DDR4 and 16 GiB of HBM ([section 8.1](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)).
+  The core has an 8 KiB L1 I$ and a 16 KiB write-back L1 D$.
   Devices (CLINT, PLIC, UART, crypto) are uncached, and each access is a
   single bus transaction.
 - **Startup** (`sw/sdk/lib/crt0.S`): sets gp and sp, turns on the FPU and
@@ -154,11 +158,13 @@ The same map is used by the RTL SoC (`rtl/soc/sigil_soc_top.sv`),
 | Address | Size | Device | SDK constant |
 |---|---|---|---|
 | `0x0000_1000` | 4 KiB | boot ROM (jumps to `0x8000_0000`) | `SIGIL_BOOTROM_BASE` |
+| `0x0010_0000` | 4 KiB | test finisher (32-bit write: `0x5555` power off, `0x7777` reboot, `(code << 16) \| 0x3333` fail); on the F2 `sigil_host` ends the run on power off (exit 0) or fail (exit 1); a reboot reloads the boot images and restarts (`--on-reboot rerun`, the default) or exits 5 (`--on-reboot exit`) | — |
+| `0x0010_1000` | 4 KiB | RTC (`google,goldfish-rtc` registers; set to the host's wall clock by `sigil_host`) | — |
 | `0x0200_0000` | 64 KiB | CLINT: `msip` +0x0, `mtimecmp` +0x4000, `mtime` +0xBFF8 | `SIGIL_CLINT_*` |
 | `0x0C00_0000` | 64 MiB | PLIC | `SIGIL_PLIC_BASE` |
 | `0x1000_0000` | 256 B | 16550 UART (byte registers; THR/RBR +0, LSR +5) | `SIGIL_UART_*` |
 | `0x2000_0000` | registers 0x00–0xA0 | crypto accelerator (`docs/SPEC.md` section 3, `sw/sigil_crypto.h`) | `SIGIL_CRYPTO_BASE`, `SIGIL_*` |
-| `0x8000_0000` | 128 MiB | RAM (cacheable) | `SIGIL_RAM_BASE`, `SIGIL_RAM_SIZE` |
+| `0x8000_0000` | 128 MiB (simulators, SDK); F2: 80 GiB, [section 8.1](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm) | RAM (cacheable) | `SIGIL_RAM_BASE`, `SIGIL_RAM_SIZE` |
 
 Image layout (`sw/sdk/link.ld`): `.text` (startup code first), then
 `.rodata`, `.data`, `.bss`, and a 64 KiB stack. The flat `.bin` file
@@ -307,19 +313,36 @@ the real DDR timing and clock.
 |---|---|---|
 | `make -C sim examples` | every example on `soc_rtl_tb`, random memory latency, 60M-cycle limit each; fails on any FAIL, trap or timeout | ~28 s sequential |
 | `make -C sim fpgatop-examples` | every example on `fpga_top_tb` (DDR-like AXI timing) | ~22 s with `-j4` |
-| `make core-test` | includes `examples` and `fpgatop-example-hello` / `-timer_irq` | adds ~30 s to a ~34 min suite |
+| `make -C sim fpgatop-f2-examples` | the F2-map examples (`hbm_touch`) on `fpga_top_tb_f2` (the F2's 80 GiB window over a sparse memory model) | 19 s run on the Linux build instance |
+| `make core-test` | includes `examples`, `fpgatop-example-hello` / `-timer_irq` and `fpgatop-f2-examples` | adds ~30 s, plus the `hbm_touch` run, to a ~34 min suite |
 
 Logs are written to `build/examples/<name>.log`. Add a new example by
 creating `sw/examples/<name>/{<name>.c,Makefile}` and adding the name
-to `EXAMPLES` in `sim/Makefile`.
+to `EXAMPLES` in `sim/Makefile` (or to `F2_EXAMPLES` if it needs the F2
+memory map). `make -C sim examples-bins` builds all of them without
+running them.
 
 ## 8. Running on AWS F2
 
-The F2 build (`docs/FPGA_F2.md`) wraps the same SoC. The 128 MiB RAM
-window maps to FPGA DDR4. The UART is a virtual UART, which the host
-reads and writes through the OCL register BAR. The core clock is
-interim: **62.5 MHz** (`AWS_CLK_GEN` recipe B1) until timing closes at
-100 MHz.
+The F2 build (`docs/FPGA_F2.md`) wraps the same SoC. Its RAM window is
+80 GiB: all 64 GiB of the FPGA's DDR4 and its 16 GiB of HBM
+([section 8.1](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)). The
+UART is a virtual UART, which the host reads and writes through the OCL
+register BAR. The core clock is interim: **62.5 MHz** (`AWS_CLK_GEN`
+recipe B1) until timing closes at 100 MHz. The public AFI is
+**`agfi-0c8aa56fde1a48495`** (it supersedes `agfi-0a1fd54ef68bdc754`,
+whose core has the MMU walker race,
+[#74](https://github.com/bubblebabyboi/sigil/issues/74)).
+
+The quickest start is the playground setup on a new `f2.6xlarge`
+(FPGA Developer AMI), which installs the SDK, a RISC-V GCC and
+`sigil_host`, loads the AFI and adds `sigil-run`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash
+~/bin/sigil-run ~/hello/hello.c   # build with the SDK template, run on the FPGA
+~/bin/sigil-run prog.bin          # or run an image you built
+```
 
 The host runtime is `fpga/host/sigil_host.c`. Build it on the F2
 instance against the aws-fpga SDK (setup steps in
@@ -332,45 +355,137 @@ make -C fpga/host SDK_DIR=<aws-fpga>/sdk
 To run an SDK program:
 
 ```sh
-sudo fpga/host/sigil_host --afi agfi-035116450e0a0d093 --ignore-mem-err \
-    --bin build/myprog.bin --timeout 30
+sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H     # if the slot does not have it (fpga-describe-local-image -S 0 -H)
+sudo fpga/host/sigil_host --bin build/myprog.bin --timeout 30
 ```
 
 What `sigil_host` does:
 
-1. Loads the AFI (`--afi`). Leave it out if the AFI is already loaded.
-2. Sets the clock recipe.
-3. Holds the SoC in reset.
-4. Copies the `.bin` to DDR at SoC address `0x8000_0000`
+1. Loads the AFI if you pass `--afi agfi-...`. Leave it out when the AFI
+   is already loaded: every load resets the FPGA, and the next run zeroes
+   DDR4 again (step 4).
+2. Releases the CL resets with the AFI's build clock recipe (B1 =
+   62.5 MHz); `--recipe-b N` programs another recipe instead.
+3. Holds the SoC in reset and waits for DDR4 and HBM.
+4. Zeroes all 64 GiB of DDR4 once per AFI load (about 17 s). DDR4 has
+   ECC, and reading memory that was never written is an error
+   ([#62](https://github.com/bubblebabyboi/sigil/issues/62)).
+5. Copies the `.bin` to DDR4 at SoC address `0x8000_0000`
    (`--bin F` = `--load 0x80000000=F`; load addresses must be 64-byte
    aligned).
-5. Releases reset. The boot ROM jumps to `0x8000_0000`.
-6. Streams the UART to stdout until a pass marker (exit 0), a fail
-   marker (exit 1), or `--timeout` seconds (default 60; exit 2).
-7. Prints the measured core clock and the trap counters.
+6. Sets the RTC to the host's wall clock and releases reset. The boot
+   ROM jumps to `0x8000_0000`.
+7. Streams the UART to stdout until a pass marker (exit 0), a fail
+   marker (exit 1), a test-finisher write (power off: exit 0, fail code:
+   exit 1), a memory error (exit 1) or `--timeout` seconds (default 60;
+   exit 2).
+8. Prints the measured core clock, the trap counters and any memory
+   error it captured.
 
 Other useful options:
 
 | Option | Effect |
 |---|---|
 | `--stdin` | forwards your terminal to the UART receiver (`sigil_getc()`) |
+| `--console` | interactive raw terminal (no markers, no timeout); Ctrl-] detaches |
+| `--load 0xADDR=F` | an extra image anywhere in DDR4 or HBM, e.g. input data |
+| `--save 0xADDR=F:SIZE` | after the run, writes SIZE bytes (K/M/G) of memory to a file |
 | `--log F` | also writes the UART stream to a file |
 | `--no-cache` | runs with the L1 caches off |
 | `--keep-running` | leaves the SoC running when the tool exits |
+| `--memtest all` | full-range DDR4 + HBM test with the FPGA's memory engine |
 | `-q` | prints only the UART output |
-| `--ignore-mem-err` | required with the current public AFI: it sets a spurious sticky AXI error flag early in every run without affecting results ([#62](https://github.com/bubblebabyboi/sigil/issues/62)) |
+
+`--ignore-mem-err` is no longer needed with this AFI (#62 is fixed by
+the DDR4 zeroing); it only matters for the first public AFI,
+`agfi-035116450e0a0d093` (#55, 128 MiB, no HBM), which still works with
+the current `sigil_host`; its core also has the walker race (#74), so
+use it for bare-metal programs only.
 
 `sigil_host` recognises `SIGIL TEST PASS` (and the older `SOC CRYPTO
 PASS`, ... markers) by default, and its default fail marker `FAIL`
 matches `SIGIL TEST FAIL`; `--exit` / `--fail` override them.
 
-Status: the public AFI `agfi-035116450e0a0d093` ran the existing
-firmware, OpenSBI and Linux 6.6 to userspace on a real `f2.6xlarge` at a
-measured 62.5 MHz (2026-10-22, `docs/evidence/f2-first-boot-55-2026-10-22/`).
-The SDK examples have passed on `fpga_top_tb`, the closest
-simulation of the F2 top. At 62.5 MHz, 1M cycles take 16 ms. The
-slowest example (`ed25519_verify`, ~15M cycles) would take about
-0.25 s.
+Status: on a real `f2.6xlarge` at a measured 62.5 MHz, the platform AFI
+`agfi-0a1fd54ef68bdc754` ran the firmware tests and all 7 SDK examples
+without `--ignore-mem-err`, and full-range memory tests of DDR4 and HBM
+(2026-10-22, [`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md)).
+The current AFI `agfi-0c8aa56fde1a48495` is the same CL with the core's
+walker-race fix and atomic A/D update (#74); on it Debian passed 22/22 checks
+([`evidence/linux-debian-73-2026-10-22/f2-boot-fixed/`](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/));
+the first AFI ran the 7 examples too
+([`evidence/f2-sdk-examples-2026-10-22/`](evidence/f2-sdk-examples-2026-10-22/SUMMARY.md):
+`ed25519_verify`, the slowest at 15.9M cycles, took 0.255 s). At 62.5
+MHz, 1M cycles take 16 ms.
+
+### 8.1 The F2 memory map: 64 GiB DDR4 and 16 GiB HBM
+
+On the F2 the SoC's RAM is all of the FPGA's memory
+([`LINUX_PLATFORM.md`](LINUX_PLATFORM.md)):
+
+| SoC physical address | Size | Memory | Notes |
+|---|---|---|---|
+| `0x0_8000_0000` – `0x10_7FFF_FFFF` | 64 GiB | DDR4 | ECC; zeroed by `sigil_host` once per AFI load |
+| `0x10_8000_0000` – `0x14_7FFF_FFFF` | 16 GiB | HBM | no ECC; **not** zeroed (`--scrub-hbm` does it): write before you read |
+| above `0x14_8000_0000` | — | none | reads return 0, writes are dropped, and `sigil_host` stops with a memory error |
+
+Both are ordinary cacheable memory: a pointer is all it takes. The SDK
+uses only the first 128 MiB (`SIGIL_RAM_SIZE`, `sw/sdk/link.ld`,
+`sigil_alloc()`), the window every simulator has, so the rest of DDR4
+and all of HBM are yours to manage. The example
+[`hbm_touch`](../sw/examples/hbm_touch/hbm_touch.c) does it with a
+bump allocator over HBM:
+
+```c
+#define F2_HBM_BASE 0x1080000000UL
+#define F2_HBM_SIZE 0x0400000000UL /* 16 GiB */
+
+static uintptr_t hbm_next = F2_HBM_BASE;
+static void *hbm_alloc(size_t n, size_t align) {    /* no free */
+  uintptr_t p = (hbm_next + align - 1) & ~(uintptr_t)(align - 1);
+  if (p + n > F2_HBM_BASE + F2_HBM_SIZE) return NULL;
+  hbm_next = p + n;
+  return (void *)p;
+}
+
+int main(void) {
+  uint64_t *buf = hbm_alloc(256 * 1024, 64);                  /* 256 KiB in HBM */
+  uint64_t *big = (uint64_t *)(0x80000000UL + (32UL << 30));  /* DDR4 + 32 GiB */
+  /* ... */
+}
+```
+
+`hbm_touch` writes and reads back 256 KiB (16 × the D$, so the reads
+come from memory) at the start of HBM, at its last 256 KiB and in DDR4
+at +32 GiB, checks the first buffer again (no aliasing) and prints the
+cycles per 64-byte line of each pass. It passes on `fpga_top_tb_f2`
+(`make -C sim fpgatop-f2-examples`; 5.37M cycles with simulated AXI
+timing, which says nothing about F2 latency; built with GCC 16.1 and
+with Ubuntu's GCC 13.2, which `sigil-run` uses;
+[`evidence/linux-user-docs-73-2026-10-22/`](evidence/linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log)). It needs the F2 map, so
+it does not run on `soc_rtl_tb` or `fpga_top_tb` (128 MiB). On the F2:
+`~/bin/sigil-run ~/sigil/sw/examples/hbm_touch/hbm_touch.c` (not yet
+run on the F2 itself). The same kinds of accesses from the core
+(`sw/fpga-tests/f2_memtest.c`, a sparse test over all of DDR4 and HBM)
+passed on the F2 with 0 errors.
+
+Things to know:
+
+- **Latency** (measured on the F2, cold 64-byte refill from the core):
+  DDR4 45.6 cycles = 729 ns, HBM 50.8 cycles = 813 ns; L1 hit about 9
+  cycles including the `rdcycle`. The core has one memory request in
+  flight, so a sequential read runs at 77 MB/s (DDR4) and 70 MB/s
+  (HBM): HBM gives this core more memory, not more speed.
+- **Big inputs and outputs:** put data into memory before the run and
+  read results back after it, at PCIe speed (3.6 GB/s load, about
+  1 GB/s save):
+  `sudo fpga/host/sigil_host --bin prog.bin --load 0x1080000000=input.bin --save 0x1100000000=out.bin:64M`.
+- **The D$ is write-back** and the host's view of memory does not see
+  dirty lines: data the program wrote reaches DDR4/HBM when the line is
+  evicted or after `sigil_fence_i()` (which writes back the whole D$).
+  Call it before the program ends if the host will `--save` that data.
+- Between AFI loads, DDR4 keeps what earlier runs wrote (it is zeroed
+  only once per load); HBM is zeroed only with `--scrub-hbm`.
 
 ## 9. Crypto and hash accelerator
 
@@ -549,8 +664,9 @@ benchmarks in `sw/bench/`) runs and validates such programs; see
   libc beyond `mem*`/`strlen`/`strcmp`, no `malloc`/`free` (use
   `sigil_alloc`), no files, no libm, no C++ runtime (constructors are
   not run).
-- **Memory:** 128 MiB of RAM, 64 KiB of stack by default
-  (`STACK_SIZE=`). Nothing detects a stack overflow: it silently
+- **Memory:** 128 MiB of RAM in the SDK (on the F2, the rest of DDR4
+  and the HBM are there too: [section 8.1](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)),
+  64 KiB of stack by default (`STACK_SIZE=`). Nothing detects a stack overflow: it silently
   overwrites `.bss`. Large buffers belong in static storage or
   `sigil_alloc`, not on the stack.
 - **Misaligned loads and stores trap** (cause 4 or 6). The SDK builds
@@ -568,8 +684,9 @@ benchmarks in `sw/bench/`) runs and validates such programs; see
   so cache coherence is never an issue.
 - **Clock on F2:** the interim F2 core clock is **62.5 MHz**, with
   `mtime` at the same rate. Divide cycle counts by 62.5e6 for seconds.
-  Cycle counts on F2 will differ a little from simulation, because DDR
-  latency is real (~8–40 bus cycles per line fill in `fpga_top_tb`).
+  Cycle counts on F2 differ from simulation, because DDR latency is
+  real: a line fill takes ~8–40 bus cycles in `fpga_top_tb`, but about
+  46 core cycles from DDR4 and 51 from HBM on the F2.
 - **One hart, M-mode only** in the SDK. Supervisor and user mode, Sv39
   and the hypervisor extension exist in the core, but using them means
   writing your own trap and page-table setup (as OpenSBI and Linux do;
@@ -594,6 +711,7 @@ which PASS was printed, including startup and UART output.
 | [`hash_stream`](../sw/examples/hash_stream/hash_stream.c) | streaming engine: SHA-512 at 9 lengths around the block size, SHA3-256 at 7 lengths around the rate (vs hashlib), FIPS "abc", piecewise == one-shot, SHAKE256 300-byte output | 1000 B: SHA-512 7.3 cycles/B, SHA3-256 5.8 cycles/B | 277k |
 | [`ed25519_verify`](../sw/examples/ed25519_verify/ed25519_verify.c) | `sigil_ed25519_verify()` on RFC 8032 TEST 2: accept; changed message rejected; S ≥ L rejected | 7.4M cycles per verify | 14.9M |
 | [`vector_dot`](../sw/examples/vector_dot/vector_dot.c) | RVV intrinsics: VLEN = 512, int32 dot product == scalar for lengths 0..100 and 1000, vector byte copy at unaligned offsets with guard bytes intact | see [section 11](#11-vector-code) | 811k |
+| [`hbm_touch`](../sw/examples/hbm_touch/hbm_touch.c) | **F2 memory map only** ([section 8.1](#81-the-f2-memory-map-64-gib-ddr4-and-16-gib-hbm)): a bump allocator over HBM, 256 KiB written and read back at the start and end of HBM and in DDR4 at +32 GiB, no aliasing | `fpga_top_tb_f2`: ~190 cycles per line written, 180 read (simulated AXI timing, not F2 latency) | 5.37M (`fpga_top_tb_f2`, GCC 16.1; 6.15M with Ubuntu's GCC 13.2) |
 | [`fp_math`](../sw/examples/fp_math/fp_math.c) | correctly rounded `fsqrt.d`/`fsqrt.s`, Newton sqrt(2) within 1 ulp in ≤ 6 steps (takes 5), e from its series within 2 ulp, exact dot product, `fmadd` rounds once, `frm` round-up and the NX flag, conversions | 100-element dot: ~2.5k cycles | 47k |
 
 The starting point for your own code is `sw/sdk/template/`. For lower-level

@@ -1,0 +1,23 @@
+Sigil: write back the L1 D$ before a system reset
+
+Sigil's L1 D$ is write-back and not coherent with the host's PCIS view
+of DDR4 (no Zicbom). FENCE.I writes back every dirty line, so after a
+power-off the pmem disk the host saves holds everything Linux wrote,
+and after a reboot (which resets the SoC but keeps DDR4) nothing that
+was still dirty in the D$ is lost. On other cores this is a harmless
+FENCE.I. Linux 6.12 with sigil_defconfig powers off and reboots only
+through SBI SRST, i.e. through this function.
+
+--- a/lib/sbi/sbi_system.c
++++ b/lib/sbi/sbi_system.c
+@@ -74,6 +74,10 @@ void __noreturn sbi_system_reset(u32 reset_type, u32 reset_reason)
+ 	/* Stop current HART */
+ 	sbi_hsm_hart_stop(scratch, false);
+ 
++	/* Sigil: write back dirty D$ lines (pmem disk, kept memory) */
++	__asm__ __volatile__("fence rw, rw\n\tfence.i\n\tfence rw, rw"
++			     ::: "memory");
++
+ 	/* Platform specific reset if domain allowed system reset */
+ 	if (dom->system_reset_allowed) {
+ 		const struct sbi_system_reset_device *dev =

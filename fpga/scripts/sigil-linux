@@ -1,0 +1,243 @@
+#!/bin/bash
+# sigil-linux: boot Sigil's Debian on this F2's FPGA, with a disk that
+# persists from one session to the next (docs/LINUX.md section 4).
+#
+#   sigil-linux [--fresh] [--disk PATH] [--tag TAG] [-- sigil_host options]
+#
+# 1. Downloads the release's boot files and Debian image (about 240 MB,
+#    once per release) into ~/.cache/sigil-linux/TAG and checks them
+#    against the release's SHA256SUMS.
+# 2. Unpacks the Debian image once into the disk file (~/sigil-disk.ext4:
+#    an 8 GiB ext4 file system, stored sparse).
+# 3. Loads the Sigil AFI if the FPGA does not already have it.
+# 4. Boots OpenSBI + Linux with the disk in the pmem window and your
+#    terminal as the console. Log in as sigil / sigil.
+# 5. After `sudo poweroff` in Debian, copies the pmem window back into
+#    the disk file, so the next run continues where you left off.
+#    Ctrl-] leaves without saving: the disk file stays as it was, and the
+#    window as it was at that moment is kept as DISK.unclean.
+#
+# Options:
+#   --fresh      start again from the release image (the old disk is
+#                renamed DISK.old)
+#   --disk PATH  use another disk file (default ~/sigil-disk.ext4)
+#   --tag TAG    boot another release (default sigil-linux-f2-2026-10-22)
+#   -- ...       pass the rest to sigil_host (e.g. -- --log console.log)
+# Environment: SIGIL (checkout with fpga/host/sigil_host; ~/sigil),
+# SIGIL_AGFI, SIGIL_LINUX_TAG, SIGIL_DISK, SIGIL_LINUX_URL (download
+# base; default the GitHub release), SIGIL_LINUX_CACHE, SIGIL_LINUX_TMP
+# (where the window is saved before it replaces the disk file; default
+# /dev/shm).
+set -euo pipefail
+
+TAG=${SIGIL_LINUX_TAG:-sigil-linux-f2-2026-10-22}
+AGFI=${SIGIL_AGFI:-agfi-0c8aa56fde1a48495}
+SIGIL=${SIGIL:-$HOME/sigil}
+DISK=${SIGIL_DISK:-$HOME/sigil-disk.ext4}
+CACHE=${SIGIL_LINUX_CACHE:-$HOME/.cache/sigil-linux}
+PMEM=0xC80000000                 # pmem disk window (docs/LINUX_PLATFORM.md)
+PMEM_BYTES=$((16 << 30))         # 16 GiB
+IMAGE=sigil-debian-13-riscv64.ext4.zst
+FILES=(fw_jump.bin Image sigil-f2.dtb "$IMAGE")
+
+say() { printf '[sigil-linux] %s\n' "$*" >&2; }
+die() {
+  say "error: $*"
+  exit 1
+}
+usage() {
+  sed -n '/^# sigil-linux:/,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p;}' "$0" >&2
+  exit "$1"
+}
+
+# Size in bytes of the ext4 file system at the start of FILE (0: none).
+le32() { od -An -tu4 -j "$2" -N4 --endian=little "$1" | tr -d ' '; }
+ext4_bytes() {
+  local magic lo log incompat hi=0
+  magic=$(od -An -tx2 -j1080 -N2 --endian=little "$1" | tr -d ' ')
+  if [ "$magic" != ef53 ]; then
+    echo 0
+    return
+  fi
+  lo=$(le32 "$1" 1028)        # s_blocks_count_lo
+  log=$(le32 "$1" 1048)       # s_log_block_size
+  incompat=$(le32 "$1" 1120)  # s_feature_incompat
+  if ((incompat & 0x80)); then hi=$(le32 "$1" 1360); fi  # 64bit: s_blocks_count_hi
+  echo $(((lo + (hi << 32)) << (10 + log)))
+}
+
+# Sparse copy of the first BYTES of SRC to DST (all-zero 4 MiB blocks
+# become holes), flushed to stable storage.
+sparse_copy() {  # SRC DST BYTES
+  rm -f "$2" || return 1
+  dd if="$1" of="$2" bs=4M iflag=count_bytes count="$3" conv=sparse status=none || return 1
+  truncate -s "$3" "$2" || return 1
+  sync "$2"
+}
+
+fresh=0
+extra=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    --fresh) fresh=1 ;;
+    --disk)
+      [ $# -ge 2 ] || usage 2
+      DISK=$2
+      shift
+      ;;
+    --tag)
+      [ $# -ge 2 ] || usage 2
+      TAG=$2
+      shift
+      ;;
+    -h | --help) usage 0 ;;
+    --)
+      shift
+      extra=("$@")
+      break
+      ;;
+    *)
+      say "unknown option: $1"
+      usage 2
+      ;;
+  esac
+  shift
+done
+case $DISK in /*) ;; *) DISK=$PWD/$DISK ;; esac
+URL=${SIGIL_LINUX_URL:-https://github.com/bubblebabyboi/sigil/releases/download/$TAG}
+DL=$CACHE/$TAG
+
+# ---- prerequisites -------------------------------------------------------
+HOST=$SIGIL/fpga/host/sigil_host
+[ -x "$HOST" ] || die "$HOST not found: run fpga/scripts/f2_playground_setup.sh, or
+  make -C $SIGIL/fpga/host SDK_DIR=\$HOME/aws-fpga/sdk"
+help=$("$HOST" --help 2>&1 || true)
+grep -q -- '--on-reboot' <<<"$help" || die "$HOST is too old for Sigil Linux: update it with
+  git -C $SIGIL pull && make -C $SIGIL/fpga/host SDK_DIR=\$HOME/aws-fpga/sdk"
+for c in curl sha256sum zstd od dd truncate flock; do
+  command -v "$c" > /dev/null || die "$c not found (Ubuntu: sudo apt-get install -y zstd curl)"
+done
+sudo sh -c 'command -v fpga-load-local-image' > /dev/null ||
+  die "the AWS FPGA tools are missing: (cd ~/aws-fpga && source sdk_setup.sh) once, see docs/FPGA_F2.md"
+mkdir -p "$DL"
+exec 9> "$CACHE/.lock"
+flock -n 9 || die "another sigil-linux is running on this instance"
+
+# ---- 1. release files ----------------------------------------------------
+fetch() {  # NAME [--force]
+  if [ -s "$DL/$1" ] && [ "${2:-}" != --force ]; then return 0; fi
+  say "downloading $1"
+  curl -fL --retry 3 --progress-bar -o "$DL/$1.part" "$URL/$1" ||
+    die "cannot download $URL/$1 (is $TAG a published release?)"
+  mv -f "$DL/$1.part" "$DL/$1"
+}
+verify() {  # check FILES against SHA256SUMS
+  local f line sums=""
+  for f in "${FILES[@]}"; do
+    line=$(awk -v f="$f" '$2 == f || $2 == "*" f' "$DL/SHA256SUMS")
+    [ -n "$line" ] || die "SHA256SUMS of $TAG has no entry for $f"
+    sums+=$line$'\n'
+  done
+  (cd "$DL" && sha256sum -c --quiet <<<"$sums") 2>&1 | sed 's/^/[sigil-linux]   /' >&2
+  return "${PIPESTATUS[0]}"
+}
+fetch SHA256SUMS
+for f in "${FILES[@]}"; do fetch "$f"; done
+if ! verify; then
+  say "checksum mismatch: downloading $TAG again"
+  for f in SHA256SUMS "${FILES[@]}"; do fetch "$f" --force; done
+  verify || die "the files of $TAG do not match its SHA256SUMS"
+fi
+
+# ---- 2. the disk ---------------------------------------------------------
+if [ "$fresh" = 1 ] && [ -e "$DISK" ]; then
+  mv -f "$DISK" "$DISK.old"
+  if [ -e "$DISK.release" ]; then mv -f "$DISK.release" "$DISK.old.release"; fi
+  say "--fresh: the previous disk is now $DISK.old"
+fi
+if [ ! -e "$DISK" ]; then
+  say "unpacking the Debian image into $DISK (8 GiB file system, sparse)"
+  mkdir -p "$(dirname "$DISK")"
+  rm -f "$DISK.part"
+  # --sparse: zero blocks become holes (about 0.9 GiB of the 8 GiB is data)
+  zstd -d -q --sparse -o "$DISK.part" "$DL/$IMAGE" || die "cannot unpack $IMAGE (disk full?)"
+  mv -f "$DISK.part" "$DISK"
+  echo "$TAG" > "$DISK.release"
+fi
+disk_bytes=$(stat -c %s "$DISK")
+[ "$(ext4_bytes "$DISK")" -gt 0 ] || die "$DISK is not an ext4 image (--fresh starts a new one)"
+[ "$disk_bytes" -le "$PMEM_BYTES" ] || die "$DISK is larger than the 16 GiB pmem window"
+made_from=$(cat "$DISK.release" 2> /dev/null || true)
+if [ -n "$made_from" ] && [ "$made_from" != "$TAG" ]; then
+  say "note: $DISK was made from $made_from; booting it with the $TAG kernel (--fresh starts from the $TAG image)"
+fi
+
+# ---- 3. the AFI ----------------------------------------------------------
+if ! sudo fpga-describe-local-image -S 0 -H 2> /dev/null | grep -q "$AGFI.*loaded"; then
+  say "loading the Sigil AFI $AGFI"
+  sudo fpga-load-local-image -S 0 -I "$AGFI" -H > /dev/null
+  say "(the first boot after an AFI load also zeroes the 64 GiB of DDR4: about 17 s)"
+fi
+
+# ---- 4. boot ---------------------------------------------------------------
+# The window is saved to a private temporary directory first (RAM if
+# /dev/shm has room: 1 GB/s instead of the root volume's ~130 MB/s) and
+# replaces the disk file only after a clean power-off.
+tmpbase=${SIGIL_LINUX_TMP:-}
+if [ -z "$tmpbase" ]; then
+  tmpbase=$(dirname "$DISK")
+  shm_free=$(df -B1 --output=avail /dev/shm 2> /dev/null | tail -1 || echo 0)
+  if [ "${shm_free:-0}" -gt $((PMEM_BYTES + (1 << 30))) ]; then tmpbase=/dev/shm; fi
+fi
+TMP=$(mktemp -d "$tmpbase/sigil-linux.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
+SAVED=$TMP/pmem.ext4
+
+say "booting Debian from $DISK"
+say "the login prompt comes about 6 min after the SoC starts (5 min 48 s measured at 62.5 MHz); log in as sigil / sigil"
+say "'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving"
+if [ -z "${TMUX:-}${STY:-}" ]; then
+  say "tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost"
+fi
+set +e
+sudo "$HOST" --linux --fw "$DL/fw_jump.bin" --image "$DL/Image" --dtb "$DL/sigil-f2.dtb" \
+  --load "$PMEM=$DISK" --save "$PMEM=$SAVED:$PMEM_BYTES" \
+  --console --on-reboot rerun "${extra[@]}"
+rc=$?
+set -e
+
+# ---- 5. save -------------------------------------------------------------
+# sigil_host exit status: 0 = power off (finisher), 5 = reboot limit
+# (also after a clean shutdown), 4 = Ctrl-] (Debian still running), 1 =
+# failure, 3 = setup error (nothing ran, nothing saved).
+if [ ! -s "$SAVED" ]; then
+  say "sigil_host exit $rc, nothing saved: $DISK is unchanged"
+  exit "$rc"
+fi
+sudo chown "$(id -u):$(id -g)" "$SAVED"  # written by root
+fs_bytes=$(ext4_bytes "$SAVED")
+if { [ "$rc" = 0 ] || [ "$rc" = 5 ]; } && [ "$fs_bytes" -gt 0 ]; then
+  say "Debian powered off: saving the disk to $DISK"
+  if ! sparse_copy "$SAVED" "$DISK.new" "$fs_bytes"; then
+    trap - EXIT
+    rm -f "$DISK.new"
+    die "cannot write $DISK.new (disk full?). The saved disk is $SAVED: copy it somewhere before it is lost"
+  fi
+  mv -f "$DISK.new" "$DISK"
+  say "disk saved: $DISK ($((fs_bytes >> 20)) MiB file system, $(du -h "$DISK" | cut -f1) on this volume)"
+  exit 0
+fi
+[ "$fs_bytes" -gt 0 ] || fs_bytes=$(stat -c %s "$SAVED")
+if sparse_copy "$SAVED" "$DISK.unclean" "$fs_bytes"; then
+  kept="the pmem window as it was at that moment is $DISK.unclean (check it with e2fsck -f; boot it with --disk)"
+else
+  rm -f "$DISK.unclean"
+  kept="could not keep a copy of the pmem window (disk full?)"
+fi
+case $rc in
+  0 | 5) say "the pmem window no longer holds an ext4 file system" ;;
+  4) say "left the console (Ctrl-]): Debian keeps running on the FPGA, but nothing can reattach to it" ;;
+  *) say "sigil_host exit $rc: Debian did not power off cleanly" ;;
+esac
+say "$DISK is unchanged; $kept"
+exit "$rc"

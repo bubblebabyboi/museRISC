@@ -1,0 +1,8 @@
+#!/bin/sh
+# Print the Sigil boot marker on the console right before the login
+# prompt, so host tools (sigil_host --exit-string, QEMU scripts) can
+# tell that Debian finished booting and how long it took.
+read -r up _ < /proc/uptime
+. /etc/os-release
+printf '\nSIGIL_LINUX_BOOT_OK %s up, login prompt next (kernel uptime %s s)\n' \
+  "$PRETTY_NAME" "$up" > /dev/console

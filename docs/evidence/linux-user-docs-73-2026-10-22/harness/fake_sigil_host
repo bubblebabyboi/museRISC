@@ -1,0 +1,29 @@
+#!/bin/bash
+# Fake sigil_host for testing sigil-linux: simulates a Debian session on
+# the pmem window. Control file: $FAKE/ctl (lines: rc=N, action=...).
+FAKE=/home/ubuntu/docs73/test/fake
+for a in "$@"; do case $a in --help) echo "usage: ... --on-reboot MODE ..." >&2; exit 3;; esac; done
+echo "[fake sigil_host] uid=$(id -u) args: $*" >&2
+echo "$*" > "$FAKE/last-args"
+load= save=
+while [ $# -gt 0 ]; do
+  case $1 in
+    --load) case $2 in 0xC80000000=*) load=${2#*=};; esac; shift;;
+    --save) save=${2#*=}; shift;;
+  esac; shift
+done
+rc=$(sed -n 's/^rc=//p' "$FAKE/ctl"); action=$(sed -n 's/^action=//p' "$FAKE/ctl")
+[ "$rc" = 3 ] && { echo "[fake] setup error" >&2; exit 3; }
+win=$(mktemp /dev/shm/fakewin.XXXX)
+cp --sparse=always "$load" "$win"; truncate -s 16G "$win"
+case $action in
+  write:*) f=${action#write:}; echo "hello from $f" > /tmp/fake-note.txt; debugfs -w -R "write /tmp/fake-note.txt /home/sigil/$f" "$win" >/dev/null 2>&1 ;;
+  resize) e2fsck -fy "$win" >/dev/null 2>&1; resize2fs "$win" 16G >/dev/null 2>&1; echo "hello resized" > /tmp/fake-note.txt; debugfs -w -R "write /tmp/fake-note.txt /home/sigil/resized.txt" "$win" >/dev/null 2>&1 ;;
+  garbage) dd if=/dev/urandom of="$win" bs=1M count=1 seek=9000 conv=notrunc status=none ;;
+  wipe) dd if=/dev/zero of="$win" bs=1M count=4 conv=notrunc status=none ;;
+esac
+spath=${save%:*}; ssize=${save##*:}
+# the real host writes every byte (mmap); here: sparse copy, full size
+cp --sparse=always "$win" "$spath"; truncate -s "$ssize" "$spath"
+rm -f "$win"
+exit "$rc"

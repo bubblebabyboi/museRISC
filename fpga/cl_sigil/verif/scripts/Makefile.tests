@@ -37,6 +37,14 @@ test_sigil_hello: TEST=test_sigil_hello
 test_sigil_hello: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
 test_sigil_hello: all
 
+# F2 platform (issues #62-#67): memory engine across 4 GiB and the
+# DDR4/HBM boundary, f2_platform_test.bin (RTC, DDR4/HBM window edges,
+# UART bursts, out-of-window read, test finisher), error capture,
+# PCIS read-back of the core's DDR4/HBM lines.
+test_sigil_platform: TEST=test_sigil_platform
+test_sigil_platform: DEFAULT_DEFINES += $(SIGIL_LONG_RUN_DEFINES)
+test_sigil_platform: all
+
 # Bring-up debug: PCIS handshakes through the SmartConnect to sh_ddr.
 test_sigil_dbg: TEST=test_sigil_dbg
 test_sigil_dbg: all

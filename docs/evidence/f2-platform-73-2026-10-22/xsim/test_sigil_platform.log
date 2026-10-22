@@ -1,0 +1,137 @@
+#-----------------------------------------------------------
+# xsim v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Thu Oct 22 06:33:12 2026
+# Process ID         : 103194
+# Current directory  : /home/ubuntu/plat-sim2/fpga/cl_sigil/verif/sim/xsim/test_sigil_platform_sv_fast
+# Command line       : xsim -log test_sigil_platform.log -mode tcl -source {xsim.dir/tb/xsim_script.tcl}
+# Log file           : /home/ubuntu/plat-sim2/fpga/cl_sigil/verif/sim/xsim/test_sigil_platform_sv_fast/test_sigil_platform.log
+# Journal file       : /home/ubuntu/plat-sim2/fpga/cl_sigil/verif/sim/xsim/test_sigil_platform_sv_fast/xsim.jou
+# Running On         : ip-172-31-66-228
+# Platform           : Ubuntu
+# Operating System   : Ubuntu 24.04.1 LTS
+# Processor Detail   : Intel(R) Xeon(R) Gold 6455B
+# CPU Frequency      : 3834.501 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 32
+# Host memory        : 265990 MB
+# Swap memory        : 10737 MB
+# Total Virtual      : 276728 MB
+# Available Virtual  : 256268 MB
+#-----------------------------------------------------------
+source xsim.dir/tb/xsim_script.tcl
+# xsim {tb} -autoloadwcfg -tclbatch {/home/ubuntu/plat-sim2/fpga/cl_sigil/verif/scripts/waves.tcl}
+Time resolution is 1 ps
+source /home/ubuntu/plat-sim2/fpga/cl_sigil/verif/scripts/waves.tcl
+## run -all
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+[   34104.000 ns] sigil: clocks programmed (B5, 100 MHz), resets released, STATUS 0x000000c1
+[   34224.000 ns] check STATUS DDR4 + HBM ready, held = 0x000000c1 ok
+[   34324.000 ns] check VERSION = 0x00040001 ok
+[   34444.000 ns] check RAM_SIZE_MB = 0x00014000 ok
+[   34544.000 ns] check CAPS.hbm = 0x00000001 ok
+[   41464.000 ns] engine mode 1 AXI 0xffffc000+0x8000: 561 core cycles, 0 mismatches, MEM_CTRL 0x12
+[   48044.000 ns] engine mode 3 AXI 0xffffc000+0x8000: 538 core cycles, 0 mismatches, MEM_CTRL 0x32
+[   48044.000 ns] check engine 4 GiB check = 0x00000002 ok
+[   55184.000 ns] engine mode 1 AXI 0xfffffc000+0x8000: 585 core cycles, 0 mismatches, MEM_CTRL 0x12
+[   61884.000 ns] engine mode 3 AXI 0xfffffc000+0x8000: 539 core cycles, 0 mismatches, MEM_CTRL 0x32
+[   61884.000 ns] check engine DDR4/HBM boundary check = 0x00000002 ok
+[   62044.000 ns] check HBM word via PCIS = engine pattern = 0x89abcdaf ok
+[   68904.000 ns] engine mode 3 AXI 0xfffffc000+0x8000: 539 core cycles, 1 mismatches, MEM_CTRL 0x36
+[   68904.000 ns] check engine injected mismatch = 0x00000006 ok
+[   69004.000 ns] check MEM_MISM = 0x00000001 ok
+[   69124.000 ns] check MEM_FADDR_LO = 0x00000040 ok
+[   69224.000 ns] check MEM_FADDR_HI = 0x00000010 ok
+[   69224.000 ns] sigil: ../../../fw/f2_platform_test.bin first bytes 37 11 00 00 1b 01 11 80
+[   80744.000 ns] sigil: loaded 2037 bytes from ../../../fw/f2_platform_test.bin at DDR 0x0 (PCIS)
+[   81624.000 ns] sigil: f2_platform_test released
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71dda12b8b0
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+B00:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B01:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B02:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B03:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B04:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B05:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B06:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B07:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B08:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B09:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B10:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B11:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B12:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B13:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B14:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B15:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B16:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B17:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B18:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B19:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B20:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B21:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B22:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B23:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B24:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B25:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B26:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B27:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B28:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B29:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B30:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B31:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B32:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B33:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B34:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B35:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B36:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B37:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+B38:ghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghij
+B39:nopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq
+B40:uvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+B41:bcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde
+B42:ijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+B43:pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs
+B44:wxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+B45:defghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg
+B46:klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmn
+B47:rstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu
+B48:yzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab
+B49:fghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghi
+B50:mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnop
+B51:tuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvw
+B52:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcd
+B53:hijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk
+B54:opqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr
+B55:vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy
+B56:cdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdef
+B57:jklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm
+B58:qrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst
+B59:xyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyza
+B60:efghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh
+B61:lmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmno
+B62:stuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv
+B63:zabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc
+F2 PLATFORM: oob read done
+F2 PLATFORM PASS
+[ 7735764.000 ns] check FIN_VALUE (power off) = 0x00005555 ok
+[ 7735764.000 ns] check UART burst lines byte-exact = 0x00000040 ok
+[ 7735764.000 ns] check F2 PLATFORM PASS seen = 0x00000001 ok
+[ 7735864.000 ns] check ERR_INFO (oob read, DECERR) = 0xac000000 ok
+[ 7735984.000 ns] check ERR_ADDR_LO = 0x80000000 ok
+[ 7736084.000 ns] check ERR_ADDR_HI = 0x00000014 ok
+[ 7736584.000 ns] core-written DDR4/HBM lines read back through PCIS
+[ 7737684.000 ns] : Detected   0 errors
+[ 7737684.000 ns] : Checking protocol checker error status...
+*** TEST PASSED ***
+$finish called at time : 7737684 ns : File "/home/ubuntu/plat-sim2/fpga/cl_sigil/verif/tests/sigil_test_utils.svh" Line 278
+run: Time (s): cpu = 00:00:02 ; elapsed = 00:20:14 . Memory (MB): peak = 1450.082 ; gain = 8.004 ; free physical = 207638 ; free virtual = 237783
+## quit
+INFO: xsimkernel Simulation Memory Usage: 347396 KB (Peak: 380080 KB), Simulation CPU Usage: 1214670 ms
+INFO: [Common 17-206] Exiting xsim at Thu Oct 22 06:53:28 2026...

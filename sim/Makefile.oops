@@ -1,0 +1,80 @@
+# Opt-in, simulation-only memory-consistency checker from the
+# issue #73 oops hunt (tb/sv/sigil_oops_chk.sv bound into sigil_cpu,
+# DPI side tb/cpp/oops_chk_dpi.cpp). Not part of `all`, core-test or
+# any RTL build; reports go to stdout prefixed "OOPSCHK":
+#   stale-walk-rsp     walker handed a response to another request
+#   d-load-mismatch    cacheable load differs from the D-port shadow
+#   i-fetch-stale      fetch returns pre-FENCE.I data
+# Env: OOPSCHK_MAX=N (reports printed per kind, default 40),
+# OOPSCHK_FATAL=1 (exit 4 at the first harmful report),
+# OOPSCHK_FATAL_ANY=1 (also on a benign stale-walk-rsp).
+# Plusargs: +oopstrace (per-cycle walker/D-port trace),
+# +oopstraceu=N (first N user-mode trace lines).
+#
+#   make -C sim -f Makefile.oops oops-core-tb       # build/sim/oops_core_tb
+#   make -C sim -f Makefile.oops oops-soc-rtl-tb    # build/sim/oops_soc_rtl_tb
+#   make -C sim -f Makefile.oops oops-ptw-preempt   # 3 tests x 3 bus timings
+#   make -C sim -f Makefile.oops oops-ptw-walker    # all walker tests x 3 timings
+# tb/sv/sigil_ptw_inv.sv (also bound into sigil_cpu) checks that a
+# live walker request belongs to the walk the walker is doing now
+# ("PTWINV live-walk-req-abandoned") and prints preemption corner
+# counts ("PTWCOV") at the end of each run.
+include Makefile
+
+OOPS_CHK := $(ROOT)/tb/sv/sigil_oops_chk.sv $(ROOT)/tb/sv/sigil_ptw_inv.sv
+OOPS_DPI := $(ROOT)/tb/cpp/oops_chk_dpi.cpp
+OOPS_VFLAGS := -Wno-UNUSEDSIGNAL -Wno-SYNCASYNCNET
+
+.PHONY: oops-core-tb oops-soc-rtl-tb oops-ptw-preempt
+oops-core-tb: $(BUILD)/oops_core_tb
+oops-soc-rtl-tb: $(BUILD)/oops_soc_rtl_tb
+
+$(BUILD)/oops_core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
+                       $(OOPS_CHK) $(OOPS_DPI) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/oops_core $(OOPS_VFLAGS) --top-module sigil_cpu \
+	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CPU_RTL) $(OOPS_CHK) \
+	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp) $(abspath $(OOPS_DPI))
+
+$(BUILD)/oops_soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
+                          $(OOPS_CHK) $(OOPS_DPI) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/oops_socrtl $(OOPS_VFLAGS) --top-module sigil_soc_top \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(SOC_RTL) $(OOPS_CHK) \
+	  $(abspath $(ROOT)/tb/cpp/soc_rtl_tb.cpp) $(abspath $(OOPS_DPI))
+
+# The fetch-walk preemption tests (also in core-test) under the
+# checker at three bus timings; each run's log is
+# build/sim/oops_<test>_<n>.log.
+OOPS_PTW_TESTS := ptw_preempt_directed ptw_preempt_cached_directed ptw_preempt_twoload_directed
+OOPS_PTW_TIMINGS := "--mem-lat 1" "$(CORE_RAND_ARGS)" "--mem-lat 40:50"
+oops-ptw-preempt: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_PTW_TESTS)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_PTW_TESTS); do n=0; \
+	  for a in $(OOPS_PTW_TIMINGS); do n=$$((n + 1)); \
+	    echo "== $$t $$a"; \
+	    ./oops_core_tb $$t.bin 4000000 $$a > oops_$${t}_$$n.log 2>&1 || rc=1; \
+	    grep -E "CORE TB|OOPSCHK (stale|d-load|i-fetch)|%Error" oops_$${t}_$$n.log; \
+	  done; done; exit $$rc
+
+# Every page-table-walker race test (all also in core-test) under
+# both checkers at the same three bus timings: the hunters' three,
+# the review's adversarial preemption tests (back-to-back, with a
+# trap, two-stage), the G-stage GPA-width-fault exits (fetch, data
+# and redirect consumers) and the Svadu A/D atomicity tests. Each
+# run's log is build/sim/oops_<test>_<n>.log; exit 1 on any FAIL,
+# stale walker response or PTWINV violation.
+OOPS_WALKER_TESTS := $(OOPS_PTW_TESTS) ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed \
+                     ptw_preempt_hyp_directed ptw_preempt_guest_directed ptw_gwidth_directed \
+                     ptw_gwidth_load_directed ptw_gwidth_redirect_directed \
+                     ptw_ad_store_race_directed ptw_svadu_race_directed ptw_svadu_race_hyp_directed
+.PHONY: oops-ptw-walker
+oops-ptw-walker: $(BUILD)/oops_core_tb $(addprefix $(BUILD)/,$(addsuffix .bin,$(OOPS_WALKER_TESTS)))
+	cd $(BUILD) && rc=0; for t in $(OOPS_WALKER_TESTS); do n=0; \
+	  for a in $(OOPS_PTW_TIMINGS); do n=$$((n + 1)); \
+	    echo "== $$t $$a"; \
+	    ./oops_core_tb $$t.bin 40000000 $$a > oops_$${t}_$$n.log 2>&1 || rc=1; \
+	    grep -m1 -E "OOPSCHK stale" oops_$${t}_$$n.log; grep -m3 -E "PTWINV live" oops_$${t}_$$n.log; \
+	    grep -E "CORE TB|PTWCOV|PTWINV violations|%Error" oops_$${t}_$$n.log; \
+	    if grep -qE "OOPSCHK stale|PTWINV live" oops_$${t}_$$n.log; then rc=1; fi; \
+	  done; done; exit $$rc

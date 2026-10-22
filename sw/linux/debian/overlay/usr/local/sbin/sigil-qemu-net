@@ -1,0 +1,12 @@
+#!/bin/sh
+# QEMU only: bring up the virtio NIC of scripts/qemu_sigil_boot.sh
+# --net (QEMU user networking, 10.0.2.0/24) so apt can install more
+# packages into the disk image. The F2 board has no network yet (#72).
+set -e
+dev=$(ls /sys/class/net | grep -v '^lo$' | head -1)
+[ -n "$dev" ] || { echo "no network device (start QEMU with --net)" >&2; exit 1; }
+ip link set "$dev" up
+ip addr add 10.0.2.15/24 dev "$dev" 2>/dev/null || true
+ip route replace default via 10.0.2.2
+echo 'nameserver 10.0.2.3' > /etc/resolv.conf
+echo "$dev up: 10.0.2.15/24 via 10.0.2.2; try: apt update"

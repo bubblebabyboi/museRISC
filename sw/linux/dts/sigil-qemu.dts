@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+ * Sigil SoC as modelled by qemu-system-riscv64 -M virt
+ * (scripts/qemu_sigil_boot.sh). Same memory map, NUMA layout, pmem
+ * disk and devices as sigil-f2.dts. Deviations, all forced by QEMU:
+ *   - timebase-frequency 10 MHz (QEMU's fixed ACLINT rate);
+ *   - eight virtio-mmio slots (QEMU virt, IRQs 1-8) so a QEMU run can
+ *     attach a network card for apt; the F2 has none;
+ *   - no crypto engine (QEMU has flash at 0x2000_0000).
+ */
+/include/ "sigil-f2.dts"
+
+/ {
+	model = "Sigil RV64 SoC (QEMU virt reference)";
+
+	cpus {
+		timebase-frequency = <10000000>;
+	};
+
+	soc {
+		/delete-node/ crypto@20000000;
+
+		virtio_mmio@10001000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10001000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <1>;
+		};
+		virtio_mmio@10002000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10002000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <2>;
+		};
+		virtio_mmio@10003000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10003000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <3>;
+		};
+		virtio_mmio@10004000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10004000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <4>;
+		};
+		virtio_mmio@10005000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10005000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <5>;
+		};
+		virtio_mmio@10006000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10006000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <6>;
+		};
+		virtio_mmio@10007000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10007000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <7>;
+		};
+		virtio_mmio@10008000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0x10008000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupts = <8>;
+		};
+	};
+};

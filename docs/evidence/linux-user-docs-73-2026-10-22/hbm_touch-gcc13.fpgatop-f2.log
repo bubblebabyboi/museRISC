@@ -1,0 +1,9 @@
+loaded 3984 bytes at 0x80000000 from /home/ubuntu/docs73/gcc13/out/hbm_touch.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+256 KiB per buffer, 4096 lines
+HBM       0x1080000000: write 190, read 228 cycles per line, 0 bad words
+HBM end   0x147ffc0000: write 192, read 229 cycles per line, 0 bad words
+DDR4 32G  0x0880000000: write 192, read 229 cycles per line, 0 bad words
+SIGIL TEST PASS hbm_touch
+FPGA TOP TB PASS run 0 (exit string at 6153385 cycles after reset release)
+AXI: 28454 AR (28454 R beats), 12268 AW (12268 W beats, 12268 B); stall cycles AW 5446 W 5349 AR 12183 R 0 B 0

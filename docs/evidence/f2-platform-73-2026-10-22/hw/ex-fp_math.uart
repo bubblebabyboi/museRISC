@@ -1,0 +1,5 @@
+sqrt(2) = 1.414213562373095 (0x3ff6a09e667f3bcd), sqrtf(2) = 0x3fb504f3
+Newton: 5 steps to within 1 ulp of sqrt(2)
+e ~= 2.718281828459046
+dot = 2525.0 in 2550 cycles
+SIGIL TEST PASS fp_math

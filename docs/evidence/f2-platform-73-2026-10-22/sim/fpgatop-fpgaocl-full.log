@@ -1,0 +1,252 @@
+cd ../build/sim && for tb in fpga_top_tb fpga_top_tb_w512; do \
+loaded 1074 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+FPGA SMOKE: memory
+
+reset requested mid-run at 3000000 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 12391961 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 12391803 cycles after reset release)
+AXI: 98538 AR (788304 R beats), 81985 AW (655880 W beats, 81985 B); stall cycles AW 35398 W 279926 AR 42569 R 0 B 0
+loaded 1074 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+FPGA SMOKE: memory
+
+reset requested mid-run at 3000000 cycles after release
+soc reset after 5 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 11795853 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 11787989 cycles after reset release)
+AXI: 101396 AR (101396 R beats), 84843 AW (84843 W beats, 84843 B); stall cycles AW 36638 W 36140 AR 44278 R 0 B 0
+cd ../build/sim && ./fpga_top_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --engine-test \
+loaded 2104 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+engine mode 0 base 0x100000 size 0x8000: 5957 cycles (5.50 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 2 base 0x100000 size 0x8000: 8252 cycles (3.97 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 1 base 0x200000 size 0x8000: 5906 cycles (5.55 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0x200000 size 0x8000: 8242 cycles (3.98 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0x200000 size 0x8000: 8232 cycles (3.98 B/cycle), mismatches 1 first 0x204238, resp errors 0, fail 1
+engine mode 0 base 0x0 size 0x0: 1 cycles (0.00 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+FPGA TOP TB engine checks PASS
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105491 cycles after reset release)
+AXI: 101 AR (12712 R beats), 32 AW (8192 W beats, 32 B); stall cycles AW 11 W 3619 AR 47 R 0 B 0
+FPGATOP EXAMPLE PASS hello (at 54926 cycles, 0 s)
+FPGATOP EXAMPLE PASS timer_irq (at 52188 cycles, 0 s)
+FPGATOP EXAMPLE PASS sha256_accel (at 1469473 cycles, 2 s)
+FPGATOP EXAMPLE PASS hash_stream (at 264248 cycles, 1 s)
+FPGATOP EXAMPLE PASS ed25519_verify (at 14632850 cycles, 23 s)
+FPGATOP EXAMPLE PASS vector_dot (at 820597 cycles, 1 s)
+FPGATOP EXAMPLE PASS fp_math (at 49401 cycles, 1 s)
+ALL 7 EXAMPLES PASS on fpga_top_tb
+cd ../build/sim && for fw in crypto_soc_test ed25519_soc_test; do \
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/crypto_soc_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 27691663 cycles after reset release)
+AXI: 90 AR (720 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 43 R 0 B 0
+loaded 5977 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/ed25519_soc_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO START (ed25519)
+stage1 sha512 (sw) ok
+stage2 curve25519 field ok
+........
+stage3 ed25519 RFC8032 TEST1 verify ok
+........
+stage4 ed25519 RFC8032 TEST2 verify ok
+........
+stage5 ed25519 tampered S rejected
+stage6 ed25519 non-canonical S rejected
+ED25519 VERIFY OK
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 28618188 cycles after reset release)
+AXI: 135 AR (1080 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 52 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_w512 400000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+loaded 4032 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/crypto_soc_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASS
+FPGA TOP TB PASS run 0 (exit string at 27691049 cycles after reset release)
+AXI: 90 AR (90 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 45 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --engine-test --rtc-ns 1761091200000000000 \
+loaded 2037 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+engine mode 0 base 0xffffc000 size 0x8000: 787 cycles (41.64 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 2 base 0xffffc000 size 0x8000: 1046 cycles (31.33 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 1 base 0xfffffc000 size 0x8000: 758 cycles (43.23 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1013 cycles (32.35 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1051 cycles (31.18 B/cycle), mismatches 1 first 0x1000000238, resp errors 0, fail 1
+engine mode 0 base 0x0 size 0x0: 1 cycles (0.00 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+FPGA TOP TB engine checks PASS
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111dd30
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 761756 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 761756 cycles after reset release)
+UART bursts: 64 lines byte-exact
+reboots: 0
+AXI: 1101 AR (2613 R beats), 813 AW (1821 W beats, 813 B); stall cycles AW 320 W 804 AR 478 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2037 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111dab0
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM: oob read done
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 766528 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 766528 cycles after reset release)
+bridge error capture: addr 0x1480000000 info 0xac000000 count 1
+reboots: 0
+AXI: 1077 AR (1077 R beats), 797 AW (797 W beats, 797 B); stall cycles AW 330 W 343 AR 461 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2037 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111dab0
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+
+finisher: 0x002a3333 (fail, code 42) at 762016 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 762016 cycles after reset release)
+reboots: 0
+AXI: 1077 AR (1077 R beats), 797 AW (797 W beats, 797 B); stall cycles AW 330 W 343 AR 462 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 40000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2037 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111dab0
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+F2 PLATFORM: reboot
+
+finisher: reboot (0x00007777) at 777340 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da1cfa870
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+F2 PLATFORM: rebooted once
+
+finisher: 0x00005555 (power off, code 0) at 778611 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 778611 cycles after reset release)
+reboots: 1
+AXI: 2166 AR (2166 R beats), 2082 AW (2082 W beats, 2082 B); stall cycles AW 847 W 839 AR 918 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+loaded 2104 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105316 cycles after reset release)
+AXI: 53 AR (53 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 28 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 200000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --finisher --poke 0x80080000=0x0618 \
+loaded 1708 bytes at 0x80000000 from /Users/albitocilla/Desktop/musings/museRISC-wt/73-f2-memory-platform/build/soc-tests/f2_memtest.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 MEMTEST: start
+MEMTEST ddr points 4096 stride 16777216 errors 0 write_cycles 909976 verify_cycles 885724
+MEMTEST hbm points 1024 stride 16777216 errors 0 write_cycles 229206 verify_cycles 224363
+LATENCY ddr refill_cycles min 26 avg_x100 4493 max 76 n 64 hit_cycles 9 seq_read_4MiB_cycles 3303927 (1)
+LATENCY hbm refill_cycles min 26 avg_x100 4401 max 58 n 64 hit_cycles 9 seq_read_4MiB_cycles 3306701 (1)
+F2 MEMTEST PASS
+
+finisher: 0x00005555 (power off, code 0) at 9035396 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 9035396 cycles after reset release)
+reboots: 0
+AXI: 143328 AR (143328 R beats), 5086 AW (5086 W beats, 5086 B); stall cycles AW 2204 W 2175 AR 61184 R 0 B 0
+cd ../build/sim && ./fpga_ocl_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASSUART drained with 14 TX_DATA and 42 TX_DATA3 reads
+
+AXI: 85 AR (2101 R beats), 32 AW (2048 W beats, 32 B); stall cycles AW 13 W 869 AR 37 R 0 B 0
+FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+cd ../build/sim && ./fpga_ocl_tb 100000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASSUART drained with 26 TX_DATA and 77 TX_DATA3 reads
+
+AXI: 40357 AR (42373 R beats), 32212 AW (34228 W beats, 32212 B); stall cycles AW 13746 W 14946 AR 17421 R 0 B 0
+FPGA OCL TB PASS ("FPGA SMOKE PASS" after 11789873 core cycles; 11798152 harness cycles total)
+cd ../build/sim && ./fpga_ocl_tb 400000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+SOC CRYPTO START
+stage1 sha256 ok
+stage2 field mul ok
+stage3 2G ok
+stage4a scalar inv ok
+........
+stage4b u1*G ok
+........
+stage4c u2*Q ok
+stage4 ECDSA verify ok
+........
+stage5 ECDSA tamper rejected
+SOC CRYPTO PASSUART drained with 56 TX_DATA and 168 TX_DATA3 reads
+
+AXI: 122 AR (2138 R beats), 32 AW (2048 W beats, 32 B); stall cycles AW 13 W 869 AR 51 R 0 B 0
+FPGA OCL TB PASS ("SOC CRYPTO PASS" after 27691012 core cycles; 27699291 harness cycles total)
+EXIT 0 wall 343s

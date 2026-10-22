@@ -1,0 +1,18 @@
+[sigil_host] loaded /home/ubuntu/pay/fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 0.01 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+[sigil_host] first memory error: read of SoC PA 0xbaaddec0baaddec0 (len 173): outside the RAM window (no AXI transaction), unexpected ID, response ID 0xdec0; 3131956928 error(s) since clear
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 105607 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x00000062
+[sigil_host] loaded /tmp/r64.bin: 67108864 bytes at 0x82000000 (PCIS 0x2000000) in 0.019 s = 3.62 GB/s, fully verified in 0.205 s
+[sigil_host]   read-back rate 0.33 GB/s
+[sigil_host]   read-back rate 0.45 GB/s
+[sigil_host] saved 0x82000000+0x4000000 (PCIS 0x2000000) to /tmp/r64.out: PCIS read 0.163 s = 0.41 GB/s, file write 0.088 s
+t=1 save matches
+[sigil_host] loaded /tmp/r64.bin: 67108864 bytes at 0x82000000 (PCIS 0x2000000) in 0.019 s = 3.56 GB/s, fully verified in 0.173 s
+[sigil_host]   read-back rate 0.39 GB/s
+[sigil_host]   read-back rate 0.51 GB/s
+[sigil_host] saved 0x82000000+0x4000000 (PCIS 0x2000000) to /tmp/r64.out: PCIS read 0.066 s = 1.02 GB/s, file write 0.079 s
+t=8 save matches

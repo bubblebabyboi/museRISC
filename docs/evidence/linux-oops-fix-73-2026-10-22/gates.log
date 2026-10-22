@@ -1,0 +1,320 @@
+Gates for the #73 oops fix, branch 73-oops-fix, 2026-10-22
+Commit: 31a15689bec847a51357d4dcacc361a4986b548a. Fresh clone from GitHub on sigil-fpga-build, detached at that SHA,
+  `git status --porcelain` empty before and after. Worktrees of the same clone at the same SHA ran the boot, oops and ACT
+  steps. deps/ and third_party/ were linked from the rel73 gate setup (~/rel73/sigil): Verilator 5.048 and the pinned GCC.
+Host: sigil-fpga-build (AWS r7iz.8xlarge, 32 vCPU, Ubuntu 24.04). The hunters' Linux sims and the AFI build ran there too.
+  The Verilator 5.044 lint ran on macOS.
+Base for the before/after: origin/73-linux-release 5458d16 (main + F2 platform + Linux).
+
+== Tools
+Verilator 5.048 2026-04-26 rev v5.048            deps/ (scripts/install_deps.sh build)
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)  Ubuntu 24.04 apt package, unpacked (CI parity; same wrapper as the release gate)
+Verilator 5.044 2026-01-01 (Homebrew)            macOS, worktree at the same SHA
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0      riscv-gnu-toolchain 2026.08.27 (install_deps.sh pin)
+g++ 13.3.0, Python 3.12.3; riscv-tests eeacd5507db7a0f50ca8c4f27aff220fcbb60bdf, berkeley-softfloat-3 a0c6494cdc11865811dec815d5c0049fba9d82a8
+
+== Results
+gate                                                    result  wall    details
+make lint, Verilator 5.048                              PASS    16s     19 lint runs, 0 warnings
+make lint, Verilator 5.020 (Ubuntu package)             PASS    15s     19 lint runs, 0 warnings
+make lint, Verilator 5.044 (macOS)                      PASS    8s      19 lint runs, 0 warnings
+make test                                               PASS    24s     ALL PHASE-0 KATs PASS
+make core-test                                          PASS    2047s   293 "TB PASS" lines, 0 FAIL, 0 assertion failures; each of the 13
+                                                                        walker race tests passes rand / nocache / xinit1 / xinit3; 50/50
+                                                                        directed runs on each SRAM-macro build; coverage 55.00% (3494/6255)
+make riscv-tests                                        PASS    21s     rv64ui+um+ua+uf+ud+uc+mi+si: 123/123
+full ACT (2578 ELFs, sim/run_act_core_par.sh)           PASS    986s    2577/2578; only PMPSm_cfg_A_tor_zero-00 fails (the known PA0 waiver);
+                                                                        Vx 821/821, Vls 1051/1051, Vf 162/162; rows=2578 unique=2578
+make -C sim socrtl sochash examples fpgatop-quick \
+  fpgatop-f2-quick fpgaocl-quick srammacro              PASS    1634s   all PASS lines, 0 failures (details below)
+Linux RTL boot (soc_rtl_tb, Image-initramfs)            PASS    1081s   SIGIL_LINUX_BOOT_OK at 261,247,447 cycles, 890 console lines, no oops;
+                                                                        UART log sha256 a14fee2d...1d061, byte-identical to the 73-linux-release gate
+make -f Makefile.oops oops-ptw-preempt (checker)        PASS    7s      9/9 (3 hunter tests x lat1 / rand / 40:50), 0 stale-walk-rsp
+make -f Makefile.oops oops-ptw-walker (checkers)        PASS    121s    39/39 (13 tests x 3 timings), 0 stale-walk-rsp, PTWINV violations=0 x 39
+before/after, same 39 runs on 5458d16 RTL               FAIL as expected  0/39 pass on the base RTL: 30 stale-walk-rsp, 271 PTWINV reports (before_after.log)
+Linux stress, oops_soc_rtl_tb (checkers), fixed RTL (execstress cannot finish in simulation; 2G-cycle budget each):
+  ptwstress v2, --mem-lat 40:50                         PASS    2767s   PTWSTRESS DONE at 689,559,153 cycles, 400 passes bad=0; stale-walk-rsp 0
+  ptwstress v2, --mem-lat 1                             PASS    1257s   PTWSTRESS DONE at 308,934,879 cycles, 400 passes bad=0; stale-walk-rsp 0
+  Image-execstress, --mem-lat 40:50 (2G-cycle budget)   PASS    8102s   2G-cycle budget reached (TIMEOUT by design) past "execstress: start 76.87"; stale-walk-rsp 0, PTWINV 0, PTWCOV pre=0
+  Image-execstress, --mem-lat 1 (2G-cycle budget)       PASS    8237s   2G-cycle budget reached past "execstress: start 36.70"; stale-walk-rsp 0, PTWINV 0, PTWCOV pre=1 rsp_same=1
+
+== Notes
+1. The disk filled during the first run. At 14:27Z the instance's root volume was 100% full with 7 MiB free. The
+   first chain was still in `make core-test`, which writes about 3,600 coverage .dat files of 5-11 MB each. That
+   core-test stopped (rc=2), and riscv-tests and the sim targets then failed at once (rc=1, 1 s).
+   - The first full ACT run lost 77 result rows: 2500/2501 PASS with a row-count mismatch.
+   - Three Linux stress runs (ptw2_lat45, exec_lat45, exec_lat1) lost console lines.
+   Recovery:
+   - My coverage files were deleted. core-test, riscv-tests and the sim targets reran in the same clean clone (chain
+     A2). A janitor deleted the `nocov_*.dat` files two minutes after they were written: those are the SRAM-macro
+     runs' files (COV_PREFIX=nocov), which the coverage step never reads. The `cov_*.dat` files were kept.
+   - Full ACT reran in full.
+   - The three stress runs restarted from scratch.
+   - From 14:39Z the root volume had about 290 GB free.
+   Steps that finished before 14:27Z are unaffected: lint, make test, the Linux boot, oops-ptw-*, the before side,
+   and ptw2_lat1. The results above are from the clean runs.
+2. ACT ELFs: the 2578-ELF sigil-core generation used by the earlier full-ACT gates
+   (vivado_rnd:~/sigil-gates/third_party/riscv-arch-test/work/sigil-core/elfs, riscv-arch-test 6af53584). It was copied
+   unchanged; the fingerprint (sha256 of the sorted per-ELF sha256 list) is 839ba8be...ae7f on both hosts. The ELFs are
+   self-checking and DUT-independent. Here they ran on core_tb built from the gate SHA. See act_summary.txt.
+3. Before side: a worktree at 5458d16 with the gate tree's simulation-only checkers (sim/Makefile.oops,
+   tb/sv/sigil_oops_chk.sv, tb/sv/sigil_ptw_inv.sv, tb/cpp/oops_chk_dpi.cpp) copied in untracked. It ran the same test
+   binaries. The RTL diff between base and gate is only rtl/core/sigil_core.sv and rtl/core/sigil_mmu.sv.
+4. Linux simulation does not reach the harmful case. On the fixed RTL, PTWCOV counts fetch-walk preemptions:
+   - both ptwstress runs and execstress at 40:50: pre=0;
+   - execstress at lat 1: one preemption in 2G cycles, with the fetch response arriving in the same cycle
+     (rsp_same=1). The fix handled it with no stale response and no PTWINV violation.
+   The base RTL's hunter checker build has no PTWCOV. The hunters' unpatched runs of the same
+   images end with stale-walk-rsp 0 at exactly the same cycle counts as the fixed RTL (ptwstress 308,934,879 and
+   689,559,153; boot 261,247,447). The race is exercised by the directed tests (before_after.log), and it showed up on
+   the F2.
+
+== Raw facts (collector output, sigil-fpga-build)
+== chain A info
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T13:57:12Z
+head 31a15689bec847a51357d4dcacc361a4986b548a dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0 (2026.08.27-riscv64-elf-ubuntu-24.04-gcc.tar.xz)
+g++ g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+python3 Python 3.12.3
+riscv-tests eeacd5507db7a0f50ca8c4f27aff220fcbb60bdf softfloat a0c6494cdc11865811dec815d5c0049fba9d82a8
+VJOBS=4
+
+== chain A summary
+lint-5.048 rc=0 16s
+lint-5.020 rc=0 15s
+make-test rc=0 24s
+core-test rc=2 1759s
+riscv-tests rc=1 1s
+sim-targets rc=1 1s
+end 2026-10-22T14:27:29Z porcelain-after=[0]
+DONE
+
+== chain A2 (rerun after the disk-full stop) info + summary
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T14:30:42Z
+head 31a15689bec847a51357d4dcacc361a4986b548a dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+VJOBS=4
+/dev/root       193G  176G   18G  91% /
+core-test rc=0 2047s 15:04:49
+riscv-tests rc=0 21s 15:05:10
+sim-targets rc=0 1634s 15:32:24
+end 2026-10-22T15:32:24Z porcelain-after=[0]
+DONE
+-- disk (janitor log, first/last)
+14:30:42   18G cov=0 4.3G
+14:31:42   18G cov=44 4.5G
+15:30:45  293G cov=1494 21G
+15:31:45  294G cov=1494 19G
+
+== chain L summary
+start 2026-10-22T13:57:12Z heads boot=31a15689bec847a51357d4dcacc361a4986b548a oops=31a15689bec847a51357d4dcacc361a4986b548a act=31a15689bec847a51357d4dcacc361a4986b548a
+build-socrtl rc=0 13s 13:57:25
+build-oops-soc rc=0 13s 13:57:38
+build-oops-core rc=0 23s 13:58:01
+oops-ptw-preempt rc=0 7s 13:58:08
+oops-ptw-walker rc=0 121s 14:00:09
+linux-boot rc=0 1081s 14:15:26
+build-core-tb rc=0 20s 14:15:46
+ptw2_lat1 rc=0 1257s 14:18:58
+exec_lat45 rc=143 1929s 14:30:10
+exec_lat1 rc=143 1929s 14:30:10
+ptw2_lat45 rc=143 1929s 14:30:10
+act rc=1 971s 14:31:57
+end 2026-10-22T14:31:57Z
+DONE
+
+== ACT rerun summary
+start 2026-10-22T14:31:57Z head 31a15689bec847a51357d4dcacc361a4986b548a core_tb 0d2db1e2bfeb536a5dac8c68d608ebf0 elfs-fingerprint 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f
+act rc=1 987s 14:48:25
+DONE
+
+== stress restart summary
+start 2026-10-22T14:30:42Z
+ptw2_lat45 rc=0 2767s 15:16:49
+
+== lint
+lint-5.048: Verilator 5.048 2026-04-26 rev v5.048; lint runs 19; warnings/errors 0
+lint-5.020: Verilator 5.020 2024-01-01 rev (Debian 5.020-1); lint runs 19; warnings/errors 0
+
+== make test
+PASS sha3_256  len=  43 out= 32 poll
+PASS keccak256 len=  43 out= 32 backpressure
+PASS shake256  len=   0 out= 32 poll
+PASS shake256  len=   3 out=136 backpressure
+PASS shake256  len= 137 out=137 poll
+PASS shake256  len= 300 out=300 backpressure
+PASS shake256  len= 272 out=500 poll
+PASS HOPTR/HDOUT/HCTRL/err registers
+PASS INIT aborts an in-flight message
+PASS legacy SHA-256 interleaved with a stream
+TB_HASH_STREAM PASS (70 KATs: sha512=25 sha3_256=20 keccak256=20 shake256=5; 12401 checks, 288 backpressure cycles, 17780 cycles)
+ALL PHASE-0 KATs PASS
+
+== core-test
+TB PASS lines: 293
+lines with FAIL (result lines): 0
+assertion failures: 0
+%Error lines: 0
+      1 ALL 1 F2-MAP EXAMPLES PASS on fpga_top_tb_f2
+      1 ALL 7 EXAMPLES PASS on soc_rtl_tb
+      1 AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (5015 rd1, 5033 rd-line, 4874 wr1, 5078 wr-line, 403
+      1 AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4995 rd1, 5013 rd-line, 5006 wr1, 4986 wr-line, 8506 
+      1 AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4906 rd1, 5080 rd-line, 5018 wr1, 4996 wr-line, 8725 
+      1 AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4976 rd1, 5020 rd-line, 5017 wr1, 4987 wr-line, 380
+      1 AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4974 rd1, 5061 rd-line, 4987 wr1, 4978 wr-line, 7940 
+      1 AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4916 rd1, 4994 rd-line, 4968 wr1, 5122 wr-line, 8126 
+      1 AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4995 rd1, 5009 rd-line, 5006 wr1, 4990 wr-line, 4175
+      1 AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4921 rd1, 4972 rd-line, 5148 wr1, 4959 wr-line, 9671 q
+      1 AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4944 rd1, 4990 rd-line, 5048 wr1, 5018 wr-line, 9872 q
+      1 CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fakeram45]
+      1 CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro oreg]
+      1 CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro sky130]
+      1 CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro vrforeg]
+      1 DCACHE TB PASS [SRAM_OREG]
+      1 F2 MEMTEST PASS
+      5 F2 PLATFORM PASS
+      1 FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+      4 FPGA SMOKE PASS
+      1 FPGATOP EXAMPLE PASS hello (at 54926 cycles, 1 s)
+      1 FPGATOP EXAMPLE PASS timer_irq (at 52188 cycles, 0 s)
+      1 FPGATOP-F2 EXAMPLE PASS hbm_touch (at 5370652 cycles, 20 s)
+      1 ICACHE TB PASS [SRAM_OREG]
+      1 SOC RTL TB PASS (exit string at 27689639 cycles) [SRAM macro fakeram45]
+      1 SOC RTL TB PASS (exit string at 27689639 cycles) [SRAM macro vrforeg]
+      1 SOC RTL TB PASS (exit string at 40648915 cycles) [SRAM macro oreg]
+      1 SOC RTL TB PASS (exit string at 40649754 cycles) [SRAM macro sky130]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+-- the 13 walker race tests in core-test (count of CORE TB PASS lines per test)
+ptw_preempt_directed: PASS 4 FAIL 0
+ptw_preempt_cached_directed: PASS 4 FAIL 0
+ptw_preempt_twoload_directed: PASS 4 FAIL 0
+ptw_preempt_b2b_directed: PASS 4 FAIL 0
+ptw_preempt_trapdrop_directed: PASS 4 FAIL 0
+ptw_preempt_hyp_directed: PASS 4 FAIL 0
+ptw_preempt_guest_directed: PASS 4 FAIL 0
+ptw_gwidth_directed: PASS 4 FAIL 0
+ptw_gwidth_load_directed: PASS 4 FAIL 0
+ptw_gwidth_redirect_directed: PASS 4 FAIL 0
+ptw_ad_store_race_directed: PASS 4 FAIL 0
+ptw_svadu_race_directed: PASS 4 FAIL 0
+ptw_svadu_race_hyp_directed: PASS 4 FAIL 0
+  lines with all attached points covered : 55.00%  (3494/6255)
+
+== riscv-tests
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+== sim targets (socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick srammacro)
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 27689639 cycles)
+SOC CRYPTO PASS
+SOC RTL TB PASS (exit string at 28615218 cycles)
+SOC HASH PASS
+SOC RTL TB PASS (exit string at 104422 cycles)
+EXAMPLE PASS hello (at 54050 cycles, 1 s)
+EXAMPLE PASS timer_irq (at 51458 cycles, 0 s)
+EXAMPLE PASS sha256_accel (at 1465990 cycles, 6 s)
+EXAMPLE PASS hash_stream (at 261426 cycles, 1 s)
+EXAMPLE PASS ed25519_verify (at 14630219 cycles, 55 s)
+EXAMPLE PASS vector_dot (at 811531 cycles, 3 s)
+EXAMPLE PASS fp_math (at 47541 cycles, 0 s)
+ALL 7 EXAMPLES PASS on soc_rtl_tb
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 12391961 cycles after reset release)
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 12391803 cycles after reset release)
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 11795853 cycles after reset release)
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 11787989 cycles after reset release)
+FPGA TOP TB engine checks PASS
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105491 cycles after reset release)
+FPGA TOP TB engine checks PASS
+F2 PLATFORM PASS
+FPGA TOP TB PASS run 0 (finisher at 762007 cycles after reset release)
+F2 PLATFORM PASS
+FPGA TOP TB PASS run 0 (finisher at 766699 cycles after reset release)
+F2 PLATFORM PASS
+FPGA TOP TB PASS run 0 (finisher at 762193 cycles after reset release)
+F2 PLATFORM PASS
+F2 PLATFORM PASS
+FPGA TOP TB PASS run 0 (finisher at 785007 cycles after reset release)
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 105316 cycles after reset release)
+F2 MEMTEST PASS
+FPGA TOP TB PASS run 0 (finisher at 9035396 cycles after reset release)
+SOC HASH PASSUART drained with 14 TX_DATA and 42 TX_DATA3 reads
+FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+DCACHE TB PASS [SRAM_OREG]
+ICACHE TB PASS [SRAM_OREG]
+VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro fakeram45]
+SOC RTL TB PASS (exit string at 27689639 cycles) [SRAM macro fakeram45]
+VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro sky130]
+SOC RTL TB PASS (exit string at 40649754 cycles) [SRAM macro sky130]
+VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro oreg]
+SOC RTL TB PASS (exit string at 40648915 cycles) [SRAM macro oreg]
+VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+CORE TB PASS: 50 directed runs, 0 FAIL [SRAM macro vrforeg]
+SOC RTL TB PASS (exit string at 27689639 cycles) [SRAM macro vrforeg]
+lines reporting a failure (recipe echoes with --fail-string excluded): 0; assertion failures: 0
+
+== ACT
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 986s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+
+== Linux boot (soc_rtl_tb)
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+loaded 277840 bytes at 0x80000000 from fw_jump.bin
+loaded 15470592 bytes at 0x80200000 from Image-initramfs
+loaded 6187 bytes at 0x83000000 from sigil-sim.dtb
+[   20.509676] Freeing unused kernel image (initmem) memory: 2460K
+[   20.523710] Run /init as init process
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+	Command being timed: "/home/ubuntu/oops/fixgates/boot/build/sim/soc_rtl_tb 6000000000 --load 0x80000000=fw_jump.bin --load 0x80200000=Image-initramfs --load 0x83000000=sigil-sim.dtb --uart-log linux-boot-uart.log --exit-string SIGIL_LINUX_BOOT_OK"
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 18:00.72
+	Maximum resident set size (kbytes): 151516
+console lines: 890; Oops/Unable to handle lines: 0
+
+== oops directed runners (fixed RTL)
+oops-ptw-preempt rc=0 7s 13:58:08
+oops-ptw-walker rc=0 121s 14:00:09
+== ptw_preempt_directed --mem-lat 1
+CORE TB PASS ptw_preempt_directed.bin (34280 cycles)
+== ptw_preempt_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_directed.bin (44603 cycles)
+== ptw_preempt_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_directed.bin (178421 cycles)
+== ptw_preempt_cached_directed --mem-lat 1
+CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles)
+== ptw_preempt_cached_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles)
+== ptw_preempt_cached_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles)
+== ptw_preempt_twoload_directed --mem-lat 1
+CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles)
+== ptw_preempt_twoload_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles)
+== ptw_preempt_twoload_directed --mem-lat 40:50
+CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles)
+oops-ptw-walker: CORE TB PASS 39/39, OOPSCHK stale-walk-rsp reports 0, PTWINV live-walk-req reports 0, PTWINV violations=0 lines 39
+
+== Verilator 5.044 lint on macOS (a local worktree of 73-oops-fix at the gate SHA, porcelain 0)
+31a15689bec847a51357d4dcacc361a4986b548a
+       0
+Verilator 5.044 2026-01-01 rev vUNKNOWN-built20260101
+lint runs: 19; warnings/errors: 0; rc=0 8s

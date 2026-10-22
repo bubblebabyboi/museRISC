@@ -111,7 +111,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        mmu_d_ok, mmu_d_fault, mmu_d_fault_page;
   logic        mmu_if_fault_guest, mmu_d_fault_guest;
   logic [63:0] mmu_if_fault_gpa, mmu_d_fault_gpa;
-  logic        walk_req, walk_we, walk_grant;
+  logic        walk_req, walk_we, walk_grant, walk_abandon, walk_lock;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
@@ -1494,14 +1494,19 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ---- Data-port controller ----
   // One request in flight, owned by MEM or by the page-table
   // walker (dq_walk_q). MEM has priority; the walker only gets
-  // the port while MEM does not need it. A MEM access issues
+  // the port while MEM does not need it, except for an A/D
+  // update (walk_lock: from the leaf PTE read to its write-back
+  // the walker keeps the port, so an older store to that PTE
+  // cannot land in between and be overwritten). A MEM access issues
   // only when no older instruction is trapping (trap_fire) so it
   // always completes; a walker request abandoned by an MMU
-  // flush/abort is marked stale (dq_drop_q) and its response is
-  // swallowed. AMOs are a LOAD (value saved in amo_rdata_q) then
-  // a STORE of the combined value; the port stays MEM's between
-  // the two. A failing SC performs no access. FENCE.I issues a
-  // CLEAN (D$ write-back) and invalidates the I$ on its response.
+  // flush/abort, or by the MMU itself (walk_abandon: a data miss
+  // preempting a fetch walk, a G-stage GPA-width fault), is marked
+  // stale (dq_drop_q) and its response is swallowed. AMOs are a
+  // LOAD (value saved in amo_rdata_q) then a STORE of the combined
+  // value; the port stays MEM's between the two. A failing SC
+  // performs no access. FENCE.I issues a CLEAN (D$ write-back) and
+  // invalidates the I$ on its response.
   logic        dq_pend_q, dq_walk_q, dq_drop_q;
   logic        amo_wr_q;        // AMO read phase done; write next
   logic [63:0] amo_rdata_q;
@@ -1515,16 +1520,17 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
                           mem_fencei;
   assign mem_write_phase = exmem_ctrl_q.mem_write &&
                            (!exmem_ctrl_q.amo || amo_wr_q);
-  assign mem_issue = mem_needs_port && !dq_pend_q && !trap_fire && !freeze;
+  assign mem_issue = mem_needs_port && !walk_lock && !dq_pend_q &&
+                     !trap_fire && !freeze;
   assign mem_rsp = drsp_valid_i && dq_pend_q && !dq_walk_q;
   // The final (or only) phase of MEM's access responds.
   assign mem_port_done = mem_rsp && (!exmem_ctrl_q.amo || amo_wr_q);
   // Walker: PMP-denied PTE accesses complete at once with no
   // memory access (the MMU turns them into access faults).
   assign walk_issue = walk_req && pmp_allow_walk && !dq_pend_q &&
-                      !mem_needs_port && !trap_fire && !freeze;
+                      (!mem_needs_port || walk_lock) && !trap_fire && !freeze;
   assign walk_skip = walk_req && !pmp_allow_walk && !dq_pend_q &&
-                     !mem_needs_port && !trap_fire && !freeze;
+                     (!mem_needs_port || walk_lock) && !trap_fire && !freeze;
   assign walk_rsp = drsp_valid_i && dq_pend_q && dq_walk_q && !dq_drop_q;
   assign walk_grant = walk_skip || walk_rsp;
   assign dreq_valid_o = mem_issue || walk_issue;
@@ -1554,8 +1560,14 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
         dq_walk_q <= !mem_issue;
         dq_drop_q <= 1'b0;
       end
-      // MMU flush/abort kills the walk that owns the port.
-      if ((sfence_fire || trap_take) &&
+      // MMU flush/abort kills the walk that owns the port, and the
+      // MMU abandons a walk itself (walk_abandon) when a data miss
+      // preempts a fetch walk or a G-stage GPA is too wide. A
+      // walker read in flight, or issued in this cycle (the data
+      // miss frees the port in the cycle it preempts), then belongs
+      // to no walk: dropping it keeps the next walk (the preempting
+      // data walk) from taking it as its own PTE.
+      if ((sfence_fire || trap_take || walk_abandon) &&
           ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
            (walk_issue && dreq_ready_i))) begin
         dq_drop_q <= 1'b1;
@@ -1592,6 +1604,38 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   a_irsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       irsp_valid_i |-> ifq_pend_q)
     else $error("core: fetch response with no request");
+  // The walker takes only the response to its own request: when a
+  // response reaches it (walk_rsp) it still presents the PTE
+  // address and kind it issued. A walk that takes the read of a
+  // walk it replaced (issue #73) fails here.
+  /* verilator coverage_off */
+  logic [63:0] chk_walk_addr_q;
+  logic        chk_walk_we_q;
+  always_ff @(posedge clk_i) begin
+    if (walk_issue && dreq_ready_i) begin
+      chk_walk_addr_q <= walk_addr;
+      chk_walk_we_q <= walk_we;
+    end
+  end
+  /* verilator coverage_on */
+  a_walk_rsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      walk_rsp |-> ((walk_addr == chk_walk_addr_q) &&
+                    (walk_we == chk_walk_we_q)))
+    else $error("core: walker took the response to another walk's request");
+  // Stronger, at every cycle: a walker request still live on the
+  // port (in flight, not dropped) belongs to the walk the walker
+  // is doing now. A walk that moves off its PTE without arming
+  // dq_drop_q fails here at once, whether or not a later walk
+  // takes the response.
+  a_walk_live: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      (dq_pend_q && dq_walk_q && !dq_drop_q) |->
+      (walk_req && (walk_addr == chk_walk_addr_q) &&
+       (walk_we == chk_walk_we_q)))
+    else $error("core: walker left a live PTE request without dropping it");
+  // The A/D lock never splits an AMO's read and write.
+  a_walk_lock_amo: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      walk_lock |-> !amo_wr_q)
+    else $error("core: walker A/D lock inside an AMO");
 `endif
 
   logic [63:0] mem_rdata;  // (load_shifted is forward-declared)
@@ -1928,6 +1972,8 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_fault_guest_o  (mmu_d_fault_guest),
       .d_fault_gpa_o    (mmu_d_fault_gpa),
       .walk_req_o       (walk_req),
+      .walk_abandon_o   (walk_abandon),
+      .walk_lock_o      (walk_lock),
       .walk_addr_o      (walk_addr),
       .walk_we_o        (walk_we),
       .walk_wdata_o     (walk_wdata),

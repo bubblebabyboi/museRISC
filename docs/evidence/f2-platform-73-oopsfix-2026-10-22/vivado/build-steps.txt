@@ -1,0 +1,75 @@
+sigil 31a15689bec847a51357d4dcacc361a4986b548a recipe_b=B1 recipe_hbm=H0 aws-fpga c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
+# Built on sigil-fpga-build (r7iz.8xlarge, FPGA Developer AMI, Vivado 2025.2,
+# aws-fpga v2.3.5 at ~/src/project_data/aws-fpga) from a `git archive` export
+# of 31a15689 (.git-rev), same script, flow and recipes as build 3a
+# (f2-platform-73-2026-10-22, agfi-0a1fd54ef68bdc754):
+#   fpga/scripts/build_cl_sigil.sh --recipe-b B1 --recipe-hbm H0 --tag 2026_10_22-143914
+#   -> aws_build_dcp_from_cl.py -c cl_sigil --mode small_shell --flow BuildAll
+#      --aws_clk_gen --no-encrypt --clock_recipe_a A1 --clock_recipe_b B1
+#      --clock_recipe_c C0 --clock_recipe_hbm H0
+#      (place SSI_SpreadLogic_high, phys_opt/route AggressiveExplore)
+# Only difference: Vivado general.maxThreads 16 instead of the default 8
+# (a `vivado` wrapper on PATH sources `set_param general.maxThreads 16` and
+# then the HDK's build_all.tcl). Build tree in /dev/shm (see the end of this file;
+# summary: docs/evidence/README.md, "#73 F2 AFI with the MMU walker-race fix").
+# Reports: rpt.tcl of build 3a (report_timing_summary -max_paths 5,
+# report_utilization of WRAPPER/CL) on cl_sigil.2026_10_22-143914.post_route.dcp.
+21:AWS FPGA: 2026-10-22 14:39:17 - Build starts
+38:##     set prefix "\nAWS FPGA: ([clock format [clock seconds] -format %T]): "
+235:AWS FPGA: (14:39:20): Generating clock contraints for CL source clocks
+398:AWS FPGA: (14:39:20): Checking for source code encryption
+418:AWS FPGA: (14:39:20): Encryption disabled.
+437:AWS FPGA: (14:39:20): Creating in-memory synthesis project
+444:AWS FPGA: (14:39:21): Reading common AWS components
+474:AWS FPGA: (14:39:21): Reading AWS Constraints
+496:AWS FPGA: (14:39:21): Sigil core clock: clk_extra_b1, recipe B1 = 62500 kHz
+503:AWS FPGA: (14:39:21): Sigil HBM AXI clock: clk_hbm_axi, recipe H0
+507:AWS FPGA: (14:39:21): Reading Sigil SoC RTL from /dev/shm/oopsfix-afi/src/rtl
+525:AWS FPGA: (14:39:21): Reading CL glue (src_post_encryption, not encrypted)
+533:AWS FPGA: (14:39:21): Reading CL IP blocks
+608:AWS FPGA: (14:39:25): Reading HBM wrapper from /home/ubuntu/src/project_data/aws-fpga/hdk/cl/examples/cl_mem_perf/design
+613:AWS FPGA: (14:39:25): Reading user constraints
+623:AWS FPGA: (14:39:25): Starting synthesizing customer design cl_sigil
+5608:AWS FPGA: (15:04:33): Writing post-synth design checkpoint
+5628:AWS FPGA: (15:04:49): Checking if MiG BRAM is initialized
+5647:AWS FPGA: (15:04:49): MiG BRAM is initialized. INIT_2C = 256'h8020C02030020120100344032300830CC0C0C2003003020C8080C00030000343
+5654:AWS FPGA: (15:04:52): Start linking customer design cl_sigil
+5836:AWS FPGA: (15:06:34): Writing post-link design checkpoint
+6054:AWS FPGA: (15:10:00): Start optimizing customer design cl_sigil
+6263:AWS FPGA: (15:12:09): Writing post-opt design checkpoint and report
+6295:AWS FPGA: (15:12:45): Start placing customer design cl_sigil
+6799:AWS FPGA: (15:28:57): Writing post-place design checkpoint and report
+6830:AWS FPGA: (15:29:23): Start physical-optimizing customer design cl_sigil
+6911:AWS FPGA: (15:32:22): Writing post-phy_opt design checkpoint and report
+6941:AWS FPGA: (15:32:38): Start routing customer design cl_sigil
+7411:AWS FPGA: (15:55:10): Writing post-route design checkpoint and report
+7418:AWS FPGA: (15:55:12): Checking the negative slack path of the existing design
+7421:AWS FPGA: (15:55:12): SUCCESS: Design has no negative slack path
+7455:AWS FPGA: (15:55:30): Finished building design checkpoints for customer design cl_sigil
+7462:AWS FPGA: 2026-10-22 15:55:36 - Build completes
+7465:AWS FPGA: Build Time = 1:16:19.425624. 
+# --- after the build ---
+# Post-route: "SUCCESS: Design has no negative slack path" (post_route.dcp, not
+# .VIOLATED); WNS +0.095 ns (core clk_out2_clk_mmcm_b, 16 ns), WHS +0.010 ns.
+# Upload (tarball sha256 checked again after download from S3):
+#   aws s3 cp 2026_10_22-143914.Developer_CL.tar s3://sigil-fpga-afi-891612553438/dcp/
+#   sha256 9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246
+# AFI (afi.json), created 2026-10-22 16:00:33 UTC, state available 16:23:14 UTC:
+#   aws ec2 create-fpga-image --region us-east-1
+#     --name sigil-linux-platform-oopsfix-2026_10_22-143914
+#     --input-storage-location Bucket=sigil-fpga-afi-891612553438,Key=dcp/2026_10_22-143914.Developer_CL.tar
+#     --logs-storage-location Bucket=sigil-fpga-afi-891612553438,Key=logs/
+#   -> afi-059766f9a85c6d39a / agfi-0c8aa56fde1a48495, shell 0x10212415,
+#      PCI 0x1d0f:0xf054 (subsystem 0x5160:0x1d0f)
+# Public load permission was NOT yet granted when this was written (the command
+# that grants it:)
+#   aws ec2 modify-fpga-image-attribute --region us-east-1 --fpga-image-id afi-059766f9a85c6d39a
+#     --operation-type add --user-groups all --attribute loadPermission
+# Checked 2026-10-22 (describe-fpga-image-attribute / describe-fpga-images):
+#   LoadPermissions [{"Group": "all"}], Public true, State available -> the AFI is public.
+# Attempt 1 (tag 2026_10_22-135457, same source) failed in opt_design ("Failed to
+# generate and synthesize debug IP xilinx.com:ip:ddr4_phy:2.2"): the instance's root
+# file system was filled to 0 bytes free by other jobs at 14:27:54 UTC (syslog "No
+# space left on device"). opt_design re-run on its post_link DCP passed at 8 and 16
+# threads (same checksum). Attempt 2 (this AFI) ran in /dev/shm and was copied to
+# ~/oopsfix-afi/build-143914/ on sigil-fpga-build (checkpoints, reports, logs).

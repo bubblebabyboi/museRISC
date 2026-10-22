@@ -2850,3 +2850,460 @@ clean, `make test` PASS, `make -C sim fpu` PASS (476,563 checks,
 coverage written), riscv-tests 123/123, `make core-test` rc 0
 (2,794 s). At `17aca6b`, the last code change, `make lint` clean
 and `make test` PASS.
+
+## #68 #69 #70 #64: Linux 6.12 + Debian 13 for Sigil, QEMU bring-up (2026-10-22, branch `73-linux-debian`)
+
+Logs in [`linux-debian-73-2026-10-22/`](linux-debian-73-2026-10-22/);
+user guide [`docs/LINUX.md`](../LINUX.md). Everything that runs on the
+SoC for epic #73, built on `sigil-fpga-build` (Ubuntu 24.04) and brought
+up in QEMU against [`LINUX_PLATFORM.md`](../LINUX_PLATFORM.md). **No
+FPGA run yet** (the AFI with the 80 GiB map is not published); the F2
+numbers below are estimates.
+
+**Versions.** Linux **6.12.114** (`sw/linux/kernel/sigil_defconfig`,
+tarball sha256 `7a858991…4af3`); OpenSBI **v1.9** (`cbf9f673`) generic
+`fw_jump` + `sw/linux/opensbi/0001-*.patch`; **Debian 13.7 "trixie"
+riscv64** from `snapshot.debian.org` **`20261020T000000Z`** (trixie,
+-updates, -security), 257 packages
+([`debian-manifest.txt`](linux-debian-73-2026-10-22/debian-manifest.txt):
+gcc/g++ 14.2.0, binutils 2.44, glibc 2.41, gdb 16.3, make 4.4.1, git
+2.47.3, python3 3.13.5, systemd 257.13, numactl/libnuma 2.0.19, …);
+build tools in [`build-versions.txt`](linux-debian-73-2026-10-22/build-versions.txt).
+Two image builds from the snapshot gave a byte-identical manifest.
+
+**Artifacts** (not in git; `sigil-fpga-build:~/os-artifacts/`, all
+checksums in [`SHA256SUMS`](linux-debian-73-2026-10-22/SHA256SUMS)):
+
+| File | Load address | sha256 |
+|---|---|---|
+| `fw_jump.bin` | `0x8000_0000` | `d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf` |
+| `Image` | `0x8020_0000` | `0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790` |
+| `Image-initramfs` (`/init` → `SIGIL_LINUX_BOOT_OK`) | `0x8020_0000` | `2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48` |
+| `sigil-f2.dtb` | `0x8300_0000` | `eb1689b43fe38e01d75e36c569d51bb7ea21c3163c10fb6acafa4b466f521e04` |
+| `sigil-qemu.dtb` / `sigil-sim.dtb` | `0x8300_0000` | `9b8313cc…0a03` / `f144da91…77` |
+| `sigil-debian-13-riscv64.ext4.zst` (222 MB) | `0xC_8000_0000` (PCIS `0x0C_0000_0000`) | `a9cfcbc977fad8968f07200d595b37ed3df51f7877b7fc0ec26d985e5fb5bf33` |
+| raw `.ext4` (8 GiB, after `zstd -d`) | | `c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632` |
+
+**QEMU acceptance: 23/23 PASS** (`python3 scripts/qemu_sigil_check.py
+--fresh`; transcript [`qemu-check.log`](linux-debian-73-2026-10-22/qemu-check.log),
+summary [`qemu-check-summary.txt`](linux-debian-73-2026-10-22/qemu-check-summary.txt)).
+QEMU 8.2.2 `-M virt` shaped like the contract
+(`scripts/qemu_sigil_boot.sh`): one hart with only Sigil's extensions,
+Sv39, DDR4 node 0 = 48 GiB at `0x8000_0000`, the pmem disk = 16 GiB
+file-backed at `0xC_8000_0000`, HBM node 1 = 16 GiB at `0x10_8000_0000`,
+the F2's OpenSBI, kernel and disk image with `sigil-qemu.dtb`.
+
+- Login on `ttyS0` as `sigil` after `SIGIL_LINUX_BOOT_OK Debian GNU/Linux
+  13 (trixie) up, login prompt next`; `Linux sigil 6.12.114-sigil …
+  riscv64`; ISA `rv64imafdch_zicntr_zicond_zicsr_zifencei_zca_zcb_zcd_
+  zba_zbb_zbc_zbkb_zbkc_zbkx_zbs_zknd_zkne_zknh_zve32f_zve32x_zve64d_
+  zve64f_zve64x`; systemd `running`, no failed units; `/` = `/dev/pmem0`
+  ext4 rw.
+- `numactl --hardware`: `available: 2 nodes (0-1)`, node 0 cpus 0 size
+  48305 MB, node 1 (no CPUs) size 16110 MB, distances 10/20.
+- `gcc hello.c && ./a.out` → `Hello from sigil on riscv64`; `make` of
+  the examples on the guest; `malloc_test 512` → `MALLOC OK`; libnuma
+  `numa_alloc_onnode` on nodes 0 and 1 → all pages on the requested node;
+  `memwhere 1024` → `node 0: 1024 MiB`, `numactl --membind=1 memwhere
+  1024` → **`node 1: 1024 MiB`**, `--interleave=0,1` → 512 + 512 MiB.
+- RVV: `rvv_vadd` (intrinsics, `-march=rv64gc_zve64d`) → `hwprobe: zve32x 1
+  zve64x 1 zve64d 1 full-v 0`, `VLEN = 512 bits`, `RVV OK`; `autovec`
+  (`-O3 -march=rv64gc_zve64d_zvl512b`) correct with 7 vector
+  instructions.
+- sudo, python3, git, gdb, strace, vim, file, man; a file written to the
+  pmem disk survives `reboot` (finisher `0x7777`); `poweroff` → `reboot:
+  Power down`, QEMU exits (finisher `0x5555` via SBI SRST).
+- QEMU timings (TCG, **not FPGA**): reset → boot marker 18 s, login prompt
+  21 s; `systemd-analyze` 0.5 s kernel + 9.8 s userspace.
+
+**F2 estimate** (`--icount`: QEMU `-icount shift=4,sleep=off`, 16 ns per
+instruction = a 62.5 MHz hart at IPC 1, [`qemu-icount.log`](linux-debian-73-2026-10-22/qemu-icount.log)):
+`systemd-analyze` 2.07 s kernel + 41.05 s userspace, boot marker at
+41.7 s, `gcc -O2 hello.c` 4.9 s, `python3 -c` 1.0 s. Calibration: the #55
+F2 payload (the sha256-identical 6.6 `Image`, `fw_jump.bin` and DTB of #55)
+reaches `clk: Disabling unused clocks` at 4.74 s in the same icount QEMU
+(≈ 0.30 G instructions, [`old66-f2-payload-icount.log`](linux-debian-73-2026-10-22/old66-f2-payload-icount.log));
+on the F2 that line came at kernel time 385.36 s with a 10 MHz DT timebase
+while `mtime` ran at 62.5 MHz, i.e. 61.7 s = 3.85 G cycles: **≈ 13 cycles
+per instruction**. Scaled: login prompt **≈ 9 min** after reset, `gcc
+hello.c` ≈ 1 min, `python3` start ≈ 15 s at 62.5 MHz, until measured.
+Measured on the F2 later (AFI `agfi-0c8aa56fde1a48495`, section "Debian on
+the F2 with the walker-race fix" below): login prompt 5 min 48 s after the
+SoC release, `gcc hello.c && ./a.out` 22.9 s, `python3 -c` 9.9 s, an estimated 5
+cycles per instruction (F2 times divided by QEMU icount instruction counts).
+
+**Tuning from the icount runs.** Before it
+([`qemu-icount-before-tuning.log`](linux-debian-73-2026-10-22/qemu-icount-before-tuning.log))
+the marker came at 84.2 s and the first login **timed out** (`login:
+timed out after 60 seconds`); with that fixed, `blame` was led by
+`user@1000.service` 37.8 s, `dev-pmem0.device` 30.8 s (boot fsck waiting
+for udev), `systemd-udev-trigger` 25.3 s (512 legacy pty nodes, 8 loop
+devices) and ~5 s each for five `modprobe@` units and `systemd-binfmt`.
+Now: logind sessions of class `background-light` (no per-user service
+manager at login), no boot-time fsck, `LEGACY_PTYS=n`,
+`BLK_DEV_LOOP_MIN_COUNT=0`, those units masked, `LOGIN_TIMEOUT 0`:
+marker 84.2 s → 41.7 s, login a few seconds.
+
+**Findings.** (1) A raw pmem namespace needs `ND_CLAIM`: with BTT, PFN
+and DAX all off, `devm_nsio_enable()` is a `-ENXIO` stub, `nd_pmem`
+fails silently and `root=/dev/pmem0` waits forever; `sigil_defconfig`
+keeps `CONFIG_BTT=y`. (2) Sigil's write-back D$ is not coherent with the
+host's PCIS view, so Linux powers off and reboots only through SBI SRST
+(no syscon reset drivers in the kernel) and the OpenSBI patch runs
+`FENCE.I` (writes back every dirty line on Sigil) before the finisher
+write; a host save after `poweroff` then holds the whole file system.
+(3) 6.12 enables user vector on Zve64d; the vector usercopy threshold is
+1 GiB so the kernel never uses the element-serial vector unit for
+`copy_*_user`. (4) GCC auto-vectorizes for Zve64d only with `_zvl512b`.
+
+**RTL.** The all-RTL SoC model `soc_rtl_tb` (main-checkout build of
+2026-10-21) boots the same kernel as `Image-initramfs` with
+`sigil-sim.dtb` to `SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
+([`soc-rtl-linux-6.12-boot.log`](linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log);
+the 6.6 `defconfig` gate needed 508,905,040 in `soc_tb`). The console
+shows the #63 TX-FIFO character drops of that RTL, not of the kernel.
+`scripts/qemu_reference_boot.sh` (now on `Image-initramfs`, build stamps
+ignored) passes against that log: `QEMU REFERENCE BOOT PASS`.
+
+**Deviations / contract proposals.** QEMU-only: 10 MHz timebase; three
+QEMU NUMA sockets lay out the ranges, so QEMU has two extra harts outside
+the DT (OpenSBI parks them); virtio-mmio slots; no crypto node.
+Proposed for `LINUX_PLATFORM.md`: RTC = PLIC source 11; DTB at
+`0x8300_0000` (`FW_JUMP_FDT_ADDR`, kernel ≤ 46 MiB, initrd `0x8400_0000`);
+**a finisher reboot must not reload the pmem disk** (today
+`sigil_host --on-reboot rerun` reloads every `--load` image); power-off
+and reboot via SBI SRST with the D$ write-back; optional host-written
+`/chosen/rng-seed`; later: Svnapot/Svadu in the ISA string (`misa`
+reports V although the unit is Zve64d — harmless, Linux uses the DT).
+
+## #73 user path: `sigil-linux`, the Sigil Linux user guide, `hbm_touch` (2026-10-22, branch `73-linux-release`)
+
+Logs and harness in [`linux-user-docs-73-2026-10-22/`](linux-user-docs-73-2026-10-22/),
+behind `fpga/scripts/sigil-linux`, `docs/LINUX.md` §4–§5 and
+`docs/PROGRAMMING.md` §8.1. All on `sigil-fpga-build` (Ubuntu 24.04,
+e2fsprogs 1.47.0, zstd 1.5.5, QEMU 8.2.2) with the release files of
+`~/os-artifacts/` (sha256 as in `linux-debian-73-2026-10-22/SHA256SUMS`).
+**No F2 instance was used; nothing here is an FPGA measurement.**
+
+- **`sigil-linux` logic, 35/35** ([`sigil-linux-tests.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests.log),
+  `harness/run_tests.sh`): the real script against a fake `sigil_host`
+  (copies the `--load` disk into a 16 GiB window file, changes the ext4
+  in it with `debugfs` or `resize2fs`, writes the `--save` file, exits
+  with a chosen status) and fake AFI tools, real `sudo`, downloads from a
+  `file://` copy of the release. First run (5 downloads, `SHA256SUMS`
+  verified, sparse unpack: 917 MiB allocated of 8 GiB, AFI loaded, the
+  exact `sigil_host` arguments, guest change saved, `e2fsck -fn` clean);
+  rerun with Ctrl-] (exit 4: no download or AFI load, disk unchanged,
+  `DISK.unclean` has the change); guest `resize2fs` to 16 GiB (disk file
+  follows; superblock size = `dumpe2fs`); `--fresh` with garbage beyond
+  the file system (trimmed to 8 GiB, old disk kept); setup error, no ext4
+  in the window, unpublished tag (disk untouched); corrupted cache
+  (re-downloaded); concurrent run (locked out); a 16 GiB fully written
+  window file in `/dev/shm` → sparse copy of the 8 GiB file system in
+  8.2 s, 969 MiB allocated, byte-identical. Fixed while testing: `zstd -d
+  -f` wrote a fully allocated 8 GiB file (now `--sparse`); a root-owned
+  save file may be unreadable for the user (now `chown`ed).
+  Rerun after `sigil-linux` and the harness were pointed at
+  `agfi-0c8aa56fde1a48495` (script sha256 `5044eed2…a0c175c`): **35/35**
+  ([`sigil-linux-tests-agfi-0c8aa.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests-agfi-0c8aa.log));
+  the output differs from the first log only in the AGFI, the boot-time
+  message (measured 5 min 48 s instead of the estimate), temporary names
+  and timings.
+- **User-guide commands in QEMU, 10/10** ([`qemu-docs-check.log`](linux-user-docs-73-2026-10-22/qemu-docs-check.log),
+  console [`qemu-docs-check-console.log.gz`](linux-user-docs-73-2026-10-22/qemu-docs-check-console.log.gz),
+  `harness/docs_check.py`): files in with `debugfs -w` (owned by root;
+  `sudo chown` fixes it) and a loop mount (`chown -R 1000:1000`); the
+  `LINUX.md` §5.4 `numa_alloc_onnode` program (`harness/hbm.c`) built with
+  `-lnuma`, run plain and under `numactl --membind=1`; `numa_hbm`,
+  `numactl --membind=1 ./memwhere 64` → `node 1: 64 MiB`; RVV intrinsics
+  with `-march=rv64gc_zve64d`, auto-vectorization with
+  `-march=rv64gc_zve64d_zvl512b`; `sudo poweroff`; files out with
+  `debugfs` `cat` / `rdump` and a read-only loop mount; `e2fsck -fn` clean.
+- **`hbm_touch` on the F2 memory map** (`make -C sim fpgatop-f2-examples`,
+  `fpga_top_tb_f2`, Verilator 5.048): `SIGIL TEST PASS hbm_touch` at
+  5,370,652 cycles built with GCC 16.1 ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log))
+  and at 6,153,385 cycles with Ubuntu's GCC 13.2, the compiler `sigil-run`
+  uses ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc13.fpgatop-f2.log)):
+  256 KiB at HBM `0x10_8000_0000`, at the last 256 KiB of HBM and at DDR4
+  `0x8_8000_0000`, 0 bad words, first buffer intact after the others.
+  Cycle counts reflect the simulated AXI timing. Not yet run on the F2.
+
+## #73 Linux platform on F2: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63, 2026-10-22)
+
+[`f2-platform-73-2026-10-22/SUMMARY.md`](f2-platform-73-2026-10-22/SUMMARY.md).
+Public AFI **`agfi-0a1fd54ef68bdc754`** (`afi-035809e576d7ea8d5`; superseded by
+`agfi-0c8aa56fde1a48495`, the same CL with the core's walker-race fix #74,
+below; do not use it for Linux), core
+62.5 MHz (B1), HBM AXI 250 MHz (H0); post-route WNS +0.150 ns, core clock
++0.635 ns. On a real `f2.6xlarge`: full-range engine memory test of DDR4
+(64 GiB) and HBM (16 GiB), two seeds, 0 errors; sparse core test over both
+(1.3 M lines), 0 errors; refill latency from the core DDR4 729 ns / HBM 813 ns;
+#62 reproduced (SLVERR on the refill of a never-written DDR4 line: ECC) and
+fixed (DDR4 scrubbed once per AFI load, 17 s); #63 fixed (Linux console lines
+intact, 16-byte UART bursts byte-exact); finisher power off / fail code /
+reboot keeping the pmem window; RTC at wall-clock time; raw console with
+Ctrl-] detach; 4 GiB and 8 GiB load/save round trips (3.6 GB/s load,
+1.0 GB/s save); firmware and all SDK examples without `--ignore-mem-err`.
+Simulation: Verilator (`fpgatop-f2-quick` with an 80 GiB sparse model,
+`axibridge` out-of-window, `fpgaocl` v4 registers, `fpgatop`, `core-test`,
+`make test`, `make lint`; CI-parity Verilator 5.020 lint + FPGA targets) and
+HDK XSIM (`test_sigil_regs`, `test_sigil_platform`, `test_sigil_hash`,
+`test_sigil_host_cosim`) — logs in `sim/` and `xsim/`.
+
+## #73 Linux release branch: gates (2026-10-22)
+
+[`linux-release-73-gates-2026-10-22.log`](linux-release-73-gates-2026-10-22.log)
+(`73-linux-release` at `a6051cd`, the merge of `73-f2-memory-platform` and
+`73-linux-debian`; fresh clone on `sigil-fpga-build`): lint clean on Verilator
+5.048, CI's 5.020 and 5.044; `make core-test` (241 TB PASS, 0 fail, including
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick`), riscv-tests
+**123/123**, `make test`, and `socrtl`, `sochash`, `examples` (7/7),
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick` run explicitly.
+The released OS artifacts match the branch's `SHA256SUMS` (12/12).
+`soc_rtl_tb` built from the release RTL boots Linux 6.12 (`Image-initramfs`,
+`sigil-sim.dtb`) to `SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** (17.5
+min). All 825 kernel console lines are intact. The same boot on main's RTL
+had 4 lines corrupted by #63. The QEMU acceptance run of the Debian image
+passes 23/23. Full ACT was not rerun because `rtl/core` is byte-identical to
+`main` (tree `f573234a`, the tree of the #53 ACT run, 2,577/2,578). Later
+commits up to `ce9fe97` change no RTL; at that commit lint and
+`fpgatop-f2-examples` (`hbm_touch`) pass. The first Debian boot on a real F2
+came later (sections below): it oopsed on `agfi-0a1fd54ef68bdc754` (MMU walker
+race #74); on `agfi-0c8aa56fde1a48495` with the fix it reached the login
+prompt 5 min 48 s after the SoC release and passed 22/22 checks.
+
+## #73 Linux release branch: re-check of the review fixes (2026-10-22)
+
+[`linux-release-73-docs-recheck-2026-10-22.log`](linux-release-73-docs-recheck-2026-10-22.log)
+(no F2 used): rerunning `f2_playground_setup.sh` now updates `~/sigil`
+(`git pull --ff-only`), keeps `~/hello/hello.c` and does not reload a loaded
+AFI (stubbed run). The `LINUX.md` §6 package install through QEMU `--net`
+fails: QEMU 8.2.2's `virt` wires virtio interrupts to the PLIC of its second
+NUMA socket, whose hart is parked (0 interrupts, 0 packets). The replacement,
+a `qemu-user-static` chroot into the disk file on the host, ran verbatim from
+`LINUX.md` on Ubuntu 24.04 (installs `sl` in 18 s, `e2fsck` clean), and the
+changed disk boots in QEMU from a release-only layout and runs the package.
+
+## #73 First Debian boot on a real F2: kernel oops, MMU race (2026-10-22, AFI `agfi-0a1fd54ef68bdc754`, branch `73-linux-debian`)
+
+Run log and A/B table: [`linux-debian-73-2026-10-22/f2-oops-ab.txt`](linux-debian-73-2026-10-22/f2-oops-ab.txt);
+console logs, experiment DTBs and inputs in [`f2-boot/`](linux-debian-73-2026-10-22/f2-boot/).
+The published artifacts of the QEMU bring-up section above, booted exactly
+per `docs/LINUX.md` §4 on the platform AFI (`f2.6xlarge`, core 62.5 MHz):
+
+- **Worked:** 8 GiB disk loaded in 2.38 s (3.61 GB/s); OpenSBI → Linux
+  6.12 with both NUMA nodes (48 GiB DDR4 node 0, 16 GiB HBM node 1),
+  `/dev/pmem0` mounted, `Run /sbin/init` at kernel time 8.2 s, systemd
+  257 up at 12.2 s, `Queued start job for default target` at 73.5 s
+  (kernel time starts only after ~2 min of early memory setup, see the
+  fixed-AFI run below).
+- **Failed:** kernel oopses from 35–130 s into systemd startup in every
+  Debian run — "Unable to handle kernel paging request" at valid
+  linear-map addresses (anon_vma_clone, folio_lruvec_lock) and garbage
+  pointers `0xcccccccccccccccc` (filemap_fault). No login prompt.
+- **Bisection (13 runs):** still fails with no HBM, 2 GiB DDR4, every
+  address below 4 GiB (384 MiB RAM + 1.6 GiB pmem at `0x9800_0000`), quiet
+  console, a DT ISA of plain rv64imafdc, no jump labels/BPF, ASIDs
+  disabled, `transparent_hugepage=never`. Passes: `memstress` (anonymous
+  memory, FENCE.I, fork/COW, AMO/LR-SC; 0 bad in 651 s), and no oops in
+  minutes of `execstress` (busybox fork/exec) or `pmemstress` (ext4 on
+  pmem + dynamic exec from the Debian disk) — stress kernels from
+  `scripts/build_stress_kernels.sh`.
+- **Cause (RTL hunt, branches `73-oops-mmu` / `73-oops-sim-repro`):** an
+  MMU walker race — a data-TLB miss preempting an in-flight fetch walk
+  takes the fetch walk's outstanding PTE response as its own first PTE —
+  needs code-page-crossing ITLB misses plus DDR-like latency; Debian's
+  dynamically linked userland provides both. The Debian boot is re-run on
+  the AFI with the fix.
+- Platform notes for a later issue: SIGINT'd `sigil_host` runs left the
+  SoC running; the following runs' consoles lost bytes until the AFI was
+  reloaded; OpenSBI restarted by itself after some oopses.
+- F2 time: OS agent 2.15 h (09:26–11:35 UTC); instance
+  `i-0172708b8206bb63d` terminated 11:35 UTC.
+
+## #73 Linux oops: fetch-walk preemption fix (2026-10-22, branch `73-oops-fix`)
+
+Root cause, found by the oops hunt (branches `73-oops-mmu`,
+`73-oops-sim-repro`, `73-oops-dcache`): `sigil_mmu` lets a data-TLB miss
+preempt a fetch walk in `W_VS_READ`/`W_G_READ`, but `sigil_core` dropped a
+walker read only on SFENCE.VMA or a trap. The fetch walk's PTE read was
+then taken by the preempting data walk as its root PTE. Two triggers: the
+read is already in flight (PTE line misses, uncached tables), or it is
+issued in the same cycle as the preemption (a D$ hit). The result is a page
+fault on a valid VA, or a wrong superpage translation that returns wrong
+data without a trap. On F2 these are the two kernel oops signatures.
+
+Fix: `sigil_mmu` reports `walk_abandon_o` when a walk ends without
+consuming its PTE read. That covers the preemption and a G-stage
+GPA-width fault, which leaves `W_G_READ` in the cycle it may issue its
+read. The core drops the response of a walker read in flight or issued in
+that cycle. The fix is unconditional. A new simulation-only assertion
+(`a_walk_rsp`) checks that the walker only receives the response to its own
+request.
+
+[`oops-fix-73-2026-10-22/before_after.log`](oops-fix-73-2026-10-22/before_after.log):
+the three new directed tests on the `73-linux-release` RTL (`5458d16`) and
+on the fix, with the same binaries, on `core_tb` and on the opt-in checker
+build (`make -C sim -f Makefile.oops`):
+
+| test | 5458d16: `--mem-lat 1` / rand / `40:50` / `--no-cache` | fix |
+|---|---|---|
+| `ptw_preempt_directed` (uncached tables) | FAIL 0x10D (load page fault on a mapped VA), all 4 | PASS, all 4 |
+| `ptw_preempt_cached_directed` | FAIL 0x1FF (wrong data, no trap), all 4 | PASS, all 4 |
+| `ptw_preempt_twoload_directed` (same-cycle issue) | FAIL 0x11FF / 0x11FF / 0x11FF / 0x1FF (wrong data) | PASS, all 4 |
+
+On the old RTL the checker reports one `stale-walk-rsp` per run. On the fix
+it reports none. With `walk_abandon` masked out of the drop condition, the
+assertion stops all three tests.
+
+[`oops-fix-73-2026-10-22/gates.log`](oops-fix-73-2026-10-22/gates.log)
+(`cb523fa`, fresh clone on `sigil-fpga-build`): lint is clean on 5.048,
+5.020 and 5.044. `make core-test` passes with 253 TB PASS, 0 fail and no
+assertion failures. That is the 241 of the release gate plus the three
+tests in rand, uncached, xinit1 and xinit3, and 40/40 directed runs on
+each SRAM-macro build. riscv-tests pass 123/123. `soc_rtl_tb` boots Linux
+6.12 (`Image-initramfs`) to `SIGIL_LINUX_BOOT_OK` at 261,247,447 cycles,
+the same count as the release gate, so the race did not occur in that
+boot.
+
+## #73 Linux oops: root cause, F2 signature analysis and full gates (2026-10-22, branch `73-oops-fix`)
+
+[`linux-oops-fix-73-2026-10-22/`](linux-oops-fix-73-2026-10-22/README.md)
+covers the Debian oopses on the F2.
+
+**Root cause.** A data-TLB miss preempts an instruction-fetch walk, and the
+data walk takes that walk's PTE response as its own root PTE. The fetch walk
+reads kernel-text root entry 510, so the data walk indexes the kernel's PMD
+table with a linear-map VA[29:21]. That gives both F2 signatures. All 13
+valid-address faults in the F2 logs have VA[29:21] of 12 or more, which are
+invalid entries ("Unable to handle kernel paging request" at a valid
+address). VA[29:21] 3 and 4 map the freed `__init` region, which is poisoned
+with `0xcc`, so the next dependent load faults at `cccccccccccccd1c`. Every
+oops PC is the second of two dependent loads.
+
+**Before/after.** The 13 walker race tests under the checkers pass 0/39 on
+`5458d16` (30 stale walker responses) and 39/39 on the fix.
+
+**Gates at `31a1568`:**
+- lint is clean on Verilator 5.048, 5.020 and 5.044;
+- `make test` passes;
+- `core-test`: 293 TB PASS, 0 fail;
+- riscv-tests: 123/123;
+- full ACT: 2577/2578 (only the PA0 waiver fails; Vx/Vls/Vf all pass);
+- `socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick srammacro` pass;
+- the Linux 6.12 boot on `soc_rtl_tb` reaches `SIGIL_LINUX_BOOT_OK` with a console byte-identical to the release gate's.
+
+**Linux stress under the checkers** (ptwstress v2, execstress): 0
+`stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
+counts. In simulated Linux there was at most one fetch-walk preemption per
+run, in the benign same-cycle-response corner, so simulation does not reach
+the harmful case. The F2 boot with an AFI built from this branch
+(`agfi-0c8aa56fde1a48495`, next two sections) passed: no oops, 22/22 checks.
+
+Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
+runs).
+
+## #73 F2 AFI with the MMU walker-race fix: `agfi-0c8aa56fde1a48495` (2026-10-22, branch `73-oops-fix`)
+
+[`f2-platform-73-oopsfix-2026-10-22/vivado/`](f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)
+(build steps, manifest, `afi.json`, post-route timing and utilization).
+
+- **Public AFI `afi-059766f9a85c6d39a` / AGFI `agfi-0c8aa56fde1a48495`**,
+  us-east-1, shell `0x10212415`, PCI `0x1D0F:0xF054`, available 16:23 UTC;
+  `loadPermission` group `all` and `Public: true` checked with
+  `aws ec2 describe-fpga-image-attribute` / `describe-fpga-images`.
+- Built from `73-oops-fix` commit **`31a1568`** with the script, flow and
+  recipes of the platform AFI above: core 62.5 MHz (B1), HBM AXI 250 MHz
+  (H0), unencrypted. Its RTL differs from the platform AFI's (`e641930`)
+  only in `rtl/core/sigil_core.sv` and `rtl/core/sigil_mmu.sv` (the
+  walker-race fix #74 and an atomic Svadu A/D update).
+- Post-route: all constraints met, WNS **+0.095 ns** (core clock, 16 ns),
+  HBM AXI +0.198 ns, WHS +0.010 ns; **131,259 LUTs (10.08 %)**, 117,030
+  FFs, 75 RAMB36, 32 DSP for the CL, 82,201 LUTs for the SoC + OCL block.
+  BuildAll 1 h 16 min on the r7iz.8xlarge (16 Vivado threads); a first
+  attempt failed in `opt_design` when the build volume filled up.
+- DCP tarball `2026_10_22-143914.Developer_CL.tar`, 110,192,640 bytes,
+  sha256 `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246`
+  (`s3://sigil-fpga-afi-891612553438/dcp/`, downloaded again and checked);
+  its routed DCP hashes to the manifest `dcp_hash` `53eed162…11fe73`.
+  Release asset `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar`.
+- The release branch ships this RTL: `git diff 31a15689 73-linux-release
+  -- rtl/ fpga/cl_sigil/` is empty; under `fpga/` only the host helper
+  scripts differ (`sigil-linux`, `sigil-run`, `f2_playground_setup.sh`
+  name the new AGFI and the measured boot time), which are not part of the
+  CL.
+- The memory-platform hardware tests ran on the platform AFI and were not
+  repeated on this one; Debian on this AFI is the next section.
+
+## #73 Debian on the F2 with the walker-race fix: login, 22/22 checks, disk persists (2026-10-22, AFI `agfi-0c8aa56fde1a48495`, branch `73-linux-debian`)
+
+Logs: [`linux-debian-73-2026-10-22/f2-boot-fixed/`](linux-debian-73-2026-10-22/f2-boot-fixed/)
+(`f2-run1.txt` full console of boot + acceptance, `f2-run2.txt` second boot
+from the saved disk, `*-summary.txt` check summaries, `f2-instance-info.txt`).
+Same published OS artifacts as above (sha256 in `f2-instance-info.txt`),
+booted exactly per `docs/LINUX.md` §4 on AFI `afi-059766f9a85c6d39a` /
+`agfi-0c8aa56fde1a48495` (branch `73-oops-fix`, RTL `31a1568`: stale MMU
+walker response dropped on preempt/abandon, Svadu A/D write-back lock),
+`f2.6xlarge` `i-0c58fa4d79908ae8b`, core **62.500 MHz** measured.
+
+- **No oops** in either boot (`Oops`/`BUG:`/`WARNING:` count 0).
+- **Boot time** (wall clock from SoC release, 8 GiB disk loaded in 2.42 s
+  before it): `SIGIL_LINUX_BOOT_OK` at **337.7 s**, **login prompt at
+  347.9 s (5 min 48 s)**; second boot 333.2 s / 343.2 s. Of this, ~129 s
+  is OpenSBI + early kernel memory setup for 64 + 16 GiB before the kernel
+  clock starts; then kernel 10.6 s (`Run /sbin/init` at 8.2 s) and systemd
+  userspace 3 min 25.5 s (`systemd-analyze`; `blame` led by
+  `dev-pmem0.device` 2 min 13 s, journald 54 s, logind 48 s, udev-trigger
+  47 s). The QEMU icount estimate (≈ 9 min) was pessimistic: an estimated 5 core
+  cycles per instruction overall (F2 kernel time divided by the QEMU icount
+  instruction count), not 13.
+- **Acceptance: 22/22 PASS** (`scripts/qemu_sigil_check.py --label F2
+  --scale 40 --no-reboot --release 'SoC released'`): login as `sigil`;
+  `uname` 6.12.114-sigil riscv64 + Debian 13; `/proc/cpuinfo` isa with
+  zve64d, `uarch sigil,core`, sv39; systemd `running`, no failed units;
+  `/` = `/dev/pmem0` ext4 rw; `numactl --hardware` **2 nodes: node 0 48305
+  MB (cpus 0), node 1 16110 MB (no cpus)**, distances 10/20; `free -h` 62 GiB;
+  `time (gcc hello.c && ./a.out)` **22.9 s**; `make` of the 6 examples
+  6 min 23 s; `malloc_test 512` MALLOC OK; `numa_hbm 256` all pages on the
+  requested node, dependent load DDR4 1791 ns vs HBM 1878 ns (with TLB
+  misses); `memwhere 1024` node 0, **`numactl --membind=1` → node 1: 1024
+  MiB**, interleave 512 + 512; `rvv_vadd` RVV OK (VLEN 512); `autovec` 7
+  vector instructions; sudo; `python3 -c` **9.9 s**; git/gdb/strace/vim/
+  file/man; a stamp file written; `sudo poweroff` → `reboot: Power down`
+  → `finisher: power off` → host saved the 8 GiB window (0.81 GB/s).
+- **Persistence: PASS** — run 2 loads the saved disk, logs in as root, the
+  stamp file is there (`journalctl --list-boots` shows both boots), power
+  off.
+- F2 time: 0.78 h (16:34–17:21 UTC), instance terminated.
+
+## #73 Linux release branch: final gates at `1d72210` (2026-10-22)
+
+[`linux-release-73-final-gates-2026-10-22.log`](linux-release-73-final-gates-2026-10-22.log)
+(`73-linux-release` at `1d72210`, which includes the walker-race fix #74 and
+the F2 Debian results; fresh clone on `sigil-fpga-build`, at most 8 jobs):
+lint is clean on Verilator 5.048, CI's 5.020 and 5.044. `make test` passes.
+`make core-test` gives 293 TB PASS and 0 fail, with each walker race test
+passing in rand, nocache, xinit1 and xinit3. riscv-tests pass **123/123**.
+`socrtl`, `sochash`, `examples` (7/7), `fpgatop-quick`, `fpgatop-f2-quick`
+and `fpgaocl-quick` pass with the release gate's cycle counts. The walker
+race checker targets pass: `oops-ptw-preempt` 9/9 and `oops-ptw-walker`
+**39/39** with 0 stale walker responses and 0 PTWINV violations, and their
+result lines are identical to the fix branch's. The OS artifacts match the
+branch's `SHA256SUMS` (12/12). `soc_rtl_tb` boots Linux 6.12 to
+`SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** with a console
+byte-identical to the earlier gates and no oops. Full ACT was not rerun:
+`rtl/` (tree `c8bafdb2`), `tb/`, `sim/` and the ACT scripts are identical to
+`31a15689`, where full ACT gave 2,577/2,578 (only the PA0 waiver fails).
+
+## #73 Linux release branch: checks of the second review's fixes (2026-10-22)
+
+[`linux-release-73-review-fixes-2026-10-22.log`](linux-release-73-review-fixes-2026-10-22.log)
+(`73-linux-release`, `1d72210..62370e1`): documentation only. No file
+other than Markdown and evidence logs changed since `1d72210`, so its final
+gates hold, and `rtl/` and `fpga/cl_sigil/` still equal `31a15689`. The
+fixes label the 5 cycles per instruction as an estimate, state that the
+walker race (#74) is in every earlier core (the first public AFI
+`agfi-035116450e0a0d093` is for bare-metal programs only), point the status
+table at the runs on the shipped RTL, and add #75 to `LINUX.md`. No
+relative link or anchor is broken. The notes checklist's placeholder grep
+prints nothing. The superseded AFI appears only as history.

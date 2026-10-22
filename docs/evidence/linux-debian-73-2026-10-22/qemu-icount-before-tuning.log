@@ -1,0 +1,385 @@
+qemu_sigil_boot: creating build/debian/sigil-disk.img from build/debian/sigil-debian-13-riscv64.ext4
+
+OpenSBI v1.9
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name               : Sigil RV64 SoC (QEMU virt reference)
+Platform Features           : medeleg
+Platform HART Count         : 1
+Platform HART Protection    : pmp
+Platform IPI Device         : aclint-mswi
+Platform Timer Device       : aclint-mtimer @ 10000000Hz
+Platform Console Device     : uart8250
+Platform HSM Device         : ---
+Platform PMU Device         : ---
+Platform Reboot Device      : syscon-reboot
+Platform Shutdown Device    : syscon-poweroff
+Platform Suspend Device     : ---
+Platform CPPC Device        : ---
+Firmware Base               : 0x80000000
+Firmware Size               : 321 KB
+Firmware RW Offset          : 0x40000
+Firmware RW Size            : 65 KB
+Firmware Heap Offset        : 0x47000
+Firmware Heap Size          : 37 KB (total), 0 KB (reserved), 13 KB (used), 23 KB (free)
+Firmware Scratch Size       : 4096 B (total), 504 B (used), 3592 B (free)
+Runtime SBI Version         : 3.0
+Standard SBI Extensions     : time,rfnc,ipi,base,hsm,srst,pmu,dbcn,fwft,legacy,dbtr,sse
+Experimental SBI Extensions : none
+
+Domain0 Name                : root
+Domain0 Boot HART           : 0
+Domain0 HARTs               : 0x0*
+Domain0 Region00            : 0x0000000080040000-0x000000008005ffff M: (F,R,W) S/U: ()
+Domain0 Region01            : 0x0000000080000000-0x000000008003ffff M: (F,R,X) S/U: ()
+Domain0 Region02            : 0x0000000000100000-0x0000000000100fff M: (I,R,W) S/U: (R,W)
+Domain0 Region03            : 0x0000000010000000-0x0000000010000fff M: (I,R,W) S/U: (R,W)
+Domain0 Region04            : 0x0000000002000000-0x000000000200ffff M: (I,R,W) S/U: ()
+Domain0 Region05            : 0x000000000c000000-0x000000000fffffff M: (I,R,W) S/U: (R,W)
+Domain0 Region06            : 0x0000000000000000-0xffffffffffffffff M: () S/U: (R,W,X)
+Domain0 Next Address        : 0x0000000080200000
+Domain0 Next Arg1           : 0x0000000083000000
+Domain0 Next Mode           : S-mode
+Domain0 SysReset            : yes
+Domain0 SysSuspend          : yes
+
+Boot HART ID                : 0
+Boot HART Domain            : root
+Boot HART Priv Version      : v1.12
+Boot HART Base ISA          : rv64imafdch
+Boot HART ISA Extensions    : zicntr,sdtrig,f,d
+Boot HART PMP Count         : 16
+Boot HART PMP Granularity   : 2 bits
+Boot HART PMP Address Bits  : 54
+Boot HART MHPM Info         : 0 (0x00000000)
+Boot HART Debug Triggers    : 2 triggers
+Boot HART MIDELEG           : 0x0000000000001666
+Boot HART MEDELEG           : 0x0000000000f0b509
+[    0.000000] Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #1 SMP Thu Oct 22 06:29:53 UTC 2026
+[    0.000000] Machine model: Sigil RV64 SoC (QEMU virt reference)
+[    0.000000] SBI specification v3.0 detected
+[    0.000000] SBI implementation ID=0x1 Version=0x10009
+[    0.000000] SBI TIME extension detected
+[    0.000000] SBI IPI extension detected
+[    0.000000] SBI RFENCE extension detected
+[    0.000000] SBI SRST extension detected
+[    0.000000] SBI DBCN extension detected
+[    0.000000] earlycon: sbi0 at I/O port 0x0 (options '')
+[    0.000000] printk: legacy bootconsole [sbi0] enabled
+[    0.000000] Disabled 4-level and 5-level paging
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x0000000080000000..0x000000008003ffff (256 KiB) nomap non-reusable mmode_resv1@80000000
+[    0.000000] OF: reserved mem: 0x0000000080040000..0x000000008005ffff (128 KiB) nomap non-reusable mmode_resv0@80040000
+[    0.000000] OF: NUMA: parsing numa-distance-map-v1
+[    0.000000] NODE_DATA(0) allocated [mem 0xc7fffec80-0xc7fffffff]
+[    0.000000] NODE_DATA(1) allocated [mem 0x147ffb6c80-0x147ffb7fff]
+[    0.000000] Zone ranges:
+[    0.000000]   DMA32    [mem 0x0000000080000000-0x00000000ffffffff]
+[    0.000000]   Normal   [mem 0x0000000100000000-0x000000147fffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080000000-0x000000008005ffff]
+[    0.000000]   node   0: [mem 0x0000000080060000-0x0000000c7fffffff]
+[    0.000000]   node   1: [mem 0x0000001080000000-0x000000147fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080000000-0x0000000c7fffffff]
+[    0.000000] Initmem setup node 1 [mem 0x0000001080000000-0x000000147fffffff]
+[    0.000000] SBI HSM extension detected
+[    0.000000] riscv: base ISA extensions acdfhim
+[    0.000000] riscv: ELF capabilities acdfim
+[    0.000000] percpu: Embedded 21 pages/cpu s45528 r8192 d32296 u86016
+[    0.000000] Kernel command line: console=ttyS0,115200 earlycon=sbi root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl
+[    0.000000] Fallback order for Node 0: 0 1 
+[    0.000000] Fallback order for Node 1: 1 0 
+[    0.000000] Built 2 zonelists, mobility grouping on.  Total pages: 16777216
+[    0.000000] Policy zone: Normal
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] software IO TLB: area num 1.
+[    0.000000] software IO TLB: mapped [mem 0x00000000fbfff000-0x00000000fffff000] (64MB)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=2
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=1.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] RCU Tasks Trace: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] riscv-intc: 64 local interrupts mapped
+[    0.000000] riscv: providing IPIs using SBI IPI extension
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.000000] clocksource: riscv_clocksource: mask: 0xffffffffffffffff max_cycles: 0x24e6a1710, max_idle_ns: 440795202120 ns
+[    0.000006] sched_clock: 64 bits at 10MHz, resolution 100ns, wraps every 4398046511100ns
+[    0.001728] Calibrating delay loop (skipped), value calculated using timer frequency.. 20.00 BogoMIPS (lpj=100000)
+[    0.002026] pid_max: default: 32768 minimum: 301
+[    0.002950] LSM: initializing lsm=capability
+[    0.164599] Dentry cache hash table entries: 8388608 (order: 14, 67108864 bytes, vmalloc hugepage)
+[    0.245164] Inode-cache hash table entries: 4194304 (order: 13, 33554432 bytes, vmalloc hugepage)
+[    0.249960] Mount-cache hash table entries: 131072 (order: 8, 1048576 bytes, vmalloc)
+[    0.255216] Mountpoint-cache hash table entries: 131072 (order: 8, 1048576 bytes, vmalloc)
+[    0.274929] ASID allocator using 16 bits (65536 entries)
+[    0.276170] rcu: Hierarchical SRCU implementation.
+[    0.276321] rcu: 	Max phase no-delay instances is 1000.
+[    0.280334] EFI services will not be available.
+[    0.281462] smp: Bringing up secondary CPUs ...
+[    0.281641] smp: Brought up 2 nodes, 1 CPU
+[    0.284014] Memory: 65854236K/67108864K available (6010K kernel code, 4724K rwdata, 2048K rodata, 2191K init, 383K bss, 1148476K reserved, 0K cma-reserved)
+[    0.364241] devtmpfs: initialized
+[    0.379813] futex hash table entries: 256 (order: 2, 16384 bytes, vmalloc)
+[    0.382075] DMI not present or invalid.
+[    0.392254] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.396604] DMA: preallocated 4096 KiB GFP_KERNEL pool for atomic allocations
+[    0.398314] DMA: preallocated 4096 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.453302] cpu0: Ratio of byte access time to unaligned word access is 7.98, unaligned accesses are fast
+[    0.489131] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.489323] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.509758] clocksource: Switched to clocksource riscv_clocksource
+[    0.524191] NET: Registered PF_INET protocol family
+[    0.536050] IP idents hash table entries: 262144 (order: 9, 2097152 bytes, vmalloc)
+[    1.193920] tcp_listen_portaddr_hash hash table entries: 32768 (order: 7, 524288 bytes, vmalloc)
+[    1.201325] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, vmalloc)
+[    1.201945] TCP established hash table entries: 524288 (order: 10, 4194304 bytes, vmalloc hugepage)
+[    1.297151] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, vmalloc)
+[    1.316455] TCP: Hash tables configured (established 524288 bind 65536)
+[    1.323232] UDP hash table entries: 32768 (order: 8, 1048576 bytes, vmalloc)
+[    1.339145] UDP-Lite hash table entries: 32768 (order: 8, 1048576 bytes, vmalloc)
+[    1.354975] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.355604] kvm [1]: hypervisor extension available
+[    1.355767] kvm [1]: using Sv57x4 G-stage page table format
+[    1.355945] kvm [1]: VMID 14 bits available
+[    1.365396] workingset: timestamp_bits=44 max_order=24 bucket_order=0
+[    1.368601] fuse: init (API version 7.41)
+[    1.371552] NET: Registered PF_ALG protocol family
+[    1.372881] io scheduler mq-deadline registered
+[    1.373042] io scheduler kyber registered
+[    1.373355] io scheduler bfq registered
+[    1.376170] riscv-plic: interrupt-controller@c000000: mapped 32 interrupts with 1 handlers for 2 contexts.
+[    1.873242] Serial: 8250/16550 driver, 1 ports, IRQ sharing disabled
+[    1.880993] printk: legacy console [ttyS0] disabled
+[    1.884182] 10000000.serial: ttyS0 at MMIO 0x10000000 (irq = 12, base_baud = 115200) is a 16550A
+[    1.884553] printk: legacy console [ttyS0] enabled
+[    1.884553] printk: legacy console [ttyS0] enabled
+[    1.884871] printk: legacy bootconsole [sbi0] disabled
+[    1.884871] printk: legacy bootconsole [sbi0] disabled
+[    1.938412] loop: module loaded
+[    1.946067] tun: Universal TUN/TAP device driver, 1.6
+[    1.949913] nd_pmem namespace0.0: unable to guarantee persistence of writes
+[    1.964829] goldfish_rtc 101000.rtc: registered as rtc0
+[    1.965151] goldfish_rtc 101000.rtc: setting system clock to 2026-10-22T07:04:09 UTC (1792652649)
+[    1.970118] riscv-pmu-sbi: SBI PMU extension is available
+[    1.970479] riscv-pmu-sbi: 16 firmware and 2 hardware counters
+[    1.970723] riscv-pmu-sbi: Perf sampling/filtering is not supported as sscof extension is not available
+[    1.974390] NET: Registered PF_INET6 protocol family
+[    1.983120] Segment Routing with IPv6
+[    1.984122] In-situ OAM (IOAM) with IPv6
+[    1.984847] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    1.990007] NET: Registered PF_PACKET protocol family
+[    1.991058] Key type dns_resolver registered
+[    2.131626] Demotion targets for Node 0: null
+[    2.131823] Demotion targets for Node 1: null
+[    2.134939] clk: Disabling unused clocks
+[    2.135122] PM: genpd: Disabling unused power domains
+[    2.155505] EXT4-fs (pmem0): mounted filesystem 440a7fb1-66aa-48cc-9363-d88f97a412ea ro with ordered data mode. Quota mode: disabled.
+[    2.155934] VFS: Mounted root (ext4 filesystem) readonly on device 259:0.
+[    2.156974] devtmpfs: mounted
+[    2.165851] Freeing unused kernel image (initmem) memory: 2188K
+[    2.166312] Run /sbin/init as init process
+[    2.867801] systemd[1]: systemd 257.13-1~deb13u1 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF -XKBCOMMON -UTMP +SYSVINIT +LIBARCHIVE)
+[    2.868372] systemd[1]: Detected architecture riscv64.
+
+Welcome to Debian GNU/Linux 13 (trixie)!
+
+[    2.885962] systemd[1]: Initializing machine ID from random generator.
+[    2.887023] systemd[1]: Installed transient /etc/machine-id file.
+[    8.795164] systemd[1]: bpf-restrict-fs: BPF LSM hook not enabled in the kernel, BPF LSM not supported.
+[   16.988697] systemd[1]: Queued start job for default target multi-user.target.
+[   17.188662] systemd[1]: Created slice system-getty.slice - Slice /system/getty.
+[  OK  ] Created slice system-getty.slice - Slice /system/getty.
+[   17.209583] systemd[1]: Created slice system-modprobe.slice - Slice /system/modprobe.
+[  OK  ] Created slice system-modprobe.slice - Slice /system/modprobe.
+[   17.229144] systemd[1]: Created slice system-serial\x2dgetty.slice - Slice /system/serial-getty.
+[  OK  ] Created slice system-serial\x2dget…slice - Slice /system/serial-getty.
+[   17.242969] systemd[1]: Created slice user.slice - User and Session Slice.
+[  OK  ] Created slice user.slice - User and Session Slice.
+[   17.247896] systemd[1]: Started systemd-ask-password-console.path - Dispatch Password Requests to Console Directory Watch.
+[  OK  ] Started systemd-ask-password-conso…equests to Console Directory Watch.
+[   17.252671] systemd[1]: Started systemd-ask-password-wall.path - Forward Password Requests to Wall Directory Watch.
+[  OK  ] Started systemd-ask-password-wall.…d Requests to Wall Directory Watch.
+[   17.260025] systemd[1]: Set up automount proc-sys-fs-binfmt_misc.automount - Arbitrary Executable File Formats File System Automount Point.
+[  OK  ] Set up automount proc-sys-fs-binfm…ormats File System Automount Point.
+[   17.263863] systemd[1]: Expecting device dev-ttyS0.device - /dev/ttyS0...
+         Expecting device dev-ttyS0.device - /dev/ttyS0...
+[   17.267920] systemd[1]: Reached target paths.target - Path Units.
+[  OK  ] Reached target paths.target - Path Units.
+[   17.271398] systemd[1]: Reached target remote-fs.target - Remote File Systems.
+[  OK  ] Reached target remote-fs.target - Remote File Systems.
+[   17.274543] systemd[1]: Reached target slices.target - Slice Units.
+[  OK  ] Reached target slices.target - Slice Units.
+[   17.278407] systemd[1]: Reached target swap.target - Swaps.
+[  OK  ] Reached target swap.target - Swaps.
+[   17.376320] systemd[1]: Listening on systemd-creds.socket - Credential Encryption/Decryption.
+[  OK  ] Listening on systemd-creds.socket - Credential Encryption/Decryption.
+[   17.382469] systemd[1]: Listening on systemd-initctl.socket - initctl Compatibility Named Pipe.
+[  OK  ] Listening on systemd-initctl.socke…- initctl Compatibility Named Pipe.
+[   17.389011] systemd[1]: Listening on systemd-journald-dev-log.socket - Journal Socket (/dev/log).
+[  OK  ] Listening on systemd-journald-dev-…socket - Journal Socket (/dev/log).
+[   17.396025] systemd[1]: Listening on systemd-journald.socket - Journal Sockets.
+[  OK  ] Listening on systemd-journald.socket - Journal Sockets.
+[   17.399652] systemd[1]: systemd-pcrextend.socket - TPM PCR Measurements skipped, unmet condition check ConditionSecurity=measured-uki
+[   17.401295] systemd[1]: systemd-pcrlock.socket - Make TPM PCR Policy skipped, unmet condition check ConditionSecurity=measured-uki
+[   17.405775] systemd[1]: Listening on systemd-udevd-control.socket - udev Control Socket.
+[  OK  ] Listening on systemd-udevd-control.socket - udev Control Socket.
+[   17.411626] systemd[1]: Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[  OK  ] Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[   17.441892] systemd[1]: Mounting dev-hugepages.mount - Huge Pages File System...
+         Mounting dev-hugepages.mount - Huge Pages File System...
+[   17.496554] systemd[1]: Mounting dev-mqueue.mount - POSIX Message Queue File System...
+         Mounting dev-mqueue.mount - POSIX Message Queue File System...
+[   17.611272] systemd[1]: Mounting run-lock.mount - Legacy Locks Directory /run/lock...
+         Mounting run-lock.mount - Legacy Locks Directory /run/lock...
+[   17.740946] systemd[1]: Mounting sys-kernel-debug.mount - Kernel Debug File System...
+         Mounting sys-kernel-debug.mount - Kernel Debug File System...
+[   17.753953] systemd[1]: sys-kernel-tracing.mount - Kernel Trace File System skipped, unmet condition check ConditionPathExists=/sys/kernel/tracing
+[   17.910989] systemd[1]: Mounting tmp.mount - Temporary Directory /tmp...
+         Mounting tmp.mount - Temporary Directory /tmp...
+[   17.922820] systemd[1]: kmod-static-nodes.service - Create List of Static Device Nodes skipped, unmet condition check ConditionFileNotEmpty=/lib/modules/6.12.114-sigil/modules.devname
+[   18.172850] systemd[1]: Starting modprobe@configfs.service - Load Kernel Module configfs...
+         Starting modprobe@configfs.service - Load Kernel Module configfs...
+[   18.442755] systemd[1]: Starting modprobe@drm.service - Load Kernel Module drm...
+         Starting modprobe@drm.service - Load Kernel Module drm...
+[   18.702468] systemd[1]: Starting modprobe@efi_pstore.service - Load Kernel Module efi_pstore...
+         Starting modprobe@efi_pstore.servi… - Load Kernel Module efi_pstore...
+[   19.022802] systemd[1]: Starting modprobe@fuse.service - Load Kernel Module fuse...
+         Starting modprobe@fuse.service - Load Kernel Module fuse...
+[   19.389974] systemd[1]: Starting systemd-fsck-root.service - File System Check on Root Device...
+         Starting systemd-fsck-root.service…File System Check on Root Device...
+[   19.430715] systemd[1]: systemd-hibernate-clear.service - Clear Stale Hibernate Storage Info skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/HibernateLocation-8cf2644b-4b0b-428f-9387-6d876050dc67
+[   20.262679] systemd[1]: Starting systemd-journald.service - Journal Service...
+         Starting systemd-journald.service - Journal Service...
+[   20.792559] systemd[1]: Starting systemd-modules-load.service - Load Kernel Modules...
+         Starting systemd-modules-load.service - Load Kernel Modules...
+[   20.800874] systemd[1]: systemd-pcrmachine.service - TPM PCR Machine ID Measurement skipped, unmet condition check ConditionSecurity=measured-uki
+[   21.113540] systemd[1]: Starting systemd-tmpfiles-setup-dev-early.service - Create Static Device Nodes in /dev gracefully...
+         Starting systemd-tmpfiles-setup-de… Device Nodes in /dev gracefully...
+[   21.201314] systemd[1]: systemd-tpm2-setup-early.service - Early TPM SRK Setup skipped, unmet condition check ConditionSecurity=measured-uki
+[   21.472957] systemd[1]: Starting systemd-udev-load-credentials.service - Load udev Rules from Credentials...
+         Starting systemd-udev-load-credent…Load udev Rules from Credentials...
+[   21.812541] systemd[1]: Starting systemd-udev-trigger.service - Coldplug All udev Devices...
+         Starting systemd-udev-trigger.service - Coldplug All udev Devices...
+[   22.712994] systemd[1]: Mounted dev-hugepages.mount - Huge Pages File System.
+[  OK  ] Mounted dev-hugepages.mount - Huge Pages File System.
+[   22.753857] systemd[1]: Mounted dev-mqueue.mount - POSIX Message Queue File System.
+[  OK  ] Mounted dev-mqueue.mount - POSIX Message Queue File System.
+[   22.758801] systemd[1]: Mounted run-lock.mount - Legacy Locks Directory /run/lock.
+[  OK  ] Mounted run-lock.mount - Legacy Locks Directory /run/lock.
+[   22.853302] systemd[1]: Mounted sys-kernel-debug.mount - Kernel Debug File System.
+[  OK  ] Mounted sys-kernel-debug.mount - Kernel Debug File System.
+[   22.858234] systemd[1]: Mounted tmp.mount - Temporary Directory /tmp.
+[  OK  ] Mounted tmp.mount - Temporary Directory /tmp.
+[   22.948650] systemd[1]: modprobe@configfs.service: Deactivated successfully.
+[   23.080335] systemd[1]: Finished modprobe@configfs.service - Load Kernel Module configfs.
+[  OK  ] Finished modprobe@configfs.service - Load Kernel Module configfs.
+[   23.894230] systemd[1]: modprobe@drm.service: Deactivated successfully.
+[   23.971487] systemd[1]: Finished modprobe@drm.service - Load Kernel Module drm.
+[  OK  ] Finished modprobe@drm.service - Load Kernel Module drm.
+[   24.187633] systemd[1]: modprobe@efi_pstore.service: Deactivated successfully.
+[   24.230490] systemd[1]: Finished modprobe@efi_pstore.service - Load Kernel Module efi_pstore.
+[  OK  ] Finished modprobe@efi_pstore.service - Load Kernel Module efi_pstore.
+[   24.409423] systemd[1]: modprobe@fuse.service: Deactivated successfully.
+[   24.512142] systemd[1]: Finished modprobe@fuse.service - Load Kernel Module fuse.
+[  OK  ] Finished modprobe@fuse.service - Load Kernel Module fuse.
+[   24.791080] systemd[1]: Mounting sys-fs-fuse-connections.mount - FUSE Control File System...
+         Mounting sys-fs-fuse-connections.mount - FUSE Control File System...
+[   24.973268] systemd[1]: Mounting sys-kernel-config.mount - Kernel Configuration File System...
+         Mounting sys-kernel-config.mount - Kernel Configuration File System...
+[   25.640539] systemd[1]: Finished systemd-modules-load.service - Load Kernel Modules.
+[  OK  ] Finished systemd-modules-load.service - Load Kernel Modules.
+[   25.730764] systemd[1]: Finished systemd-fsck-root.service - File System Check on Root Device.
+[  OK  ] Finished systemd-fsck-root.service - File System Check on Root Device.
+[   25.952909] systemd[1]: Starting systemd-remount-fs.service - Remount Root and Kernel File Systems...
+         Starting systemd-remount-fs.servic…unt Root and Kernel File Systems...
+[   26.212830] systemd[1]: Starting systemd-sysctl.service - Apply Kernel Variables...
+         Starting systemd-sysctl.service - Apply Kernel Variables...
+[   26.461745] systemd[1]: Finished systemd-udev-load-credentials.service - Load udev Rules from Credentials.
+[  OK  ] Finished systemd-udev-load-credent…- Load udev Rules from Credentials.
+[   26.981359] systemd[1]: Finished systemd-tmpfiles-setup-dev-early.service - Create Static Device Nodes in /dev gracefully.
+[  OK  ] Finished systemd-tmpfiles-setup-de…ic Device Nodes in /dev gracefully.
+[   27.643242] systemd[1]: Mounted sys-fs-fuse-connections.mount - FUSE Control File System.
+[  OK  ] Mounted sys-fs-fuse-connections.mount - FUSE Control File System.
+[   27.833607] systemd[1]: Mounted sys-kernel-config.mount - Kernel Configuration File System.
+[  OK  ] Mounted sys-kernel-config.mount - Kernel Configuration File System.
+[   29.200435] EXT4-fs (pmem0): re-mounted 440a7fb1-66aa-48cc-9363-d88f97a412ea r/w.
+[   29.222278] systemd[1]: Finished systemd-sysctl.service - Apply Kernel Variables.
+[  OK  ] Finished systemd-sysctl.service - Apply Kernel Variables.
+[   29.350851] systemd[1]: Finished systemd-remount-fs.service - Remount Root and Kernel File Systems.
+[  OK  ] Finished systemd-remount-fs.servic…mount Root and Kernel File Systems.
+[   29.367817] systemd[1]: systemd-hwdb-update.service - Rebuild Hardware Database skipped, unmet condition check ConditionNeedsUpdate=/etc
+[   29.390792] systemd[1]: systemd-pstore.service - Platform Persistent Storage Archival skipped, unmet condition check ConditionDirectoryNotEmpty=/sys/fs/pstore
+[   29.463380] systemd[1]: Starting systemd-random-seed.service - Load/Save OS Random Seed...
+         Starting systemd-random-seed.service - Load/Save OS Random Seed...
+[   29.501129] systemd[1]: systemd-sysusers.service - Create System Users skipped, no trigger condition checks were met.
+[   29.612691] systemd[1]: Starting systemd-tmpfiles-setup-dev.service - Create Static Device Nodes in /dev...
+         Starting systemd-tmpfiles-setup-de…eate Static Device Nodes in /dev...
+[   29.627735] systemd-journald[64]: Collecting audit messages is disabled.
+[   29.631019] systemd[1]: systemd-tpm2-setup.service - TPM SRK Setup skipped, unmet condition check ConditionSecurity=measured-uki
+[   31.132170] systemd[1]: Started systemd-journald.service - Journal Service.
+[  OK  ] Started systemd-journald.service - Journal Service.
+         Starting systemd-journal-flush.ser…sh Journal to Persistent Storage...
+[  OK  ] Finished systemd-tmpfiles-setup-de…Create Static Device Nodes in /dev.
+[  OK  ] Reached target local-fs-pre.target…Preparation for Local File Systems.
+[  OK  ] Reached target local-fs.target - Local File Systems.
+[  OK  ] Listening on systemd-sysext.socket… System Extension Image Management.
+         Starting systemd-binfmt.service - Set Up Additional Binary Formats...
+         Starting systemd-udevd.service - R…ager for Device Events and Files...
+[   34.420155] random: crng init done
+[  OK  ] Finished systemd-random-seed.service - Load/Save OS Random Seed.
+[   34.901478] systemd-journald[64]: Received client request to flush runtime journal.
+         Mounting proc-sys-fs-binfmt_misc.m…cutable File Formats File System...
+[  OK  ] Finished systemd-journal-flush.ser…lush Journal to Persistent Storage.
+         Starting systemd-tmpfiles-setup.se…ate System Files and Directories...
+[  OK  ] Mounted proc-sys-fs-binfmt_misc.mo…xecutable File Formats File System.
+[  OK  ] Finished systemd-binfmt.service - Set Up Additional Binary Formats.
+[*     ] (1 of 4) Job systemd-tmpfiles-setup…ice/start running (22s / no limit)
+M  OK  ] Finished systemd-tmpfiles-setup.se…reate System Files and Directories.
+arting systemd-machine-id-commit…ave Transient machine-id to Disk...
+[  OK  ] Started systemd-udevd.service - Ru…anager for Device Events and Files.
+[  OK  ] Finished systemd-machine-id-commit… Save Transient machine-id to Disk.
+[**    ] (1 of 2) Job dev-ttyS0.device/start running (26s / 15min)
+M  OK  ] Found device dev-ttyS0.device - /dev/ttyS0.
+  OK  ] Finished systemd-udev-trigger.service - Coldplug All udev Devices.
+[  OK  ] Reached target sysinit.target - System Initialization.
+[  OK  ] Started systemd-tmpfiles-clean.tim…y Cleanup of Temporary Directories.
+[  OK  ] Reached target timers.target - Timer Units.
+[  OK  ] Listening on dbus.socket - D-Bus System Message Bus Socket.
+[  OK  ] Listening on systemd-hostnamed.socket - Hostname Service Socket.
+[  OK  ] Reached target sockets.target - Socket Units.
+[  OK  ] Reached target basic.target - Basic System.
+         Starting dbus.service - D-Bus System Message Bus...
+         Starting systemd-logind.service - User Login Management...
+         Starting systemd-user-sessions.service - Permit User Sessions...
+[  OK  ] Started dbus.service - D-Bus System Message Bus.
+[  OK  ] Finished systemd-user-sessions.service - Permit User Sessions.
+         Starting sigil-boot-ok.service - S…t-complete marker on the console...
+
+SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 84.24 s)
+[  OK  ] Finished sigil-boot-ok.service - S…oot-complete marker on the console.
+[  OK  ] Started serial-getty@ttyS0.service - Serial Getty on ttyS0.
+[  OK  ] Reached target getty.target - Login Prompts.
+[  OK  ] Started systemd-logind.service - User Login Management.
+[  OK  ] Reached target multi-user.target - Multi-User System.
+
+Sigil RV64 SoC - Debian GNU/Linux 13 sigil ttyS0
+Log in as sigil (password sigil, sudo) or root (password sigil).
+
+sigil login: sigil
+Password: login: timed out after 60 seconds^[[50;160R
+Sigil RV64 SoC - Debian GNU/Linux 13 sigil ttyS0
+Log in as sigil (password sigil, sudo) or root (password sigil).
+
+sigil login: ^[[50;160R^[[50;160R^[[50;160R

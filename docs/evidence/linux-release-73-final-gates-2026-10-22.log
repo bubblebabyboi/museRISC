@@ -1,0 +1,152 @@
+Final gates for the Linux release branch 73-linux-release (#73), 2026-10-22
+Commit: 1d722101c10656f7ed5753cdceb9c9d73b874c82 (origin/73-linux-release when the run started). Fresh clone from GitHub
+  on sigil-fpga-build, detached at that SHA, `git status --porcelain` empty before and after; a second worktree of
+  the same clone at the same SHA ran the Linux boot. deps/ and third_party/ linked from the rel73 gate setup
+  (~/rel73/sigil), as in the two earlier gates.
+The commit contains the walker-race fix #74 (73-oops-fix 31a1568 RTL + 2968b6d evidence, merged in f6d213b), the F2
+  Debian results (73-linux-debian 6881bff, merged in 2b96c14) and the docs / helper-script commits up to 1d72210.
+Host: sigil-fpga-build (AWS r7iz.8xlarge, 32 vCPU, Ubuntu 24.04.1), at most 8 parallel jobs: chain A VJOBS=6,
+  chain B VJOBS=2 for its build, then one simulation process. Other workflows' simulations ran on the host at the
+  same time (load 5 to 12). The Verilator 5.044 lint ran on macOS.
+
+== Tools
+Verilator 5.048 2026-04-26 rev v5.048            deps/ (scripts/install_deps.sh build)
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)  CI parity: Ubuntu 24.04 apt package, unpacked (same wrapper as the earlier gates)
+Verilator 5.044 2026-01-01 (Homebrew)            macOS 26.6.2 arm64, tree from `git archive 1d72210`
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0      riscv-gnu-toolchain 2026.08.27 riscv64-elf-ubuntu-24.04-gcc.tar.xz (install_deps.sh pin)
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, Python 3.12.3
+third_party: riscv-tests eeacd5507db7a0f50ca8c4f27aff220fcbb60bdf, berkeley-softfloat-3 a0c6494cdc11865811dec815d5c0049fba9d82a8
+
+== Results
+gate                                                    result  wall    details
+make lint, Verilator 5.048                              PASS    18s     19 lint runs, 0 warnings
+make lint, Verilator 5.020 (Ubuntu package)             PASS    14s     19 lint runs, 0 warnings
+make lint, Verilator 5.044 (macOS)                      PASS    9s      19 lint runs, 0 warnings
+make test                                               PASS    24s     ALL PHASE-0 KATs PASS
+make core-test                                          PASS    2313s   293 "TB PASS" lines, 0 FAIL, 0 %Error / assertion failures;
+                                                                        50/50 directed runs on each SRAM-macro build (same counts as the
+                                                                        31a1568 gate); coverage 55.00% (3494/6255) as at 31a1568 (note 2)
+make riscv-tests                                        PASS    20s     rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+make -C sim socrtl sochash examples fpgatop-quick \
+  fpgatop-f2-quick fpgaocl-quick                        PASS    520s    all PASS, 0 failure lines; every cycle count equals the a6051cd
+                                                                        release gate's (details below)
+make -C sim -f Makefile.oops oops-ptw-preempt           PASS    25s     9/9 (3 tests x lat 1 / rand / 40:50), 0 OOPSCHK reports
+make -C sim -f Makefile.oops oops-ptw-walker            PASS    89s     39/39 (13 walker race tests x 3 timings), 0 stale-walk-rsp,
+                                                                        0 "PTWINV live" reports, "PTWINV violations=0" x 39
+OS artifacts vs the branch's SHA256SUMS                 PASS    -       12/12 OK (docs/evidence/linux-debian-73-2026-10-22/SHA256SUMS)
+Linux RTL boot (soc_rtl_tb, Linux 6.12, Image-initramfs) PASS   1063s   SIGIL_LINUX_BOOT_OK at 261,247,447 cycles; 890 console lines
+                                                                        (825 kernel), 0 Oops / BUG / WARNING / "Unable to handle";
+                                                                        UART log byte-identical to the a6051cd and 31a1568 gates
+Full ACT                                                not run -       rtl/ is identical to 31a15689, where full ACT was 2577/2578 (below)
+
+== rtl/ identical to 31a15689: full ACT not rerun
+$ git merge-base --is-ancestor 31a15689 1d722101 && echo ancestor
+ancestor                                                (73-oops-fix merged into 73-linux-release in f6d213b)
+$ git rev-parse 31a15689:rtl 1d722101:rtl
+c8bafdb2f4704f28e618f2751491723af51ed1cf
+c8bafdb2f4704f28e618f2751491723af51ed1cf
+$ git diff --stat 31a15689 1d722101 -- rtl tb sim Makefile fpga/cl_sigil flow
+(empty)
+Equal trees (31a15689 = 1d722101): tb 2fe99f56, sim 41186a96, Makefile 82b9af37, fpga/cl_sigil 8bd33974, flow bc3cf2bc.
+So core_tb.cpp, mbus_model.h, sim/run_act_core_par.sh, sim/run_act_core.sh and the core-test / riscv-tests runners
+are unchanged; scripts/build_act4_core.sh and scripts/run_compliance.sh are not in the diff either.
+Files outside docs/ changed since 31a15689 (none is RTL or used by ACT):
+  README.md; fpga/scripts/f2_playground_setup.sh, sigil-linux, sigil-run (host helpers, not part of the CL);
+  scripts/build_stress_kernels.sh, qemu_sigil_check.py, sigil_console_until.py; sw/examples/hbm_touch/hbm_touch.c
+  (run here by core-test: FPGATOP-F2 EXAMPLE PASS hbm_touch at 5370652 cycles); sw/linux/stress/{execstress.sh,
+  memstress.c,pmemstress.sh}.
+Full ACT at 31a15689 (linux-oops-fix-73-2026-10-22/act_summary.txt): 2577/2578 PASS, only PMPSm_cfg_A_tor_zero-00
+  fails (the known PA0 waiver); Vx 821/821, Vls 1051/1051, Vf 162/162; rows=2578 unique=2578.
+The public AFI agfi-0c8aa56fde1a48495 (afi-059766f9a85c6d39a) was built from 31a1568, so it carries this RTL.
+
+== Walker race checker targets (sim/Makefile.oops, opt-in checker build oops_core_tb, Verilator 5.048)
+oops-ptw-preempt  ptw_preempt_directed / _cached_ / _twoload_ at --mem-lat 1, rand (1:6 gap 2 ready 70), 40:50:
+                  CORE TB PASS x 9 (34280 .. 178421 cycles), no OOPSCHK line. All 18 result lines are identical to
+                  oops-fix-gaps-73-2026-10-22/oops-ptw-preempt.log.
+oops-ptw-walker   the 3 tests above + ptw_preempt_b2b / _trapdrop / _hyp / _guest, ptw_gwidth / _load / _redirect,
+                  ptw_ad_store_race, ptw_svadu_race / _hyp, each at the same 3 timings: CORE TB PASS x 39,
+                  PTWINV violations=0 x 39, no "OOPSCHK stale" and no "PTWINV live" line. Summed PTWCOV over the 39
+                  runs: pre=2408 inflight=2072 inflight_drp=12 rsp_same=167 rsp_drp_same=2 issue_acc=155 trap=576
+                  gw=4506. Every CORE TB / PTWCOV / PTWINV line is identical to
+                  oops-fix-gaps-73-2026-10-22/oops-ptw-walker.log (the 31a1568 tree).
+
+== make -C sim socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick (Verilator 5.048)
+socrtl          SOC CRYPTO PASS; SOC RTL TB PASS (exit string at 27689639 cycles)    crypto_soc_test
+                SOC CRYPTO PASS; SOC RTL TB PASS (exit string at 28615218 cycles)    ed25519_soc_test
+sochash         SOC HASH PASS; SOC RTL TB PASS (exit string at 104422 cycles)
+examples        hello 54050, timer_irq 51458, sha256_accel 1465990, hash_stream 261426,
+                ed25519_verify 14630219, vector_dot 811531, fp_math 47541 cycles: ALL 7 EXAMPLES PASS on soc_rtl_tb
+fpgatop-quick   FPGA SMOKE PASS x4 (64- and 512-bit AXI, two runs each): 12391961 / 12391803 / 11795853 / 11787989
+                cycles after reset release; SOC HASH PASS through the FPGA top with the engine checks (105491 cycles)
+fpgatop-f2-quick
+                F2 PLATFORM PASS, finisher at 762007 cycles (UART back-pressure, burst bytes checked)
+                F2 PLATFORM PASS, finisher at 766699 cycles (out-of-window read, error capture)
+                F2 PLATFORM PASS, finisher at 762193 cycles (fail code via the finisher)
+                F2 PLATFORM PASS twice, finisher at 785007 cycles (reboot through the finisher, pmem window kept)
+                SOC HASH PASS on the 80 GiB window (105316 cycles)
+                F2 MEMTEST PASS, finisher at 9035396 cycles (16 MiB stride over all DDR4 and HBM)
+fpgaocl-quick   SOC HASH PASS, UART drained with 14 TX_DATA and 42 TX_DATA3 reads;
+                FPGA OCL TB PASS ("SOC HASH PASS" after 105212 core cycles; 113491 harness cycles total)
+Lines reporting a failure: 0
+
+== make core-test (Verilator 5.048, `make -C sim` = all)
+rc=0; 293 "TB PASS" lines (the 31a1568 gate also had 293); 0 result lines with FAIL; 0 %Error.
+Includes CORE TB PASS: 50 directed runs, 0 FAIL for each of fakeram45, sky130, oreg and vrforeg; AXI BRIDGE TB PASS
+at 64/128/512-bit AXI (3 configs each); FPGA SMOKE PASS x4; F2 PLATFORM PASS x5; F2 MEMTEST PASS; FPGA OCL TB PASS;
+ALL 7 EXAMPLES PASS on soc_rtl_tb; FPGATOP EXAMPLE PASS hello / timer_irq; ALL 1 F2-MAP EXAMPLES PASS on
+fpga_top_tb_f2 (hbm_touch); the 13 walker race tests in rand / nocache / xinit1 / xinit3.
+
+== OS artifacts
+sigil-fpga-build:~/os-artifacts against docs/evidence/linux-debian-73-2026-10-22/SHA256SUMS: Image, Image-initramfs,
+System.map-6.12.114-sigil, fw_jump.bin, fw_jump.elf, kernel-6.12.114-sigil.config, manifest.txt,
+modules-6.12.114-sigil.tar.gz, sigil-debian-13-riscv64.ext4.zst, sigil-f2.dtb, sigil-qemu.dtb, sigil-sim.dtb: OK (12/12)
+Booted here:
+  d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+  2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+  f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+Staged release assets (sigil-fpga-build:~/release-73, as restaged at 20:07 UTC): `sha256sum -c SHA256SUMS` 15/15 OK;
+the same three files carry the hashes above.
+
+== Linux RTL boot: soc_rtl_tb at 1d72210 (second worktree, Verilator 5.048, VFLAGS_FAST)
+$ make -C sim ../build/sim/soc_rtl_tb VJOBS=2                         (23 s)
+$ build/sim/soc_rtl_tb 6000000000 --load 0x80000000=fw_jump.bin --load 0x80200000=Image-initramfs \
+    --load 0x83000000=sigil-sim.dtb --uart-log linux-boot-uart.log --exit-string SIGIL_LINUX_BOOT_OK
+loaded 277840 bytes at 0x80000000 from fw_jump.bin
+loaded 15470592 bytes at 0x80200000 from Image-initramfs
+loaded 6187 bytes at 0x83000000 from sigil-sim.dtb
+OpenSBI v1.9
+...
+[   20.509676] Freeing unused kernel image (initmem) memory: 2460K
+[   20.523710] Run /init as init process
+sigil init: userspace alive
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 17:43.08 (user 1063 s), max RSS 151520 KiB, exit status 0
+Console: 890 lines, 825 kernel lines; 0 lines matching Oops|BUG:|Unable to handle|WARNING:|Kernel panic.
+UART log (not committed) sha256 a14fee2df1bf7f13ff56167b5c660d2fdf4df4eaa9c1fa6a567ed081c1f3d061, the same as the
+a6051cd release gate and the 31a1568 gate.
+
+== Later commits on the branch (not part of this gate)
+3d4eb03 changes only docs/evidence/linux-release-73-notes-draft.md (restaged asset rows); no code, script or RTL.
+
+== Notes
+1. No gate failed. No fixes were needed and the clone stayed clean.
+2. Coverage. core-test printed "lines with all attached points covered: 54.00% (3730/6843)". The difference from the
+   31a1568 gate comes from step order, not from the RTL. In this chain `make test` ran before core-test, and its six
+   crypto KAT testbenches (cov_sha256, cov_sha512, cov_keccak, cov_ecfield, cov_cryptotop, cov_hashstream) left
+   coverage files that the core-test merge picks up (`ls build/sim/cov_*.dat`). The earlier gates ran `make test` after
+   core-test. Merged without those six files and annotated from sim/, the figure is 55.00% (3494/6255), the same as
+   the 31a1568 gate. The coverage .dat files (20 GB) were deleted after the run; the logs stay in
+   ~/relgate73f/{sigil,boot}/build/gates/ on sigil-fpga-build.
+3. The 5.020 lint used the wrapper fixed in the first release gate (note 1 of linux-release-73-gates-2026-10-22.log);
+   it ran first time.
+4. The staged evidence tarball (20:07 UTC) predates this log. stage_release73.sh picks up
+   linux-release-73-*-2026-10-22.log, so this file is included only after the assets are restaged.
+
+== Not covered here
+- Full ACT (rtl/ identical to 31a15689, above).
+- F2 hardware: no F2 was launched. Debian on agfi-0c8aa56fde1a48495: login prompt 347.9 s after the SoC release,
+  22/22 checks, disk persists (linux-debian-73-2026-10-22/f2-boot-fixed/).
+- Vivado build / HDK XSIM: not rerun. The AFI DCP was built from 31a1568 (f2-platform-73-oopsfix-2026-10-22/vivado/).
+- QEMU acceptance run of the Debian image: not rerun (23/23 at a6051cd in linux-release-73-gates-2026-10-22.log).

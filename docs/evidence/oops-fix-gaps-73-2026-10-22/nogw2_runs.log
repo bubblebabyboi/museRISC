@@ -1,0 +1,27 @@
+== ptw_gwidth_directed --mem-lat 1
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_directed --mem-lat 40:50
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_load_directed --mem-lat 1
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_load_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_load_directed --mem-lat 40:50
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_redirect_directed --mem-lat 1
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_redirect_directed --mem-lat 1:6 --mem-gap 2 --mem-ready 70
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop
+== ptw_gwidth_redirect_directed --mem-lat 40:50
+[0] %Error: sigil_core.sv:1634: Assertion failed in TOP.sigil_cpu.u_core.a_walk_live: core: walker left a live PTE request without dropping it
+%Error: ../rtl/core/sigil_core.sv:1634: Verilog $stop

@@ -1,0 +1,2 @@
+/include/ "sigil-f2.dts"
+/ { /delete-node/ memory@1080000000; /delete-node/ distance-map; memory@80000000 { reg = <0x0 0x80000000 0x0 0x80000000>; }; };

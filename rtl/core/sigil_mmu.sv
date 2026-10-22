@@ -5,7 +5,9 @@
 // page-table walker that borrows the core's data-memory port.
 // Data misses preempt fetch walks (the MEM instruction is older
 // and stalls the whole pipeline); fetch walks yield the port
-// to MEM accesses cycle by cycle via walk_grant_i.
+// to MEM accesses cycle by cycle via walk_grant_i. A walk that
+// ends without consuming its PTE read (walk_abandon_o) leaves
+// that read's response to the core to drop.
 //
 // Policies:
 // - With V=0, translation is on iff satp.MODE == Sv39 and the
@@ -23,7 +25,10 @@
 // - Hardware A/D update (Svadu semantics): the walker writes
 //   the leaf PTE back with A (and D for stores) set. A TLB hit
 //   with A=0 — impossible after a fill — or a store hit with
-//   D=0 re-enters the walker to perform the update.
+//   D=0 re-enters the walker to perform the update. The read
+//   and the write-back are atomic: from the leaf read to its
+//   write-back the walker keeps the data port (walk_lock_o), so
+//   no store can reach that PTE in between and be overwritten.
 // - SFENCE.VMA flushes the whole TLB (operands ignored; a full
 //   flush is always a legal implementation of any SFENCE).
 // - Faults are reported as page faults or access faults
@@ -67,6 +72,8 @@ module sigil_mmu (
     output logic [63:0] d_fault_gpa_o,
     // Walker memory port (muxed onto the core data port)
     output logic       walk_req_o,     // wants the port this cycle
+    output logic       walk_abandon_o, // walk ends without its PTE read
+    output logic       walk_lock_o,    // A/D read-modify-write: keep the port
     output logic [63:0] walk_addr_o,
     output logic       walk_we_o,      // A/D writeback (8-byte store)
     output logic [63:0] walk_wdata_o,
@@ -413,6 +420,34 @@ module sigil_mmu (
     end
   end
 
+  // Walk abandonment. An older data miss preempts a fetch walk in
+  // W_VS_READ/W_G_READ, and a G-stage step on a GPA wider than 41
+  // bits ends the walk at once; neither consumes its PTE read.
+  // That read may already be on the port (preemption), or be
+  // issued in this very cycle (a data miss in MEM leaves the port
+  // to the walker), and its response would otherwise be taken as
+  // the next walk's PTE (issue #73: the preempting data walk took
+  // the fetch walk's root entry). walk_abandon_o makes the core
+  // drop that response.
+  logic walk_preempt;
+  assign walk_preempt = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
+                        !req_is_data_q && miss_d;
+  assign walk_abandon_o = walk_preempt ||
+                          ((state_q == W_G_READ) && g_width_fault);
+
+  // A/D update atomicity. A leaf PTE that needs A/D was read in
+  // the walker's last port access; MEM going before the write-back
+  // could store to that PTE (an older store, under a fetch walk)
+  // and then be overwritten by the stale pte_q|A. walk_lock_o
+  // gives the walker the port from that read to the write-back:
+  // in W_VS_UPD / W_G_UPD, and for a VS leaf under two-stage
+  // translation also across the G-stage walk of the PTE's own GPA
+  // (g_purpose_q == 2) that comes before W_VS_UPD. The port is
+  // free when the lock starts (the leaf read just completed), so
+  // nothing gets in between.
+  assign walk_lock_o = (state_q == W_VS_UPD) || (state_q == W_G_UPD) ||
+                       ((state_q == W_G_READ) && (g_purpose_q == 2'd2));
+
   // Fill target: reuse an existing (A/D-stale) entry for this VA
   // so a re-walk never leaves a duplicate for lookups to find.
   logic [5:0] exist_f;
@@ -601,7 +636,7 @@ module sigil_mmu (
           end
         end
         W_G_READ: begin
-          if (!req_is_data_q && miss_d) begin
+          if (walk_preempt) begin
             // An older data miss preempts a fetch walk.
             req_is_data_q <= 1'b1;
             req_virt_q <= d_virt_i;
@@ -712,7 +747,7 @@ module sigil_mmu (
         end
         W_VS_READ: begin
           // An older data miss preempts a fetch walk.
-          if (!req_is_data_q && miss_d) begin
+          if (walk_preempt) begin
             req_is_data_q <= 1'b1;
             req_virt_q <= d_virt_i;
             req_vs_q <= d_vs_trans;

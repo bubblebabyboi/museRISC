@@ -1,0 +1,5 @@
+/include/ "ddr2g.dts"
+&cpu0 {
+	riscv,isa = "rv64imafdc_zicntr_zicsr_zifencei";
+	riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "zicntr", "zicsr", "zifencei";
+};

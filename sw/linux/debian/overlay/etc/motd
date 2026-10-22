@@ -1,0 +1,4 @@
+Debian GNU/Linux on the Sigil RV64 SoC. Guide: docs/LINUX.md in the
+Sigil repository. Examples: ~/examples (make && make run).
+The programs included with Debian are free software; see
+/usr/share/doc/*/copyright. Debian comes with ABSOLUTELY NO WARRANTY.

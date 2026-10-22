@@ -1,0 +1,4 @@
+verify(RFC 8032 TEST 2) = 0 in 7304116 cycles (2162767 instructions)
+verify(changed message) = 3
+verify(S >= L) = 2
+SIGIL TEST PASS

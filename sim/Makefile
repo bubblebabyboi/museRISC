@@ -65,13 +65,18 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             trap_store_misalign trap_younger_store trap_younger_csr irq_seip_rmw irq_mip_rmw_variants \
             trap_pa_fetch trap_pa_load \
             smc_fencei_directed amo_cache_directed mmio_bypass_directed \
-            vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
+            vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed \
+            ptw_preempt_directed ptw_preempt_cached_directed ptw_preempt_twoload_directed \
+            ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed ptw_preempt_hyp_directed \
+            ptw_preempt_guest_directed ptw_gwidth_directed ptw_gwidth_load_directed \
+            ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
+            ptw_svadu_race_hyp_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
-        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
-        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick \
+        axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
+        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgatop-f2-quick fpgatop-f2-examples fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
@@ -405,6 +410,8 @@ SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
              $(SOCDIR)/sigil_clint.sv $(SOCDIR)/sigil_plic.sv \
              $(SOCDIR)/sigil_uart16550.sv \
              $(SOCDIR)/sigil_bootrom.sv \
+             $(SOCDIR)/sigil_test_finisher.sv \
+             $(SOCDIR)/sigil_rtc_goldfish.sv \
              $(SOCDIR)/sigil_crypto_bridge.sv \
              $(SOCDIR)/sigil_soc_fabric.sv \
              $(SOCDIR)/sigil_soc_top.sv
@@ -470,21 +477,25 @@ sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
 # Independent per-example targets, so `make -j` runs them in parallel.
 # Logs: build/examples/<name>.log.
 EXAMPLES     := hello timer_irq sha256_accel hash_stream ed25519_verify vector_dot fp_math
+# Examples that need the F2 memory map (DDR4 64 GiB + HBM 16 GiB): built
+# by examples-bins, run on fpga_top_tb_f2 (fpgatop-f2-examples), not on
+# the 128 MiB window of soc_rtl_tb / fpga_top_tb.
+F2_EXAMPLES  := hbm_touch
 EXDIR        := $(abspath $(ROOT)/build/examples)
 EXAMPLE_MAX_CYCLES ?= 60000000
 EXAMPLES_ARGS ?= $(CORE_RAND_ARGS)
 
 # Always delegate to the example's Makefile (it knows its sources and
 # rebuilds only when something changed).
-.PHONY: $(addprefix example-bin-,$(EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
-        $(addprefix fpgatop-example-,$(EXAMPLES))
-$(addprefix example-bin-,$(EXAMPLES)): example-bin-%: | $(EXDIR)
+.PHONY: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
+        $(addprefix fpgatop-example-,$(EXAMPLES)) $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+$(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)): example-bin-%: | $(EXDIR)
 	@$(MAKE) --no-print-directory -s -C $(ROOT)/sw/examples/$* OUT=$(EXDIR)/$* \
 	  RISCV_PREFIX=$(RISCV_PREFIX) > $(EXDIR)/$*.build.log 2>&1 || \
 	  { cat $(EXDIR)/$*.build.log; exit 1; }
 $(EXDIR):
 	mkdir -p $@
-examples-bins: $(addprefix example-bin-,$(EXAMPLES))
+examples-bins: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES))
 
 $(addprefix example-,$(EXAMPLES)): example-%: example-bin-% $(BUILD)/soc_rtl_tb
 	@start=$$(date +%s); \
@@ -504,14 +515,14 @@ examples: $(addprefix example-,$(EXAMPLES))
 FPGADIR    := $(ROOT)/rtl/fpga
 BRIDGE_RTL := $(FPGADIR)/sigil_mbus_axi4.sv
 FPGA_RTL   := $(SOC_RTL) $(FPGADIR)/sigil_fifo.sv $(BRIDGE_RTL) \
-              $(FPGADIR)/sigil_fpga_top.sv
+              $(FPGADIR)/sigil_axi_memeng.sv $(FPGADIR)/sigil_fpga_top.sv
 AXI_TB_H   := $(ROOT)/tb/cpp/axi4_slave_model.h
 AXIB_WIDTHS := 64 128 512
 # Bridge unit TB at each AXI data width (window 64 KiB, AXI base
 # 0x4_0000: must match the constants in axi_bridge_tb.cpp).
 $(BUILD)/axi_bridge_tb_%: $(ROOT)/tb/cpp/axi_bridge_tb.cpp $(AXI_TB_H) $(BRIDGE_RTL) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/axib_$* --top-module sigil_mbus_axi4 \
-	  -GAXI_DATA_W=$* "-GMEM_MASK=64'hFFFF" "-GAXI_BASE=64'h40000" \
+	  -GAXI_DATA_W=$* "-GMEM_SIZE=64'h10000" "-GAXI_BASE=64'h40000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=$$(($*/8)) \
 	  -o $(abspath $@) $(BRIDGE_RTL) $(abspath $(ROOT)/tb/cpp/axi_bridge_tb.cpp)
 
@@ -534,6 +545,13 @@ $(BUILD)/fpga_top_tb_w512: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_w512 --top-module sigil_fpga_top \
 	  -GAXI_DATA_W=512 -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 \
 	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
+# The F2 map (issues #65, #66): 512-bit AXI, 80 GiB RAM window (DDR4 64 GiB
+# at AXI 0 + HBM 16 GiB at AXI 0x10_0000_0000) over a sparse memory model.
+$(BUILD)/fpga_top_tb_f2: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_f2 --top-module sigil_fpga_top \
+	  -GAXI_DATA_W=512 "-GRAM_SIZE=64'h1400000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 -CFLAGS -DSIGIL_F2_MAP \
+	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
 
 # FPGA smoke firmware: D$-thrashing memory test with partial
 # stores, then a 170-byte line over the virtual UART RX path.
@@ -545,6 +563,18 @@ $(SOCFW)/fpga_smoke_test.bin: $(ROOT)/sw/fpga-tests/fpga_smoke_test.c \
 	  -T $(ROOT)/sw/soc-tests/link.ld \
 	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/fpga_smoke_test.elf
 	$(RISCV_OBJCOPY) -O binary $(SOCFW)/fpga_smoke_test.elf $@
+
+# F2 platform test firmware (issues #62-#67): RTC, window edges of DDR4
+# and HBM, Linux-style 16-byte UART bursts, finisher; and the F2 memory
+# test (sparse DDR4 + HBM test and load latency).
+$(SOCFW)/f2_%.bin: $(ROOT)/sw/fpga-tests/f2_%.c \
+		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/fpga-tests/link.ld
+	mkdir -p $(SOCFW)
+	$(RISCV_GCC) -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+	  -nostdlib -ffreestanding -fno-builtin -O1 \
+	  -T $(ROOT)/sw/fpga-tests/link.ld \
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/f2_$*.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/f2_$*.elf $@
 
 # DDR-like AXI timing for the FPGA-top runs (Shell DDR4 round trips
 # are tens of core cycles; seeded random backpressure on every
@@ -568,8 +598,36 @@ fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	    --uart-in $(abspath $(ROOT)/sw/fpga-tests/fpga_smoke_uart_in.txt) \
 	    --exit-string "FPGA SMOKE PASS" || exit 1; \
 	done
-	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
+	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) --engine-test \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+
+# The F2 map (fpgatop-f2-quick is in `all`): memory engine across 4 GiB
+# and the DDR4/HBM boundary; f2_platform_test with the TX FIFO drained
+# slowly (back-pressure, every burst byte checked), then with an
+# out-of-window read (error capture), a fail code and a reboot through
+# the finisher (the pmem-window image kept across it); sochash on the 80 GiB window; f2_memtest with a 16 MiB
+# stride (mailbox) over all of DDR4 and HBM.
+F2_RTC_NS := 1761091200000000000
+F2_MAILBOX := 0x80080000
+fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)/hash_soc_test.bin \
+		$(SOCFW)/f2_memtest.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --engine-test --rtc-ns $(F2_RTC_NS) \
+	  --uart-pop 3 --check-bursts 64 --finisher \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x1 --expect-err 0x1480000000 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x100 --expect-fin 0x2a3333 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	printf 'PMEMDISK' > $(SOCFW)/f2_pmem_marker.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 40000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x202 --load 0xC80000000=$(SOCFW)/f2_pmem_marker.bin \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 50000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+	cd $(BUILD) && ./fpga_top_tb_f2 200000000 $(FPGA_AXI_ARGS) --finisher --poke $(F2_MAILBOX)=0x0618 \
+	  --load 0x80000000=$(SOCFW)/f2_memtest.bin --fail-string "F2 MEMTEST FAIL"
 # SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
 # the same binaries and pass/fail strings as `examples`.
 FPGATOP_EXAMPLES ?= $(EXAMPLES)
@@ -585,6 +643,19 @@ $(addprefix fpgatop-example-,$(EXAMPLES)): fpgatop-example-%: example-bin-% $(BU
 	fi
 fpgatop-examples: $(addprefix fpgatop-example-,$(FPGATOP_EXAMPLES))
 	@echo "ALL $(words $(FPGATOP_EXAMPLES)) EXAMPLES PASS on fpga_top_tb"
+# F2-map examples (in `all`): fpga_top_tb_f2, same pass/fail strings.
+$(addprefix fpgatop-f2-example-,$(F2_EXAMPLES)): fpgatop-f2-example-%: example-bin-% $(BUILD)/fpga_top_tb_f2
+	@start=$$(date +%s); \
+	if $(BUILD)/fpga_top_tb_f2 $(EXAMPLE_MAX_CYCLES) $(FPGA_AXI_ARGS) \
+	    --load 0x80000000=$(EXDIR)/$*/$*.bin \
+	    --exit-string "SIGIL TEST PASS $*" --fail-string "SIGIL TEST FAIL" \
+	    > $(EXDIR)/$*.fpgatop-f2.log 2>&1; then \
+	  echo "FPGATOP-F2 EXAMPLE PASS $* ($$(grep -o 'at [0-9]* cycles' $(EXDIR)/$*.fpgatop-f2.log), $$(( $$(date +%s) - start )) s)"; \
+	else \
+	  tail -30 $(EXDIR)/$*.fpgatop-f2.log; echo "FPGATOP-F2 EXAMPLE FAIL $* (log: $(EXDIR)/$*.fpgatop-f2.log)"; exit 1; \
+	fi
+fpgatop-f2-examples: $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+	@echo "ALL $(words $(F2_EXAMPLES)) F2-MAP EXAMPLES PASS on fpga_top_tb_f2"
 
 fpgatop: fpgatop-quick fpgatop-examples
 	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \

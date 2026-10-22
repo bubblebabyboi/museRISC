@@ -1,0 +1,69 @@
+#73 Linux release branch: checks of the second review's fixes (2026-10-22)
+=========================================================================
+Branch 73-linux-release, commits 1d72210..62370e1 (checked at 62370e1; this log is
+committed on top of it). Docs only: no RTL, CL, firmware, SDK, script or
+build change, so the gates of linux-release-73-final-gates-2026-10-22.log
+(at 1d72210, rtl/ = 31a15689) hold. Checked on the Mac (git, python3).
+
+1. Commits
+----------
+62370e1 README: first public AFI sentence reads as one clause
+27fd9bf Review fixes: sigil-linux test log of the current AGFI, #75 in LINUX.md limits, hbm_touch not yet run on the F2 in README, status evidence links to the runs on the shipped RTL, 261,247,447 cycles with the #74 fix, oops-fix README records the F2 Debian result, notes: two F2 instances, 3.8 instance-hours, manifest row
+666d93f Walker race (#74) scope: every earlier core has it (first public AFI, sigil-soc-2026-10-22), first AFI for bare-metal only, wrong data without a trap, the new AFI also has the atomic Svadu A/D update
+15e24a7 Label the 5 cycles per instruction as an estimate (F2 times divided by QEMU icount instruction counts) in LINUX.md, the release notes draft and the evidence README
+eeec166 Evidence: final gates on 73-linux-release at 1d72210 (lint 5.048/5.020/5.044, make test, core-test 293 PASS, riscv-tests 123/123, sim targets, oops-ptw-preempt 9/9 and oops-ptw-walker 39/39, Linux RTL boot to SIGIL_LINUX_BOOT_OK; rtl/ equals 31a15689, full ACT not rerun)
+3d4eb03 Release notes draft: assets restaged from 1d72210 (programs rebuilt with hbm_touch, evidence incl. release gate logs, DCP 31a1568 checked against S3 and the AFI evidence), new sha256 rows and SHA256SUMS hash
+
+2. What changed since 1d72210
+-----------------------------
+README.md                                                 |  17 ++--
+docs/FPGA_F2.md                                           |   5 +-
+docs/LINUX.md                                             |  21 +++--
+docs/PROGRAMMING.md                                       |   5 +-
+docs/evidence/README.md                                   |  28 ++++++-
+docs/evidence/linux-oops-fix-73-2026-10-22/README.md      |   8 +-
+docs/evidence/linux-release-73-final-gates-2026-10-22.log | 152 ++++++++++++++++++++++++++++++++++
+docs/evidence/linux-release-73-notes-draft.md             |  54 +++++++-----
+sw/linux/README.md                                        |   5 +-
+9 files changed, 246 insertions(+), 49 deletions(-)
+
+files other than .md and evidence logs:
+  $ git diff --name-only 1d72210 HEAD | grep -vE '\.md$|^docs/evidence/.*\.log$'
+  (nothing)
+  $ git diff 31a15689 HEAD -- rtl/ fpga/cl_sigil/ | wc -l
+  0
+  $ git diff 1d72210 HEAD -- sw/ fw/ sim/ scripts/ fpga/ tb/ ':!sw/linux/README.md' | wc -l
+  0
+
+3. Links
+--------
+Relative links and #anchors (GitHub heading slugs) of the changed and
+user-facing docs:
+  broken links: 0
+Release notes draft, absolute links to main resolved against this branch:
+  github main links 11, missing 0
+  raw fpga/scripts/f2_playground_setup.sh True
+
+4. Greps
+--------
+Unfilled placeholders (the notes checklist's grep), must print nothing:
+  $ git grep -nE '<[^>]*pending>|restage[ ]after' -- README.md 'docs/*.md' fpga/scripts/ docs/evidence/
+  (nothing, rc=1)
+Superseded AFI agfi-0a1fd54ef68bdc754 / afi-035809e576d7ea8d5 outside the
+evidence directories (each mention is history, superseded or the platform
+tests; the helpers in fpga/scripts/ name only agfi-0c8aa56fde1a48495):
+  README.md:141
+  README.md:236
+  docs/FPGA_F2.md:650
+  docs/LINUX.md:173
+  docs/PROGRAMMING.md:333
+  docs/PROGRAMMING.md:410
+  docs/evidence/README.md:2308
+  docs/evidence/README.md:2345
+  docs/evidence/README.md:2361
+  docs/evidence/linux-release-73-gates-2026-10-22.log:145
+  docs/evidence/linux-release-73-notes-draft.md:70
+  docs/evidence/linux-release-73-notes-draft.md:143
+  $ git grep -hoE 'agfi-[0-9a-f]{17}' -- fpga/scripts/ | sort | uniq -c
+  3 agfi-0c8aa56fde1a48495
+README.md names the old project name: 0 lines

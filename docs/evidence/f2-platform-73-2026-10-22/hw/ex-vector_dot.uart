@@ -1,0 +1,4 @@
+VLEN = 512 bits, e32/m1 holds 16 elements
+dot(1000 x int32) = -46917125580279812: vector 12736 cycles (145 instr), scalar 19036 cycles (7012 instr)
+copy 4096 bytes: vector (e8) 24845 cycles, scalar memcpy 7279 cycles
+SIGIL TEST PASS vector_dot
