@@ -18,7 +18,6 @@
 # SIGIL_ROOTFS_SIZE, SIGIL_ROOTFS_OUT, SIGIL_PASSWORD (default sigil).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-REPO=$PWD
 
 SNAPSHOT=${SIGIL_DEBIAN_SNAPSHOT:-20261020T000000Z}
 SUITE=trixie
