@@ -2503,3 +2503,31 @@ instructions, `unaligned-c7bd3b7/`), these chains took more cycles:
 
 The extra cycles are fetch latency and 32-bit instructions straddling a
 fetch word.
+
+## #56: whole benchmark suite after integration (2026-10-22)
+
+[`perf-suite-56-2026-10-22/`](perf-suite-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/`, `build-logs/`,
+`perf-run.log`, `compare-evidence.log` and `harness-options-smoke.log`.
+One run of every benchmark after `56-perf-coremark`,
+`56-perf-kernels`, `56-perf-micro` and `56-perf-sha256chain` were
+merged into `56-perf-harness` with the harness changes they asked for.
+It is an integration check, not a new baseline.
+
+- **Design.** `rtl/` tree `89b98cb227c6` (main `eeaa332` plus the
+  simulation-only counters). No #53 pipelining.
+- **Run.** `make -C sim perf CONFIG=default MEM="soc axi" REPEAT=2
+  JOBS=12 CLOCK_MHZ="62.5 100"` at `662bad7` on sigil-verify,
+  2026-10-22T11:05:49Z–11:11:11Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. 10 benchmarks, 14 images, 56
+  simulations.
+- **Validation.** 712/712 region results valid and deterministic.
+  Every image sha256, counter and hardware-counter number is identical
+  to the branch evidence above: dhrystone 8/8 (default configuration),
+  coremark 12/12, kernels 224/224, micro 420/420, sha256chain 48/48.
+- **Harness changes.** Per-region bytes/work per iteration and
+  baselines, a window region, per-variant regions and expect lines,
+  `VARIANTS`, `MAX_CYCLES`, `CLOCK_MHZ`, `cc_commands`, and a
+  row-per-run layout for wide reports (`docs/PERFORMANCE.md`). The
+  options this run does not use are smoke-tested in
+  `harness-options-smoke.log`.
