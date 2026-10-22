@@ -50,7 +50,18 @@ module sigil_oops_chk (
     input wire [1:0]  mmu_level,
     input wire [1:0]  priv,
     input wire [63:0] fetch_va,
-    input wire [63:0] mem_va
+    input wire [63:0] mem_va,
+    // trace only (+oopstrace)
+    input wire [2:0]  mmu_state,
+    input wire        miss_d,
+    input wire        miss_f,
+    input wire        walk_req,
+    input wire        data_access,
+    input wire        d_ok,
+    input wire        if_ok,
+    input wire        dq_pend,
+    input wire        dq_walk,
+    input wire        dq_drop
 );
   import "DPI-C" function void oops_d_load(input longint cyc, input longint pa,
                                            input longint data, input int walk);
@@ -78,7 +89,16 @@ module sigil_oops_chk (
   logic        i_cach_q;
   longint      i_epoch_q;
 
+  bit trace_on;
+  initial trace_on = $test$plusargs("oopstrace");
   always @(posedge clk_i) begin
+    if (trace_on && rst_ni && (walk_req || dreq_valid || drsp_valid || miss_d || miss_f ||
+                               dq_pend)) begin
+      $display("OT %0d mmu st=%0d data=%0d va=%h pte=%h lvl=%0d | missd=%0d missf=%0d wreq=%0d | dreq=%0d%0d a=%h op=%0d | rsp=%0d %h | pend=%0d walk=%0d drop=%0d wrsp=%0d | dacc=%0d dok=%0d mem_va=%h | ifok=%0d fva=%h",
+               cyc_q, mmu_state, mmu_is_data, mmu_va, walk_addr, mmu_level, miss_d, miss_f,
+               walk_req, dreq_valid, dreq_ready, dreq_addr, dreq_op, drsp_valid, drsp_rdata,
+               dq_pend, dq_walk, dq_drop, walk_rsp, data_access, d_ok, mem_va, if_ok, fetch_va);
+    end
     if (!rst_ni) begin
       cyc_q <= 0;
     end else begin
@@ -143,6 +163,16 @@ bind sigil_cpu sigil_oops_chk u_oops_chk (
     .mmu_level   (u_core.u_mmu.level_q),
     .priv        (u_core.priv),
     .fetch_va    (u_core.fetch_va),
-    .mem_va      (u_core.mem_va)
+    .mem_va      (u_core.mem_va),
+    .mmu_state   (u_core.u_mmu.state_q),
+    .miss_d      (u_core.u_mmu.miss_d),
+    .miss_f      (u_core.u_mmu.miss_f),
+    .walk_req    (u_core.walk_req),
+    .data_access (u_core.data_access),
+    .d_ok        (u_core.mmu_d_ok),
+    .if_ok       (u_core.mmu_if_ok),
+    .dq_pend     (u_core.dq_pend_q),
+    .dq_walk     (u_core.dq_walk_q),
+    .dq_drop     (u_core.dq_drop_q)
 );
 `default_nettype wire
