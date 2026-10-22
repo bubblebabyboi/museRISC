@@ -411,3 +411,45 @@ die").
   (liberty limit 0.028 pF, up to 0.038 pF; D$ data 33, I$ data 29,
   D$ tag 15, vector register file 1); the macros' loads sit outside
   the 40 um halo, so each dout net has >= 40 um of wire.
+
+  s116 detailed route (5_2_route, 16 threads, 17:23-19:57Z, 2 h 34
+  min wall; 0 DRC violations at the end of every pass):
+    first pass, 14 iterations (65 min): 402,663 / 302,484 / 276,159 /
+      36,103 / 2,395 / 485 / 179 / 72 / 10 / 4 / 3 / 2 / 2 / 0
+    post-route antenna repair (MAX_REPAIR_ANTENNAS_ITER_DRT = 5), each
+    round diodes + incremental re-route:
+      round  antenna nets  diodes  re-route violations by iteration
+      1      1,315         2,421   161,281 ... 92 / 17 / 11 / 11 / 0 (21 min)
+      2        341           515   47,977 ... 13 / 4 / 4 / 0 (12 min)
+      3        103           150   16,569 ... 12 / 6 / 6 / 0 (7.5 min)
+      4         47            70   7,644 ... 26 / 18 / 18 / 0
+      5         14            20   2,595 / 1,521 / 1,163 / 85 / 1 / 1 / 0
+    left after round 5: 4 antenna nets (met2 side-area ratio, e.g.
+    453 against 400). Wire 23.19 m, 2,177,625 vias.
+  s116 finish: 6_report stopped on PSM-0069 ("Check connectivity
+    failed on VDD", static IR analysis of the platform's
+    PWR_NETS_VOLTAGES "VDD 1.8"). All 18,345 reported items are on
+    or at the 7 OpenRAM macros, none on the std-cell grid: the macros
+    as "unconnected instances" (inside the block their met4 straps are
+    block pins that meet the std-cell straps only through the top
+    level's met5 stripes), their unstrapped periphery vdd squares as
+    unconnected shapes (9 of them overhang the macro edge by 0.245
+    um), and 2,076 "shorted shapes" where the macro LEF's vdd and gnd
+    squares overlap in the mixed pin columns (e.g. 128x256 macro x
+    214.22: vdd 465.315-465.805 and gnd 465.375-465.865, LEF data;
+    those columns are not strapped). Check of the PDN itself
+    (sigil_hier/macro_pdn_check.tcl): every pdngen via3 over a macro
+    lands on a pin square of its own net only: vregfile banks 637 VDD
+    / 381 VSS each, cache data 1,275 / 765, cache tags 315 / 189;
+    none touches an other-net square. The CPU block config now leaves
+    PWR_NETS_VOLTAGES / GND_NETS_VOLTAGES empty (no block-level IR
+    analysis, as ORFS's asap7/aes-block hard block); IR drop belongs
+    to the top level, where the supply sources are.
+  s116a = s116 up to 5_2_route (copied with timestamps) plus one more
+    antenna round, sigil_hier/drt_antenna_fix.tcl through `make run`
+    (12 threads, 11 min): 4 nets -> 4 diodes, re-route 204 / 120 /
+    127 / 8 / 0, then 0 antenna nets and 0 DRC violations; 5_2_route
+    .odb rewritten. Finish + abstract from 20:19Z: `make
+    FLOW_VARIANT=s116a PWR_NETS_VOLTAGES= GND_NETS_VOLTAGES=
+    generate_abstract` (make starts at 5_3_fillcell). The CPU config
+    now also sets MAX_REPAIR_ANTENNAS_ITER_DRT ?= 8 for later runs.

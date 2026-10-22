@@ -57,3 +57,21 @@ export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/pdn.tcl
 export PRE_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/pre_grt.tcl
 export GLOBAL_ROUTE_ARGS ?= -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
 export POST_PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_cpu/post_pdn.tcl
+# Post-detailed-route antenna repair rounds (platform default 5). The
+# s116 run ended its 5 rounds with 4 antenna nets (1315 -> 341 -> 103
+# -> 47 -> 14 -> 4); one more round (../drt_antenna_fix.tcl on a copy
+# of its 5_2_route.odb, variant s116a) cleared them.
+export MAX_REPAIR_ANTENNAS_ITER_DRT ?= 8
+# No block-level static IR analysis in the final report (as ORFS's
+# asap7/aes-block hard block). The block's supply comes in through
+# the top level's met5 stripes, which are also the only connection
+# between the OpenRAM straps and the std-cell grid (both are met4
+# block pins), so PSM's block-level connectivity check fails on the
+# macros: s116 6_report stopped on PSM-0069 with the 7 macros as
+# "unconnected instances", their unstrapped periphery vdd squares as
+# unconnected shapes and the overlapping LEF vdd/gnd squares of the
+# mixed pin columns as shorts; nothing on the std-cell grid. Every
+# pdngen via3 over a macro lands on a pin square of its own net
+# (vregfile 637 VDD / 381 VSS, cache data 1275 / 765, tags 315 / 189).
+export PWR_NETS_VOLTAGES =
+export GND_NETS_VOLTAGES =
