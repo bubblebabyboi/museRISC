@@ -2172,3 +2172,69 @@ on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
   `sc.w`/`sc.d` case under all 34 timing configurations, including
   with retries disabled. ACT Zalrsc (lr + sc) is claimed for the
   in-house core.
+
+## #20: Berkeley TestFloat level-2 mulAdd on the in-house FPU (2026-10-22, branch `20-isa-followups`)
+
+- Artifacts: [`testfloat-l2-muladd-core-2026-10-22.csv`](testfloat-l2-muladd-core-2026-10-22.csv)
+  (one row per function x instruction x rounding mode x selection)
+  and [`testfloat-l2-muladd-core-2026-10-22.log`](testfloat-l2-muladd-core-2026-10-22.log)
+  (versions, generator validation, run logs, every chunk result).
+- DUT and check: `rtl/core/sigil_fpu.sv` (RTL identical to `main`
+  `eeaa332`) in the FPU unit TB (`tb/cpp/fpu_tb.cpp --testfloat`).
+  The runs use its uninstrumented build `fpu_tb_fast` (same TB and RTL
+  without coverage counters, about 2x faster). Every case goes through
+  the EX handshake (random idle gaps, 5% delayed acks). Result bits
+  and all five exception flags are compared exactly with SoftFloat 3e
+  `a0c6494c` (RISCV specialization, tininess after rounding), as
+  `testfloat_gen` computes them.
+- Generator: `sw/testfloat/tf_l2_mulAdd.c` with
+  `scripts/testfloat_fpu_l2.sh`. It compiles TestFloat `a9c849f1`'s
+  own level-2 case code (`genCases_f32.c`/`genCases_f64.c`,
+  `random.c`), with a lock-free replica of glibc `rand()`, so the
+  stream can start at any pair index from a saved generator state and
+  run as 33,554,432-pair chunks in parallel (16 jobs, seed 42 as in
+  the level-1 flow). Level-2 mulAdd is 2·N³ cases per rounding mode:
+  each step is a TestFloat random triple followed by the next triple
+  of the (QIn x P2)³ grid, with N = 1,936 (f32) or 4,488 (f64). That
+  is 14,512,627,712 f32 and 180,795,884,544 f64 cases per mode. A
+  stride S > 1 keeps every S-th grid triple and as many random
+  triples. S is prime and coprime with N, so every operand value
+  still appears in every position.
+- Generator validation (`testfloat_fpu_l2.sh validate`): byte-identical
+  to `testfloat_gen -level 2 -seed 42 -r<mode>` for the first
+  20,000,000 lines of `f32_mulAdd` and `f64_mulAdd` in all five modes,
+  and for 2,000,000 lines restored from a checkpoint deep in the
+  stream (from line 3,000,000,001 for f32 and 800,000,001 for f64,
+  RUP). Its fpu_tb lines are byte-identical to
+  `testfloat_fpu_vectors.py` output for the first 1,000,000 cases of
+  each format.
+- Results: **every selection PASS, 0 result or flag mismatches in
+  29,952,200,254 cases**:
+
+  | Function | Instruction | Modes | Selection | Cases checked |
+  |---|---|---|---|---|
+  | f32_mulAdd | fmadd.s | RNE | complete level-2 stream | 14,512,627,712 |
+  | f32_mulAdd | fmadd.s | RTZ, RDN, RUP, RMM | S = 13 | 4 x 1,116,355,978 |
+  | f64_mulAdd | fmadd.d | all 5 | S = 97 | 5 x 1,863,875,100 |
+  | f32_mulAdd | fmadd.s/fmsub.s/fnmsub.s/fnmadd.s, rotating | all 5 | S = 97 | 5 x 149,614,720 |
+  | f64_mulAdd | fmadd.d/fmsub.d/fnmsub.d/fnmadd.d, rotating | all 5 | S = 997 | 5 x 181,339,906 |
+
+  In the rotating rows, random triple r uses opcode r mod 4 and grid
+  triple r uses (r + 2) mod 4, so each opcode gets about a quarter
+  of the cases. Operands are sign-flipped (fmsub: −c, fnmsub: −a,
+  fnmadd: −a and −c) so the expected value stays TestFloat's mulAdd
+  result; SoftFloat and Spike define the negated forms the same way.
+- Limits: complete level 2 ran for `f32_mulAdd` in RNE only. Running
+  the other four f32 modes completely would take about 2.3 core-days.
+  Complete f64 level 2 is 903,979,422,720 cases over five modes,
+  about 40 core-days at this TB's ~260k cases/s per core. Neither
+  was run. Those selections are the decimated level-2 rows above.
+  The host was shared with other jobs (load up to ~45 on 32 vCPUs),
+  so the f32 plan was cut from five complete modes to RNE complete
+  plus S = 13 for the other four. `roundToInt` is not applicable: it
+  has no instruction without Zfa, which this configuration does not
+  implement.
+- Combined with level 1 (all 36 F/D functions x 5 modes,
+  64,648,560 vectors, "Multi-cycle synthesizable FPU" above),
+  TestFloat level-2 mulAdd density on the in-house FPU is now
+  claimed for the selections in the table.
