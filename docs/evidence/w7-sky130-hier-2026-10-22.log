@@ -274,3 +274,48 @@ die").
   width; crypto v3 result (vivado_rnd, DRT iteration 13 at ~3,300
   violations at 16:35Z, ~17 min per iteration) copied over when its
   run ends; top level with SIGIL_CPU_VARIANT / SIGIL_CRYPTO_VARIANT.
+
+== Crypto block for the non-Caravel die (2026-10-22 17:00Z on)
+  v3 (2770 x 780, vivado_rnd, container pnr-hier-crypto-v3c, 11
+  threads, DRT from 12:29Z): violations per DRT iteration 0-13
+  329,901 / 258,127 / 242,189 / 111,676 / 62,001 / 40,519 / 30,200 /
+  24,469 / 18,713 / 15,171 / 7,537 / 5,400 / 3,630 / 3,112, wall per
+  iteration 16 / 16 / 16 / 28 / 16 / 12 / 10 / 9 / 12 / 18 / 23 / 21 /
+  28 / 32 min. The drop per iteration has slowed (x0.72, 0.67, 0.86 for
+  iterations 11-13) while the iterations got longer.
+  Where the violations are (5_route_drc.rpt-10.rpt, iteration 10,
+  7,537): met1 shorts 3,897, met1 spacing 1,984, met2 shorts 946, met2
+  spacing 653, the rest < 30 each; 91 % of them in x 400-1200 um and
+  77 % in y 200-500 um, one region of the block, not spread over it.
+  It is not the densest placement region (the 100 um bins above 0.70
+  std-cell density are at x 0-400 and 2000-2700, y 400-700), so the
+  problem is local wiring demand on met1/met2 rather than cell
+  density alone. Placement: lower bound 0.53 + LB_ADDON 0.05 = target
+  density 0.5635, raised to 0.62 by routability and timing-driven
+  inflation (52.9 % utilization); GRT met1 usage 81.2 % (67.5 / 68.7 /
+  37.6 % on met2-met4), 0 overflow; after CTS worst setup slack
+  +12.08 ns (SHA-512 round counter to state, 40 ns clock), worst hold
+  slack +0.38 ns.
+  Decision: v3 keeps running (DRT is capped at 64 iterations; a clean
+  end is still possible), and the 3400 x 780 fallback slot of the
+  floorplan above (same position, the die does not change) is built
+  now on sigil-sky130 instead of after v3 ends, because at ~30 min per
+  iteration and the current rate v3 may need many more hours or stop
+  with violations. Two variants, both with the v3 synthesis result
+  (1_synth.odb sha256 ae053b96..., seeded into the variant
+  directories; make schedules floorplan first):
+    w34   DIE_AREA="0 0 3400 780" CORE_AREA="5 5 3395 775"
+          (core 2.60 mm^2 instead of 2.12: ~43 % std-cell utilization
+          instead of 53 %, ~23 % more routing tracks for the same
+          wire)
+    w34p  as w34 plus CELL_PAD_IN_SITES_GLOBAL_PLACEMENT=1
+          CELL_PAD_IN_SITES_DETAIL_PLACEMENT=1 (one empty site on each
+          side of every cell, for met1 pin access; the platform default
+          is 0)
+  Runs: ~/sb/crypto/crun.sh (as ~/sb/run.sh, plus docker --cpu-shares
+  256 against the CPU block runs' default 1024, so the crypto runs use
+  idle cores but yield to the CPU block runs under contention), 8
+  threads each, snapshot 2db5230aa893, target generate_abstract,
+  containers sky-crypto-w34 / sky-crypto-w34p, started 17:05:39Z /
+  17:05:41Z; results in ~/sb/build/{results,logs,reports}/sky130hd/
+  sigil_hier_sigil_crypto_top/{w34,w34p}.
