@@ -109,3 +109,8 @@ run ptw_preempt_guest ptw_preempt_guest_directed.bin 4000000
 run ptw_gwidth ptw_gwidth_directed.bin 4000000
 run ptw_gwidth_load ptw_gwidth_load_directed.bin 4000000
 run ptw_gwidth_redirect ptw_gwidth_redirect_directed.bin 4000000
+# Svadu: the walker's A/D read-modify-write is atomic against an
+# older store / AMO / SC to the same PTE (S and VS guest).
+run ptw_ad_store_race ptw_ad_store_race_directed.bin 4000000
+run ptw_svadu_race ptw_svadu_race_directed.bin 4000000
+run ptw_svadu_race_hyp ptw_svadu_race_hyp_directed.bin 4000000
