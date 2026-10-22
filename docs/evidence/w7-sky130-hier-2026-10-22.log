@@ -17,6 +17,9 @@ below). The CPU block does not: in its 7.42 mm^2 share of the
 77-78 % usage; it routes cleanly in global routing only at ~11.2 mm^2
 (9.9 mm^2 still overflows). Whole SoC on sky130hd: ~14 mm^2, ~1.4x
 the Caravel user area.
+Owner decision 2026-10-22: build the whole SoC (RTL unchanged) on a
+larger non-Caravel die; plan and runs in the last section ("Non-Caravel
+die").
 
 == Partition
   sigil_cpu         core + vector unit + FPU + L1 I$/D$ + bus arbiter + the
@@ -183,3 +186,91 @@ the Caravel user area.
   The host disk filled up once during these runs (0 bytes free while
   copying a CPU variant); superseded variant results were deleted, the
   running jobs were unaffected (they were in GRT/DRT computation).
+
+== Non-Caravel die (owner decision 2026-10-22: whole SoC, ~14 mm^2): plan and launch
+  Host sigil-sky130 (r7iz.8xlarge, 32 vCPU, 247 GB, Ubuntu 24.04), same
+  pinned ORFS image. Each run mounts a snapshot of this branch at a
+  given commit (git archive into ~/sb/src/<sha>), so later commits do
+  not change a running job; the CPU block runs use 2db5230.
+
+  Synthesis reuse (no re-run of the 48 min CPU synthesis): the block
+  synthesis results of the vivado_rnd runs (results/.../base) were
+  copied over and checked against the branch:
+    rtl/ + flow/designs/sky130hd/sigil_soc (53 files) identical on both
+      hosts (sha256 of the sorted per-file sha256 list a910c098...)
+    1_1_yosys_canonicalize.rtlil regenerated from the branch
+      (do-yosys-canonicalize) is byte-identical to the one the
+      synthesis used: CPU sha256 42c39e84..., crypto aa02031e...
+    1_2_yosys.sdc identical to the block constraint.sdc (CPU, crypto)
+    synthesis settings of both block configs unchanged since 64f7db8
+      (only floorplan and global-route settings changed)
+    reused CPU 1_synth.odb sha256 e12b4f75..., crypto ae053b96...
+  make -n on the variant directories schedules floorplan first, no
+  synthesis step.
+
+  Macro halo: no script of this ORFS version reads MACRO_PLACE_HALO,
+  and rtl_macro_placer gets no halo option; it keeps half of the
+  minimum macro channel (RTLMP_MIN_CHANNEL_SIZE, platform default
+  "80 80") around each macro. Check (floorplan + macro placement only,
+  FLOW_VARIANT=halochk): RTLMP_MIN_CHANNEL_SIZE="40 40" gives
+  `rtl_macro_placer ... -min_channel_size "40 40"` and "Area of macros
+  with halos: 3295023.54" = the 7 OpenRAM macros (LEF sizes) plus 20 um
+  on each side; "80 80" gives 3698426.94 = plus 40 um, which is what
+  every CPU run above used (also the "20 um-halo" v2/10 run). The CPU
+  block config now sets RTLMP_MIN_CHANNEL_SIZE ?= 80 80 (40 um halos,
+  the setting of the clean 11.22 mm^2 sizing run) instead of the
+  unread MACRO_PLACE_HALO; both variant logs show -min_channel_size
+  "80 80" and 3698426.94.
+
+  Floorplan (um, die coordinates; config.mk, macro_place.tcl):
+    glue column        x 2..195, full height (130 um in the Caravel v2
+                       floorplan, whose top dry run overflowed global
+                       routing next to the CPU pins); all SoC pins on
+                       the left die edge
+    sigil_cpu          (200, 10), pins on its left edge
+                         s116: 3400 x 3420 = 11.63 mm^2 (config default)
+                         s125: 3400 x 3680 = 12.51 mm^2
+    sigil_crypto_top   (200, 10 + CPU height + 40) = (200, 3470) for
+                       s116, (200, 3730) for s125; 2770 x 780, pins on
+                       its bottom edge (the v3 block, reused if its run
+                       on vivado_rnd ends DRC-clean)
+    die                s116: 3610 x 4260 = 15.38 mm^2
+                       s125: 3610 x 4520 = 16.32 mm^2
+  CPU size: 3400 x 3300 (11.22 mm^2) was the smallest clean global
+  route (177 overflowed gcells after 10 congestion iterations, 51.4 %
+  usage; 9.92 mm^2 overflowed on 17,997). Same width, taller: s116 has
+  3.6 % more area (placement density target 0.4115 vs 0.4305), s125
+  11.5 % more (0.3925). Both run in parallel; the first one that ends
+  DRC-clean with timing met is used.
+  Crypto fallback (if the v3 run does not end clean): a roomier slot
+  of the CPU's width, 3400 x 780 (2.65 mm^2, std-cell density 41 %
+  instead of 49 %), at the same position: the die does not grow.
+  Area vs the ~14 mm^2 estimate: that estimate was the block areas
+  alone (CPU ~11.2 + crypto 2.2 + glue ~0.5). The floorplan adds the
+  CPU margin, the 40 um routing gap, die margins, the 630 x 780 um
+  left free to the right of the crypto slot (0.49 mm^2) and the wider
+  glue column. Ways down to ~14.6-14.9 mm^2 if wanted: crypto
+  reshaped to 3400 x 640 (same density as v3, new crypto run, -0.51
+  mm^2), glue column back to 130 um (-0.28 mm^2, if the top routes).
+
+  Runs (sigil-sky130 ~/sb, run.sh, NUM_CORES 16 each, target
+  generate_abstract = floorplan .. route, finish, abstract):
+    cpu-s116  container sky-cpu-s116, FLOW_VARIANT=s116, start 16:45:46Z
+    cpu-s125  container sky-cpu-s125, FLOW_VARIANT=s125
+              DIE_AREA="0 0 3400 3680" CORE_AREA="5 5 3395 3675",
+              start 16:45:48Z
+    floorplan measured: 54 s + macro placement 82 s + PDN 19 s (s116;
+    vivado_rnd z112: 69 + 109 + 23 s)
+  Expected (z112 and crypto runs scaled; r7iz ~20 % faster per thread):
+    placement ~15 min, CTS ~6 min, global-route stage ~40-60 min (pin
+    access ~10 min, FastRoute a few min when clean, repair_design /
+    repair_timing / antenna repair and incremental re-routes), detailed
+    route ~15-25 min per iteration at 16 threads with 210k instances,
+    converging from iteration 3 on, 15-30 iterations = 4-10 h; finish
+    (fill, final report, GDS merge) ~0.5-1 h; abstract minutes. Block
+    ready ~6-12 h after launch.
+  Next: provisional CPU abstract from 4_cts (copied into its own
+  variant directory) + top-level dry run to settle the glue column
+  width; crypto v3 result (vivado_rnd, DRT iteration 13 at ~3,300
+  violations at 16:35Z, ~17 min per iteration) copied over when its
+  run ends; top level with SIGIL_CPU_VARIANT / SIGIL_CRYPTO_VARIANT.
