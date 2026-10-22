@@ -40,11 +40,11 @@ export GLOBAL_ROUTE_ARGS ?= -congestion_iterations 30 -congestion_report_iter_st
 # estimate. A 40 % margin (fix to 0.6 x the limit) covers the 1.64x.
 export SLEW_MARGIN ?= 40
 export CAP_MARGIN ?= 40
-# The global-route stage's antenna repair comes after its repair_design
-# and loads long nets with diodes (w34m: 34 pins back above 1.2 ns
-# estimated slew); one more repair_design after it (../post_grt_repair.tcl)
-# leaves no pin above 0.9 ns (0.6 x the limit) in the estimate.
-export POST_GLOBAL_ROUTE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/post_grt_repair.tcl
+# No POST_GLOBAL_ROUTE_TCL: ../post_grt_repair.tcl (one more
+# repair_design after the global-route stage's antenna repair) stopped
+# that stage in the flow (run w34n: [ERROR EST-0104] inconsistent
+# parasitics state), and w34m, this config without it, finished with
+# 0 max-slew / max-cap / max-fanout violations on its routed SPEF.
 # Post-detailed-route antenna rounds (platform default 5): w34's five
 # rounds went 400 -> 79 -> 25 -> 7 -> 1 -> 3 nets and stopped there.
 export MAX_REPAIR_ANTENNAS_ITER_DRT ?= 10

@@ -14,6 +14,11 @@
 # antenna rounds (MAX_REPAIR_ANTENNAS_ITER_DRT) cover them.
 # Sourced by global_route.tcl after its antenna repair and parasitics
 # estimate, before 5_1_grt.odb is written.
+# NOT USED: it works on a saved 5_1_grt.odb in a fresh `make run`
+# (w34m test), but inside the global-route stage (run w34n) its
+# repair_design stopped with "[ERROR EST-0104] inconsistent parasitics
+# state". No config sets it; the crypto block (w34m) routed with 0
+# max-slew / max-cap violations without it.
 proc sigil_post_grt_drv { tag } {
   report_check_types -max_slew -max_capacitance -max_fanout > /dev/null
   puts "sigil post-GRT repair $tag: max slew [sta::max_slew_violation_count],\
