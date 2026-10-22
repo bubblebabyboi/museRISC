@@ -452,6 +452,68 @@ die").
           their original order) + the config at 9545a27; make starts
           at 5_1_grt. 12 threads, started 21:22:55Z. With w34m still
           running, two crypto runs on the host.
+  w34n stopped in 5_1_grt after 475 s (21:30:50Z, rc 2): the hook's
+    "before" line read 0 max slew / 0 max cap / 0 max fanout, setup
+    WS +11.625, hold +0.393 (default limits), then its repair_design
+    failed with "[ERROR EST-0104] inconsistent parasitics state" (the
+    same script had worked on the saved 5_1_grt.odb in a fresh `make
+    run`). Not pursued: w34m (below) is clean without it. The crypto
+    config no longer sets POST_GLOBAL_ROUTE_TCL, so the branch config
+    is w34m's (d17e83c); post_grt_repair.tcl stays, marked unused.
+
+  w34m result (run end 23:09:19Z, rc 0, wall 8,181 s; 5_2_route 1 h
+  55 min at 12 threads): the crypto block result for the die.
+    detailed-route passes (DRT-0501): 3,596 / 988 / 466 / 443 / 502 /
+      571 / 216 s, each ending at 0 violations. First pass, 17
+      iterations: 223,219 / 154,812 / 145,200 / 29,960 / 5,614 / 1,862
+      / 895 / 471 / 367 / 222 / 107 / 58 / 23 / 12 / 4 / 4 / 0.
+      Antenna nets after each pass 366 / 92 / 30 / 13 / 9 / 1 / 0
+      (diodes 675 / 182 / 67 / 23 / 20 / 2 = 969; 6 of the 10 repair
+      rounds used). drt_antennas.log empty: 0 antenna nets.
+    5_route_drc.rpt empty: 0 DRC violations. Wire 7.57 m (met1 2.87,
+      met2 2.54, met3 1.63, met4 0.52 m; global route 9.42 m),
+      1,028,492 vias.
+    Final netlist LEC against synthesis: IDENTICAL (UNSAT miter).
+      PSM: all VDD / VSS shapes connected; IR drop with the block's
+      met4 power pins as the source 0.51 mV VDD / 0.43 mV VSS worst.
+    Design area 1,216,584 um^2 (47 %); 4,263 antenna diodes, 5,803
+      timing-repair buffers, 16,007 flip-flops.
+    TT timing (6_finish.rpt, OpenRCX SPEF): setup WS +11.66 ns, TNS
+      0; hold WS +0.37 ns; period_min 28.34 ns (fmax 35.3 MHz) at the
+      40 ns clock; 0 max-slew, 0 max-cap, 0 max-fanout violations
+      (w34 had 1,079 / 210 with 0 % margins). Power 0.199 W
+      (sequential 28 mW, combinational 155, clock 16).
+    Corner STA (corner_sta.tcl, 6_final + SPEF, 23:11-23:13Z,
+      ~/sb/sta/crypto-w34m on sigil-sky130, with per-corner timing
+      models sigil_crypto_top_{tt,ss,ff}.lib):
+      corner            setup WS / TNS (ns), endpoints   hold WS  slew / cap viol.
+      tt (platform)     +11.657 / 0                      +0.369   0 / 0
+      tt (PDK lib)      +11.657 / 0                      +0.369   0 / 0
+      ff_n40C_1v95      +12.991 / 0                      +0.185   0 / 0
+      ss_100C_1v60      -13.097 / -4,440.8, 768          +0.864   3,623 / 658
+      The ss setup misses are SHA-512 paths (worst u_hash.u_sha512.
+      round[2] -> h[0][63]); ss needs ~53.1 ns (18.8 MHz). Power tt
+      0.199 W, ss 0.155, ff 0.232.
+    Abstract (generate_abstract, timing model with the SPEF), in
+      ~/sb/build/results/sky130hd/sigil_hier_sigil_crypto_top/w34m on
+      sigil-sky130, where the top config reads it with
+      SIGIL_CRYPTO_VARIANT=w34m:
+        sigil_crypto_top.lef      3400 x 780, CLASS BLOCK, 98 pins
+                                  (VDD / VSS met4, 125 / 126 shapes;
+                                  96 signal pins, all at y = 0, the
+                                  bottom edge; pin geometry identical
+                                  to w34's LEF),
+                                  sha256 228c5618...
+        sigil_crypto_top_typ.lib  61725ff2...
+        6_final.gds               168 MB, 4ffbd783... (GDS merge: all
+                                  LEF cells have GDS cells, no orphans)
+        6_final.v / .spef / .sdc / .odb  f86afc36... / 17155e14... /
+                                  05b96372... / 3ae98f6a...
+  v3 (vivado_rnd, 2770 x 780): iteration 22 ended at 1,042
+    violations; iteration 23 was at 70 % after 1 h 58 min at 23:15Z
+    (iterations 14-22 took 21-32 min each), 10 h 46 min after the
+    container started (12:29Z). Superseded by w34m (the 3400 um slot
+    does not change the die); the container was left running.
 
 == CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
   Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
