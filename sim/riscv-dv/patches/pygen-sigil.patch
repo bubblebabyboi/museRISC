@@ -1,0 +1,607 @@
+Sigil fixes to riscv-dv's Python generator (pygen) at riscv-dv
+0d71c2b666dec48dde0b804a2138426da56aa252, applied by
+scripts/riscv_dv_setup.sh to a copy in build/riscv-dv/gen (the clone in
+third_party/riscv-dv is never modified; the copy's .py files are
+converted to LF line endings first). Issue #8, docs/VERIFICATION.md.
+Most hunks carry a "Sigil patch" comment. What each fix is for:
+
+A  isa/riscv_instr.py: `from imp import reload` -> importlib (Python
+   3.12 removed imp).
+B  riscv_asm_program_gen.py: without sub-programs the main program gets
+   the whole +instr_cnt (SV: main + sum(sub) == instr_cnt; pygen drew
+   the main count from [10, instr_cnt]).
+C  riscv_asm_program_gen.py setup_misa: a target with a read-only misa
+   sets MISA_VALUE in its core setting; write exactly that value, so a
+   writable-misa ISS (Spike) keeps the same extensions.
+D  isa/riscv_b_instr.py: ratified spellings for draft-0.92 B mnemonics
+   whose encodings were ratified under new names (pcnt -> cpop,
+   sbset/sbclr/sbinv/sbext[i] -> bset/bclr/binv/bext[i]).
+E  isa/riscv_instr.py build_basic_instruction_list: EBREAK/C.EBREAK/
+   DRET/WFI were added as strings (KeyError: 'EBREAK' with
+   +no_ebreak=0) and SYNCH as a nested list.
+F  riscv_privileged_common_seq.py: rcs.implemeted_csr typo.
+G  riscv_amo_instr_lib.py: avail_regs re-declared in the AMO base
+   stream (pyvsc AttributeError on construction).
+H  randrange(0, n - 1) -> randrange(0, n) and randrange(0, 1) ->
+   randrange(0, 2) everywhere: SV $urandom_range is inclusive, so the
+   last list entry was never picked and a one-entry list raised.
+I  riscv_instr_stream.py randomize_instr: re-pick (up to 32 times) when
+   the picked instruction cannot meet the stream's register
+   constraints (e.g. a compressed op vs avail_regs) instead of failing.
+J  riscv_amo_instr_lib.py: reserve the elements of rs1_reg (a list).
+K  test/riscv_instr_base_test.py: recursion limit 20000 (deepcopy of
+   the AMO stream objects).
+L  riscv_amo_instr_lib.py: LR/SC/AMO address registers as in SV: rs1 is
+   the stream's base register, rd must differ from it (pygen left LR/SC
+   rs1 free and forced the AMO rd into the base registers).
+M  isa/riscv_instr.py get_rand_instr: SV semantics (candidates =
+   supported instructions narrowed by include_instr and by the
+   included categories/groups, minus the excluded). pygen looked
+   categories up by enum where the tables are keyed by name (the AMO
+   stream drew from every instruction) and ignored exclusions whenever
+   an include list was given.
+N  test/riscv_instr_base_test.py: with one test per process run it
+   in-process; a sys.exit() in a multiprocessing worker hung the pool.
+O  riscv_loop_instr.py: loop counter/limit init and counter update are
+   ADDIs with the constrained values, the backward branch compares the
+   counter with the limit register, and loops nest as in SV (pygen used
+   unconstrained random instructions, so loops need not terminate).
+P  riscv_instr_stream.py mix_instr_stream: positions from [0, cnt-1] as
+   in SV; [0, cnt] let the last instruction of a contained stream land
+   before earlier ones (a loop branch ahead of its counter update).
+Q  isa/riscv_b_instr.py is_supported: operator precedence made every B
+   group except Zbb ignore +enable_b_extension.
+R  riscv_amo_instr_lib.py: LR and SC of the same width. A mismatched pair
+   (e.g. lr.w + sc.d) has an implementation-defined SC outcome (the
+   reservation set must contain the SC's bytes: Sigil reserves exactly
+   the LR's bytes, Spike accepts any SC to the LR address).
+
+diff -ruN a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
+--- a/pygen/pygen_src/isa/riscv_b_instr.py
++++ b/pygen/pygen_src/isa/riscv_b_instr.py
+@@ -75,6 +75,19 @@
+         self.imm_mask = self.imm_mask << self.imm_len
+ 
+     # Convert the instruction to assembly code
++    # Sigil patch: draft-0.92 B mnemonics whose encodings were ratified
++    # under new names (Zbb cpop, Zbs bset/bclr/binv/bext).
++    RATIFIED_NAME = {"PCNT": "cpop",
++                     "SBSET": "bset", "SBSETI": "bseti",
++                     "SBCLR": "bclr", "SBCLRI": "bclri",
++                     "SBINV": "binv", "SBINVI": "binvi",
++                     "SBEXT": "bext", "SBEXTI": "bexti"}
++
++    def get_instr_name(self):
++        if self.instr_name.name in self.RATIFIED_NAME:
++            return self.RATIFIED_NAME[self.instr_name.name]
++        return super().get_instr_name()
++
+     def convert2asm(self, prefix = " "):
+         asm_str_final = ""
+         asm_str = ""
+@@ -121,7 +134,8 @@
+         pass
+ 
+     def is_supported(self, cfg):
+-        return (cfg.enable_b_extension and
++        # Sigil patch: parenthesised; enable_b_extension gated only ZBB.
++        return (cfg.enable_b_extension and (
+                 ("ZBB" in cfg.enable_bitmanip_groups and self.instr_name.name in
+                  ["CLZ", "CTZ", "CLZW", "CTZW", "PCNT", "PCNTW",
+                   "SLO", "SLOI", "SLOW", "SLOIW",
+@@ -170,7 +184,7 @@
+                 ("ZB_TMP" in cfg.enable_bitmanip_groups and self.instr_name.name in
+                  ["SEXT_B", "SEXT_H"
+                   ])
+-                )
++                ))
+ 
+     # Coverage related functions
+     def update_src_regs(self, operands):
+diff -ruN a/pygen/pygen_src/isa/riscv_instr.py b/pygen/pygen_src/isa/riscv_instr.py
+--- a/pygen/pygen_src/isa/riscv_instr.py
++++ b/pygen/pygen_src/isa/riscv_instr.py
+@@ -15,7 +15,7 @@
+ import sys
+ import random
+ import vsc
+-from imp import reload
++from importlib import reload
+ from collections import defaultdict
+ from bitstring import BitArray
+ from importlib import import_module
+@@ -189,20 +189,20 @@
+         cls.basic_instr = (cls.instr_category["SHIFT"] + cls.instr_category["ARITHMETIC"] +
+                            cls.instr_category["LOGICAL"] + cls.instr_category["COMPARE"])
+         if cfg.no_ebreak == 0:
+-            cls.basic_instr.append("EBREAK")
++            cls.basic_instr.append(riscv_instr_name_t.EBREAK)
+             for _ in rcs.supported_isa:
+                 if(riscv_instr_group_t.RV32C in rcs.supported_isa and
+                    not(cfg.disable_compressed_instr)):
+-                    cls.basic_instr.append("C_EBREAK")
++                    cls.basic_instr.append(riscv_instr_name_t.C_EBREAK)
+                     break
+         if cfg.no_dret == 0:
+-            cls.basic_instr.append("DRET")
++            cls.basic_instr.append(riscv_instr_name_t.DRET)
+         if cfg.no_fence == 0:
+-            cls.basic_instr.append(cls.instr_category["SYNCH"])
++            cls.basic_instr.extend(cls.instr_category["SYNCH"])
+         if(cfg.no_csr_instr == 0 and cfg.init_privileged_mode == "MACHINE_MODE"):
+             cls.basic_instr.append(cls.instr_category["CSR"])
+         if cfg.no_wfi == 0:
+-            cls.basic_instr.append("WFI")
++            cls.basic_instr.append(riscv_instr_name_t.WFI)
+ 
+     @classmethod
+     def create_csr_filter(cls, cfg):
+@@ -225,52 +225,41 @@
+     def get_rand_instr(cls, include_instr=[], exclude_instr=[],
+                        include_category=[], exclude_category=[],
+                        include_group=[], exclude_group=[]):
+-        idx = BitArray(uint = 0, length = 32)
+-        name = ""
++        # Sigil patch: SV riscv-dv semantics. Candidates are the supported
++        # instructions, narrowed to include_instr and to the included
++        # categories/groups (if given), minus the excluded ones. pygen
++        # looked categories/groups up by enum where the tables are keyed
++        # by name (so e.g. the AMO stream drew from every instruction),
++        # mixed name strings with enum members, and ignored the
++        # exclusions whenever an include list was present.
++        def key(x):
++            return x.name if hasattr(x, "name") else x
++
++        def member(x):
++            return riscv_instr_name_t[x] if isinstance(x, str) else x
+         allowed_instr = []
+-        disallowed_instr = []
+-        # allowed_categories = []
++        disallowed_instr = set()
+         for items in include_category:
+-            allowed_instr.extend(cls.instr_category[items])
+-        for items in exclude_category:
+-            if items in cls.instr_category:
+-                disallowed_instr.extend(cls.instr_category[items])
++            allowed_instr.extend(cls.instr_category.get(key(items), []))
+         for items in include_group:
+-            allowed_instr.extend(cls.instr_group[items])
++            allowed_instr.extend(cls.instr_group.get(key(items), []))
++        for items in exclude_category:
++            disallowed_instr.update(cls.instr_category.get(key(items), []))
+         for items in exclude_group:
+-            if items in cls.instr_group:
+-                disallowed_instr.extend(cls.instr_group[items])
+-
+-        disallowed_instr.extend(exclude_instr)
+-
+-        # TODO Randomization logic needs to be frame with PyVSC library
+-        if len(disallowed_instr) == 0:
+-            try:
+-                if len(include_instr) > 0:
+-                    if len(include_instr) == 1:
+-                        idx = 0
+-                    else:
+-                        idx = random.randrange(0, len(include_instr) - 1)
+-                    name = include_instr[idx]
+-                elif len(allowed_instr) > 0:
+-                    idx = random.randrange(0, len(allowed_instr) - 1)
+-                    name = allowed_instr[idx]
+-                else:
+-                    idx = random.randrange(0, len(cls.instr_names) - 1)
+-                    name = cls.instr_names[idx]
+-            except Exception:
+-                logging.critical("[%s] Cannot generate random instruction", riscv_instr.__name__)
+-                sys.exit(1)
+-        else:
+-            try:
+-                name = random.choice(cls.instr_names)
+-                if len(include_instr) > 0:
+-                    name = random.choice(include_instr)
+-                if len(allowed_instr) > 0:
+-                    name = random.choice(allowed_instr)
+-            except Exception:
+-                logging.critical("[%s] Cannot generate random instruction", riscv_instr.__name__)
+-                sys.exit(1)
++            disallowed_instr.update(cls.instr_group.get(key(items), []))
++        disallowed_instr.update(member(i) for i in exclude_instr)
++        cands = list(cls.instr_names)
++        if len(include_instr) > 0:
++            inc = set(member(i) for i in include_instr)
++            cands = [n for n in cands if n in inc]
++        if include_category or include_group:
++            alw = set(allowed_instr)
++            cands = [n for n in cands if n in alw]
++        cands = [n for n in cands if n not in disallowed_instr]
++        if not cands:
++            logging.critical("[%s] Cannot generate random instruction", riscv_instr.__name__)
++            sys.exit(1)
++        name = random.choice(cands)
+         # rs1 rs2 values are overwriting and the last generated values are
+         # getting assigned for a particular instruction hence creating different
+         # object address and id to ratain the randomly generated values.
+@@ -283,7 +272,7 @@
+         if len(load_store_instr) == 0:
+             load_store_instr = cls.instr_category["LOAD"] + \
+                 cls.instr_category["STORE"]
+-        cls.idx = random.randrange(0, len(load_store_instr) - 1)
++        cls.idx = random.randrange(0, len(load_store_instr))
+         name = load_store_instr[cls.idx]
+         instr_h = copy.copy(cls.instr_template[name])
+         return instr_h
+diff -ruN a/pygen/pygen_src/riscv_amo_instr_lib.py b/pygen/pygen_src/riscv_amo_instr_lib.py
+--- a/pygen/pygen_src/riscv_amo_instr_lib.py
++++ b/pygen/pygen_src/riscv_amo_instr_lib.py
+@@ -37,8 +37,6 @@
+         self.data_page_id = vsc.uint32_t()
+         self.max_offset = vsc.uint32_t()
+         self.XLEN = vsc.uint32_t(rcs.XLEN)
+-        # User can specify a small group of available registers to generate various hazard condition
+-        self.avail_regs = vsc.randsz_list_t(vsc.enum_t(riscv_reg_t))
+ 
+     @vsc.constraint
+     def num_of_rs1_reg_c(self):
+@@ -71,7 +69,7 @@
+     def pre_randomize(self):
+         self.data_page = cfg.amo_region
+         max_data_page_id = len(self.data_page)
+-        self.data_page_id = random.randrange(0, max_data_page_id - 1)
++        self.data_page_id = random.randrange(0, max_data_page_id)
+         self.max_offset = self.data_page[self.data_page_id].size_in_bytes
+ 
+     # Use "la" instruction to initialize the offset regiseter
+@@ -86,7 +84,8 @@
+ 
+     def post_randomize(self):
+         self.gen_amo_instr()
+-        self.reserved_rd.append(self.rs1_reg)
++        for reg in self.rs1_reg:  # Sigil patch: append the elements
++            self.reserved_rd.append(reg)
+         self.add_mixed_instr(self.num_mixed_instr)
+         self.init_offset_reg()
+         super().post_randomize()
+@@ -118,17 +117,26 @@
+         if riscv_instr_group_t.RV64A in rcs.supported_isa:
+             allowed_lr_instr.append(riscv_instr_name_t.LR_D)
+             allowed_sc_instr.append(riscv_instr_name_t.SC_D)
++        # Sigil patch: same width for the LR and the SC.
++        pick = random.randrange(0, len(allowed_lr_instr))
++        allowed_lr_instr = [allowed_lr_instr[pick]]
++        allowed_sc_instr = [allowed_sc_instr[pick]]
++        # Sigil patch: constrain against the (already randomized) base
++        # register value; pyvsc cannot reference self.rs1_reg inline.
++        base = riscv_reg_t(int(self.rs1_reg[0]))
+         self.lr_instr = riscv_instr.get_rand_instr(include_instr = allowed_lr_instr)
+         self.sc_instr = riscv_instr.get_rand_instr(include_instr = allowed_sc_instr)
+         with self.lr_instr.randomize_with():
+-            # self.lr_instr.rs1 == self.rs1_reg[0]  # TODO Getting error
++            self.lr_instr.rs1 == base  # Sigil patch
++            self.lr_instr.rd != base
+             with vsc.if_then(self.reserved_rd.size > 0):
+                 self.lr_instr.rd.not_inside(vsc.rangelist(self.reserved_rd))
+             with vsc.if_then(cfg.reserved_regs.size > 0):
+                 self.lr_instr.rd.not_inside(vsc.rangelist(cfg.reserved_regs))
+             # self.lr_instr.rd != self.rs1_reg[0]  # TODO
+         with self.sc_instr.randomize_with():
+-            # self.sc_instr.rs1 == self.rs1_reg[0]  # TODO
++            self.sc_instr.rs1 == base  # Sigil patch
++            self.sc_instr.rd != base
+             with vsc.if_then(self.reserved_rd.size > 0):
+                 self.sc_instr.rd.not_inside(vsc.rangelist(self.reserved_rd))
+             with vsc.if_then(cfg.reserved_regs.size > 0):
+@@ -174,6 +182,7 @@
+         self.num_of_rs1_reg < 5
+ 
+     def gen_amo_instr(self):
++        bases = [riscv_reg_t(int(r)) for r in self.rs1_reg]  # Sigil patch
+         for i in range(self.num_amo):
+             self.amo_instr.append(riscv_instr.get_rand_instr(
+                                   include_category=[riscv_instr_category_t.AMO]))
+@@ -182,8 +191,8 @@
+                     self.amo_instr[i].rd.not_inside(vsc.rangelist(self.reserved_rd))
+                 with vsc.if_then(cfg.reserved_regs.size > 0):
+                     self.amo_instr[i].rd.not_inside(vsc.rangelist(cfg.reserved_regs))
+-                self.amo_instr[i].rs1.inside(vsc.rangelist(self.rs1_reg))
+-                self.amo_instr[i].rd.inside(vsc.rangelist(self.rs1_reg))
++                self.amo_instr[i].rs1.inside(vsc.rangelist(bases))  # Sigil patch
++                self.amo_instr[i].rd.not_inside(vsc.rangelist(bases))
+             self.instr_list.insert(0, self.amo_instr[i])
+ 
+ 
+diff -ruN a/pygen/pygen_src/riscv_asm_program_gen.py b/pygen/pygen_src/riscv_asm_program_gen.py
+--- a/pygen/pygen_src/riscv_asm_program_gen.py
++++ b/pygen/pygen_src/riscv_asm_program_gen.py
+@@ -100,7 +100,13 @@
+             label_name = gt_lbl_str
+             gt_lbl_str = riscv_instr_sequence()
+             self.main_program.append(gt_lbl_str)
+-            self.main_program[hart].instr_cnt = cfg.main_program_instr_cnt
++            # Sigil patch: SV riscv-dv constrains main + sum(sub) == instr_cnt;
++            # pygen draws main from [10, instr_cnt]. With no sub-programs
++            # (the call stack is unimplemented in pygen) use all of it.
++            if cfg.num_of_sub_program == 0:
++                self.main_program[hart].instr_cnt = cfg.instr_cnt
++            else:
++                self.main_program[hart].instr_cnt = cfg.main_program_instr_cnt
+             self.main_program[hart].is_debug_program = 0
+             self.main_program[hart].label_name = label_name
+             self.generate_directed_instr_stream(hart=hart,
+@@ -353,6 +359,15 @@
+ 
+     # Setup MISA based on supported extensions
+     def setup_misa(self):
++        # Sigil patch: a target with a read-only misa names its value
++        # (MISA_VALUE); write exactly that so a writable-misa ISS keeps
++        # the same extensions enabled.
++        if hasattr(rcs, "MISA_VALUE"):
++            self.instr_stream.append("{}li x{}, {}".format(
++                pkg_ins.indent, cfg.gpr[0], hex(rcs.MISA_VALUE)))
++            self.instr_stream.append("{}csrw {}, x{}".format(
++                pkg_ins.indent, hex(privileged_reg_t.MISA), cfg.gpr[0]))
++            return
+         misa = vsc.bit_t(rcs.XLEN)
+         if rcs.XLEN == 32:
+             misa[rcs.XLEN - 1:rcs.XLEN - 2] = 1
+diff -ruN a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_callstack_gen.py
+--- a/pygen/pygen_src/riscv_callstack_gen.py
++++ b/pygen/pygen_src/riscv_callstack_gen.py
+@@ -127,7 +127,7 @@
+             # Make sure all program has a caller so that no program is obsolete.
+ 
+             for j in range(len(sub_program_id_pool)):
+-                caller_id = random.randrange(0, len(sub_program_cnt) - 1)
++                caller_id = random.randrange(0, len(sub_program_cnt))
+                 sub_program_cnt[caller_id] += 1
+ 
+             for j in range(len(program_list)):
+diff -ruN a/pygen/pygen_src/riscv_data_page_gen.py b/pygen/pygen_src/riscv_data_page_gen.py
+--- a/pygen/pygen_src/riscv_data_page_gen.py
++++ b/pygen/pygen_src/riscv_data_page_gen.py
+@@ -37,7 +37,7 @@
+         data = [0] * num_of_bytes
+         for i in range(len(data)):
+             if pattern == data_pattern_t.RAND_DATA:
+-                temp_data = random.randrange(0, (2**8) - 1)
++                temp_data = random.randrange(0, (2**8))
+                 data[i] = temp_data
+             elif pattern == data_pattern_t.INCR_VAL:
+                 data[i] = (idx + i) % 256
+diff -ruN a/pygen/pygen_src/riscv_directed_instr_lib.py b/pygen/pygen_src/riscv_directed_instr_lib.py
+--- a/pygen/pygen_src/riscv_directed_instr_lib.py
++++ b/pygen/pygen_src/riscv_directed_instr_lib.py
+@@ -274,7 +274,7 @@
+ 
+             self.push_stack_instr[i + 1].process_load_store = 0
+         if allow_branch:
+-            self.enable_branch = random.randrange(0, 1)
++            self.enable_branch = random.randrange(0, 2)
+         else:
+             self.enable_branch = 0
+         if self.enable_branch:
+diff -ruN a/pygen/pygen_src/riscv_instr_sequence.py b/pygen/pygen_src/riscv_instr_sequence.py
+--- a/pygen/pygen_src/riscv_instr_sequence.py
++++ b/pygen/pygen_src/riscv_instr_sequence.py
+@@ -255,7 +255,7 @@
+     def generate_return_routine(self, prefix):
+         routine_str = ''
+         jump_instr = [riscv_instr_name_t.JALR]
+-        rand_lsb = random.randrange(0, 1)
++        rand_lsb = random.randrange(0, 2)
+         ra = vsc.rand_enum_t(riscv_reg_t)
+         try:
+             with vsc.randomize_with(ra):
+@@ -270,7 +270,7 @@
+             jump_instr.append(riscv_instr_name_t.C_JR)
+             if not (riscv_reg_t.RA in cfg.reserved_regs):
+                 jump_instr.append(riscv_instr_name_t.C_JALR)
+-        i = random.randrange(0, len(jump_instr) - 1)
++        i = random.randrange(0, len(jump_instr))
+         if jump_instr[i] == riscv_instr_name_t.C_JALR:
+             routine_str = prefix + "c.jalr x{}".format(ra.get_val())
+         elif jump_instr[i] == riscv_instr_name_t.C_JR:
+diff -ruN a/pygen/pygen_src/riscv_instr_stream.py b/pygen/pygen_src/riscv_instr_stream.py
+--- a/pygen/pygen_src/riscv_instr_stream.py
++++ b/pygen/pygen_src/riscv_instr_stream.py
+@@ -14,6 +14,7 @@
+ import logging
+ import sys
+ import vsc
++from vsc.model.solve_failure import SolveFailure
+ from pygen_src.riscv_instr_pkg import riscv_instr_name_t,\
+     riscv_instr_category_t, riscv_instr_format_t, riscv_reg_t
+ from pygen_src.isa.riscv_instr import riscv_instr
+@@ -124,7 +125,8 @@
+         if len(insert_instr_position) > 0:
+             insert_instr_position.sort()
+         for i in range(new_instr_cnt):
+-            insert_instr_position[i] = random.randint(0, current_instr_cnt)
++            # Sigil patch: SV range [0, cnt-1] keeps the order intact.
++            insert_instr_position[i] = random.randint(0, max(current_instr_cnt - 1, 0))
+         if len(insert_instr_position) > 0:
+             insert_instr_position.sort()
+         if contained:
+@@ -232,11 +234,16 @@
+             elif (not cfg.no_ebreak and not cfg.enable_ebreak_in_debug_rom):
+                 exclude_instr.extend([riscv_instr_name_t.EBREAK.name,
+                                       riscv_instr_name_t.C_EBREAK.name])
+-        instr = riscv_instr.get_rand_instr(
+-            include_instr = self.allowed_instr, exclude_instr = exclude_instr,
+-            include_group = include_group)
+-        instr = self.randomize_gpr(instr)
+-        return instr
++        # Sigil patch: re-pick when the register constraints cannot be met.
++        for attempt in range(32):
++            instr = riscv_instr.get_rand_instr(
++                include_instr = self.allowed_instr, exclude_instr = exclude_instr,
++                include_group = include_group)
++            try:
++                return self.randomize_gpr(instr)
++            except SolveFailure:
++                if attempt == 31:
++                    raise
+ 
+     def randomize_gpr(self, instr):
+         with instr.randomize_with() as it:
+diff -ruN a/pygen/pygen_src/riscv_loop_instr.py b/pygen/pygen_src/riscv_loop_instr.py
+--- a/pygen/pygen_src/riscv_loop_instr.py
++++ b/pygen/pygen_src/riscv_loop_instr.py
+@@ -133,6 +133,16 @@
+             with vsc.else_then:
+                 self.loop_step_val[i] < 0
+ 
++    def sigil_addi(self, rd, rs1, val, comment):
++        # Sigil patch: ADDI rd, rs1, val (val fits a 12-bit immediate).
++        instr = riscv_instr.get_rand_instr(include_instr = [riscv_instr_name_t.ADDI])
++        with instr.randomize_with():
++            instr.rd == rd
++            instr.rs1 == rs1
++            instr.imm == (val & 0xFFFFFFFF)
++        instr.comment = pkg_ins.format_string(comment)
++        return instr
++
+     def post_randomize(self):
+         for i in range(len(self.loop_cnt_reg)):
+             self.reserved_rd.append(self.loop_cnt_reg[i])
+@@ -146,39 +156,17 @@
+         self.loop_update_instr = [0] * self.num_of_nested_loop
+         self.loop_branch_instr = [0] * self.num_of_nested_loop
+         self.loop_branch_target_instr = [0] * self.num_of_nested_loop
++        # Sigil patch: see the header of pygen-sigil.patch (loop stream).
+         for i in range(self.num_of_nested_loop):
+-            # Instruction to init the loop counter
+-            try:
+-                self.loop_init_instr.insert(2 * i, riscv_instr.get_rand_instr())
+-                # TODO
+-                '''self.loop_update_instr[i] = riscv_instr.get_rand_instr(
+-                include_instr = [riscv_instr_name_t.ADDI])'''
+-                # Removed include_instr ADDI for now to avoid unrecognized colon
+-                with self.loop_init_instr[2 * i].randomize_with():
+-                    self.loop_init_instr[2 * i].rd == self.loop_cnt_reg[i]
+-                    self.loop_init_instr[2 * i].rs1 == riscv_reg_t.ZERO
+-                    self.loop_init_instr[2 * i].imm == self.loop_init_val[i]
+-                    self.loop_init_instr[2 * i].comment = \
+-                        pkg_ins.format_string("init loop {} counter".format(i))
+-            except Exception:
+-                logging.critical("Cannot randomize loop init1 instruction")
+-                sys.exit(1)
+-            # Instruction to init loop limit
+-            try:
+-                self.loop_init_instr[2 * i + 1] = riscv_instr.get_rand_instr()
+-                # TODO
+-                '''self.loop_update_instr[i] = riscv_instr.get_rand_instr(
+-                include_instr = [riscv_instr_name_t.ADDI])'''
+-                # Removed include_instr ADDI for now to avoid unrecognized colon
+-                with self.loop_init_instr[2 * i + 1].randomize_with():
+-                    self.loop_init_instr[2 * i + 1].rd == self.loop_limit_reg[i]
+-                    self.loop_init_instr[2 * i + 1].rs1 == riscv_reg_t.ZERO
+-                    self.loop_init_instr[2 * i + 1].imm == self.loop_limit_val[i]
+-                    self.loop_init_instr[2 * i + 1].comment = \
+-                        pkg_ins.format_string("init loop {} limit".format(i))
+-            except Exception:
+-                logging.critical("Cannot randomize loop init2 instruction")
+-                sys.exit(1)
++            cnt = riscv_reg_t(int(self.loop_cnt_reg[i]))
++            lim = riscv_reg_t(int(self.loop_limit_reg[i]))
++            btype = riscv_instr_name_t(int(self.branch_type[i]))
++            self.loop_init_instr[2 * i] = self.sigil_addi(
++                cnt, riscv_reg_t.ZERO, int(self.loop_init_val[i]),
++                "init loop {} counter".format(i))
++            self.loop_init_instr[2 * i + 1] = self.sigil_addi(
++                lim, riscv_reg_t.ZERO, int(self.loop_limit_val[i]),
++                "init loop {} limit".format(i))
+             # Branch target instruction, can be anything
+             self.loop_branch_target_instr[i] = riscv_instr.get_rand_instr(
+                 include_category = [riscv_instr_category_t.ARITHMETIC.name,
+@@ -204,30 +192,14 @@
+             self.loop_branch_target_instr[i].label = pkg_ins.format_string(
+                 "{}_{}_t".format(self.label, i))
+             # Instruction to update loop counter
+-            self.loop_update_instr[i] = riscv_instr.get_rand_instr()
+-            # TODO
+-            '''self.loop_update_instr[i] = riscv_instr.get_rand_instr(
+-                include_instr = [riscv_instr_name_t.ADDI])'''
+-            # Removing include_instr ADDI for now to avoid unrecognized colon
+-            # Commenting for now due to key error
+-            '''with self.loop_update_instr[i].randomize_with():
+-                self.loop_update_instr[i].rd == self.loop_cnt_reg[i]
+-                self.loop_update_instr[i].rs1 == self.loop_cnt_reg[i]
+-                self.loop_update_instr[i].imm == self.loop_step_val[i]'''
+-            self.loop_update_instr[i].comment = pkg_ins.format_string(
+-                "update loop {} counter".format(i))
++            self.loop_update_instr[i] = self.sigil_addi(
++                cnt, cnt, int(self.loop_step_val[i]), "update loop {} counter".format(i))
+             # Backward branch instruction
+-            self.loop_branch_instr[i] = riscv_instr.get_rand_instr(
+-                include_instr = [self.branch_type[i]])
+-            self.loop_branch_instr[i].randomize()
++            self.loop_branch_instr[i] = riscv_instr.get_rand_instr(include_instr = [btype])
+             with self.loop_branch_instr[i].randomize_with():
+-                self.loop_branch_instr[i].rs1 == self.loop_cnt_reg[i]
+-                # Getting PyVSC related error
+-                # TODO
+-                '''with vsc.if_then((self.branch_type[i] != riscv_instr_name_t.C_BEQZ) or
+-                                 (self.branch_type[i] != riscv_instr_name_t.C_BNEZ)):
+-                    self.loop_branch_instr[i].rs2 == self.loop_limit_reg[i]
+-                '''
++                self.loop_branch_instr[i].rs1 == cnt
++                if btype not in [riscv_instr_name_t.C_BEQZ, riscv_instr_name_t.C_BNEZ]:
++                    self.loop_branch_instr[i].rs2 == lim
+             self.loop_branch_instr[i].comment = pkg_ins.format_string(
+                 "branch for loop {}".format(i))
+             self.loop_branch_instr[i].imm_str = self.loop_branch_target_instr[i].label
+@@ -244,12 +216,12 @@
+ 
+     # Build the whole loop structure from innermost loop to the outermost loop
+     def build_loop_instr_stream(self):
++        # Sigil patch: loop i wraps the loops built before it (SV order).
+         self.loop_instr = []
+         for i in range(self.num_of_nested_loop):
+-            self.loop_instr.append(self.loop_init_instr[2 * i])
+-            self.loop_instr.append(self.loop_init_instr[2 * i + 1])
+-            self.loop_instr.append(self.loop_branch_target_instr[i])
+-            self.loop_instr.append(self.loop_update_instr[i])
+-            self.loop_instr.append(self.loop_instr[i])
+-            self.loop_instr.append(self.loop_branch_instr[i])
++            self.loop_instr = ([self.loop_init_instr[2 * i],
++                                self.loop_init_instr[2 * i + 1],
++                                self.loop_branch_target_instr[i],
++                                self.loop_update_instr[i]] +
++                               self.loop_instr + [self.loop_branch_instr[i]])
+         logging.info("Totally {} instructions have been added".format(len(self.loop_instr)))
+diff -ruN a/pygen/pygen_src/riscv_privileged_common_seq.py b/pygen/pygen_src/riscv_privileged_common_seq.py
+--- a/pygen/pygen_src/riscv_privileged_common_seq.py
++++ b/pygen/pygen_src/riscv_privileged_common_seq.py
+@@ -182,7 +182,7 @@
+ 
+     def sie_set_field(self, mode, regs):
+         # Enable external and timer interrupt
+-        if privileged_reg_t.SIE in rcs.implemeted_csr:
++        if privileged_reg_t.SIE in rcs.implemented_csr:
+             self.sie = riscv_privil_reg()
+             self.sie.init_reg(privileged_reg_t.SIE)
+             if cfg.randomize_csr:
+diff -ruN a/pygen/pygen_src/test/riscv_instr_base_test.py b/pygen/pygen_src/test/riscv_instr_base_test.py
+--- a/pygen/pygen_src/test/riscv_instr_base_test.py
++++ b/pygen/pygen_src/test/riscv_instr_base_test.py
+@@ -11,6 +11,7 @@
+ """
+ 
+ import sys
++sys.setrecursionlimit(20000)  # Sigil patch: deepcopy of AMO streams
+ import logging
+ import time
+ import random
+@@ -34,8 +35,11 @@
+         self.asm = ""
+ 
+     def run(self):
+-        with multiprocessing.Pool(processes = cfg.num_of_tests) as pool:
+-            ret = pool.map(self.run_phase, list(range(cfg.num_of_tests)))
++        if cfg.num_of_tests == 1:  # Sigil patch: fail fast, no pool
++            ret = [self.run_phase(0)]
++        else:
++            with multiprocessing.Pool(processes = cfg.num_of_tests) as pool:
++                ret = pool.map(self.run_phase, list(range(cfg.num_of_tests)))
+         if 1 in ret:
+             raise Exception("Test-generation jobs failed")
+ 

@@ -75,6 +75,9 @@ core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #
 riscv-tests: ## Stage gate: upstream riscv-tests rv64ui/um on the in-house core (#18)
 	$(MAKE) -C sim riscv-tests
 
+riscv-dv: ## riscv-dv random-instruction regression vs Spike (#8; TESTS= SEEDS= JOBS=)
+	$(MAKE) -C sim riscv-dv
+
 openroad: ## Dockerized OpenROAD-flow-scripts run on the crypto macro
 	./scripts/openroad_docker.sh
 

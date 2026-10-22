@@ -64,7 +64,7 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             smc_fencei_directed amo_cache_directed mmio_bypass_directed \
             vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed
 
-.PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
+.PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests riscv-dv \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
         fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
@@ -75,6 +75,18 @@ all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec 
 # Caches on, seeded random bus latency/gaps/backpressure.
 riscv-tests: $(BUILD)/core_tb
 	CORE_TB_ARGS="$(CORE_RAND_ARGS)" bash $(ROOT)/sim/run_riscv_tests.sh
+
+## ---- riscv-dv random-instruction regression vs Spike (issue #8) --------
+# Not part of `all`. TESTS=a,b on the command line (default: every
+# supported test; this Makefile's own TESTS list of directed programs is
+# not used), SEEDS=1,2,3 or 1-10 (default 1,2,3), JOBS=N (default
+# min(16, cores)); other driver options via RDV_ARGS (see
+# scripts/riscv_dv_regress.sh --help). Results in
+# build/riscv-dv/run/results.csv; see docs/VERIFICATION.md.
+RDV_TESTS := $(if $(filter command line,$(origin TESTS)),$(TESTS))
+riscv-dv: $(BUILD)/core_tb
+	bash $(ROOT)/scripts/riscv_dv_regress.sh $(if $(RDV_TESTS),--tests $(RDV_TESTS)) \
+	  $(if $(SEEDS),--seeds $(SEEDS)) $(if $(JOBS),--jobs $(JOBS)) $(RDV_ARGS)
 
 $(BUILD) $(OBJ):
 	mkdir -p $@

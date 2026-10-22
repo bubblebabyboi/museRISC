@@ -1,0 +1,28 @@
+# Python packages for riscv-dv's pygen generator (issue #8), pinned to
+# what the Sigil regression was validated with (Python 3.12, Ubuntu
+# 24.04). The first five are riscv-dv's own pins/requirements at commit
+# 0d71c2b6; the rest are their dependencies (pip freeze).
+pyvsc==0.9.1.10086043874
+pyucis==0.1.3.7162246580
+pyboolector==3.2.4.20240823.1
+PyYAML==6.0.3
+bitstring==5.0.0
+tabulate==0.10.0
+pandas==2.2.3
+attrs==26.1.0
+inflection==0.5.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+lxml==6.1.3
+Markdown==3.11.2
+numpy==2.5.4
+python-dateutil==3.0.0
+python-jsonschema-objects==0.5.7
+pytz==2026.5
+referencing==0.37.0
+rpds-py==2026.9.1
+six==1.17.0
+tibs==2.0.2
+toposort==1.10
+typing_extensions==4.16.0
+tzdata==2026.5
