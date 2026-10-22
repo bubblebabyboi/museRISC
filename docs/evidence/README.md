@@ -2124,3 +2124,48 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #8: riscv-dv random regression vs Spike (2026-10-22)
+
+[`riscv-dv-8-2026-10-22/`](riscv-dv-8-2026-10-22/). Flow, pins and
+rules: [`docs/VERIFICATION.md`](../VERIFICATION.md). Random programs
+from riscv-dv's Python generator (pygen, `0d71c2b6`, patched: fixes
+A-AD in `sim/riscv-dv/patches/pygen-sigil.patch`) run on Spike
+(`2c300cd9`, configured as Sigil: [`spike-build.txt`](riscv-dv-8-2026-10-22/spike-build.txt))
+and on the core (`build/sim/core_tb`, Verilator 5.048, sim-only retire
+trace); every retired instruction and trap is compared. sigil-verify
+(c7i.8xlarge, Ubuntu 24.04.5), shared machine.
+
+- **Full regression, 60/60 PASS** (`./scripts/riscv_dv_regress.sh
+  --seeds 1-3 --jobs 14`, branch at `384d813`): 18 riscv-dv built-in
+  tests + 2 directed programs (Zba/Zbb/Zbs/Zbk*/Zkn/Zicond; RVV) x 3
+  seeds, 680,586 records compared incl. 582 traps (441 breakpoints, 84
+  illegal instructions, 54 ECALLs, 3 misaligned), boot modes M/S/U:
+  [`results-full-seeds1-3.csv`](riscv-dv-8-2026-10-22/results-full-seeds1-3.csv),
+  [`coverage-full-seeds1-3.csv`](riscv-dv-8-2026-10-22/coverage-full-seeds1-3.csv),
+  1483 s with 14 jobs.
+- **Confirmation on the final head, 60/60 PASS** (`make -C sim riscv-dv
+  SEEDS=4-6 JOBS=7`, `661c046`): 673,480 records, 542 traps:
+  [`results-full-seeds4-6.csv`](riscv-dv-8-2026-10-22/results-full-seeds4-6.csv),
+  [`coverage-full-seeds4-6.csv`](riscv-dv-8-2026-10-22/coverage-full-seeds4-6.csv).
+- Fields compared (integer/FP/vector register writes, stores, CSR
+  writes, fflags): [`compared-fields.txt`](riscv-dv-8-2026-10-22/compared-fields.txt);
+  comparator self-check on corrupted traces:
+  [`comparator-selfcheck.log`](riscv-dv-8-2026-10-22/comparator-selfcheck.log);
+  artifact sample: [`sample-riscv_amo_test-seed21.txt`](riscv-dv-8-2026-10-22/sample-riscv_amo_test-seed21.txt).
+- core_tb built with Verilator 5.020 runs the flow: 4/4 PASS,
+  [`results-verilator-5.020.csv`](riscv-dv-8-2026-10-22/results-verilator-5.020.csv).
+- Gates with the trace probe in the RTL (`661c046`): `make lint` clean on
+  Verilator 5.048, 5.020 and 5.044 ([`lint-verilator-5.048.log`](riscv-dv-8-2026-10-22/lint-verilator-5.048.log),
+  [`lint-verilator-5.020.log`](riscv-dv-8-2026-10-22/lint-verilator-5.020.log),
+  [`lint-verilator-5.044.log`](riscv-dv-8-2026-10-22/lint-verilator-5.044.log));
+  `make core-test` rc=0, 0 TB FAIL/TIMEOUT; `make riscv-tests` 123/123:
+  [`gates-core-test-riscv-tests.log`](riscv-dv-8-2026-10-22/gates-core-test-riscv-tests.log).
+- Findings: no divergence attributable to a Sigil bug. LR/SC of
+  different widths has an implementation-defined SC outcome (Sigil fails
+  `sc.d` after `lr.w`, Spike succeeds); the generator now pairs widths:
+  [`lrsc-width-mismatch-compare.txt`](riscv-dv-8-2026-10-22/lrsc-width-mismatch-compare.txt).
+- Not covered: address translation, PMP programming, interrupts, trap
+  delegation, sub-programs, random CSR accesses; V/Zk/Zicond only via the
+  directed programs; 18 riscv-dv tests excluded with reasons in
+  `sim/riscv-dv/testlist.yaml`. Not in CI yet.

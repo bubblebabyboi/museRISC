@@ -314,7 +314,8 @@ Evidence: [`evidence/riscv-dv-8-2026-10-22/`](evidence/riscv-dv-8-2026-10-22/), 
 - All supported tests, seeds 1-3, full instruction counts: 60/60 PASS,
   680,586 records compared (instructions plus 582 traps: 441
   breakpoints, 84 illegal instructions, 3 misaligned accesses, 54
-  ECALLs), boot modes M/S/U mixed.
+  ECALLs), boot modes M/S/U mixed. Seeds 4-6 on the final branch head
+  through `make -C sim riscv-dv`: 60/60 PASS, 673,480 records.
 - No divergence attributable to a Sigil bug was found. The work went
   into the generator (patches A-AD) and the comparison rules.
 - LR/SC of different widths (`lr.w` then `sc.d` to the same address):
