@@ -40,14 +40,20 @@ include $(SIGIL_SDK)/sdk.mk
 COREMARK_FLAGS_STR := $(filter-out -D% -I% -W% -g,$(CFLAGS))
 CFLAGS += -DFLAGS_STR='"$(COREMARK_FLAGS_STR)"'
 
-# Fetch the pinned sources on first use; the script checks every
-# file's sha256 before writing the stamp.
+# Fetch the pinned sources on first use. The script checks every file's
+# sha256 before it writes the stamp; it runs again (and then only
+# verifies) whenever the script or a fetched file is newer than the
+# stamp, so an edited third_party/coremark fails the build.
+COREMARK_FILES := $(COREMARK_SRCS) $(COREMARK_DIR)/coremark.h
 COREMARK_STAMP := $(COREMARK_DIR)/.sigil-fetched
-$(COREMARK_STAMP): fetch_coremark.sh
+COREMARK_MISSING := $(filter-out $(wildcard $(COREMARK_FILES)),$(COREMARK_FILES))
+$(COREMARK_STAMP): fetch_coremark.sh $(wildcard $(COREMARK_FILES))
 	bash $(CURDIR)/fetch_coremark.sh $(COREMARK_DIR)
-$(COREMARK_SRCS) $(COREMARK_DIR)/coremark.h: | $(COREMARK_STAMP)
+ifneq ($(COREMARK_MISSING),)
+$(COREMARK_MISSING): | $(COREMARK_STAMP)
+endif
 
-$(ELF): $(COREMARK_DIR)/coremark.h core_portme.h
+$(ELF): $(COREMARK_STAMP) $(COREMARK_DIR)/coremark.h core_portme.h
 
 .PHONY: fetch
 fetch: $(COREMARK_STAMP)
