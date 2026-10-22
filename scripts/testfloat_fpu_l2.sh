@@ -132,7 +132,7 @@ run() {
 # Merge every run directory into one CSV row per (format, mode, op).
 summary() {
   local csv=$1 d
-  echo "function,instruction,rounding_mode,level,selection,stride,seed,level2_cases_per_mode,cases_in_selection,cases_checked,fails,chunks,result,cpu_seconds" > "$csv"
+  echo "function,instruction,rounding_mode,level,selection,stride,seed,level2_cases_per_mode,cases_in_selection,cases_checked,fails,chunks,result,chunk_wall_seconds_sum" > "$csv"
   for d in "$L2"/f*_s*_*; do
     [ -d "$d" ] || continue
     local tag fmt stride op bin npairs full
