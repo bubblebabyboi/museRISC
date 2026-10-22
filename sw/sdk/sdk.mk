@@ -49,7 +49,7 @@ SDK_DEPS := $(SDK_SRCS) $(SIGIL_SDK)/include/sigil.h \
 CFLAGS := -march=$(SIGIL_MARCH) -mabi=$(SIGIL_MABI) -mcmodel=medany \
           -mstrict-align $(OPT) -g -std=gnu11 -Wall -Wextra \
           -ffreestanding -fno-common -ffunction-sections -fdata-sections \
-          -fno-asynchronous-unwind-tables \
+          -fno-asynchronous-unwind-tables -fno-math-errno \
           -I$(SIGIL_SDK)/include -I$(SIGIL_ROOT)/sw \
           -DSIGIL_PROG='"$(PROG)"' $(EXTRA_CFLAGS)
 LDFLAGS := -nostdlib -nostartfiles -static -T $(SIGIL_SDK)/link.ld \
