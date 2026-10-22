@@ -578,6 +578,12 @@ sudo fpga/host/sigil_host --memtest all                      # full-range DDR4 +
 - Ends on the finisher, an exit/fail marker (off with `--no-markers` and in
   console mode), `--tohost`, or `--timeout` (0 = none). Waits for DDR4 and HBM
   ready, prints the measured clock, traps and the decoded error capture.
+- Finisher reboot with `--on-reboot rerun`: the boot images (OpenSBI,
+  kernel, DTB, initrd, `--bin`) are reloaded, images in the pmem window
+  (`0xC_8000_0000`–`0x10_7FFF_FFFF`) are not, so the disk keeps what the
+  guest wrote. A `/chosen/rng-seed` property in the `--dtb` is filled with
+  fresh random bytes on every load. The RTC is set to the host's wall clock
+  before every release.
 - `--ignore-mem-err` still exists but is no longer needed (#62).
 - Exit status: 0 pass, 1 fail, 2 timeout, 3 setup error, 4 detached,
   5 reboot requested (`--on-reboot exit`).
