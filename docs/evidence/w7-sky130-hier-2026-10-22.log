@@ -1,0 +1,107 @@
+W7 (#11): hierarchical sky130hd place & route of sigil_soc_top for the Caravel user area
+Branch 11-sky130-hier; host vivado_rnd (r7i.4xlarge, 16 vCPU), ORFS image
+openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663,
+<= 12 threads in total; 2026-10-22 (UTC). Config: flow/designs/sky130hd/sigil_hier/
+(top config.mk + sigil_cpu/ + sigil_crypto_top/ block configs). Same RTL and
+sky130 configuration as the flat run (w7-sky130-pnr-2026-10-21.log):
+SIGIL_SRAM_SKY130, 4 KiB direct-mapped L1s, 7 OpenRAM macros. RTL unchanged.
+
+RESULT: @@RESULT@@
+
+== Partition
+  sigil_cpu         core + vector unit + FPU + L1 I$/D$ + bus arbiter + the
+                    7 OpenRAM macros (macros stay with their logic: the
+                    VRF and cache arrays have hundreds of pins each)
+  sigil_crypto_top  SHA-256/512, Keccak, EC field unit, AXI4-Lite slave
+                    (95 pins)
+  top               reset synchronizer, fabric, CLINT, PLIC, UART, boot
+                    ROM, crypto MMIO bridge (0.060 mm^2 of std cells)
+  Block convention (Caravel-style macro): signals on met1-met4 only,
+  power = met1 rails + met4 straps exported as VDD/VSS pins
+  (block_pdn.tcl); the CPU block also exports the met4 straps over the
+  OpenRAM vdd/gnd pin columns (sigil_cpu/post_pdn.tcl, 42 straps). The
+  top's met5 stripes cross the blocks and via4 onto those pins
+  (pdn.tcl). Abstract check: write_abstract_lef emits the met4 straps
+  as PIN VDD/VSS and OBS li1-met4 only (met5 free over the blocks).
+
+== Synthesis (per block, ORFS flat synthesis of each block)
+  sigil_crypto_top  1,074,322 um^2 std cells (sequential 41.6 %), 100,776
+                    cells; wall 249 s
+  sigil_cpu         4,809,886 um^2 = 1,895,866 std cells + 2,914,020 macros,
+                    209,935 cells; wall 2,904 s
+  top glue          59,617 um^2; wall 22 s
+  Note the split: the crypto engine is 36 % of the SoC's 2.97 mm^2 of std
+  cells (Keccak f1600 + SHA-512 since W3).
+
+== Top-level synthesis with hard blocks (why ORFS BLOCKS is not used)
+  ORFS BLOCKS puts the block .libs into ADDITIONAL_LIBS for synthesis and
+  blackboxes the block modules from their liberty view. yosys-slang gives
+  the blackboxed u_cpu cell all of sigil_cpu's parameters, so
+  `hierarchy -check` fails: "Module `sigil_cpu' ... does not have a
+  parameter named 'C1_SIZE'" (same with SYNTH_BLACKBOXES). Working
+  setup: synthesize the top from port-only stubs of the blocks
+  (stubs/gen_stubs.sh, from the RTL headers) kept as blackboxes by
+  slang --empty-blackboxes, without the block libs (SIGIL_TOP_SYNTH=1
+  in the environment of the synth run), and strip the block-instance
+  parameters in SYNTH_CANONICALIZE_TCL (stubs/strip_params.tcl):
+  OpenSTA cannot parse "sigil_cpu #(...) u_cpu". Later stages read the
+  block LEF/LIB/GDS through ADDITIONAL_LEFS/LIBS/GDS.
+
+== Caravel budget (die 2920 x 3520 um = 10.28 mm^2)
+  v1 floorplan: CPU 2900 x 2560 (7.42 mm^2) at the bottom, crypto
+  2590 x 850 (2.20 mm^2) at the top, glue in a 90 um channel between
+  them. v2 (current): 130 um glue column on the left die edge, CPU
+  2770 x 2680 (7.42 mm^2), crypto 2770 x 810 (2.24 mm^2), all pins on the
+  blocks' left edges and the SoC pins on the left die edge.
+  Std-cell density this leaves: crypto 49 % of its core (55 % after
+  placement repair/CTS); CPU 1.90 mm^2 in the 7.42 mm^2 block of which
+  3.70 mm^2 is macros + 40 um halos (~51 %).
+
+== Detailed-routing calibration (stock ORFS sky130hd/aes, same image, 1 thread)
+  18,448 instances, 55 % utilization: DRT violations per iteration
+  19,752 / 15,827 / 14,498 / 3,795 / 753 / 126 / 62 / 0 (iteration 7),
+  route rc=0, wall 4,909 s. Iterations 0-2 rip up and re-route
+  everything; the drop starts at iteration 3 (marker-driven rip-up).
+  So iteration 0-2 counts alone do not show non-convergence: the
+  flat run (1,036,832 / 842,148 / 833,572 at 30 % of iteration 2) was
+  stopped before the first iteration that normally shows convergence,
+  and its 0.80 iteration-1 ratio is the same as aes's.
+
+== Crypto block experiments (all GRT 0 overflow unless stated)
+  run    die (um)      util   GRT derating           GRT usage (m1/m2/m3/m4, total)        DRT iter 0 / 1 / 2 / 3 ...
+  r1/s   2590 x 850    49 %   platform 0.2           76.0/64.2/58.6/37.2 %, 63.2 %         263,961 / 193,866 / 182,045 / 60,919 / @@CRYPTO_S@@
+  d42    2590 x 1000   42 %   platform 0.2           69.5/61.9/45.9/34.5 %, 57.1 %         233,428 (stopped)
+  d35    2590 x 1190   35 %   platform 0.2           60.5/60.2/30.4/33.2 %, 49.9 %         186,146 (stopped)
+  u30    2590 x 1400   30 %   0.2 all layers         71.9/48.7/57.1/12.7 %, 53.7 %         261,945 (stopped)
+  m42    2590 x 1000   42 %   met1 0.7, others 0.2   97.4/90.4/94.2/68.6 %, 88.7 %         40,801 overflowed gcells (stopped)
+  h30    2590 x 1400   30 %   met1 0.5, others 0.2   88.1/76.0/77.8/35.7 %, 73.2 %         15,856 overflowed gcells (stopped)
+  Iteration-0 violations do not fall with area (264k at 49 %, 262k at
+  30 %): they scale with instance count (~2 per instance; aes ~1.1),
+  mostly met1 shorts (u30: 174,064 of 261,945). Reserving met1 for pin
+  access did not help: FastRoute detours (global demand +18 %) instead
+  of moving trunks to met3/met4, and overflows.
+
+== CPU block experiments
+  run    die (um)      GRT derating          GRT result
+  r1     2900 x 2560   0.3 (pre_grt.tcl)     usage 88.7 %, 214,046 overflowed gcells, 28.28 m wire
+  s      2900 x 2560   0.2 (platform)        usage 76.9 % (m1 77.9, m2 78.3, m3 76.9, m4 71.2),
+                                             45,096 overflowed gcells, 28.42 m wire;
+                                             GRT stage (incl. repair_design 20 min,
+                                             repair_timing, antenna) > 3 h; stopped
+                                             before DRT for the v2 floorplan
+  L      3400 x 3300   met1 0.7, others 0.2  still overflowing after 2 x 30 extra iterations; stopped
+  After CTS (r1): design area 5.08 mm^2 (69 % of the block incl.
+  macros); setup WNS -0.06 ns at 40 ns (reg-to-reg, before routing).
+  The CPU's wire demand is the problem: 28.3 m of global route for
+  1.90 mm^2 of cells (crypto: 8.9 m for 1.07 mm^2).
+
+== Top level, v1 dry run (provisional block abstracts from 4_cts)
+  synth/floorplan/PDN/place/CTS complete: block power pins connect
+  (389 PDN-0110 warnings, all on the OpenRAM macros' own 0.49 um met4
+  supply columns that the abstract also lists; the 1.6 um straps over
+  them get via4). GRT: 79,305 overflowed gcells (met1 34,105, met2
+  39,974) - the ~400 nets from the CPU's 2900 um top edge had to reach
+  die pins sideways through a 90 um channel, and GRT spread them over
+  both blocks where only met5 is free. Fixed by the v2 floorplan.
+
+@@V2@@
