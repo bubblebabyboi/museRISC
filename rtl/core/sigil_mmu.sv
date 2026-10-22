@@ -545,7 +545,9 @@ module sigil_mmu #(
     assign if_ok_o = !if_trans || it_hit;
     assign if_fault_o = if_trans && !it_hit && ir_live && ir_q.fault;
     assign if_fault_page_o = ir_q.page;
-    assign if_fault_guest_o = ir_q.guest;
+    // The guest flag only with the fault, as main: the core takes the
+    // GPA (mtval2/htval) for any fetch fault that has it set.
+    assign if_fault_guest_o = if_fault_o && ir_q.guest;
     assign if_fault_gpa_o = ir_q.gpa;
     assign miss_f = if_trans && !it_hit && ir_live && !ir_q.ok && !ir_q.fault;
 `ifndef SYNTHESIS
