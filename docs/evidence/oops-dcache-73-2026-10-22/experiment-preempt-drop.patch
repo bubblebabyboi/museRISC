@@ -1,0 +1,51 @@
+diff --git a/rtl/core/sigil_core.sv b/rtl/core/sigil_core.sv
+index 64dd762..d3ce8da 100644
+--- a/rtl/core/sigil_core.sv
++++ b/rtl/core/sigil_core.sv
+@@ -111,7 +111,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+   logic        mmu_d_ok, mmu_d_fault, mmu_d_fault_page;
+   logic        mmu_if_fault_guest, mmu_d_fault_guest;
+   logic [63:0] mmu_if_fault_gpa, mmu_d_fault_gpa;
+-  logic        walk_req, walk_we, walk_grant;
++  logic        walk_req, walk_we, walk_grant, walk_preempt;
+   logic [63:0] walk_addr, walk_wdata;
+   logic [1:0]  walk_acc;
+   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
+@@ -1555,7 +1555,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+         dq_drop_q <= 1'b0;
+       end
+       // MMU flush/abort kills the walk that owns the port.
+-      if ((sfence_fire || trap_take) &&
++      if ((sfence_fire || trap_take || walk_preempt) &&
+           ((dq_pend_q && dq_walk_q && !drsp_valid_i) ||
+            (walk_issue && dreq_ready_i))) begin
+         dq_drop_q <= 1'b1;
+@@ -1928,6 +1928,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
+       .d_fault_guest_o  (mmu_d_fault_guest),
+       .d_fault_gpa_o    (mmu_d_fault_gpa),
+       .walk_req_o       (walk_req),
++      .walk_preempt_o   (walk_preempt),
+       .walk_addr_o      (walk_addr),
+       .walk_we_o        (walk_we),
+       .walk_wdata_o     (walk_wdata),
+diff --git a/rtl/core/sigil_mmu.sv b/rtl/core/sigil_mmu.sv
+index 8609de3..c1a9959 100644
+--- a/rtl/core/sigil_mmu.sv
++++ b/rtl/core/sigil_mmu.sv
+@@ -67,6 +67,7 @@ module sigil_mmu (
+     output logic [63:0] d_fault_gpa_o,
+     // Walker memory port (muxed onto the core data port)
+     output logic       walk_req_o,     // wants the port this cycle
++    output logic       walk_preempt_o, // EXPERIMENT: data miss preempts a fetch walk
+     output logic [63:0] walk_addr_o,
+     output logic       walk_we_o,      // A/D writeback (8-byte store)
+     output logic [63:0] walk_wdata_o,
+@@ -307,6 +308,8 @@ module sigil_mmu (
+   logic        g_r_q, g_w_q, g_x_q, g_d_q;
+ 
+   assign walk_req_o = (state_q != W_IDLE);
++  assign walk_preempt_o = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
++                          !req_is_data_q && miss_d;
+   assign walk_addr_o = pte_addr_q;
+   assign walk_we_o = (state_q == W_VS_UPD) || (state_q == W_G_UPD);
+   assign walk_acc_o = walk_we_o ? 2'd1 : 2'd0;
