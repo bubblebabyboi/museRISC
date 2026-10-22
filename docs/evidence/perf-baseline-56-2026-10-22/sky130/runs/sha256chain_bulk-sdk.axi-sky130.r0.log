@@ -1,0 +1,21 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb_sky130 200000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin --exit-string 'SIGIL TEST PASS sha256chain_bulk' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/sha256chain_bulk-sdk.axi-sky130.r0.perf
+loaded 25912 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=15982261 instret=3701929
+RESULT sha256 plain C: 64 KiB, 15982261 cycles, 3701929 instret, cycles/KiB 249722.83, bytes/cycle 0.0041, KiB/s at 62.5 MHz 250, at 100 MHz 400
+SIGIL PERF region=1 cycles=10990997 instret=2735407
+RESULT sha256 Zknh: 64 KiB, 10990997 cycles, 2735407 instret, cycles/KiB 171734.33, bytes/cycle 0.0060, KiB/s at 62.5 MHz 364, at 100 MHz 582
+SIGIL PERF region=2 cycles=5473918 instret=224321
+RESULT sha256 RVV x16: 64 KiB, 5473918 cycles, 224321 instret, cycles/KiB 85529.97, bytes/cycle 0.0120, KiB/s at 62.5 MHz 731, at 100 MHz 1169
+SIGIL PERF region=3 cycles=402883 instret=66446
+RESULT sha512 accel sigil_hash: 64 KiB, 402883 cycles, 66446 instret, cycles/KiB 6295.05, bytes/cycle 0.1627, KiB/s at 62.5 MHz 9928, at 100 MHz 15886
+SIGIL PERF region=4 cycles=400876 instret=66044
+RESULT sha3-256 accel sigil_hash: 64 KiB, 400876 cycles, 66044 instret, cycles/KiB 6263.69, bytes/cycle 0.1635, KiB/s at 62.5 MHz 9978, at 100 MHz 15965
+sha256 of the 64 KiB buffer = 4af0113637fb17b7940e0dcc462dd1ff004effed74281f36ade27a6de61ca6a1
+SHA256CHAIN_BULK CHECK OK kib=64
+SIGIL TEST PASS sha256chain_bulk
+FPGA TOP TB PASS run 0 (exit string at 36489248 cycles after reset release)
+AXI: 10577 AR (84616 R beats), 2935 AW (23480 W beats, 2935 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

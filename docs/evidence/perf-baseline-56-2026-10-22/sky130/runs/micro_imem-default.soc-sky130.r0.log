@@ -1,0 +1,27 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/soc_rtl_tb_sky130 40000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_imem-default/micro_imem.bin --exit-string 'SIGIL TEST PASS micro_imem' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/micro_imem-default.soc-sky130.r0.perf
+loaded 37808 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_imem-default/micro_imem.bin
+SIGIL PERF region=1 cycles=77 instret=9
+MICRO region=1 empty ops=49152 cycles=77 instret=9 cycles/op=0.002
+SIGIL PERF region=2 cycles=156178 instret=49932
+MICRO region=2 ifoot_1k ops=49152 cycles=156178 instret=49932 cycles/op=3.177
+SIGIL PERF region=3 cycles=151858 instret=49548
+MICRO region=3 ifoot_2k ops=49152 cycles=151858 instret=49548 cycles/op=3.090
+SIGIL PERF region=4 cycles=150418 instret=49420
+MICRO region=4 ifoot_3k ops=49152 cycles=150418 instret=49420 cycles/op=3.060
+SIGIL PERF region=5 cycles=150850 instret=49356
+MICRO region=5 ifoot_4k ops=49152 cycles=150850 instret=49356 cycles/op=3.069
+SIGIL PERF region=6 cycles=173914 instret=49292
+MICRO region=6 ifoot_6k ops=49152 cycles=173914 instret=49292 cycles/op=3.538
+SIGIL PERF region=7 cycles=185458 instret=49260
+MICRO region=7 ifoot_8k ops=49152 cycles=185458 instret=49260 cycles/op=3.773
+SIGIL PERF region=8 cycles=185098 instret=49228
+MICRO region=8 ifoot_12k ops=49152 cycles=185098 instret=49228 cycles/op=3.766
+SIGIL PERF region=9 cycles=184918 instret=49212
+MICRO region=9 ifoot_16k ops=49152 cycles=184918 instret=49212 cycles/op=3.762
+SIGIL PERF region=10 cycles=184738 instret=49196
+MICRO region=10 ifoot_24k ops=49152 cycles=184738 instret=49196 cycles/op=3.759
+SIGIL PERF region=11 cycles=184648 instret=49188
+MICRO region=11 ifoot_32k ops=49152 cycles=184648 instret=49188 cycles/op=3.757
+MICRO CHECK OK micro_imem iterations=49152 regions=11
+SIGIL TEST PASS micro_imem
+SOC RTL TB PASS (exit string at 2090986 cycles)

@@ -1,0 +1,25 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb_sky130 200000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain-sdk/sha256chain.bin --exit-string 'SIGIL TEST PASS sha256chain' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/sha256chain-sdk.axi-sky130.r1.perf
+loaded 27096 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain-sdk/sha256chain.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=16009842 instret=3714095
+RESULT sha256 plain C: 1024 hash, 16009842 cycles, 3714095 instret, cycles/hash 15634.61, bytes/cycle 0.0020, hash/s at 62.5 MHz 3998, at 100 MHz 6396
+SIGIL PERF region=1 cycles=11005533 instret=2731056
+RESULT sha256 Zknh: 1024 hash, 11005533 cycles, 2731056 instret, cycles/hash 10747.59, bytes/cycle 0.0030, hash/s at 62.5 MHz 5815, at 100 MHz 9304
+SIGIL PERF region=2 cycles=5068955 instret=219769
+RESULT sha256 RVV x16: 1024 hash, 5068955 cycles, 219769 instret, cycles/hash 4950.15, bytes/cycle 0.0065, hash/s at 62.5 MHz 12626, at 100 MHz 20201
+SIGIL PERF region=3 cycles=811204 instret=159761
+RESULT sha256 accel sigil_sha256_block: 1024 hash, 811204 cycles, 159761 instret, cycles/hash 792.19, bytes/cycle 0.0404, hash/s at 62.5 MHz 78895, at 100 MHz 126232
+SIGIL PERF region=4 cycles=4528557 instret=1026070
+RESULT sha256 accel sigil_sha256: 1024 hash, 4528557 cycles, 1026070 instret, cycles/hash 4422.42, bytes/cycle 0.0072, hash/s at 62.5 MHz 14133, at 100 MHz 22612
+SIGIL PERF region=5 cycles=3866106 instret=1005592
+RESULT sha512 accel sigil_hash: 1024 hash, 3866106 cycles, 1005592 instret, cycles/hash 3775.49, bytes/cycle 0.0170, hash/s at 62.5 MHz 16554, at 100 MHz 26487
+SIGIL PERF region=6 cycles=2171164 instret=555038
+RESULT sha3-256 accel sigil_hash: 1024 hash, 2171164 cycles, 555038 instret, cycles/hash 2120.28, bytes/cycle 0.0151, hash/s at 62.5 MHz 29477, at 100 MHz 47164
+sha256 chain h_1024 = 014f68f1316b596d8f66923bacb9555f83e22c9887068760371c5b3f299e464b
+SHA256CHAIN CHECK OK hashes=1024
+SIGIL TEST PASS sha256chain
+FPGA TOP TB PASS run 0 (exit string at 44871462 cycles after reset release)
+AXI: 845 AR (6760 R beats), 93 AW (744 W beats, 93 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

@@ -1,0 +1,19 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/soc_rtl_tb_sky130 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin --exit-string 'SIGIL TEST PASS sha256chain_bulk' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/sha256chain_bulk-sdk.soc-sky130.r1.perf
+loaded 25912 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=15924106 instret=3701929
+RESULT sha256 plain C: 64 KiB, 15924106 cycles, 3701929 instret, cycles/KiB 248814.16, bytes/cycle 0.0041, KiB/s at 62.5 MHz 251, at 100 MHz 402
+SIGIL PERF region=1 cycles=10935280 instret=2735407
+RESULT sha256 Zknh: 64 KiB, 10935280 cycles, 2735407 instret, cycles/KiB 170863.75, bytes/cycle 0.0060, KiB/s at 62.5 MHz 366, at 100 MHz 585
+SIGIL PERF region=2 cycles=5420381 instret=224321
+RESULT sha256 RVV x16: 64 KiB, 5420381 cycles, 224321 instret, cycles/KiB 84693.45, bytes/cycle 0.0121, KiB/s at 62.5 MHz 738, at 100 MHz 1181
+SIGIL PERF region=3 cycles=376546 instret=66449
+RESULT sha512 accel sigil_hash: 64 KiB, 376546 cycles, 66449 instret, cycles/KiB 5883.53, bytes/cycle 0.1740, KiB/s at 62.5 MHz 10623, at 100 MHz 16997
+SIGIL PERF region=4 cycles=374887 instret=66044
+RESULT sha3-256 accel sigil_hash: 64 KiB, 374887 cycles, 66044 instret, cycles/KiB 5857.61, bytes/cycle 0.1748, KiB/s at 62.5 MHz 10670, at 100 MHz 17072
+sha256 of the 64 KiB buffer = 4af0113637fb17b7940e0dcc462dd1ff004effed74281f36ade27a6de61ca6a1
+SHA256CHAIN_BULK CHECK OK kib=64
+SIGIL TEST PASS sha256chain_bulk
+SOC RTL TB PASS (exit string at 36130159 cycles)
