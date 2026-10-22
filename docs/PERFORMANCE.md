@@ -53,7 +53,7 @@ source deps/env.sh
 make -C sim perf                                  # every bench, default config, both memory models
 make -C sim perf BENCHES=dhrystone CONFIG="default sky130 fpga" JOBS=8
 make -C sim perf BENCHES=dhrystone MEM=soc REPEAT=2   # determinism check
-make -C sim perf ITER=200                         # quick smoke (not a result)
+make -C sim perf ITER=1                           # quick smoke: every bench, 1 iteration (not a result)
 make -C sim perf BENCHES=kernels VARIANTS=scalar CLOCK_MHZ="62.5 100"
 make -C sim perf BENCHES=coremark VARIANTS=scalar ITER=1000 MAX_CYCLES=1500000000
 ```
@@ -65,7 +65,7 @@ make -C sim perf BENCHES=coremark VARIANTS=scalar ITER=1000 MAX_CYCLES=150000000
 | `MEM` | `soc axi` | testbench and memory model: `soc`, `axi` (§4) |
 | `JOBS` | 4 | simulations run in parallel |
 | `REPEAT` | 1 | runs of each simulation; >1 checks determinism (§6) |
-| `ITER` | bench.json | overrides every bench's iteration count |
+| `ITER` | bench.json | overrides every bench's iteration count. It scales every bench, so a large value is slow: at `ITER=200`, `kernels` needs about 680 M cycles and fails at its 2e8 `max_cycles` limit, and CoreMark runs 10 times its default length |
 | `VARIANTS` | every variant | build variants to run, by name; a selected bench with none of them is skipped |
 | `MAX_CYCLES` | bench.json | overrides every bench's `max_cycles` simulation limit (long runs) |
 | `CLOCK_MHZ` | none | clocks for the report's projected-throughput table (§8), e.g. `"62.5 100"` |
