@@ -132,26 +132,27 @@ run() {
 # Merge every run directory into one CSV row per (format, mode, op).
 summary() {
   local csv=$1 d
-  echo "function,instruction,rounding_mode,level,selection,stride,seed,cases_in_selection,cases_checked,fails,chunks,result,cpu_seconds" > "$csv"
+  echo "function,instruction,rounding_mode,level,selection,stride,seed,level2_cases_per_mode,cases_in_selection,cases_checked,fails,chunks,result,cpu_seconds" > "$csv"
   for d in "$L2"/f*_s*_*; do
     [ -d "$d" ] || continue
-    local tag fmt stride op bin npairs
+    local tag fmt stride op bin npairs full
     tag=$(basename "$d"); fmt=${tag%%_*}; fmt=${fmt#f}
     stride=$(echo "$tag" | sed 's/^f[0-9]*_s\([0-9]*\)_.*/\1/'); op=${tag##*_}
     bin="$ROOT/$OUT/tf_l2_f$fmt"
     npairs=$("$bin" info "$stride" | awk '{print $10}')
+    full=$("$bin" info 1 | awk '{print $12}')
     local m
     for m in 0 1 2 3 4; do
       ls "$d"/r_"${m}"_*.txt >/dev/null 2>&1 || continue
       cat "$d"/r_"${m}"_*.txt | awk -v fn="f${fmt}_mulAdd" -v op="$op" -v fmt="$fmt" \
-        -v rmn="$(rm_name "$m")" -v stride="$stride" -v seed="$SEED" -v want=$((2 * npairs)) '
+        -v rmn="$(rm_name "$m")" -v stride="$stride" -v seed="$SEED" -v want=$((2 * npairs)) -v full="$full" '
         { chk += $7; fl += $8; n++; if ($9 != "PASS") bad++; cpu += $10 }
         END {
           sx = (fmt == 32) ? ".s" : ".d";
           ins = (op == "fma") ? "fmadd" sx : (op == "fms") ? "fmsub" sx : (op == "fnms") ? "fnmsub" sx : (op == "fnma") ? "fnmadd" sx : "fmadd" sx "/fmsub" sx "/fnmsub" sx "/fnmadd" sx " (rotating)";
           sel = (stride == 1) ? "complete level-2 stream" : "every " stride "th grid triple + first random triples";
           res = (bad == 0 && chk == want) ? "PASS" : (bad == 0 ? "PARTIAL" : "FAIL");
-          printf "%s,%s,%s,2,%s,%s,%s,%d,%d,%d,%d,%s,%d\n", fn, ins, rmn, sel, stride, seed, want, chk, fl, n, res, cpu
+          printf "%s,%s,%s,2,%s,%s,%s,%s,%d,%d,%d,%d,%s,%d\n", fn, ins, rmn, sel, stride, seed, full, want, chk, fl, n, res, cpu
         }' >> "$csv"
     done
   done
