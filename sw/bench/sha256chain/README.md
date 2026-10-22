@@ -60,6 +60,15 @@ The build needs `python3` (see *Validation*).
     strided segment loads (`vlsseg8e32`) fetch a block of every lane,
     and a byte gather (`vrgather.vv`, e8) converts it from big-endian.
     The padding block is shared: every lane reads it with stride 0.
+  - Plain strided loads (`vlse32`, one per word) would be a poor fit. The
+    segments sit 4 KiB apart at 64 KiB, so the 16 lanes' lines of a
+    block all fall in the same 4-way D$ set. One strided load per word
+    would cycle 16 lines through that set 16 times per block and thrash
+    it. Each segment load reads 8 consecutive words of one line per
+    lane.
+  - An empty `asm` barrier finishes words 0–7 before the second segment
+    load. Without it, GCC issues both loads first and spills a register
+    group with whole-register stores.
 - **Accelerator**: the SDK driver as shipped (`sw/sdk/lib/accel.c`).
   - The SHA-256 engine compresses one block from the IV per start, with
     no chaining. It can hash each 32-byte chain step, which is exactly
@@ -71,6 +80,28 @@ The build needs `python3` (see *Validation*).
     digest words are the next message words 0–7. `sigil_sha256()` is
     the byte API, which packs, pads and unpacks the bytes on every call.
   - The SHA-512 chain hashes the whole 64-byte digest at each step.
+
+## Build
+
+Both benchmarks use the SDK flags (`sw/sdk/sdk.mk`: `-O2 -mstrict-align
+-mcmodel=medany -ffreestanding -std=gnu11`) with the SDK default
+`-march` (`rv64gcv` plus B, Zbc, Zcb, Zicond, Zbk\* and Zkn\*), so one
+image holds every implementation. The variant is `sdk`. The Makefiles add
+`-falign-functions=64`, which starts every function on an I$ line:
+
+- The front end fetches 4-byte words, so shifting a function by 2 bytes
+  changes which of its 32-bit instructions straddle two words.
+- With identical instructions, the Zknh chain measured 7,212 cycles per
+  hash at offset 2 mod 4 and 6,753 at offset 0. Before the flag was
+  added, the code linked before the function decided the offset, and
+  that code changed with the iteration count.
+- The SDK's `sigil_hash` chains gained the most: the SHA-512 chain took
+  43% more cycles before alignment (evidence:
+  `docs/evidence/perf-sha256chain-56-2026-10-22`).
+- With the flag, each region's code placement does not depend on the
+  code linked before it.
+
+Each region is a single call: the accelerator loops are functions too.
 
 ## Inputs
 

@@ -15,7 +15,8 @@ KAT_H := $(OUT)/sha256chain_kat_$(BENCH_ITERATIONS).h
 # Every function starts on an I$ line (64 B). The front end fetches
 # 4-byte words, so a 2-byte shift of a function changes which 32-bit
 # instructions straddle two words: with the same instructions, the Zknh
-# chain took 7,212 cycles/hash at offset 2 mod 4 and 6,758 at offset 0.
+# chain took 7,212 cycles/hash at offset 2 mod 4 and 6,753 at offset 0
+# (docs/evidence/perf-sha256chain-56-2026-10-22).
 # Aligning keeps each region's code placement independent of the code
 # linked before it (the iteration count, linker relaxation).
 EXTRA_CFLAGS += -falign-functions=64
