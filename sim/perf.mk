@@ -3,6 +3,7 @@
 #
 #   make -C sim perf [BENCHES="dhrystone ..."] [CONFIG="default sky130 fpga"]
 #                    [MEM="soc axi"] [JOBS=4] [REPEAT=1] [PERF_OUT=dir]
+#                    [VARIANTS="scalar ..."] [MAX_CYCLES=N] [CLOCK_MHZ="62.5 100"]
 #
 # Builds every benchmark under sw/bench/<name>/ (its Makefile on
 # sw/sdk/sdk.mk plus bench.json; BENCHES= selects, default all) once,
@@ -28,12 +29,21 @@
 #            fixed 24-cycle AR->R / W->B latency, no R gaps, always
 #            ready; the host drains the virtual UART every cycle)
 # ITER=N overrides every bench's "iterations" (quick checks only).
+# VARIANTS selects build variants by name (default: every variant of
+# every selected bench; a bench with none of them is skipped).
+# MAX_CYCLES=N overrides every bench's "max_cycles" simulation limit
+# (long runs, e.g. CoreMark at ITER=1000).
+# CLOCK_MHZ adds a projected-throughput table at those clocks to
+# report.md (simulation cycles; not a hardware measurement).
 CONFIG   ?= default
 MEM      ?= soc axi
 BENCHES  ?=
 JOBS     ?= 4
 REPEAT   ?= 1
 ITER     ?=
+VARIANTS ?=
+MAX_CYCLES ?=
+CLOCK_MHZ ?=
 PERF_OUT ?= $(abspath $(ROOT)/build/perf/run)
 PERF_SOC_ARGS ?= --mem-lat 1:1 --mem-gap 0 --mem-ready 100
 PERF_AXI_ARGS ?= --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100
@@ -62,5 +72,8 @@ perf: $(PERF_TB_FILES)
 	python3 $(abspath $(ROOT))/scripts/perf_run.py --root $(abspath $(ROOT)) \
 	  --out $(PERF_OUT) --benches "$(BENCHES)" --jobs $(JOBS) --repeat $(REPEAT) \
 	  $(if $(ITER),--iterations $(ITER)) --riscv-prefix $(RISCV_PREFIX) \
+	  $(if $(strip $(VARIANTS)),--variants "$(VARIANTS)") \
+	  $(if $(MAX_CYCLES),--max-cycles $(MAX_CYCLES)) \
+	  $(if $(strip $(CLOCK_MHZ)),--clock-mhz "$(CLOCK_MHZ)") \
 	  --soc-args "$(PERF_SOC_ARGS)" --axi-args "$(PERF_AXI_ARGS)" \
 	  $(foreach m,$(MEM),$(foreach c,$(CONFIG),--run $m:$c=$(abspath $(call perf_tb,$m,$c))))

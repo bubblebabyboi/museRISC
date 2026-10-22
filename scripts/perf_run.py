@@ -7,13 +7,16 @@ benchmark found under sw/bench/<name>/ (a Makefile on sw/sdk/sdk.mk plus
 bench.json) and every build variant it declares, this script
 
   1. builds the image once (make -C sw/bench/<name> OUT=... plus the
-     variant's make variables and BENCH_ITERATIONS),
+     variant's make variables and BENCH_ITERATIONS; --variants selects
+     variants by name),
   2. runs it on each testbench (JOBS at a time, REPEAT times each) with
      +sigil_perf=<file>, so the simulation-only counters in sigil_cpu
      write a SIGIL_PERF record at the program's sigil_perf_end(),
   3. validates the run: testbench exit status 0 on the exit string
-     "SIGIL TEST PASS <name>", every bench.json "expect" line in the
-     UART output, one SIGIL_PERF record per measured region with
+     "SIGIL TEST PASS <name>", every bench.json "expect" line (the
+     bench's and the variant's) in the UART output, one SIGIL_PERF
+     record per measured region (the bench's regions, or the variant's
+     "regions" subset) with
      cycles == mcycle delta, instret == minstret delta and the per-cycle
      accounting summing to cycles, and the program's own
      "SIGIL PERF region=<id> cycles=<n> instret=<n>" line (the hardware
@@ -83,6 +86,7 @@ def load_benches(root, wanted):
         b.setdefault("regions", {"0": "main"})
         b.setdefault("variants", {"default": {}})
         b.setdefault("bytes_per_iteration", 0)
+        check_bench(meta, b)
         b["dir"] = d
         found[name] = b
     if wanted:
@@ -94,6 +98,71 @@ def load_benches(root, wanted):
     if not found:
         sys.exit(f"perf: no benchmarks under {bench_dir}")
     return found
+
+
+REGION_NUM_KEYS = ("bytes_per_iteration", "work_per_iteration")
+
+
+def region_info(b, rid):
+    """bench.json "regions" entry rid as a dict: label, plus the optional
+    per-region bytes_per_iteration (default: the bench's),
+    work_per_iteration + work_unit and baseline (a region id)."""
+    v = b["regions"][str(rid)]
+    info = {"label": v} if isinstance(v, str) else dict(v)
+    info.setdefault("bytes_per_iteration", b.get("bytes_per_iteration", 0))
+    info.setdefault("work_per_iteration", 0)
+    info.setdefault("work_unit", "")
+    info.setdefault("baseline", None)
+    return info
+
+
+def variant_regions(b, vcfg):
+    """Region ids (strings) measured by one variant: the variant's
+    "regions" list, or every region of the bench."""
+    sel = vcfg.get("regions")
+    return [str(r) for r in sel] if sel is not None else list(b["regions"])
+
+
+def check_bench(meta, b):
+    """Checks the optional keys that perf_report.py relies on; exits with
+    a message naming the bench.json on the first error."""
+    def bad(msg):
+        sys.exit(f"perf: {meta}: {msg}")
+    if not isinstance(b["regions"], dict) or not b["regions"]:
+        bad("\"regions\" must be a non-empty object {\"<id>\": label or {...}}")
+    for rid, v in b["regions"].items():
+        if not rid.isdigit() or int(rid) > 255:
+            bad(f"region id {rid!r} must be 0..255")
+        if isinstance(v, str):
+            continue
+        if not isinstance(v, dict) or not isinstance(v.get("label"), str):
+            bad(f"region {rid}: a label string or an object with a \"label\"")
+        for k in REGION_NUM_KEYS:
+            if k in v and not (isinstance(v[k], (int, float)) and v[k] > 0):
+                bad(f"region {rid}: \"{k}\" must be a positive number")
+        if "work_per_iteration" in v and not v.get("work_unit"):
+            bad(f"region {rid}: \"work_per_iteration\" needs a \"work_unit\"")
+        if v.get("baseline") is not None and str(v["baseline"]) not in b["regions"]:
+            bad(f"region {rid}: baseline {v['baseline']!r} is not a declared region")
+    win = b.get("window_region")
+    if win is not None and str(win) not in b["regions"]:
+        bad(f"\"window_region\" {win!r} is not a declared region")
+    if "bytes_per_cycle" in b["metrics"]:
+        zero = [rid for rid in b["regions"] if not region_info(b, rid)["bytes_per_iteration"]]
+        if zero:
+            bad(f"metric bytes_per_cycle needs bytes_per_iteration (bench or region) for regions {zero}")
+    if not isinstance(b["variants"], dict) or not b["variants"]:
+        bad("\"variants\" must be a non-empty object")
+    for vname, vcfg in b["variants"].items():
+        sel = vcfg.get("regions")
+        if sel is not None:
+            if not isinstance(sel, list) or not sel:
+                bad(f"variant {vname}: \"regions\" must be a non-empty list of region ids")
+            unknown = [r for r in sel if str(r) not in b["regions"]]
+            if unknown:
+                bad(f"variant {vname}: regions {unknown} are not declared in \"regions\"")
+        if not isinstance(vcfg.get("expect", []), list):
+            bad(f"variant {vname}: \"expect\" must be a list")
 
 
 def build(bench, variant, vcfg, iterations, out_root, prefix):
@@ -113,10 +182,10 @@ def build(bench, variant, vcfg, iterations, out_root, prefix):
     binary = os.path.join(out, bench["name"] + ".bin")
     if p.returncode != 0 or not os.path.isfile(binary):
         sys.exit(f"perf: build of {bench['name']} ({variant}) failed, see {log}")
-    cc = next((l for l in p.stdout.splitlines() if re.match(r"^\S*gcc ", l)), "")
+    ccs = [l for l in p.stdout.splitlines() if re.match(r"^\S*gcc ", l)]
     return {"bin": binary, "elf": os.path.join(out, bench["name"] + ".elf"),
             "bin_sha256": sha256(binary), "build_log": log, "make": cmd[3:],
-            "cc_command": cc}
+            "cc_command": ccs[0] if ccs else "", "cc_commands": ccs}
 
 
 def parse_kv(text):
@@ -129,7 +198,7 @@ def parse_kv(text):
 
 def run_one(job):
     """Runs one (bench, variant, mem, config, rep); returns a result dict."""
-    b, variant, img, mem, cfg, tb, tb_args, rep, iters, out_root = job
+    b, variant, vcfg, img, mem, cfg, tb, tb_args, rep, iters, max_cycles, out_root = job
     tag = f"{b['name']}-{variant}.{mem}-{cfg}.r{rep}"
     rdir = os.path.join(out_root, "runs")
     log = os.path.join(rdir, tag + ".log")
@@ -137,7 +206,7 @@ def run_one(job):
     if os.path.exists(perf_file):
         os.remove(perf_file)
     exit_s = f"SIGIL TEST PASS {b['name']}"
-    cmd = ([tb, str(b["max_cycles"])] + shlex.split(tb_args) +
+    cmd = ([tb, str(max_cycles)] + shlex.split(tb_args) +
            ["--load", f"0x80000000={img['bin']}", "--exit-string", exit_s,
             "--fail-string", "SIGIL TEST FAIL", f"+sigil_perf={perf_file}"])
     t0 = time.time()
@@ -153,7 +222,7 @@ def run_one(job):
         errors.append(f"testbench exit status {p.returncode}")
     if exit_s not in text:
         errors.append(f"no '{exit_s}'")
-    for e in b["expect"]:
+    for e in b["expect"] + vcfg.get("expect", []):
         e = e.replace("{iterations}", str(iters))
         if e not in text:
             errors.append(f"expected line missing: '{e}'")
@@ -166,11 +235,14 @@ def run_one(job):
                 m = PERF_RE.match(line.strip())
                 if m:
                     records.append(parse_kv(m.group(1)))
-    extra = sorted({r.get("region") for r in records} - {int(k) for k in b["regions"]})
+    regions = variant_regions(b, vcfg)
+    extra = sorted({r.get("region") for r in records} - {int(k) for k in regions})
     if extra:
         errors.append(f"SIGIL_PERF records for undeclared regions {extra} (bench.json \"regions\")")
+    win = b.get("window_region")
     results = []
-    for rid, label in sorted(b["regions"].items(), key=lambda kv: int(kv[0])):
+    for rid in sorted(regions, key=int):
+        info = region_info(b, rid)
         rid = int(rid)
         recs = [r for r in records if r.get("region") == rid]
         rerr = list(errors)
@@ -190,13 +262,16 @@ def run_one(job):
         if rec and hwc is not None and not (0 <= rec["cycles"] - hwc < 1000):
             rerr.append(f"hardware-counter cycles {hwc} far from the window {rec['cycles']}")
         results.append({
-            "bench": b["name"], "variant": variant, "region": rid, "label": label,
+            "bench": b["name"], "variant": variant, "region": rid, "label": info["label"],
             "mem": mem, "config": cfg, "rep": rep, "iterations": iters,
             "tb": tb, "tb_args": tb_args, "log": log, "perf_file": perf_file,
             "bin_sha256": img["bin_sha256"], "wall_s": round(wall, 2),
             "hw_cycles": hwc, "hw_instret": hwi, "counters": rec,
-            "metrics": b["metrics"], "bytes_per_iteration": b["bytes_per_iteration"],
-            "ok": not rerr, "errors": rerr})
+            "metrics": b["metrics"], "bytes_per_iteration": info["bytes_per_iteration"],
+            "work_per_iteration": info["work_per_iteration"], "work_unit": info["work_unit"],
+            "baseline_region": None if info["baseline"] is None else int(info["baseline"]),
+            "window_region": None if win is None else int(win),
+            "max_cycles": max_cycles, "ok": not rerr, "errors": rerr})
     return results
 
 
@@ -210,6 +285,12 @@ def main():
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--iterations", type=int)
+    ap.add_argument("--variants", default="",
+                    help="build variants to run, by name (default: every variant)")
+    ap.add_argument("--max-cycles", type=int,
+                    help="simulation cycle limit for every bench (default: bench.json max_cycles)")
+    ap.add_argument("--clock-mhz", default="",
+                    help="clocks (MHz) for the report's projected-throughput table")
     ap.add_argument("--riscv-prefix", default="")
     ap.add_argument("--soc-args", default="")
     ap.add_argument("--axi-args", default="")
@@ -217,6 +298,29 @@ def main():
 
     root = os.path.abspath(a.root)
     benches = load_benches(root, a.benches.split())
+    if a.variants.split():
+        want = a.variants.split()
+        have = {v for b in benches.values() for v in b["variants"]}
+        missing = [v for v in want if v not in have]
+        if missing:
+            sys.exit(f"perf: no variant {' '.join(missing)} in the selected benches "
+                     f"(have: {' '.join(sorted(have))})")
+        for name in list(benches):
+            b = benches[name]
+            b["variants"] = {k: v for k, v in b["variants"].items() if k in want}
+            if not b["variants"]:
+                print(f"perf: {name}: none of the variants {' '.join(want)}; skipped", flush=True)
+                del benches[name]
+    for b in benches.values():
+        for vname, vcfg in b["variants"].items():
+            if vcfg.get("regions") is not None and any(str(r) not in b["regions"] for r in vcfg["regions"]):
+                sys.exit(f"perf: {b['name']} variant {vname}: \"regions\" names an undeclared region")
+    if a.max_cycles is not None and a.max_cycles < 1:
+        sys.exit("perf: --max-cycles must be positive")
+    try:
+        clocks = [float(c) for c in a.clock_mhz.split()]
+    except ValueError:
+        sys.exit(f"perf: bad --clock-mhz {a.clock_mhz!r} (MHz values, e.g. \"62.5 100\")")
     runs = []
     for spec in a.run:
         m = re.fullmatch(r"(\w+):(\w+)=(.+)", spec)
@@ -233,13 +337,15 @@ def main():
     images, jobs = {}, []
     for b in benches.values():
         iters = a.iterations or b["iterations"]
+        max_cycles = a.max_cycles or b["max_cycles"]
         for variant, vcfg in b["variants"].items():
             print(f"perf: build {b['name']} [{variant}] ({iters} iterations)", flush=True)
             img = build(b, variant, vcfg, iters, a.out, a.riscv_prefix)
             images[f"{b['name']}-{variant}"] = dict(img, variant_description=vcfg.get("description", ""))
             for mem, cfg, tb in runs:
                 for rep in range(a.repeat):
-                    jobs.append((b, variant, img, mem, cfg, tb, mem_args[mem], rep, iters, a.out))
+                    jobs.append((b, variant, vcfg, img, mem, cfg, tb, mem_args[mem], rep,
+                                 iters, max_cycles, a.out))
 
     print(f"perf: {len(jobs)} runs, {a.jobs} at a time", flush=True)
     results = []
@@ -281,6 +387,10 @@ def main():
         "python": platform.python_version(),
         "repeat": a.repeat,
         "jobs": a.jobs,
+        "iterations_override": a.iterations,
+        "max_cycles_override": a.max_cycles,
+        "variants_selected": a.variants.split() or None,
+        "clock_mhz": clocks,
         "mem_args": mem_args,
         "runs": [{"mem": m, "config": c, "tb": t} for m, c, t in runs],
         "images": images,
@@ -294,7 +404,8 @@ def main():
         json.dump({"meta": meta, "runs": ok, "failed": bad}, f, indent=1)
     rep = subprocess.run([sys.executable, os.path.join(root, "scripts", "perf_report.py"),
                           out_json, "--csv", os.path.join(a.out, "results.csv"),
-                          "--md", os.path.join(a.out, "report.md")], check=False)
+                          "--md", os.path.join(a.out, "report.md")]
+                         + (["--clock-mhz", a.clock_mhz] if clocks else []), check=False)
     if a.repeat > 1:
         print(f"perf: determinism over {a.repeat} repeats: "
               f"{'PASS (identical counts)' if not nondet else 'FAIL ' + str(nondet)}")
