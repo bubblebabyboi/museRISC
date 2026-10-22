@@ -60,6 +60,11 @@ def row(kern, runs, variant, mem, cfg):
         out[f"{name}_vls_pct"] = 100.0 * c.get("stk_vls", 0) / cyc
         out[f"{name}_vec_pct"] = 100.0 * c.get("stk_vec", 0) / cyc
         out[f"{name}_fpu_pct"] = 100.0 * c.get("stk_fpu", 0) / cyc
+        # Vector load/store cycles per D$ access: each vector element
+        # is one data-port access (the few scalar accesses in the
+        # region are counted too, so this is a slight underestimate).
+        acc = c.get("dc_load", 0) + c.get("dc_store", 0)
+        out[f"{name}_vls_cyc_per_access"] = c.get("stk_vls", 0) / acc if acc else None
     if not have:
         return None
     for name in ("RVV", "RVV-e8"):
@@ -99,21 +104,23 @@ def main():
         sel = [r for r in rows if (r["variant"], r["mem"], r["config"]) == (v, m, c)]
         md += [f"## {v} / {c} / {m}", "",
                "| Kernel | Work/call | C cyc/call | C units/cyc | C IPC | RVV cyc/call "
-               "| RVV units/cyc | RVV speedup | RVV: vector LS % | RVV: vector unit % |",
-               "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+               "| RVV units/cyc | RVV speedup | RVV: vector LS % | RVV: vector unit % "
+               "| RVV: LS cyc/access |",
+               "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
         for r in sel:
             md.append(
                 f"| {r['kernel']} | {r['units_per_call']:,} {r['unit']} "
                 f"| {fmt(r.get('C_cycles_per_call'), 1)} | {fmt(r.get('C_units_per_cycle'), 4)} "
                 f"| {fmt(r.get('C_ipc'), 3)} | {fmt(r.get('RVV_cycles_per_call'), 1)} "
                 f"| {fmt(r.get('RVV_units_per_cycle'), 4)} | {fmt(r.get('RVV_speedup'), 2)}x "
-                f"| {fmt(r.get('RVV_vls_pct'), 1)} | {fmt(r.get('RVV_vec_pct'), 1)} |")
+                f"| {fmt(r.get('RVV_vls_pct'), 1)} | {fmt(r.get('RVV_vec_pct'), 1)} "
+                f"| {fmt(r.get('RVV_vls_cyc_per_access'), 2)} |")
             if "RVV-e8_cycles_per_call" in r:
                 md.append(
                     f"| {r['kernel']} (RVV-e8) | {r['units_per_call']:,} {r['unit']} | | | "
                     f"| {fmt(r['RVV-e8_cycles_per_call'], 1)} | {fmt(r['RVV-e8_units_per_cycle'], 4)} "
                     f"| {fmt(r.get('RVV-e8_speedup'), 2)}x | {fmt(r['RVV-e8_vls_pct'], 1)} "
-                    f"| {fmt(r['RVV-e8_vec_pct'], 1)} |")
+                    f"| {fmt(r['RVV-e8_vec_pct'], 1)} | {fmt(r.get('RVV-e8_vls_cyc_per_access'), 2)} |")
         md.append("")
     # GCC auto-vectorization: the autovec image's C against the scalar
     # image's C (and the RVV intrinsics, from the scalar image).
