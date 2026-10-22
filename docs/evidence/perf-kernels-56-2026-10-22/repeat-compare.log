@@ -1,0 +1,9 @@
+# r0 vs r1 of every run: SIGIL_PERF records byte-identical; UART logs identical except the command line (record path)
+identical kernels-autovec.axi-default.r0.perf kernels-autovec.axi-default.r1.perf
+identical kernels-autovec.soc-default.r0.perf kernels-autovec.soc-default.r1.perf
+identical kernels-scalar.axi-default.r0.perf kernels-scalar.axi-default.r1.perf
+identical kernels-scalar.soc-default.r0.perf kernels-scalar.soc-default.r1.perf
+identical after line 1: kernels-autovec.axi-default.r0.log kernels-autovec.axi-default.r1.log
+identical after line 1: kernels-autovec.soc-default.r0.log kernels-autovec.soc-default.r1.log
+identical after line 1: kernels-scalar.axi-default.r0.log kernels-scalar.axi-default.r1.log
+identical after line 1: kernels-scalar.soc-default.r0.log kernels-scalar.soc-default.r1.log

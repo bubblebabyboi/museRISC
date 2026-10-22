@@ -1,0 +1,50 @@
+# Gates for the #56 performance harness at its final RTL, sigil-verify (EC2 c7i.8xlarge, Ubuntu 24.04),
+# deps/ Verilator 5.048 + riscv64-unknown-elf-gcc 16.1.0, VJOBS=6. Reference: core-test on main eeaa332,
+# same host, fresh worktree, VJOBS=6. Coverage of the harness run is from a clean cov_*.dat set (core-test first).
+
+== harness branch ==
+host ip-172-31-65-164 start 2026-10-22T08:30:18Z head 534f846e0ea26f7d5be4e882e3149a3e6d36c324
+lint-5.048 rc=0 20s
+lint-5.020 rc=0 20s
+core-test rc=0 3096s
+riscv-tests rc=0 33s
+make-test rc=0 5s
+end 2026-10-22T09:23:12Z
+
+make lint, Verilator 5.048 2026-04-26 rev v5.048: 17 lint runs, 0 warnings/errors
+make lint, Verilator 5.020 2024-01-01 rev (Debian 5.020-1): 17 lint runs, 0 warnings/errors
+make lint, Verilator 5.044 (macOS Homebrew, edit host): clean (same 17 runs)
+make test: ALL PHASE-0 KATs PASS
+make core-test: 235 TB PASS lines, 0 FAIL/TIMEOUT; ALL 7 EXAMPLES PASS on soc_rtl_tb
+  coverage: lines with all attached points covered : 55.00%  (3491/6252)
+make riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+== main eeaa332 reference ==
+host ip-172-31-65-164 start 2026-10-22T06:57:51Z head eeaa33299d7ba6df5743375ebeed9475b3f206b4
+core-test rc=0 2367s
+make core-test: 235 TB PASS lines, 0 FAIL/TIMEOUT
+  coverage: lines with all attached points covered : 55.00%  (3491/6252)
+
+== comparison ==
+core-test PASS lines with cycle counts and wall times stripped: 0 lines differ
+core-test PASS lines verbatim (incl. cycle counts): 12 lines differ, all only in wall-clock seconds (every cycle count identical, SDK examples included):
+205,206c205,206
+< EXAMPLE PASS ed25519_verify (at 14630075 cycles, 91 s)
+< EXAMPLE PASS fp_math (at 47399 cycles, 1 s)
+---
+> EXAMPLE PASS ed25519_verify (at 14630075 cycles, 79 s)
+> EXAMPLE PASS fp_math (at 47399 cycles, 0 s)
+208c208
+< EXAMPLE PASS hello (at 53902 cycles, 1 s)
+---
+> EXAMPLE PASS hello (at 53902 cycles, 0 s)
+211c211
+< EXAMPLE PASS vector_dot (at 811390 cycles, 5 s)
+---
+> EXAMPLE PASS vector_dot (at 811390 cycles, 7 s)
+218,219c218,219
+< FPGATOP EXAMPLE PASS hello (at 54787 cycles, 0 s)
+< FPGATOP EXAMPLE PASS timer_irq (at 51985 cycles, 1 s)
+---
+> FPGATOP EXAMPLE PASS hello (at 54787 cycles, 1 s)
+> FPGATOP EXAMPLE PASS timer_irq (at 51985 cycles, 0 s)

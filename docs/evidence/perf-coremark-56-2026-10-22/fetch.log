@@ -1,0 +1,30 @@
+# fetch_coremark.sh from a clean destination, then upstream md5 list and sha256 of the files used
+# date_utc: 2026-10-22T10:55:22Z  branch commit: 45260527dfc4273c9cb1b589fe2e403f58fe75df
+$ bash sw/bench/coremark/fetch_coremark.sh build/cm-fetch-check/coremark
+coremark: fetched eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146 into /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark (sha256 verified)
+exit 0
+$ git -C build/cm-fetch-check/coremark log -1 --format="%H %ad %s" --date=iso
+b56889a7bd9d5624fbeff2a73ba69878e6a9c146 2025-05-01 17:38:50 +0100 Merge pull request #69 from joseph-yiu/main
+$ md5sum -c coremark.md5   (upstream make check)
+core_list_join.c: OK
+core_main.c: OK
+core_matrix.c: OK
+core_state.c: OK
+core_util.c: OK
+coremark.h: OK
+$ sha256sum core_list_join.c core_main.c core_matrix.c core_state.c core_util.c coremark.h coremark.md5 LICENSE.md
+ca00e4e010ece47d7f040cb92aa50a95345a00d3171b59d088f6b243be06ce7b  core_list_join.c
+17884c93c5b94378eb0ff02b4df3725756cf2addb9b8cbcaa6200a4649ff5ca7  core_main.c
+ecdff717b5a5c4907d221a606760e25499899cbf617582c05d40db71c91351e4  core_matrix.c
+f4b84bb0a3452c45a4daa664ab502bfdccbd31cb57d93e9ac490c60937717a4e  core_state.c
+a3fbfcb9bb943b638624b8ece01c5836dd56a96d7bcde2697b248d077447327f  core_util.c
+29f7eb0f0bdf6002f6c7dccfa4f8f9f32c0b8f6709f6538c2b73221938a9c8f1  coremark.h
+dad92861212f8f012e75974e23ea97f7a275a375e0d3bc1d3b216423ba6b6306  coremark.md5
+9577b9c846f61fd69a0d8ac965998c6450c7d8969f71f0bb4a931b91aebad28a  LICENSE.md
+$ bash sw/bench/coremark/fetch_coremark.sh build/cm-fetch-check/coremark   (re-run: verify only)
+coremark: /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
+exit 0; tree written: no
+$ echo "/* x */" >> core_main.c; bash fetch_coremark.sh ...   (modified tree is refused)
+coremark: /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark exists but does not match the pinned sources;
+coremark: remove it and re-run sw/bench/coremark/fetch_coremark.sh
+exit 1

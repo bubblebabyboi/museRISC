@@ -258,6 +258,15 @@ void sigil_delay_cycles(uint64_t n) {
   }
 }
 
+/* Performance-harness regions (sigil_perf_begin / sigil_perf_end). */
+sigil_perf_t sigil_perf_start_;
+
+sigil_perf_t sigil_perf_report_(unsigned id, sigil_perf_t t) {
+  sigil_printf("SIGIL PERF region=%u cycles=%llu instret=%llu\n", id,
+               (unsigned long long)t.cycles, (unsigned long long)t.instret);
+  return t;
+}
+
 extern char _end[], _ram_end[];
 static uintptr_t heap_next;
 

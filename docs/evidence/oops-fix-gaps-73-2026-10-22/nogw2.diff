@@ -1,0 +1,14 @@
+diff --git a/rtl/core/sigil_mmu.sv b/rtl/core/sigil_mmu.sv
+index 1ad9518..745a8ac 100644
+--- a/rtl/core/sigil_mmu.sv
++++ b/rtl/core/sigil_mmu.sv
+@@ -432,8 +432,7 @@ module sigil_mmu (
+   logic walk_preempt;
+   assign walk_preempt = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
+                         !req_is_data_q && miss_d;
+-  assign walk_abandon_o = walk_preempt ||
+-                          ((state_q == W_G_READ) && g_width_fault);
++  assign walk_abandon_o = walk_preempt;
+ 
+   // A/D update atomicity. A leaf PTE that needs A/D was read in
+   // the walker's last port access; MEM going before the write-back

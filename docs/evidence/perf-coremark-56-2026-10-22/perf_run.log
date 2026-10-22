@@ -1,0 +1,25 @@
+make: Entering directory '/home/ubuntu/wt/56-perf-coremark/sim'
+python3 /home/ubuntu/wt/56-perf-coremark/scripts/perf_run.py --root /home/ubuntu/wt/56-perf-coremark \
+  --out /home/ubuntu/wt/56-perf-coremark/build/perf/cm-default --benches "coremark" --jobs 12 --repeat 2 \
+   --riscv-prefix riscv64-unknown-elf- \
+  --soc-args "--mem-lat 1:1 --mem-gap 0 --mem-ready 100" --axi-args "--axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100" \
+  --run soc:default=/home/ubuntu/wt/56-perf-coremark/build/sim/soc_rtl_tb --run axi:default=/home/ubuntu/wt/56-perf-coremark/build/sim/fpga_top_tb
+perf: build coremark [scalar] (20 iterations)
+perf: build coremark [sdk] (20 iterations)
+perf: build coremark [validation] (20 iterations)
+perf: 12 runs, 12 at a time
+perf: coremark[scalar] region 0 soc/default rep 0: cycles=14337806 instret=5246413 (177.17 s) PASS
+perf: coremark[scalar] region 0 soc/default rep 1: cycles=14337806 instret=5246413 (192.45 s) PASS
+perf: coremark[scalar] region 0 axi/default rep 0: cycles=14339056 instret=5246413 (164.57 s) PASS
+perf: coremark[scalar] region 0 axi/default rep 1: cycles=14339056 instret=5246413 (170.23 s) PASS
+perf: coremark[sdk] region 0 soc/default rep 0: cycles=14572507 instret=5238336 (170.17 s) PASS
+perf: coremark[sdk] region 0 soc/default rep 1: cycles=14572507 instret=5238336 (197.95 s) PASS
+perf: coremark[sdk] region 0 axi/default rep 0: cycles=14573757 instret=5238336 (169.89 s) PASS
+perf: coremark[sdk] region 0 axi/default rep 1: cycles=14573757 instret=5238336 (163.44 s) PASS
+perf: coremark[validation] region 0 soc/default rep 0: cycles=14364787 instret=5253779 (191.67 s) PASS
+perf: coremark[validation] region 0 soc/default rep 1: cycles=14364787 instret=5253779 (171.65 s) PASS
+perf: coremark[validation] region 0 axi/default rep 0: cycles=14366037 instret=5253779 (168.86 s) PASS
+perf: coremark[validation] region 0 axi/default rep 1: cycles=14366037 instret=5253779 (175.58 s) PASS
+perf: determinism over 2 repeats: PASS (identical counts)
+perf: 12 runs valid, 0 failed; /home/ubuntu/wt/56-perf-coremark/build/perf/cm-default/results.json, /home/ubuntu/wt/56-perf-coremark/build/perf/cm-default/report.md
+make: Leaving directory '/home/ubuntu/wt/56-perf-coremark/sim'

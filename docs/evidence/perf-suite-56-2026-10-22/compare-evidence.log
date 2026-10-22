@@ -1,0 +1,12 @@
+docs/evidence/perf-dhrystone-56-2026-10-22/results.json: benches dhrystone; evidence date 2026-10-22T08:34:51Z commit 534f846 rtl 89b98cb227c6
+  8 runs in common (32 in evidence): image identical 8/8, counters identical 8/8
+docs/evidence/perf-coremark-56-2026-10-22/results.json: benches coremark; evidence date 2026-10-22T09:39:42Z commit 320cf57 rtl 89b98cb227c6
+  12 runs in common (12 in evidence): image identical 12/12, counters identical 12/12
+docs/evidence/perf-kernels-56-2026-10-22/results.json: benches kernels; evidence date 2026-10-22T10:24:31Z commit 7ea3e51 rtl 89b98cb227c6
+  224 runs in common (224 in evidence): image identical 224/224, counters identical 224/224
+docs/evidence/perf-micro-56-2026-10-22/results.json: benches micro_dmem micro_imem micro_pipe micro_units micro_vec; evidence date 2026-10-22T09:54:30Z commit 904d59e rtl 89b98cb227c6
+  420 runs in common (420 in evidence): image identical 420/420, counters identical 420/420
+docs/evidence/perf-sha256chain-56-2026-10-22/results.json: benches sha256chain sha256chain_bulk; evidence date 2026-10-22T09:55:45Z commit 2b8e1ae rtl 89b98cb227c6
+  48 runs in common (48 in evidence): image identical 48/48, counters identical 48/48
+suite: 712 valid runs, 0 failed; 712 compared with evidence, 0 not in any evidence set
+RESULT: IDENTICAL

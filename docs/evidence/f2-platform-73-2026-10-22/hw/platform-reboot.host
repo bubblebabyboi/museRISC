@@ -1,0 +1,18 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x00000ac1)
+[sigil_host] loaded /home/ubuntu/pay/fw/f2_platform_test.bin: 2296 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 2.95 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded pmem-marker.bin: 8 bytes at 0xc80000000 (PCIS 0xc00000000) in 0.000 s = 0.06 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 30 s
+
+[sigil_host] finisher: reboot (#1) -- reloading and releasing again
+[sigil_host] loaded /home/ubuntu/pay/fw/f2_platform_test.bin: 2296 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 5.49 GB/s, head/tail verified in 0.000 s
+[sigil_host] reboot: pmem-marker.bin at 0xc80000000 (pmem window) kept, not reloaded
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 30 s (after reboot)
+
+[sigil_host] result: PASS (finisher: power off) after 0.030 s, 1848046 core cycles
+[sigil_host] reboots: 1
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000009 pc 0xffffffff80d2f35a, STATUS 0x00000ac0
+[sigil_host] saved 0xc80000000+0x1000 (PCIS 0xc00000000) to pmem-after.bin: PCIS read 0.000 s = 0.12 GB/s, file write 0.002 s

@@ -1,0 +1,22 @@
+SIGIL PERF region=0 cycles=5238324 instret=5238324
+2K performance run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 5238324
+Total time (secs): 0.083813
+Iterations/Sec   : 238.625942
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 20
+Compiler version : GCC16.1.0
+Compiler flags   : -march=rv64gcv_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno
+Memory location  : STACK
+seedcrc          : 0xe9f5
+[0]crclist       : 0xe714
+[0]crcmatrix     : 0x1fd7
+[0]crcstate      : 0x8e3a
+[0]crcfinal      : 0x4983
+Errors detected
+COREMARK performance run: iterations=20 cycles=5238324 instret=5238324 cycles/iteration=261916 CoreMark/MHz=3.818
+COREMARK NOTE timed region 0.083 s at 62500000 Hz < 10 s: core_main's 10 s ERROR and 'Errors detected' lines refer to that run rule only (not reportable as a CoreMark score)
+COREMARK CRC seedcrc=0xe9f5 crclist=0xe714 crcmatrix=0x1fd7 crcstate=0x8e3a crcfinal=0x4983 (crcfinal matches the host reference)
+COREMARK CHECK OK iterations=20
+SIGIL TEST PASS coremark

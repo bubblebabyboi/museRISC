@@ -1,0 +1,260 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded sigil-debian-13-riscv64.ext4: 8589934592 bytes at 0xc80000000 (PCIS 0xc00000000) in 2.382 s = 3.61 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded fw_jump.bin: 277840 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 3.68 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded Image: 15470592 bytes at 0x80200000 (PCIS 0x200000) in 0.004 s = 3.60 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded sigil-f2-ddr2g-minisa.dtb: 6548 bytes at 0x83000000 (PCIS 0x3000000) in 0.000 s = 7.94 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 1500 s
+
+OpenSBI v1.9
+   ____                    _____ ____ _____
+  / __ \                 / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \  _ < | |Platform HART Count         : 1
+Platform IPI Device         : aclint-mswi
+Platform Timer Device       : aclint-mtimer @ 62500000Hz
+Platform HSM Device         : ---
+Platform Reboot Device     Platform Shutdown Device    : Ptform Suspend Device    : ---
+   65 KB
+), 23 KB (free)
+04 B (used), 3592 B (free)
+Standard SBI Extensions     : time,rfnc,ipi,base,hsm,srst,pmu,dbcn,fwExperimental SBxteonsnon
+Domainame       : t
+ainoot HDomain0 HARTs              0x0Domain0 Regi0      : 0000800000000M: R,W/U:
+egi    : 000000000fffF,R,X) : (Dom0 M: (I,) S     ,R,W) S/U: (R,W)
+Domain0 Region04            : 0x0000000002000000-0x000000000200ffff S/U: ()
+M: (I,R,W) S/U: (RDomain0 Region06         : 000000000000-0xffffffffffffffff Domain0 Next Address      Domain0 Next Arg1           : 0x0000000083000000
+Domain0 SysReset           : yes
+Boot HART ID                : 0
+Boot HART Priv Version      : v1.12
+,d
+RT Debug Triggers    : 1 triggers
+0666
+[    0.000000] Linux version 6.12.114-sigil (sigil@sigil-buOct 22 07:20:18 UTC 2
+xn[    0.000000] SBI SRT extension detected
+[    0.000000] SBI DBCN extension detected
+[    0.000000] earlycon: sbi0 at I/O poomap non-reusable mmode_resv1@80000000
+vedm: 000080000x0008005ffff (128 KiB) nomap non-reusable mem 0xffff7200-0xffff857f]
+[    0.000000]   DMA32    [mem 0x0000000080000000-0x00000000ffffffff]
+[    0.000000]   Normal   empty
+[    0.000000] Movable zone start for each node
+ noran
+d96 016sbi root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl
+e hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+ity grouping on.  Total pages: 524288
+[    0.000000] Policy zone: DMA32
+it: stack:off, heap alloc:off, heap free:off
+rcu: Hierarchical RCU implementation.
+ng CPUs from NR_CPUS=4 to nr_cpu_ids=1.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU culd ve ocheer-istt dy iiff.00RCTasks Trace: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+ riscv-intc: 64 local interrupts mapped
+[    0.000000] riscv: providing IPIs using SBI IPI extensi[  .00cloce:es: 0xff clefffmaxns:6046ns[    0.000000] clocksce:scvockrceaskxffffffff_cyce20 madle: 8053
+[  .00schck:ts Hz,utis, every 4398046511096ns
+er frequency.. 125.00 BogoMIPS (lpj=625000)
+68 minimum: 301
+pability
+ entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.023045] Mountpoint-cache hash table entries: 4096 (order: 3, 32768 bt[    0.132627] ASID allocator using 16 bits (65536 entries)
+[    0.140222] rcu: Hierarchical S phase no-delay innces 1.
+[    0.172703] smp: Bringing up secondary CPUs ...
+available (6012K kel e, 4 rwdata, 2048K rodata, 2191K init, 383K bss, 69136K reserved, 0K cma[    0.206489] devtmpfs: iiazed
+[    0.268626] futex hash tablenent inid.r atomic allocations
+ si prllocated 0 pages
+[    0.708483] clocksource: Switched to clocksource riscv_clocksource
+der, 244 es,nea: 7, 524288 bytes, linear)
+  1787TCPashbleonfredstashe384 bind 16384)
+[    1.134039] UDP hash table entries: 1024 (order: 3, 32768 bytes, linear)
+[    1.137254] UDP-Lite hash table entries: 1024 (order: 3, 32768by_[    1.149034] kvm [1]: hypervisor extension not available
+[    1.216387][    1.241384] io scheduler kyber registered
+[    1.243042] io scheduler bfq registere
+[    1.256082] riscv-plic: interrupt-controller@c000000: mapped 32 interrupts with [    1.314616] printk: lcy soltty died
+[    1.331620] 10000000.serial: ttyS0 at MMIO 0x10000000 (rq=242] printk:bleoop: module loaded
+ersal TUN/Tnable to guarantee p.rtc: registered[    1.492318] goldfish_ting system clock to 2026-10-22T10:02:31 UTC (17[    1.504740] rextension is available
+cv-i: mwa 2 [    1.52[    1.574388] Segment Routing with IPv6
+[    1.5792 (IOAM) with IPv6
+2488] sit: IPv6, IPv4 a[    1[    1.610344] Keygistered
+[    2.2bling unused clocks
+f48bf ro evice 259:0.
+708eined el imag init pr[    6.456172] systemd[1]: systemd 257.13PAR +I+IPSMA+SEMP RYPGNU +OSSL+ +IDN2 -IDN TC OD BCRSET+LIYPTUP_GINLIBSK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM
+Welcome toan GNU/Linux 13 (trix! systemd[1]: Initializing machine ID from random gener[   32.007578] systemd[1]: bpf-resFel, BPF LSM not supported.
+ed start job for default target multi-user.target.
+etty.
+e system-getty.slicel€¦slice - Sl0m] Creed slicce.-assword-console.path - Dispatch [  OK  ] Started systemd-ask-swosoâequ[   69.043745] systemd[1]: Started systemd-ask-password-wall.path - Forward Password Re0m] Started [0;€¦d Requests to Wall Directo
+able File FormatsFile System Automount Point.
+2m   ] Sup osys-biâ€¦mors F System Automouect device  systemd[1]: Reached target paths.target - Path Units.
+et remo0m] Reached target sliarget - Swaps.
+0m] Reached target swap.target - Swning on systemd-creds.socket - Credential Encryp[  OK  -creds.socket - Credential ]s0m] Listening on systemd-initctl.sockeâipe.socket - Journal Socket (/dev/log).
+ Socket (/[   69.62sys]: ingsternaketrnaets0m] Listening on systemSockets.
+[   69.633702] systemd[1]: systemd-pcrextesoc - R Mmenpp unmet condition check ConditionSecurity=measured-uki
+[   69.640654] systemd[1]: systemd-pcrlock.socket - Make TPM PC-uk[   69.664010] systemd[1]: Listening on systemd-udevd-control.socket - udev Contol l Socket[   69.883599] systemd[1]: Mounting dev-hugepages.mount - Huge Page         Mountin0m - Huge Pages [   70.197367] systemd[1dev-mtem.
+703sysd[1Mouny /run/lockmou- Kel ug e Sem.[   71.447841] systemd[1]: sys-kernel-tracing.mount - Kdit ch CotiothEts=s/ktra.25sys]: tpot-Temporary Directory /tmp...
+ount - Temporary Directory /[   72.385605] systemd[1]: kmod-ice Nodes skipped, unmet condition check ConditionFileNotEmpty=/ame
+ystemd[1]: systemd-hibernate-clear.service - Clear Stale Hibernate Storage Info skippedution check ConditionPathExists=/sys/firmware/efi/efivars/HibernateLocation-8cf2644b-4b0b-428f-93-d[   74.734578] systemd[1]: Starting systemd-journald.serce - Journal Service...
+         Startinl Service...
+rtitemlesser Loneodules...
+ad Kernel Modulerement skipped, unmet condition check ConditionSecurity=measured-uki
+Syss..         Starting systemd-remount-fs.se
+[   79.154490] systemd[1]: Starting systemd-tmpfiles-setup-dev-early.servv gracefully...
+  [   82.705839] systemd[1]: Sarting systemd-udev-trigger.service - Coldplug All udev Devices...
+md-udev-trigger. s File S[   88.370495] systemd[1]: Mounted dev-mqueue.mount - POSIMesX Mess Qu Fism.ed run-lock.mount - Legacy Locks Directory /run/lock.
+[   ] Munt - Legacy Locks Directory /run/lo[   90.330460] systemd[1]: Mounted sys-kernel-debug.mount - Kernel Debug File System.
+[  OK  ] Mounted rnel Debug File System.
+m[  M ] (1 of 7) Job systemd-udev-load-credâ€¦ice25s / no limit)
+M***   f 7)b semdev-d-câ€¦/st run li)0m31mb syste*** ] (2md-journald.service/start runnin
+*] (2ice/start runnin31m*] (3 of 7) Je/start running (29s / no limit)
+    **ystemd-remount-fs.service/start running (29s / M[  ;31[0;1m0m31m[0m4 o) Jsysd-tileetu¦ictar li
+1m*[0m4 7) Job systelimit)
+[0;1m*mmd-udev-tger.sysoduad.e -M[ temodu-loseres.
+rningst tua aca
+1] #1]uleed mm:obeain12.gil[  101.65960 epc : folio_lruvec_lock_irqsave+0x42/0x86
+f1d0ee sp :ca18 tp : ffffffd6017ed240 t0 : 000000000000001[  101.663986]  s1 : ffffffd602aca000 a0 : ffffffc5000d3800 a1 : ffffffc6001d3ba0
+0
+[  101.665748]  a5 : ffffff2 ffffffff80f159a0
+[  101.666629]  s2 : fffc[  101.669267]  s11: 0000000000003 :00000000 :0[  101.670098]  t5 : 0000000000000000 t6 : ffffffd60344e000
+: 0000000 badr:fff02acau000101175[<ffff1ee>] io_vecck_[  101.67402 e>] set_pte_range+0x136/0x13e
+[  101.676344] [<ffffffff80189932>] finish_fault+0x2bc/0x3e[  101.677494] [<ffffffff8018defe>] __handle_mm_fault+0xd7a/0x12[  101.678731] [<ffffffff8018e528>] handle_mm_faul+0110/0x1b6
+93 
+nd trace 00
+OpenSBI v1.9
+   _           __________  \____/| .__/ \___|_| |_|_____/|___Platform HART Count         : 1
+Platform IPI Device         : aclint-mswi
+Platform Shtown Device    : syscon-poweroff
+Platform CPPC Device        : ---
+80000000
+Firmware Size               : 321 KB
+Firmware RW Off      0x40
+mwaRW iz            : 6 eRuntimainame   in0 HARTs       Domain0 Region00   ) S/U: ()
+    : 0x0000000080000000-0x000000008003ffff M: (I,R,WDomain0 Region03            : 0x00000000,R,W) S/U: (R,W)
+Domain0 Region04            : 0x0000000002000000-0x000000000200ffff ) S/U: ()
+M: (I,R,W) ainS/UR,W,X yes
+RT Base ISA          : rv64imafdcbvh
+BooARTA Ensi    : zicntr,sdtrig,f,d
+Boot HART PMP Granularity   : 2 bits
+Boot HART MHPM Info22Thu2 16 U6
+0] nentation ID=0x1 Version=0x10009
+[    0.000000] SBI TIME extension detected
+[    0.000000] SBI IPI extension detected
+[    0.000000] SBI RFECo 0x0 op[    0.000000 prnled 4-level and 5-level paging
+[    0.000000] efi: UEFI not fm28 KiB) nomap non-reusable mmode_resv0@80040000
+[    0.000000] OF: NUMA: parsing numa-distance-map-v1
+c7fc80c7ffff  0000NOD almem8c8b9f[    0.000000]   DMA32    [mem 0x0000000080000000-0x00000000ffffffff]
+[    0.000000] Early memory node ranges
+000
+00000c7fffffff]
+ffffff]
+up node 1 [mem 0x0000001080000000-0x000000147fffffff]
+[    0.000000] SBI HSM extension deteted
+[    0.000000] ris base  exsioacdm
+[  gs/cpu s4der for Node 0: 0 1 
+[    0.000000] Fallback order for Node 1: 1 0 
+[    0.000000] Built 2 zonelists=1, Nodes=2
+[    0.000000] rcu: Hierarchical RCUple s RCU enabled.
+st=1 rcu_task_cpu_ids=1.
+ated irqs: 0
+[    0.000ource: jiffies: mask: 0xffffffff max_cycles: 0ffles: 0x1cd42e208c, max_idle_ns: 881590405314 ns
+[    0.000035] sched_clock:ns, wraps every 4398046511096ns
+[    0.008027] Calibrating delay oo skipped), value calculated im[  837he hash table entries: 131072 (order: 8, 1048576 bytes, vmalloc)
+10o SRCU implementation.
+[    3.080635] rcu: 	Max phase no-delay instances is 1000.es will not be available.
+[    3.112542] smp: Bringing upena P .
+ (kernERNEL pool for atomic allocations
+KERNEL|GFP_Dram lctions
+[    3.747371pu0: Riistered 2.00 MiB page size, pre-allocated 0 pages
+8 KiB vmemmap can be freed for a 2.00 MiB page
+witched to clocksrcericPF_INET protocol family
+262144 (order: 9, 2097152 bytes, vmalloc)
+[    6.276675] tcp_listen_portaddr_hash hash table entries: 32768 (orde: 7, 52288 byt, vmal (eshed63[    6.848679] UDP-Lite hash table entries: 32768 (order: 8, 1048576 bytes, vmallo
+ available
+[    6.928161] kvm [1]: usingv39 -able format
+4 t_order=0
+ (API version 7.41)
+[    7.162741] lf registered
+[    7.238] cv-c: iu[    7.261241] Serial: 8250/16550 driver, 1po[    7.339231] printk: legacy console [ttyS0] disabled
+acy console [ttyS0] enabled
+[    7.357068] printk: legacy console [ttyS0] enabled
+r, 1.6
+424] nd_pmem namespace0.0: nable to guarantee peegistered as rtc0
+[    7.595685] goldfish_rtc 1010001792663862)
+cv-pmusbpmu-sion[    7.655627] NET: Registered PF_I Routing [    7.742088] In-AM O4811] sit: IPv6, IPv4 and MP[    7.767858] NE_PACKET protocol family
+6] Key type dns_resolver re[    8.72on targets for Node 1: nu[  .749] : Dbnuse4K
+
+OSBI.9   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | _ __  |_V6 Platform Features           : medeleg
+Platform HART Count         : 1
+Platform HART Protection    : pmpPlarm  Dee     acl-ms
+tfoTimDev    : intime 62000
+PlormnsoPlatform HSM Device         : ---
+Platform Reboot Device      : syscon-reboot
+Platform Shutdown Device    : syscon-poweroff
+Platform Suspend Device     : ---
+Bas  Heaize    : 7 (total), 0 KB (reserved), 13 KB (used), 23 KB (free)
+Firmware Scratch Size       : 4096 B (total), 504 B (used), 3592 B (free)
+Runtime SBI Version         : 3.0
+Standard SBI EDomain0 Name                : root
+        on00     Domain0 Region01            : 0x0000000080000000-0x000000008003ffff ) S/U: ()
+M: (I,R,WDomain0 Region03       x000000)
+M: (I,R,W) S/U: (R,W)
+Domain0 Region06            : 0x0000000000000000-0xffffffffffffffff M: () S/UR,W
+Din0xt ress        : 0x00000000802000Domain0 SysReset            : yes
+v1.
+Boot HART PMP Gulay  2 b
+Boot H PMddr Bi : 
+BoHARBoot HART Debug Triggers    : 1 triggers
+Boot HART MIDELEG           : 0x0000000000000666
+[    0.000000] Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutilbuntu) 2.42) #4 SMP Thu Oct 22 10:03:06 UTC 2026
+[    0.000000] Machine model: Sigil RV64 SoC on AWS F2 (VU47P)
+ [    0.000000] SBI IPI extension detected
+[    0.000000] SBI RFENCE extension detected
+[    0.000000] SBI SRST xtens    bootconsole [sbi0] enabled
+[    0.000000] Disabled 4-level and 5-level paging
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x0000000080000000..0x000000008003ffff (256 KiB) nomap n[    0.000000] OF: reserved mem: 0x00000080400..0x00000008005ff[    0.000000] OF: NUMA: parsing numa-distance-map-v1
+atemem1478c8x14b9f
+[  .000] MA32  [[    0.000000]   Normal   [mem 0x0000000100000000-0x000000147fffffff]
+[    0.000000] Movable zone [    0.000000] Early memory node ranges
+   [mex000000000x000005f]
+000  n   [mex000006000x0000fffff][  .000] ode1: m 000080000-00047ffff  0000Inim sp n 0 m 000080000-000c7ffff[    0.000000] Initmem setup node 1 m 000080000-00047ffff  0.00] rv bs ISA extensions acdfhim
+[    0.000000] riscv: ELF capabilities acdfim
+[    0.000000] percpu: Embedded 21 pages/cpu s45528 r8192 d32296 u86016
+[    0.000000] Kernel command line: console=ttyS[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000]softr [    0.000000] software IO TLB: mapped [mem 0x00000000fbfff000-0x00000000fffff000] (64MB)
+0] B: lig4, er=0-3, MinObjects=0, CPUs=1, Node2rcuarcRCUplemeni[    0.000000] rcu: 	RCU restrictingUs m NPUSto cpus=1[    0.000000] 	Tracing variant ofsks Uenbed000rcuCU culd ve ocheer-istt dy i0 jies[   0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] RCU Ta Tr: Singifto 0 an[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] riscv-intc: 64 local intuptapp
+  0000ris prdinPIsingI Iextion[  .000] : s_in Seng u_sct es ed contio
+[  .00000cloour jffie: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.000000] clocksource: riscv_clockourc a:0xfffffffffff max_cycles: 0x1cd42e208c, max_idle_ns: 881590405314 ns
+[    0.000035] sched_clock: 64 bits at 63MHz, resolution 16ns, wraps every 4398046511096ns
+ulated using timer frequency.. 125.00 BogoMIPS (lpj=625000)
+474LSMnitizilsmpaby
+4, vmalloc hugepa
+[  .916] nt-he h te eies310(or: 8048576tesmal)
+tri 132 (er: 1076 es,mallo [    3.113149] smp: Bringing up secondary CPUs ...
+[    3.114091] smp: Brought up 2 nodes, 1 CPU
+, rt, 48[    3.424098] devtmpfs: initial
+2 ([    3.503955] DMI not present or inval
+[    3.548576] NET: Registered PF_NETLINKPF_ROUlocations
+ eallocated 409.,  3837HugeT[    3.849260] HugeTLB  3935cloour Swhed clsou ri_clsou
+[    4.029581] NET: Registered PF_INET protocol fa[    6837 tcp_l.310] le-turashbletri 65 (oer: 2614 bytes, vmalloc)
+.66TCPnd h te eies553ord 9097b[    6.773790] UDP hash table entries: 32768 (order: 8, 1048576 byts, vmalloc)
+tes, vloc[    6.923588] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    6.926858] kvm [1]: hypervisor extension available
+alabl[    7.074111] workingset: timestamp_bits=44 max_ord[    7307fusiniAPIrsi1)[    7.10816NETegired_ALrotl fly[    7.162279] io scheduler kyber registered
+rt with 1 handlers for 2 contexts.
+  7078Ser: 8/16 drr, ortIRQaridised  150[    7.302410] printk: legacy [    7.303694] printk: legacy bootconsole [sbi0] [    7.376123] loop: mo[    7.413471] tun: 504538] nd_pmem naof writes
+s_rtc 101000.rtc: setting system clock to 2-10T10:37C (1792664497)
+cv-pmu-sbi: SBI PMU extension is available
+[    7.557687] riscv-pmu-sbi: 16 firmware a[    7.558y
+[    7.6956AM (IOAM) with IPv6
+ IPv6, IPv4 and MPLS over[    7.721567] NET: Registered PF[    7.725629] Key type dns_reso677Demon getor e 0ull[    8.71758Demon gefr Nod 1: nl[    8.734730] clk: Disabling unused clocks
+.821] einnuskel im[    8.826586] Run /init as init process
+memstress: singl
+
+[sigil_host] result: TIMEOUT (timeout) after 1500.000 s, 93750136662 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x000000000000000f pc 0x00000000000107f8, STATUS 0x000002c1

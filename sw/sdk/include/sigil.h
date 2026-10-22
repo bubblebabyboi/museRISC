@@ -116,13 +116,18 @@ __attribute__((noreturn)) void sigil_check_failed(const char *expr,
 #define sigil_csr_clear(csr, bits) \
   __asm__ volatile("csrc " SIGIL_STR(csr) ", %0" ::"rK"((uint64_t)(bits)) : "memory")
 
+/* The counter reads and the perf-region markers below are always
+ * inlined, also under -fno-inline (Dhrystone's ground rules), so a
+ * measured region has no call overhead at its edges. */
+#define SIGIL_ALWAYS_INLINE static inline __attribute__((always_inline))
+
 /* Core clock cycles / retired instructions since reset (64-bit). */
-static inline uint64_t sigil_rdcycle(void) {
+SIGIL_ALWAYS_INLINE uint64_t sigil_rdcycle(void) {
   uint64_t v;
   __asm__ volatile("rdcycle %0" : "=r"(v));
   return v;
 }
-static inline uint64_t sigil_rdinstret(void) {
+SIGIL_ALWAYS_INLINE uint64_t sigil_rdinstret(void) {
   uint64_t v;
   __asm__ volatile("rdinstret %0" : "=r"(v));
   return v;
@@ -138,18 +143,50 @@ static inline uint64_t sigil_rdtime(void) {
 typedef struct {
   uint64_t cycles, instret;
 } sigil_perf_t;
-static inline sigil_perf_t sigil_perf_now(void) {
+SIGIL_ALWAYS_INLINE sigil_perf_t sigil_perf_now(void) {
   sigil_perf_t p;
   p.cycles = sigil_rdcycle();
   p.instret = sigil_rdinstret();
   return p;
 }
-static inline sigil_perf_t sigil_perf_since(sigil_perf_t start) {
+SIGIL_ALWAYS_INLINE sigil_perf_t sigil_perf_since(sigil_perf_t start) {
   sigil_perf_t p = sigil_perf_now();
   p.cycles -= start.cycles;
   p.instret -= start.instret;
   return p;
 }
+
+/* Measured region for the performance harness (make -C sim perf,
+ * docs/PERFORMANCE.md):
+ *   sigil_perf_begin();  work();  sigil_perf_t t = sigil_perf_end();
+ * sigil_perf_begin() writes the begin marker, then snapshots
+ * mcycle/minstret; sigil_perf_end() snapshots them, writes the end
+ * marker, prints "SIGIL PERF region=<id> cycles=<n> instret=<n>" and
+ * returns the delta. A marker is one write to mhpmevent31, which this
+ * core ignores (no architectural effect, no pipeline flush). In
+ * simulation the event counters in sigil_cpu count every cycle between
+ * the two markers and write a SIGIL_PERF record; on hardware only the
+ * mcycle/minstret numbers exist. One region is open at a time; the
+ * _id forms tag it (0..255) when a program measures several. */
+#define SIGIL_PERF_MARK_CSR mhpmevent31
+#define SIGIL_PERF_MAGIC 0x50450000UL /* marker[63:16] = "PE" */
+extern sigil_perf_t sigil_perf_start_;
+SIGIL_ALWAYS_INLINE void sigil_perf_mark_(uint64_t v) {
+  __asm__ volatile("csrw " SIGIL_STR(SIGIL_PERF_MARK_CSR) ", %0" ::"r"(v)
+                   : "memory");
+}
+SIGIL_ALWAYS_INLINE void sigil_perf_begin_id(unsigned id) {
+  sigil_perf_mark_(SIGIL_PERF_MAGIC | ((uint64_t)(id & 0xffu) << 8) | 1u);
+  sigil_perf_start_ = sigil_perf_now();
+}
+sigil_perf_t sigil_perf_report_(unsigned id, sigil_perf_t t);
+SIGIL_ALWAYS_INLINE sigil_perf_t sigil_perf_end_id(unsigned id) {
+  sigil_perf_t t = sigil_perf_since(sigil_perf_start_);
+  sigil_perf_mark_(SIGIL_PERF_MAGIC | ((uint64_t)(id & 0xffu) << 8) | 2u);
+  return sigil_perf_report_(id, t);
+}
+SIGIL_ALWAYS_INLINE void sigil_perf_begin(void) { sigil_perf_begin_id(0); }
+SIGIL_ALWAYS_INLINE sigil_perf_t sigil_perf_end(void) { return sigil_perf_end_id(0); }
 
 static inline void sigil_fence(void) { __asm__ volatile("fence" ::: "memory"); }
 /* Required after writing instructions to memory (D$ write-back +

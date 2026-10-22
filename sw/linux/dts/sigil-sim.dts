@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+ * Sigil SoC in Verilator (soc_tb / soc_rtl_tb): 128 MiB RAM at
+ * 0x8000_0000, no pmem, no NUMA, no finisher/RTC models. Boots the
+ * kernel's embedded initramfs (/init prints SIGIL_LINUX_BOOT_OK).
+ * The timebase is notional (mtime ticks once per simulated cycle);
+ * 10 MHz keeps the timer-interrupt rate of the recorded boot gate.
+ */
+/include/ "sigil.dtsi"
+
+/ {
+	model = "Sigil RV64 SoC (Verilator)";
+
+	chosen {
+		bootargs = "console=ttyS0,115200 earlycon=sbi cryptomgr.notests initcall_debug loglevel=8 rw no4lvl";
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x08000000>;
+	};
+
+	soc {
+		/delete-node/ poweroff;
+		/delete-node/ reboot;
+		/delete-node/ test@100000;
+		/delete-node/ rtc@101000;
+	};
+};

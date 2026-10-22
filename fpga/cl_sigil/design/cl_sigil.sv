@@ -1,26 +1,37 @@
-// Sigil SoC as an AWS EC2 F2 Custom Logic (issue #54, FPGA F3).
+// Sigil SoC as an AWS EC2 F2 Custom Logic (issues #54, #65, #66, #67).
 // Small Shell, aws-fpga HDK v2.3.5 (shell 0x10212415), part
 // xcvu47p-fsvh2892-2-e. Architecture, register map and clock recipe:
-// docs/FPGA_F2.md "F3".
+// docs/FPGA_F2.md; memory map: docs/LINUX_PLATFORM.md.
 //
 //   Shell SDA ---------------------------> AWS_CLK_GEN (clock recipes)
 //                                            | clk_extra_b1 = core clock
+//                                            | clk_hbm_axi  = HBM AXI (recipe H0, 250 MHz)
 //   Shell OCL (clk_main_a0) -> AXI-Lite clock converter
 //                            -> sigil_fpga_ocl.s_axil (core clock)
 //                                 sigil_ocl_regs + sigil_fpga_top
-//                                   (SoC, mbus->AXI4 bridge @512 bit)
+//                                   (SoC, mbus->AXI4 bridge @512 bit,
+//                                    80 GiB RAM window, memory engine)
 //   sigil_fpga_ocl.m_axi (core clock) -> AXI4 clock converter
 //                            -> SmartConnect 2x2 "ATG" port --+
-//   Shell PCIS (host loads DDR) -> register slice             |
-//                            -> SmartConnect 2x2 "XDMA" port -+
-//          SmartConnect DDRA (0x0 .. 64 GiB) -> sh_ddr (Shell DDR4)
-//          SmartConnect DDRB (64 GiB ..)     -> DECERR responder
+//   Shell PCIS (host, SLR1) -> register slices SLR1, SLR2      |
+//                            -> SmartConnect 2x2 "XDMA" port -+  (SLR2)
+//          SmartConnect DDRA (AXI 0x0 .. 64 GiB) -> sh_ddr (Shell DDR4, SLR2)
+//          SmartConnect DDRB (AXI 0x10_0000_0000 ..)
+//            -> register slices SLR2, SLR1, SLR0 -> cl_sigil_hbm (SLR0):
+//               AXI4->AXI3 + clock converter -> HBM IP, 16 GiB
+//               (EN_HBM = 0: a DECERR responder instead)
+//
+// SoC physical address = AXI address + 0x8000_0000 for both: DDR4 at
+// PA 0x8000_0000 .. 0x10_7FFF_FFFF, HBM at 0x10_8000_0000 ..
+// 0x14_7FFF_FFFF; PCIS (AppPF BAR4) offset = AXI address.
 //
 // Clock domains: clk_main_a0 (250 MHz: Shell interfaces, SmartConnect,
-// DDR controller AXI) and the core clock clk_extra_b1 from AWS_CLK_GEN
+// DDR controller AXI), the core clock clk_extra_b1 from AWS_CLK_GEN
 // group B (recipe B1 = 62.5 MHz interim; B5 = 100 MHz once #53
-// closes timing). The only crossings are the two Xilinx AXI clock
-// converters and XPM CDC cells.
+// closes timing), and the HBM clocks (clk_hbm_axi, clk_hbm_ref). The
+// only crossings are the Xilinx AXI clock converters (incl. the one in
+// the HBM SmartConnect), the HBM wrapper's own XPM cells and XPM CDC
+// cells.
 //
 // Resets: sh_ddr gets rst_main_n only (HDK rule). The main-domain
 // fabric uses AWS_CLK_GEN cl_rst_main_n. The core domain and both
@@ -34,11 +45,15 @@
 `ifndef SIGIL_CORE_CLK_KHZ
   `define SIGIL_CORE_CLK_KHZ 62500
 `endif
+// AWS_CLK_GEN HBM-group recipe of the build (H0 = 250 MHz clk_hbm_axi).
+`ifndef SIGIL_HBM_RECIPE
+  `define SIGIL_HBM_RECIPE 0
+`endif
 
 module cl_sigil
 #(
   parameter EN_DDR = 1,
-  parameter EN_HBM = 0
+  parameter EN_HBM = 1
 )
 (
   `include "cl_ports.vh"
@@ -159,8 +174,9 @@ module cl_sigil
     end
 
   logic ddr_ready;          // clk_main_a0
+  logic hbm_ready;          // clk_main_a0
   logic soc_in_reset, soc_mem_err;   // clk_core
-  logic [2:0] status_main;  // clk_main_a0 copies for the virtual LEDs
+  logic [3:0] status_main;  // clk_main_a0 copies for the virtual LEDs
 
   xpm_cdc_array_single #(.WIDTH(2)) CDC_STATUS (
     .src_clk  (clk_core),
@@ -169,15 +185,17 @@ module cl_sigil
     .dest_out (status_main[1:0])
   );
   assign status_main[2] = ddr_ready;
+  assign status_main[3] = hbm_ready;
 
   always_comb begin
-    cl_sh_status0     = {29'd0, status_main};
+    cl_sh_status0     = {28'd0, status_main};
     cl_sh_status1     = 32'd0;
     cl_sh_status2     = 32'd0;
     cl_sh_id0         = `CL_SH_ID0;
     cl_sh_id1         = `CL_SH_ID1;
-    // vLED[0] SoC held in reset, [1] AXI error, [2] DDR calibrated
-    cl_sh_status_vled = {13'd0, status_main};
+    // vLED[0] SoC held in reset, [1] AXI error, [2] DDR calibrated,
+    // [3] HBM ready
+    cl_sh_status_vled = {12'd0, status_main};
     cl_sh_dma_wr_full = 1'b0;
     cl_sh_dma_rd_full = 1'b0;
   end
@@ -241,13 +259,22 @@ module cl_sigil
   //===========================================================================
   // Sigil SoC + OCL registers (core clock)
   //===========================================================================
-  logic ddr_ready_core;
+  logic ddr_ready_core, hbm_ready_core;
   xpm_cdc_single CDC_DDR_READY (
     .src_clk  (gen_clk_main_a0),
     .src_in   (ddr_ready),
     .dest_clk (clk_core),
     .dest_out (ddr_ready_core)
   );
+  xpm_cdc_single CDC_HBM_READY (
+    .src_clk  (gen_clk_main_a0),
+    .src_in   (hbm_ready),
+    .dest_clk (clk_core),
+    .dest_out (hbm_ready_core)
+  );
+  // SoC RAM window: DDR4 64 GiB + HBM 16 GiB (AXI 0x0 .. 0x14_0000_0000).
+  localparam logic [63:0] RAM_SIZE = EN_HBM ? 64'h0000_0014_0000_0000
+                                            : 64'h0000_0010_0000_0000;
 
   // Core-side AXI4 master (512-bit, matches the Shell DDR4 width).
   logic [15:0]  c_awid, c_bid, c_arid, c_rid;
@@ -268,13 +295,16 @@ module cl_sigil
     .AXI_ADDR_W   (64),
     .AXI_DATA_W   (512),
     .AXI_ID       (16'h0000),
-    .RAM_SIZE     (64'h0000_0000_0800_0000),  // 128 MiB, sw/linux/sigil.dts
-    .DDR_BASE     (64'h0),                    // SoC 0x8000_0000 -> DDR 0x0
-    .CORE_CLK_KHZ (32'(`SIGIL_CORE_CLK_KHZ))
+    .RAM_SIZE     (RAM_SIZE),                 // docs/LINUX_PLATFORM.md
+    .DDR_BASE     (64'h0),                    // SoC 0x8000_0000 -> AXI 0x0
+    .CORE_CLK_KHZ (32'(`SIGIL_CORE_CLK_KHZ)),
+    .HBM_PRESENT  (EN_HBM != 0),
+    .HBM_RECIPE   (4'(`SIGIL_HBM_RECIPE))
   ) SIGIL (
     .clk_i          (clk_core),
     .rst_ni         (core_rst_n),
     .ddr_ready_i    (ddr_ready_core),
+    .hbm_ready_i    (hbm_ready_core),
     .soc_in_reset_o (soc_in_reset),
     .mem_err_o      (soc_mem_err),
     .s_axil_awaddr  (ocl_awaddr),
@@ -438,8 +468,21 @@ module cl_sigil
   );
 
   //===========================================================================
-  // PCIS (host -> DDR loads) -> register slice
+  // PCIS (host -> DDR4 / HBM loads) -> register slices (SLR1, SLR2)
   //===========================================================================
+  logic [15:0]  p1_awid, p1_bid, p1_arid, p1_rid;
+  logic [63:0]  p1_awaddr, p1_araddr;
+  logic [7:0]   p1_awlen, p1_arlen;
+  logic [2:0]   p1_awsize, p1_arsize;
+  logic [1:0]   p1_awburst, p1_arburst, p1_bresp, p1_rresp;
+  logic [2:0]   p1_awprot, p1_arprot;
+  logic         p1_awlock, p1_arlock;
+  logic [3:0]   p1_awcache, p1_arcache, p1_awqos, p1_arqos;
+  logic         p1_awvalid, p1_awready, p1_wvalid, p1_wready, p1_wlast;
+  logic         p1_bvalid, p1_bready, p1_arvalid, p1_arready;
+  logic         p1_rvalid, p1_rready, p1_rlast;
+  logic [511:0] p1_wdata, p1_rdata;
+  logic [63:0]  p1_wstrb;
   logic [15:0]  p_awid, p_bid, p_arid, p_rid;
   logic [63:0]  p_awaddr, p_araddr;
   logic [7:0]   p_awlen, p_arlen;
@@ -495,44 +538,129 @@ module cl_sigil
     .s_axi_rlast    (cl_sh_dma_pcis_rlast),
     .s_axi_rvalid   (cl_sh_dma_pcis_rvalid),
     .s_axi_rready   (sh_cl_dma_pcis_rready),
-    .m_axi_awid     (p_awid),
-    .m_axi_awaddr   (p_awaddr),
-    .m_axi_awlen    (p_awlen),
-    .m_axi_awsize   (p_awsize),
-    .m_axi_awburst  (p_awburst),
-    .m_axi_awlock   (p_awlock),
-    .m_axi_awcache  (p_awcache),
-    .m_axi_awprot   (p_awprot),
+    .m_axi_awid     (p1_awid),
+    .m_axi_awaddr   (p1_awaddr),
+    .m_axi_awlen    (p1_awlen),
+    .m_axi_awsize   (p1_awsize),
+    .m_axi_awburst  (p1_awburst),
+    .m_axi_awlock   (p1_awlock),
+    .m_axi_awcache  (p1_awcache),
+    .m_axi_awprot   (p1_awprot),
     .m_axi_awregion (),
-    .m_axi_awqos    (p_awqos),
+    .m_axi_awqos    (p1_awqos),
+    .m_axi_awvalid  (p1_awvalid),
+    .m_axi_awready  (p1_awready),
+    .m_axi_wdata    (p1_wdata),
+    .m_axi_wstrb    (p1_wstrb),
+    .m_axi_wlast    (p1_wlast),
+    .m_axi_wvalid   (p1_wvalid),
+    .m_axi_wready   (p1_wready),
+    .m_axi_bid      (p1_bid),
+    .m_axi_bresp    (p1_bresp),
+    .m_axi_bvalid   (p1_bvalid),
+    .m_axi_bready   (p1_bready),
+    .m_axi_arid     (p1_arid),
+    .m_axi_araddr   (p1_araddr),
+    .m_axi_arlen    (p1_arlen),
+    .m_axi_arsize   (p1_arsize),
+    .m_axi_arburst  (p1_arburst),
+    .m_axi_arlock   (p1_arlock),
+    .m_axi_arcache  (p1_arcache),
+    .m_axi_arprot   (p1_arprot),
+    .m_axi_arregion (),
+    .m_axi_arqos    (p1_arqos),
+    .m_axi_arvalid  (p1_arvalid),
+    .m_axi_arready  (p1_arready),
+    .m_axi_rid      (p1_rid),
+    .m_axi_rdata    (p1_rdata),
+    .m_axi_rresp    (p1_rresp),
+    .m_axi_rlast    (p1_rlast),
+    .m_axi_rvalid   (p1_rvalid),
+    .m_axi_rready   (p1_rready)
+  );
+
+  // Second PCIS slice in SLR2 (the SmartConnect, DDR4 and SoC live
+  // there; PCIS enters in SLR1).
+  axi_register_slice PCIS_SLC2 (
+    .aclk           (gen_clk_main_a0),
+    .aresetn        (main_rst_n),
+    .s_axi_awid     (p1_awid),
+    .s_axi_awaddr   (p1_awaddr),
+    .s_axi_awlen    (p1_awlen),
+    .s_axi_awsize   (p1_awsize),
+    .s_axi_awburst  (p1_awburst),
+    .s_axi_awlock   (p1_awlock),
+    .s_axi_awcache  (p1_awcache),
+    .s_axi_awprot   (p1_awprot),
+    .s_axi_awregion (4'd0),
+    .s_axi_awqos    (p1_awqos),
+    .s_axi_awvalid  (p1_awvalid),
+    .s_axi_awready  (p1_awready),
+    .s_axi_wdata     (p1_wdata),
+    .s_axi_wstrb     (p1_wstrb),
+    .s_axi_wlast     (p1_wlast),
+    .s_axi_wvalid    (p1_wvalid),
+    .s_axi_wready    (p1_wready),
+    .s_axi_bid      (p1_bid),
+    .s_axi_bresp     (p1_bresp),
+    .s_axi_bvalid    (p1_bvalid),
+    .s_axi_bready    (p1_bready),
+    .s_axi_arid     (p1_arid),
+    .s_axi_araddr   (p1_araddr),
+    .s_axi_arlen    (p1_arlen),
+    .s_axi_arsize   (p1_arsize),
+    .s_axi_arburst  (p1_arburst),
+    .s_axi_arlock   (p1_arlock),
+    .s_axi_arcache  (p1_arcache),
+    .s_axi_arprot   (p1_arprot),
+    .s_axi_arregion (4'd0),
+    .s_axi_arqos    (p1_arqos),
+    .s_axi_arvalid  (p1_arvalid),
+    .s_axi_arready  (p1_arready),
+    .s_axi_rid      (p1_rid),
+    .s_axi_rdata     (p1_rdata),
+    .s_axi_rresp     (p1_rresp),
+    .s_axi_rlast     (p1_rlast),
+    .s_axi_rvalid    (p1_rvalid),
+    .s_axi_rready    (p1_rready),
+    .m_axi_awid     (p_awid),
+    .m_axi_awaddr    (p_awaddr),
+    .m_axi_awlen     (p_awlen),
+    .m_axi_awsize    (p_awsize),
+    .m_axi_awburst   (p_awburst),
+    .m_axi_awlock    (p_awlock),
+    .m_axi_awcache   (p_awcache),
+    .m_axi_awprot    (p_awprot),
+    .m_axi_awregion  (),
+    .m_axi_awqos     (p_awqos),
     .m_axi_awvalid  (p_awvalid),
     .m_axi_awready  (p_awready),
-    .m_axi_wdata    (p_wdata),
-    .m_axi_wstrb    (p_wstrb),
-    .m_axi_wlast    (p_wlast),
-    .m_axi_wvalid   (p_wvalid),
-    .m_axi_wready   (p_wready),
+    .m_axi_wdata     (p_wdata),
+    .m_axi_wstrb     (p_wstrb),
+    .m_axi_wlast     (p_wlast),
+    .m_axi_wvalid    (p_wvalid),
+    .m_axi_wready    (p_wready),
     .m_axi_bid      (p_bid),
-    .m_axi_bresp    (p_bresp),
-    .m_axi_bvalid   (p_bvalid),
-    .m_axi_bready   (p_bready),
+    .m_axi_bresp     (p_bresp),
+    .m_axi_bvalid    (p_bvalid),
+    .m_axi_bready    (p_bready),
     .m_axi_arid     (p_arid),
-    .m_axi_araddr   (p_araddr),
-    .m_axi_arlen    (p_arlen),
-    .m_axi_arsize   (p_arsize),
-    .m_axi_arburst  (p_arburst),
-    .m_axi_arlock   (p_arlock),
-    .m_axi_arcache  (p_arcache),
-    .m_axi_arprot   (p_arprot),
-    .m_axi_arregion (),
-    .m_axi_arqos    (p_arqos),
+    .m_axi_araddr    (p_araddr),
+    .m_axi_arlen     (p_arlen),
+    .m_axi_arsize    (p_arsize),
+    .m_axi_arburst   (p_arburst),
+    .m_axi_arlock    (p_arlock),
+    .m_axi_arcache   (p_arcache),
+    .m_axi_arprot    (p_arprot),
+    .m_axi_arregion  (),
+    .m_axi_arqos     (p_arqos),
     .m_axi_arvalid  (p_arvalid),
     .m_axi_arready  (p_arready),
     .m_axi_rid      (p_rid),
-    .m_axi_rdata    (p_rdata),
-    .m_axi_rresp    (p_rresp),
-    .m_axi_rlast    (p_rlast),
-    .m_axi_rvalid   (p_rvalid),
+    .m_axi_rdata     (p_rdata),
+    .m_axi_rresp     (p_rresp),
+    .m_axi_rlast     (p_rlast),
+    .m_axi_rvalid    (p_rvalid),
     .m_axi_rready   (p_rready)
   );
   assign cl_sh_dma_pcis_ruser = 64'd0;
@@ -552,11 +680,13 @@ module cl_sigil
 
   logic [63:0]  e_awaddr, e_araddr;
   logic [7:0]   e_awlen, e_arlen;
-  logic [1:0]   e_bresp, e_rresp;
+  logic [2:0]   e_awsize, e_arsize;
+  logic [1:0]   e_awburst, e_arburst, e_bresp, e_rresp;
   logic         e_awvalid, e_awready, e_wvalid, e_wready, e_wlast;
   logic         e_bvalid, e_bready, e_arvalid, e_arready;
   logic         e_rvalid, e_rready, e_rlast;
-  logic [511:0] e_rdata;
+  logic [511:0] e_wdata, e_rdata;
+  logic [63:0]  e_wstrb;
 
   cl_axi_sc_2x2_wrapper DDR_XBAR (
     .aclk_250      (gen_clk_main_a0),
@@ -674,16 +804,16 @@ module cl_sigil
 
     .DDRB_awaddr   (e_awaddr),
     .DDRB_awlen    (e_awlen),
-    .DDRB_awsize   (),
-    .DDRB_awburst  (),
+    .DDRB_awsize   (e_awsize),
+    .DDRB_awburst  (e_awburst),
     .DDRB_awlock   (),
     .DDRB_awcache  (),
     .DDRB_awprot   (),
     .DDRB_awqos    (),
     .DDRB_awvalid  (e_awvalid),
     .DDRB_awready  (e_awready),
-    .DDRB_wdata    (),
-    .DDRB_wstrb    (),
+    .DDRB_wdata    (e_wdata),
+    .DDRB_wstrb    (e_wstrb),
     .DDRB_wlast    (e_wlast),
     .DDRB_wvalid   (e_wvalid),
     .DDRB_wready   (e_wready),
@@ -692,8 +822,8 @@ module cl_sigil
     .DDRB_bready   (e_bready),
     .DDRB_araddr   (e_araddr),
     .DDRB_arlen    (e_arlen),
-    .DDRB_arsize   (),
-    .DDRB_arburst  (),
+    .DDRB_arsize   (e_arsize),
+    .DDRB_arburst  (e_arburst),
     .DDRB_arlock   (),
     .DDRB_arcache  (),
     .DDRB_arprot   (),
@@ -707,28 +837,415 @@ module cl_sigil
     .DDRB_rready   (e_rready)
   );
 
-  // Nothing lives above 64 GiB: answer DECERR so a stray host access
-  // completes instead of hanging the PCIe request.
-  sigil_axi_decerr #(.DATA_W(512)) DDRB_DECERR (
-    .clk_i       (gen_clk_main_a0),
-    .rst_ni      (main_rst_n),
-    .s_awvalid_i (e_awvalid),
-    .s_awready_o (e_awready),
-    .s_wvalid_i  (e_wvalid),
-    .s_wlast_i   (e_wlast),
-    .s_wready_o  (e_wready),
-    .s_bresp_o   (e_bresp),
-    .s_bvalid_o  (e_bvalid),
-    .s_bready_i  (e_bready),
-    .s_arvalid_i (e_arvalid),
-    .s_arlen_i   (e_arlen),
-    .s_arready_o (e_arready),
-    .s_rdata_o   (e_rdata),
-    .s_rresp_o   (e_rresp),
-    .s_rlast_o   (e_rlast),
-    .s_rvalid_o  (e_rvalid),
-    .s_rready_i  (e_rready)
+  //===========================================================================
+  // HBM (16 GiB, SLR0) behind the SmartConnect DDRB port (AXI
+  // 0x10_0000_0000 + y): register slices for the SLR2 -> SLR1 -> SLR0
+  // crossings, then cl_sigil_hbm. EN_HBM = 0: a DECERR responder.
+  //===========================================================================
+  logic [15:0]  h2_awid, h2_bid, h2_arid, h2_rid;
+  logic [63:0]  h2_awaddr, h2_araddr;
+  logic [7:0]   h2_awlen, h2_arlen;
+  logic [2:0]   h2_awsize, h2_arsize;
+  logic [1:0]   h2_awburst, h2_arburst, h2_bresp, h2_rresp;
+  logic [2:0]   h2_awprot, h2_arprot;
+  logic         h2_awlock, h2_arlock;
+  logic [3:0]   h2_awcache, h2_arcache, h2_awqos, h2_arqos;
+  logic         h2_awvalid, h2_awready, h2_wvalid, h2_wready, h2_wlast;
+  logic         h2_bvalid, h2_bready, h2_arvalid, h2_arready;
+  logic         h2_rvalid, h2_rready, h2_rlast;
+  logic [511:0] h2_wdata, h2_rdata;
+  logic [63:0]  h2_wstrb;
+  logic [15:0]  h1_awid, h1_bid, h1_arid, h1_rid;
+  logic [63:0]  h1_awaddr, h1_araddr;
+  logic [7:0]   h1_awlen, h1_arlen;
+  logic [2:0]   h1_awsize, h1_arsize;
+  logic [1:0]   h1_awburst, h1_arburst, h1_bresp, h1_rresp;
+  logic [2:0]   h1_awprot, h1_arprot;
+  logic         h1_awlock, h1_arlock;
+  logic [3:0]   h1_awcache, h1_arcache, h1_awqos, h1_arqos;
+  logic         h1_awvalid, h1_awready, h1_wvalid, h1_wready, h1_wlast;
+  logic         h1_bvalid, h1_bready, h1_arvalid, h1_arready;
+  logic         h1_rvalid, h1_rready, h1_rlast;
+  logic [511:0] h1_wdata, h1_rdata;
+  logic [63:0]  h1_wstrb;
+  logic [15:0]  h0_awid, h0_bid, h0_arid, h0_rid;
+  logic [63:0]  h0_awaddr, h0_araddr;
+  logic [7:0]   h0_awlen, h0_arlen;
+  logic [2:0]   h0_awsize, h0_arsize;
+  logic [1:0]   h0_awburst, h0_arburst, h0_bresp, h0_rresp;
+  logic [2:0]   h0_awprot, h0_arprot;
+  logic         h0_awlock, h0_arlock;
+  logic [3:0]   h0_awcache, h0_arcache, h0_awqos, h0_arqos;
+  logic         h0_awvalid, h0_awready, h0_wvalid, h0_wready, h0_wlast;
+  logic         h0_bvalid, h0_bready, h0_arvalid, h0_arready;
+  logic         h0_rvalid, h0_rready, h0_rlast;
+  logic [511:0] h0_wdata, h0_rdata;
+  logic [63:0]  h0_wstrb;
+  axi_register_slice HBM_SLC2 (
+    .aclk           (gen_clk_main_a0),
+    .aresetn        (main_rst_n),
+    .s_axi_awid     (16'd0),
+    .s_axi_awaddr   (e_awaddr),
+    .s_axi_awlen    (e_awlen),
+    .s_axi_awsize   (e_awsize),
+    .s_axi_awburst  (e_awburst),
+    .s_axi_awlock   (1'b0),
+    .s_axi_awcache  (4'd3),
+    .s_axi_awprot   (3'd0),
+    .s_axi_awregion (4'd0),
+    .s_axi_awqos    (4'd0),
+    .s_axi_awvalid  (e_awvalid),
+    .s_axi_awready  (e_awready),
+    .s_axi_wdata     (e_wdata),
+    .s_axi_wstrb     (e_wstrb),
+    .s_axi_wlast     (e_wlast),
+    .s_axi_wvalid    (e_wvalid),
+    .s_axi_wready    (e_wready),
+    .s_axi_bid      (),
+    .s_axi_bresp     (e_bresp),
+    .s_axi_bvalid    (e_bvalid),
+    .s_axi_bready    (e_bready),
+    .s_axi_arid     (16'd0),
+    .s_axi_araddr   (e_araddr),
+    .s_axi_arlen    (e_arlen),
+    .s_axi_arsize   (e_arsize),
+    .s_axi_arburst  (e_arburst),
+    .s_axi_arlock   (1'b0),
+    .s_axi_arcache  (4'd3),
+    .s_axi_arprot   (3'd0),
+    .s_axi_arregion (4'd0),
+    .s_axi_arqos    (4'd0),
+    .s_axi_arvalid  (e_arvalid),
+    .s_axi_arready  (e_arready),
+    .s_axi_rid      (),
+    .s_axi_rdata     (e_rdata),
+    .s_axi_rresp     (e_rresp),
+    .s_axi_rlast     (e_rlast),
+    .s_axi_rvalid    (e_rvalid),
+    .s_axi_rready    (e_rready),
+    .m_axi_awid     (h2_awid),
+    .m_axi_awaddr    (h2_awaddr),
+    .m_axi_awlen     (h2_awlen),
+    .m_axi_awsize    (h2_awsize),
+    .m_axi_awburst   (h2_awburst),
+    .m_axi_awlock    (),
+    .m_axi_awcache   (),
+    .m_axi_awprot    (),
+    .m_axi_awregion  (),
+    .m_axi_awqos     (),
+    .m_axi_awvalid  (h2_awvalid),
+    .m_axi_awready  (h2_awready),
+    .m_axi_wdata     (h2_wdata),
+    .m_axi_wstrb     (h2_wstrb),
+    .m_axi_wlast     (h2_wlast),
+    .m_axi_wvalid    (h2_wvalid),
+    .m_axi_wready    (h2_wready),
+    .m_axi_bid      (h2_bid),
+    .m_axi_bresp     (h2_bresp),
+    .m_axi_bvalid    (h2_bvalid),
+    .m_axi_bready    (h2_bready),
+    .m_axi_arid     (h2_arid),
+    .m_axi_araddr    (h2_araddr),
+    .m_axi_arlen     (h2_arlen),
+    .m_axi_arsize    (h2_arsize),
+    .m_axi_arburst   (h2_arburst),
+    .m_axi_arlock    (),
+    .m_axi_arcache   (),
+    .m_axi_arprot    (),
+    .m_axi_arregion  (),
+    .m_axi_arqos     (),
+    .m_axi_arvalid  (h2_arvalid),
+    .m_axi_arready  (h2_arready),
+    .m_axi_rid      (h2_rid),
+    .m_axi_rdata     (h2_rdata),
+    .m_axi_rresp     (h2_rresp),
+    .m_axi_rlast     (h2_rlast),
+    .m_axi_rvalid    (h2_rvalid),
+    .m_axi_rready   (h2_rready)
   );
+  axi_register_slice HBM_SLC1 (
+    .aclk           (gen_clk_main_a0),
+    .aresetn        (main_rst_n),
+    .s_axi_awid     (h2_awid),
+    .s_axi_awaddr   (h2_awaddr),
+    .s_axi_awlen    (h2_awlen),
+    .s_axi_awsize   (h2_awsize),
+    .s_axi_awburst  (h2_awburst),
+    .s_axi_awlock   (1'b0),
+    .s_axi_awcache  (4'd3),
+    .s_axi_awprot   (3'd0),
+    .s_axi_awregion (4'd0),
+    .s_axi_awqos    (4'd0),
+    .s_axi_awvalid  (h2_awvalid),
+    .s_axi_awready  (h2_awready),
+    .s_axi_wdata     (h2_wdata),
+    .s_axi_wstrb     (h2_wstrb),
+    .s_axi_wlast     (h2_wlast),
+    .s_axi_wvalid    (h2_wvalid),
+    .s_axi_wready    (h2_wready),
+    .s_axi_bid      (h2_bid),
+    .s_axi_bresp     (h2_bresp),
+    .s_axi_bvalid    (h2_bvalid),
+    .s_axi_bready    (h2_bready),
+    .s_axi_arid     (h2_arid),
+    .s_axi_araddr   (h2_araddr),
+    .s_axi_arlen    (h2_arlen),
+    .s_axi_arsize   (h2_arsize),
+    .s_axi_arburst  (h2_arburst),
+    .s_axi_arlock   (1'b0),
+    .s_axi_arcache  (4'd3),
+    .s_axi_arprot   (3'd0),
+    .s_axi_arregion (4'd0),
+    .s_axi_arqos    (4'd0),
+    .s_axi_arvalid  (h2_arvalid),
+    .s_axi_arready  (h2_arready),
+    .s_axi_rid      (h2_rid),
+    .s_axi_rdata     (h2_rdata),
+    .s_axi_rresp     (h2_rresp),
+    .s_axi_rlast     (h2_rlast),
+    .s_axi_rvalid    (h2_rvalid),
+    .s_axi_rready    (h2_rready),
+    .m_axi_awid     (h1_awid),
+    .m_axi_awaddr    (h1_awaddr),
+    .m_axi_awlen     (h1_awlen),
+    .m_axi_awsize    (h1_awsize),
+    .m_axi_awburst   (h1_awburst),
+    .m_axi_awlock    (),
+    .m_axi_awcache   (),
+    .m_axi_awprot    (),
+    .m_axi_awregion  (),
+    .m_axi_awqos     (),
+    .m_axi_awvalid  (h1_awvalid),
+    .m_axi_awready  (h1_awready),
+    .m_axi_wdata     (h1_wdata),
+    .m_axi_wstrb     (h1_wstrb),
+    .m_axi_wlast     (h1_wlast),
+    .m_axi_wvalid    (h1_wvalid),
+    .m_axi_wready    (h1_wready),
+    .m_axi_bid      (h1_bid),
+    .m_axi_bresp     (h1_bresp),
+    .m_axi_bvalid    (h1_bvalid),
+    .m_axi_bready    (h1_bready),
+    .m_axi_arid     (h1_arid),
+    .m_axi_araddr    (h1_araddr),
+    .m_axi_arlen     (h1_arlen),
+    .m_axi_arsize    (h1_arsize),
+    .m_axi_arburst   (h1_arburst),
+    .m_axi_arlock    (),
+    .m_axi_arcache   (),
+    .m_axi_arprot    (),
+    .m_axi_arregion  (),
+    .m_axi_arqos     (),
+    .m_axi_arvalid  (h1_arvalid),
+    .m_axi_arready  (h1_arready),
+    .m_axi_rid      (h1_rid),
+    .m_axi_rdata     (h1_rdata),
+    .m_axi_rresp     (h1_rresp),
+    .m_axi_rlast     (h1_rlast),
+    .m_axi_rvalid    (h1_rvalid),
+    .m_axi_rready   (h1_rready)
+  );
+  axi_register_slice HBM_SLC0 (
+    .aclk           (gen_clk_main_a0),
+    .aresetn        (main_rst_n),
+    .s_axi_awid     (h1_awid),
+    .s_axi_awaddr   (h1_awaddr),
+    .s_axi_awlen    (h1_awlen),
+    .s_axi_awsize   (h1_awsize),
+    .s_axi_awburst  (h1_awburst),
+    .s_axi_awlock   (1'b0),
+    .s_axi_awcache  (4'd3),
+    .s_axi_awprot   (3'd0),
+    .s_axi_awregion (4'd0),
+    .s_axi_awqos    (4'd0),
+    .s_axi_awvalid  (h1_awvalid),
+    .s_axi_awready  (h1_awready),
+    .s_axi_wdata     (h1_wdata),
+    .s_axi_wstrb     (h1_wstrb),
+    .s_axi_wlast     (h1_wlast),
+    .s_axi_wvalid    (h1_wvalid),
+    .s_axi_wready    (h1_wready),
+    .s_axi_bid      (h1_bid),
+    .s_axi_bresp     (h1_bresp),
+    .s_axi_bvalid    (h1_bvalid),
+    .s_axi_bready    (h1_bready),
+    .s_axi_arid     (h1_arid),
+    .s_axi_araddr   (h1_araddr),
+    .s_axi_arlen    (h1_arlen),
+    .s_axi_arsize   (h1_arsize),
+    .s_axi_arburst  (h1_arburst),
+    .s_axi_arlock   (1'b0),
+    .s_axi_arcache  (4'd3),
+    .s_axi_arprot   (3'd0),
+    .s_axi_arregion (4'd0),
+    .s_axi_arqos    (4'd0),
+    .s_axi_arvalid  (h1_arvalid),
+    .s_axi_arready  (h1_arready),
+    .s_axi_rid      (h1_rid),
+    .s_axi_rdata     (h1_rdata),
+    .s_axi_rresp     (h1_rresp),
+    .s_axi_rlast     (h1_rlast),
+    .s_axi_rvalid    (h1_rvalid),
+    .s_axi_rready    (h1_rready),
+    .m_axi_awid     (h0_awid),
+    .m_axi_awaddr    (h0_awaddr),
+    .m_axi_awlen     (h0_awlen),
+    .m_axi_awsize    (h0_awsize),
+    .m_axi_awburst   (h0_awburst),
+    .m_axi_awlock    (),
+    .m_axi_awcache   (),
+    .m_axi_awprot    (),
+    .m_axi_awregion  (),
+    .m_axi_awqos     (),
+    .m_axi_awvalid  (h0_awvalid),
+    .m_axi_awready  (h0_awready),
+    .m_axi_wdata     (h0_wdata),
+    .m_axi_wstrb     (h0_wstrb),
+    .m_axi_wlast     (h0_wlast),
+    .m_axi_wvalid    (h0_wvalid),
+    .m_axi_wready    (h0_wready),
+    .m_axi_bid      (h0_bid),
+    .m_axi_bresp     (h0_bresp),
+    .m_axi_bvalid    (h0_bvalid),
+    .m_axi_bready    (h0_bready),
+    .m_axi_arid     (h0_arid),
+    .m_axi_araddr    (h0_araddr),
+    .m_axi_arlen     (h0_arlen),
+    .m_axi_arsize    (h0_arsize),
+    .m_axi_arburst   (h0_arburst),
+    .m_axi_arlock    (),
+    .m_axi_arcache   (),
+    .m_axi_arprot    (),
+    .m_axi_arregion  (),
+    .m_axi_arqos     (),
+    .m_axi_arvalid  (h0_arvalid),
+    .m_axi_arready  (h0_arready),
+    .m_axi_rid      (h0_rid),
+    .m_axi_rdata     (h0_rdata),
+    .m_axi_rresp     (h0_rresp),
+    .m_axi_rlast     (h0_rlast),
+    .m_axi_rvalid    (h0_rvalid),
+    .m_axi_rready   (h0_rready)
+  );
+
+  logic hbm_axi_rst_n;      // clk_hbm_axi
+  xpm_cdc_async_rst CDC_RST_HBM_AXI (
+    .src_arst  (gen_rst_hbm_axi_n),
+    .dest_clk  (gen_clk_hbm_axi),
+    .dest_arst (hbm_axi_rst_n)
+  );
+
+  generate
+    if (EN_HBM != 0) begin : G_HBM
+      cl_sigil_hbm HBM (
+        .clk                (gen_clk_main_a0),
+        .rst_n              (main_rst_n),
+        .clk_hbm_ref        (gen_clk_hbm_ref),
+        .clk_hbm_axi        (gen_clk_hbm_axi),
+        .hbm_axi_rst_n      (hbm_axi_rst_n),
+        .s_axi_awid         (h0_awid),
+        .s_axi_awaddr       (h0_awaddr),
+        .s_axi_awlen        (h0_awlen),
+        .s_axi_awsize       (h0_awsize),
+        .s_axi_awburst      (h0_awburst),
+        .s_axi_awvalid      (h0_awvalid),
+        .s_axi_awready      (h0_awready),
+        .s_axi_wdata        (h0_wdata),
+        .s_axi_wstrb        (h0_wstrb),
+        .s_axi_wlast        (h0_wlast),
+        .s_axi_wvalid       (h0_wvalid),
+        .s_axi_wready       (h0_wready),
+        .s_axi_bid          (h0_bid),
+        .s_axi_bresp        (h0_bresp),
+        .s_axi_bvalid       (h0_bvalid),
+        .s_axi_bready       (h0_bready),
+        .s_axi_arid         (h0_arid),
+        .s_axi_araddr       (h0_araddr),
+        .s_axi_arlen        (h0_arlen),
+        .s_axi_arsize       (h0_arsize),
+        .s_axi_arburst      (h0_arburst),
+        .s_axi_arvalid      (h0_arvalid),
+        .s_axi_arready      (h0_arready),
+        .s_axi_rid          (h0_rid),
+        .s_axi_rdata        (h0_rdata),
+        .s_axi_rresp        (h0_rresp),
+        .s_axi_rlast        (h0_rlast),
+        .s_axi_rvalid       (h0_rvalid),
+        .s_axi_rready       (h0_rready),
+        .hbm_apb_preset_n_1 (hbm_apb_preset_n_1),
+        .hbm_apb_paddr_1    (hbm_apb_paddr_1),
+        .hbm_apb_pprot_1    (hbm_apb_pprot_1),
+        .hbm_apb_psel_1     (hbm_apb_psel_1),
+        .hbm_apb_penable_1  (hbm_apb_penable_1),
+        .hbm_apb_pwrite_1   (hbm_apb_pwrite_1),
+        .hbm_apb_pwdata_1   (hbm_apb_pwdata_1),
+        .hbm_apb_pstrb_1    (hbm_apb_pstrb_1),
+        .hbm_apb_pready_1   (hbm_apb_pready_1),
+        .hbm_apb_prdata_1   (hbm_apb_prdata_1),
+        .hbm_apb_pslverr_1  (hbm_apb_pslverr_1),
+        .hbm_apb_preset_n_0 (hbm_apb_preset_n_0),
+        .hbm_apb_paddr_0    (hbm_apb_paddr_0),
+        .hbm_apb_pprot_0    (hbm_apb_pprot_0),
+        .hbm_apb_psel_0     (hbm_apb_psel_0),
+        .hbm_apb_penable_0  (hbm_apb_penable_0),
+        .hbm_apb_pwrite_0   (hbm_apb_pwrite_0),
+        .hbm_apb_pwdata_0   (hbm_apb_pwdata_0),
+        .hbm_apb_pstrb_0    (hbm_apb_pstrb_0),
+        .hbm_apb_pready_0   (hbm_apb_pready_0),
+        .hbm_apb_prdata_0   (hbm_apb_prdata_0),
+        .hbm_apb_pslverr_0  (hbm_apb_pslverr_0),
+        .hbm_ready_o        (hbm_ready)
+      );
+    end else begin : G_NO_HBM
+      // Nothing above 64 GiB: answer DECERR so a stray host access
+      // completes instead of hanging the PCIe request.
+      sigil_axi_decerr #(.DATA_W(512)) DDRB_DECERR (
+        .clk_i       (gen_clk_main_a0),
+        .rst_ni      (main_rst_n),
+        .s_awvalid_i (h0_awvalid),
+        .s_awready_o (h0_awready),
+        .s_wvalid_i  (h0_wvalid),
+        .s_wlast_i   (h0_wlast),
+        .s_wready_o  (h0_wready),
+        .s_bresp_o   (h0_bresp),
+        .s_bvalid_o  (h0_bvalid),
+        .s_bready_i  (h0_bready),
+        .s_arvalid_i (h0_arvalid),
+        .s_arlen_i   (h0_arlen),
+        .s_arready_o (h0_arready),
+        .s_rdata_o   (h0_rdata),
+        .s_rresp_o   (h0_rresp),
+        .s_rlast_o   (h0_rlast),
+        .s_rvalid_o  (h0_rvalid),
+        .s_rready_i  (h0_rready)
+      );
+      assign h0_bid = h0_awid;
+      assign h0_rid = h0_arid;
+      assign hbm_ready = 1'b0;
+      always_comb begin
+        hbm_apb_paddr_1   = '0;
+        hbm_apb_pprot_1   = '0;
+        hbm_apb_psel_1    = '0;
+        hbm_apb_penable_1 = '0;
+        hbm_apb_pwrite_1  = '0;
+        hbm_apb_pwdata_1  = '0;
+        hbm_apb_pstrb_1   = '0;
+        hbm_apb_pready_1  = '0;
+        hbm_apb_prdata_1  = '0;
+        hbm_apb_pslverr_1 = '0;
+        hbm_apb_paddr_0   = '0;
+        hbm_apb_pprot_0   = '0;
+        hbm_apb_psel_0    = '0;
+        hbm_apb_penable_0 = '0;
+        hbm_apb_pwrite_0  = '0;
+        hbm_apb_pwdata_0  = '0;
+        hbm_apb_pstrb_0   = '0;
+        hbm_apb_pready_0  = '0;
+        hbm_apb_prdata_0  = '0;
+        hbm_apb_pslverr_0 = '0;
+      end
+    end
+  endgenerate
 
   //===========================================================================
   // Shell DDR4 (sh_ddr): resets from rst_main_n only, stat bus piped
@@ -860,31 +1377,11 @@ module cl_sigil
     cl_sh_pcim_rready  = '0;
   end
 
-  // Interrupts, virtual JTAG, HBM monitor APB, PCIe pass-through pins.
+  // Interrupts, virtual JTAG, PCIe pass-through pins.
   always_comb begin
     cl_sh_apppf_irq_req = '0;
     tdo = 1'b0;
 
-    hbm_apb_paddr_1   = '0;
-    hbm_apb_pprot_1   = '0;
-    hbm_apb_psel_1    = '0;
-    hbm_apb_penable_1 = '0;
-    hbm_apb_pwrite_1  = '0;
-    hbm_apb_pwdata_1  = '0;
-    hbm_apb_pstrb_1   = '0;
-    hbm_apb_pready_1  = '0;
-    hbm_apb_prdata_1  = '0;
-    hbm_apb_pslverr_1 = '0;
-    hbm_apb_paddr_0   = '0;
-    hbm_apb_pprot_0   = '0;
-    hbm_apb_psel_0    = '0;
-    hbm_apb_penable_0 = '0;
-    hbm_apb_pwrite_0  = '0;
-    hbm_apb_pwdata_0  = '0;
-    hbm_apb_pstrb_0   = '0;
-    hbm_apb_pready_0  = '0;
-    hbm_apb_prdata_0  = '0;
-    hbm_apb_pslverr_0 = '0;
 
     PCIE_EP_TXP    = '0;
     PCIE_EP_TXN    = '0;

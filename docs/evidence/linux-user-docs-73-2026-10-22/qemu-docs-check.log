@@ -1,0 +1,52 @@
++ rm -f /home/ubuntu/docs73/qemu/disk.ext4; zstd -d -q --sparse -o /home/ubuntu/docs73/qemu/disk.ext4 ~/os-artifacts/sigil-debian-13-riscv64.ext4.zst; du -h /home/ubuntu/docs73/qemu/disk.ext4
+917M	/home/ubuntu/docs73/qemu/disk.ext4
+
++ cd /home/ubuntu/docs73/qemu/src && debugfs -w -R 'write in_debugfs.c /home/sigil/in_debugfs.c' /home/ubuntu/docs73/qemu/disk.ext4
+Allocated inode: 26654
+debugfs 1.47.0 (5-Feb-2023)
+
++ mkdir -p /home/ubuntu/docs73/qemu/mnt && sudo mount -o loop /home/ubuntu/docs73/qemu/disk.ext4 /home/ubuntu/docs73/qemu/mnt && sudo cp -r /home/ubuntu/docs73/qemu/src/myproj /home/ubuntu/docs73/qemu/mnt/home/sigil/ && sudo chown -R 1000:1000 /home/ubuntu/docs73/qemu/mnt/home/sigil/myproj && sudo umount /home/ubuntu/docs73/qemu/mnt
+
+[    10.6 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 9.17 s)
+[    13.2 s] login prompt
+[    15.0 s] logged in as sigil
+[    15.1 s] PASS: debugfs file is root's, loop-mounted copy is sigil's
+[    16.1 s] PASS: sudo chown fixes the owner
+[    18.7 s] PASS: libnuma numa_alloc_onnode snippet
+[    19.6 s] PASS: numactl --membind=1 ./prog
+[    30.7 s] PASS: numa_hbm + memwhere --membind=1
+[    36.3 s] PASS: intrinsics -march=rv64gc_zve64d
+[    38.4 s] PASS: auto-vectorization -march=rv64gc_zve64d_zvl512b
++ debugfs -R 'cat /home/sigil/out.txt' /home/ubuntu/docs73/qemu/disk.ext4
+result from the board
+debugfs 1.47.0 (5-Feb-2023)
+
++ rm -rf /home/ubuntu/docs73/qemu/out && mkdir -p /home/ubuntu/docs73/qemu/out && cd /home/ubuntu/docs73/qemu/out && debugfs -R 'rdump /home/sigil/results .' /home/ubuntu/docs73/qemu/disk.ext4 && ls -l /home/ubuntu/docs73/qemu/out/results && cat /home/ubuntu/docs73/qemu/out/results/out.txt
+total 4
+-rw-rw-r-- 1 ubuntu ubuntu 22 Oct 22 09:56 out.txt
+result from the board
+debugfs 1.47.0 (5-Feb-2023)
+
++ sudo mount -o loop,ro /home/ubuntu/docs73/qemu/disk.ext4 /home/ubuntu/docs73/qemu/mnt && cat /home/ubuntu/docs73/qemu/mnt/home/sigil/out.txt; sudo umount /home/ubuntu/docs73/qemu/mnt
+result from the board
+
++ e2fsck -fn /home/ubuntu/docs73/qemu/disk.ext4
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+sigil-root: 26671/524288 files (0.1% non-contiguous), 294493/2097152 blocks
+e2fsck 1.47.0 (5-Feb-2023)
+
+PASS: debugfs file is root's, loop-mounted copy is sigil's
+PASS: sudo chown fixes the owner
+PASS: libnuma numa_alloc_onnode snippet
+PASS: numactl --membind=1 ./prog
+PASS: numa_hbm + memwhere --membind=1
+PASS: intrinsics -march=rv64gc_zve64d
+PASS: auto-vectorization -march=rv64gc_zve64d_zvl512b
+PASS: sudo poweroff
+PASS: debugfs cat out
+PASS: loop mount read out
+RESULT 10 / 10

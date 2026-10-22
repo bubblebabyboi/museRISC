@@ -788,7 +788,11 @@ int main(int argc, char** argv) {
   std::printf("\ncycles simulated: %llu\n", (unsigned long long)cycles);
   dut->final();
   // write coverage before the model (which owns the counters) is freed
+#if VM_COVERAGE
   if (cov_path != nullptr) context.coveragep()->write(cov_path);
+#else
+  (void)cov_path;  // uninstrumented build (sim/Makefile fpu_tb_fast)
+#endif
   delete dut;
   if (fails) {
     std::printf("FPU TB FAIL (%ld/%ld)\n", fails, checks);

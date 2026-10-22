@@ -2125,6 +2125,1189 @@ all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
 
+## #56: performance harness, first baseline — Dhrystone 2.1 (2026-10-22)
+
+[`perf-dhrystone-56-2026-10-22/`](perf-dhrystone-56-2026-10-22/report.md):
+`report.md`, `results.csv`, `results.json` (every counter plus
+metadata), `runs/` (UART log and `SIGIL_PERF` record of all 32 runs),
+the build logs with the full compiler command lines,
+`synth-view-diff.log`, `cross-sim-5.020.log` and `gates.log`. Method:
+[`docs/PERFORMANCE.md`](../PERFORMANCE.md).
+
+- **Design.** main `eeaa332` RTL, measured before any #53 pipelining.
+  Harness commit `534f846` (branch `56-perf-harness`) adds only
+  `` `ifndef SYNTHESIS`` code. `scripts/synth_view_diff.sh eeaa332
+  534f846` shows the preprocessed RTL is byte-identical under
+  `SYNTHESIS` alone and with `SIGIL_SRAM_FAKERAM45`,
+  `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_OREG` and `SIGIL_VRF_OREG`
+  (`synth-view-diff.log`).
+- **Run.** `make -C sim perf BENCHES=dhrystone CONFIG="default sky130
+  oreg fpga" MEM="soc axi" JOBS=4 REPEAT=2 VJOBS=4` on sigil-verify
+  (c7i.8xlarge, Ubuntu 24.04), results written 2026-10-22T08:34:51Z, with Verilator 5.048
+  and riscv64-unknown-elf-gcc 16.1.0 (`deps/`). The 8 testbench builds
+  plus 32 simulations took 4 min 33 s. Earlier runs at `623c576` and
+  `e3b40fc` (same counter logic) gave byte-identical records.
+- **Benchmark.** Dhrystone 2.1 (netlib `dhry-c`, ported:
+  `sw/bench/dhrystone/README.md`), 2000 runs. Flags: `sdk.mk` (`-O2
+  -mstrict-align -mcmodel=medany -ffreestanding -std=gnu11`, separate
+  compilation, no LTO) plus `-fno-inline` (ground rules). Two variants:
+  - `scalar`, the headline:
+    `-march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`;
+  - `sdk`: the SDK default `-march`, with V.
+- **Memory models.**
+  - `soc`: `soc_rtl_tb`, fixed 1-cycle first-beat latency.
+  - `axi`: `fpga_top_tb`, through the 64-bit `sigil_mbus_axi4` bridge,
+    with a fixed 24-cycle AXI latency.
+- **Validation.** 32/32 runs valid:
+  - the program self-checked every final value;
+  - `cycles` = `mcycle` delta and `instret` = `minstret` delta;
+  - the accounting sums to `cycles`;
+  - both repeats are identical in all 91 record fields;
+  - the same images on a Verilator 5.020 build give identical records.
+
+DMIPS/MHz (= 2000 / cycles × 10^6 / 1757, over the `Number_Of_Runs`
+loop):
+
+| Variant | Memory | default | sky130 | oreg | fpga (VRF_OREG) |
+|---|---|---:|---:|---:|---:|
+| **scalar** | soc | **0.371** | **0.216** | 0.225 | **0.371** |
+| scalar | axi | 0.371 | 0.201 | 0.225 | 0.371 |
+| sdk (V) | soc | 0.327 | 0.191 | 0.202 | 0.317 |
+| sdk (V) | axi | 0.327 | 0.173 | 0.202 | 0.317 |
+
+Scalar, default, soc: 3,070,244 cycles and 1,036,022 instructions,
+IPC 0.337, 1,535 cycles per Dhrystone. The cycles break down as:
+
+| Category | % of cycles |
+|---|---:|
+| retire | 33.7 |
+| fetch: I$ hit latency / issue gap | 40.6 |
+| fetch: 32-bit instruction straddles a fetch word | 8.9 |
+| MEM: D$ hit latency | 12.7 |
+| squashed wrong-path instructions | 3.7 |
+| M unit | 0.2 |
+| load-use | 0.1 |
+
+Observations:
+
+- **Fetch dominates.** The core issues one fetch per 2 cycles (3 with
+  `SRAM_OREG`) and refetches the word for the second compressed half.
+  Fetch costs 49.5% of cycles, at 1.45 I$ accesses per instruction.
+- **`SRAM_OREG` alone costs +65% cycles.** On top of that, the sky130
+  4 KiB direct-mapped D$ adds 4 conflict misses per Dhrystone: +4.1%
+  of cycles at 1-cycle memory, +12.0% behind the AXI model. sky130 is
+  the only configuration where Dhrystone is memory-latency sensitive.
+- **V code generation is slower here.** GCC turns the 56-byte record
+  copy into `vle8`/`vse8`, which takes 19.3% of cycles on the
+  element-serial vector LS. The `sdk` build is 13.4% slower than
+  `scalar`.
+- **Effective miss penalties.** I$: 12 cycles (soc) and 37 (axi).
+  D$: 21–27 (soc) and 62–77 (axi).
+- **Projection only:** at F2's 62.5 MHz, the scalar figure is about
+  23 DMIPS. No hardware run.
+
+Gates on `534f846` (`gates.log`):
+- `make lint` is clean on Verilator 5.048, 5.020 (CI version) and 5.044.
+- `make test` passes.
+- `make core-test`: 235/235 `TB PASS` lines, identical to a core-test
+  run of main `eeaa332` on the same host apart from wall-clock seconds.
+  Every cycle count is the same, including the SDK examples. Coverage
+  is identical: 55.00% (3491/6252).
+- riscv-tests: 123/123.
+
+## #56: CoreMark on the performance harness (2026-10-22)
+
+[`perf-coremark-56-2026-10-22/`](perf-coremark-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/` (UART log and
+`SIGIL_PERF` record of all 12 runs), the build logs, `fetch.log`
+(pinned-source fetch and checks), `host-reference.log` (native x86-64
+CRC references), `long-1000/` (10 s rule), `flag-sweep/` (`-O2` vs
+`-O3`/`-Os`), `image-check.log`, `rerun-final.log` and
+`cm_long_run.py`. Port and method:
+[`sw/bench/coremark/README.md`](../../sw/bench/coremark/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  harness's simulation-only counters, as in the Dhrystone entry above.
+  No #53 pipelining.
+- **Benchmark.** EEMBC CoreMark 1.0, eembc/coremark `b56889a7`,
+  unmodified, fetched into the git-ignored `third_party/coremark` and
+  sha256/md5-checked. 2K data set, data on the stack, 20 iterations,
+  `-O2`, every file with the same flags, no LTO. Commit `320cf57`
+  (branch `56-perf-coremark`); the final code `4526052` rebuilds
+  byte-identical images.
+- **Run.** `make -C sim perf BENCHES=coremark CONFIG=default MEM="soc
+  axi" REPEAT=2 JOBS=12` on sigil-verify, results written
+  2026-10-22T09:39:42Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0.
+- **Validation.** 12/12 runs valid and deterministic. The port checked
+  the seed, list, matrix and state CRCs and `crcfinal` against a native
+  x86-64 build of the same sources; both EEMBC seed sets validate (run
+  rule 2).
+
+| Variant | soc | axi |
+|---|---:|---:|
+| **scalar** (`rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`), CoreMark/MHz | **1.395** | 1.395 |
+| sdk (with V) | 1.372 | 1.372 |
+| validation seeds (scalar) | 1.392 | 1.392 |
+
+- Scalar, soc: 14,337,806 cycles for 20 iterations, IPC 0.366. Fetch
+  latency and straddles take 45.8% of cycles; the L1s hold CoreMark
+  (39 I$ and 11 D$ misses, all cold), so the 24-cycle AXI model adds
+  only 1,250 cycles.
+- **10 s rule.** 1000-iteration runs (`long-1000/`, about 70 minutes
+  of simulation each, 11.5 s of region at 62.5 MHz) give the same
+  1.395 (performance seeds) and 1.392 (validation seeds), and CoreMark
+  printed `Correct operation validated`.
+- `-O3` is 19% slower than `-O2` here (more straddling fetches), so
+  `-O2` is the headline.
+- Only the default configuration was measured; sky130, oreg and fpga
+  are still to run.
+
+## #56: vector and FP kernels, C vs RVV (2026-10-22)
+
+[`perf-kernels-56-2026-10-22/`](perf-kernels-56-2026-10-22/README.md):
+13 kernels from `sw/bench/kernels`: int32/int64 add, daxpy, saxpy, fp64
+and int32 dot products, memcpy and memset (e64 and e8), 32x32
+dgemm/sgemm, a 16-tap fp32 FIR, and int8/int16 widening MACs. Each runs
+as scalar C and as RVV intrinsics and is checked bit for bit against a
+scalar reference, which is in turn checked against a known answer from
+an exact host model.
+
+- **Run.** Default configuration, `soc` and `axi` memory models, two
+  repeats. Commit `7ea3e51` (branch `56-perf-kernels`), main `eeaa332`
+  design, Verilator 5.048, GCC 16.1.0.
+- **Validation.** 224/224 region results valid and deterministic. Fault
+  injection: 7 wrong results, 7 failed runs.
+- **RVV speedup over scalar C** (soc): 1.51–2.96x (memset 2.96x,
+  fir_f32 2.56x, memcpy 2.51x, sgemm 2.07x, dgemm 1.85x, idot 1.51x).
+  The e8 forms of memcpy/memset are 2.5–3x *slower* than scalar.
+- **Bottlenecks.**
+  - Vector load/store: about 3 cycles per element.
+  - FP vector ops: 8 cycles per element (`vfmacc` = 8N + 4).
+  - Scalar C: front-end bound, IPC 0.22–0.42.
+- **GCC 16 `-O3` auto-vectorization** reaches 1.0–1.67x.
+- **Caveat.** Shifting the scalar C code by 2 bytes moves its cycles by
+  -24% to +26%, from 32-bit instructions straddling a 4-byte fetch
+  word. The kernels are therefore 64-byte aligned.
+
+## #56: performance harness, microbenchmarks (2026-10-22)
+
+[`perf-micro-56-2026-10-22/`](perf-micro-56-2026-10-22/micro_table.md):
+`micro_table.md` (cycles per operation for every region, where the
+cycles go per operation, derived cache parameters), the harness's
+`report.md`, `results.csv` and `results.json`, `runs/` (UART log and
+`SIGIL_PERF` records of all 20 simulations), `build-micro_*.log`
+(full compiler command lines), `perf-run.log` (harness console) and
+`determinism.log`. Method:
+[`sw/bench/micro_common/README.md`](../../sw/bench/micro_common/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: the harness branch's RTL
+  (`534f846`, main `eeaa332` plus the simulation-only counters, see the
+  Dhrystone entry above). Measured before any #53 pipelining. The
+  benchmarks are on branch `56-perf-micro` (`904d59e`), which adds only
+  `sw/bench/micro_*` to `56-perf-harness` `d2b3df4`.
+- **Run.** `make -C sim perf BENCHES="micro_pipe micro_units micro_dmem
+  micro_imem micro_vec" CONFIG=default MEM="soc axi" REPEAT=2 JOBS=10`
+  on sigil-verify (c7i.8xlarge, Ubuntu 24.04), results written
+  2026-10-22T09:54:30Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0 (`deps/`). 20 simulations in 34 s.
+- **Benchmarks.** Five benchmarks, 105 regions, each region one
+  mechanism running exactly `iterations` operations (assembly kernels,
+  unrolled loops), so the harness's cycles/iteration is cycles per
+  operation. Each benchmark has an `empty` region that measures the
+  window's own cost (66–81 cycles soc, 91–131 axi); `micro_table.md`
+  also lists every value net of it.
+- **Validation.** 420/420 region results valid (105 regions x 2 memory
+  models x 2 repeats):
+  - every kernel result matched its value computed in C (sums, counts,
+    nodes reached, stored elements), and each program printed `MICRO
+    CHECK OK`;
+  - in every record, `cycles` = `mcycle` delta, `instret` = `minstret`
+    delta and the accounting sums to `cycles`;
+  - both repeats are identical, and a second harness invocation at
+    `49352b9` (same images, sha256 in `determinism.log`) gave identical
+    records too: 4 identical runs of each of the 210 (region, memory
+    model) pairs.
+
+Cycles per operation, default configuration, raw as the harness
+reports them. micro_pipe, micro_units and micro_vec show soc; axi is
+within 0.1 cycles of it for every region in those three:
+
+| micro_pipe | cycles/op |
+|---|---:|
+| `add` 32-bit, dependent or independent | 2.04 |
+| `c.add` 16-bit | 2.04 |
+| 32-bit `add` straddling two fetch words | 4.06 |
+| branch not taken | 2.04 |
+| branch taken; `jal` | 4.04 |
+| call + `ret` with a one-instruction callee (`jal` or `jalr`) | 10.04 |
+| loop trip (`addi` + taken `bnez`) | 6.02 |
+| data-dependent branch: never / always / alternating / random 50% taken | 8.61 / 10.61 / 9.61 / 9.61 |
+| `ld` hit, dependent (load-to-load) | 3.03 |
+| `ld` hit, independent; `sd` hit | 2.54 |
+| `ld` + `add` using it, distance 1 / distance 2 (per pair) | 4.04 / 4.04 |
+| `rdcycle`, `rdtime`, `csrr`, `csrw`, `csrrw`, `fence` | 2.04 |
+
+| micro_units | dependent | independent | docs/CORE.md EX cycles |
+|---|---:|---:|---:|
+| `mul` | 4.20 | 4.19 | 3 |
+| `div`, 63 quotient bits | 36.18 | 36.18 | 35 |
+| `div`, dividend < divisor | | 4.15 | 3 |
+| `divw`, 31 quotient bits | 20.18 | | 19 |
+| `rem`, 62 quotient bits | | 35.17 | 34 |
+| `fadd.d` / `fmul.d` | 6.20 / 6.18 | 6.16 | 5 |
+| `fmadd.d` | 8.19 | | 7 |
+| `fdiv.d` / `fsqrt.d` | 33.17 / 33.17 | 33.17 / 33.15 | 32 |
+| `fdiv.s` / `fsqrt.s` | 18.18 / 18.17 | | 17 |
+
+| micro_dmem (one 64-byte line per load) | soc | axi |
+|---|---:|---:|
+| random chase, 1–12 KiB | 3.10 | 3.10 |
+| random chase, 16 KiB | 3.12 | 3.18 |
+| random chase, 20 / 24 / 32 KiB | 7.47 / 9.93 / 12.24 | 17.43 / 25.47 / 33.03 |
+| random chase, 64 / 128 / 256 KiB | 13.96 / 14.11 / 14.11 | 38.67 / 39.15 / 39.15 |
+| address-order chase, 4 / 8 / 16 / 32 KiB | 3.10 / 3.10 / 3.12 / 10.48 | 3.10 / 3.11 / 3.18 / 27.27 |
+| load stream, per 8-byte `ld` | 4.27 | 7.41 |
+| store stream into dirty lines, per 8-byte `sd` | 6.25 | 13.02 |
+
+| micro_imem (straight-line 32-bit code), cycles/instruction | soc | axi |
+|---|---:|---:|
+| footprint 1–4 KiB | 2.01–2.06 | 2.01–2.06 |
+| 6 / 8 KiB | 2.04 / 2.03 | 2.11 / 2.09 |
+| 12 / 16 / 24 / 32 KiB | 2.47 / 2.53 / 2.58 / 2.61 | 3.52 / 3.71 / 3.89 / 3.98 |
+
+| micro_vec | cycles per vector instruction |
+|---|---:|
+| `vsetvli`, same vtype / alternating vtype | 2.43 / 2.49 (2.12 / 2.17 net of window) |
+| `vadd.vv` e8, vl = 1 / 8 / 64 / 512 | 7.43 / 14.40 / 70.40 / 518.40 (N + 6.4) |
+| `vadd.vv` e64, vl = 8 | 14.41 |
+| `vle8.v`, vl = 1 / 8 / 64 / 512 | 4.96 / 25.92 / 193.92 / 1,537.92 (3N + 1.9) |
+| `vse8.v`, vl = 1 / 8 / 64 / 512 | 4.98 / 25.93 / 193.93 / 1,537.93 |
+| `vmul.vv` / `vfadd.vv` / `vredsum.vs` e64, vl = 8 | 70.42 / 54.47 / 16.47 |
+
+What the calibration shows:
+
+- **Every instruction costs at least 2 cycles: one fetch per
+  instruction, 2 cycles per fetch.** Compressed code fetches no faster:
+  `c.add` costs the same as `add`, at 1.02 I$ accesses per instruction,
+  because the word is fetched again for the second half. A 32-bit
+  instruction that straddles two fetch words costs 4.
+- **A redirect costs 2 cycles, and there is no prediction.** A taken
+  branch, `jal` or `jalr` costs 2 cycles more than falling through:
+  one squashed wrong-path slot plus one refetch slot. A data-dependent
+  branch costs the same at a 50% taken rate whether the pattern
+  alternates or is random, exactly midway between never taken and
+  always taken. Its cost depends only on the outcome.
+- **Load-use bubbles hide in the fetch gap.**
+  - An L1 load hit costs 2.5 cycles independent and 3 dependent
+    (load-to-load).
+  - A load followed by an ALU consumer costs 4.04 per pair at distance
+    1 and at distance 2.
+  - CSR accesses, `rdcycle`, `rdtime` and `fence` cost the same as an
+    ALU op. They do not serialize.
+- **The M unit and FPU do not overlap work.** Every operation costs its
+  `docs/CORE.md` EX occupancy plus 1.1 cycles (net of window), and
+  dependent and independent sequences cost the same.
+- **D$ (16 KiB, 4-way).**
+  - A random working set of up to 16 KiB hits (0.002 misses per load).
+    The miss rate is 40% at 20 KiB, 83% at 32 KiB and 100% from
+    128 KiB.
+  - A clean miss costs 12.0 cycles (soc) or 37.0 cycles (axi), as
+    `dc_miss_cyc / dc_miss`. A dependent load that misses costs 14.1 or
+    39.1 cycles.
+  - Streaming loads move 1.87 or 1.08 bytes/cycle.
+- **I$ (8 KiB, 2-way).**
+  - Straight-line footprints up to 4 KiB never miss. At 6–8 KiB,
+    3.5–4.5% of line fetches miss: round-robin victim conflicts with
+    the driver's lines.
+  - From 12 KiB, 67–88% of line fetches miss. The rate is never 100%,
+    because the shared round-robin pointer leaves some lines resident.
+  - The miss penalty is 12.0 cycles (soc) or 37.0 cycles (axi).
+- **Vector.**
+  - Arithmetic matches `docs/CORE.md` exactly in the vector unit
+    (`stk_vec`): `vadd` N+4, e64 `vmul` (4+4)N+4, `vfadd` 6N+4,
+    `vredsum` N+6. Each vector instruction adds about 2.1 cycles of
+    issue on top.
+  - Unit-stride `vle8`/`vse8` take **3 cycles per element** in MEM
+    (`stk_vls` = 3N). `docs/CORE.md` gives 2 per element plus 1, and
+    quotes 1,025 cycles for `vle8` at vl=512; this run measures 1,536
+    MEM cycles in the SoC with the D$.
+  - `vsetvli` costs an ALU op, whether vtype changes or not.
+
+## #56 / #10: SHA-256 hash chain and 64 KiB bulk hashing (2026-10-22)
+
+[`perf-sha256chain-56-2026-10-22/`](perf-sha256chain-56-2026-10-22/report.md)
+holds:
+- `report.md`, `results.csv` and `results.json`;
+- `runs/`: the UART log and `SIGIL_PERF` records of all 8 simulations;
+- `perf-run.log`, the harness console output with the determinism
+  check;
+- the build logs;
+- the generated `hashlib` known-answer headers;
+- `iter40-smoke/`;
+- `unaligned-c7bd3b7/` with `diff-unaligned-c7bd3b7-vs-aligned.md`.
+
+The benchmarks are described in
+[`sw/bench/sha256chain/README.md`](../../sw/bench/sha256chain/README.md).
+
+- **Design.** The `rtl/` tree is `89b98cb`, identical to harness
+  `534f846`: main `eeaa332` plus the simulation-only counters. No #53
+  changes are included.
+- **Benchmarks.** Commit `2b8e1ae` (branch `56-perf-sha256chain`).
+- **Run.** `make -C sim perf BENCHES="sha256chain sha256chain_bulk"
+  CONFIG=default MEM="soc axi" REPEAT=2 JOBS=4` on sigil-verify.
+  - Results written 2026-10-22T09:55:45Z.
+  - Tools: Verilator 5.048, riscv64-unknown-elf-gcc 16.1.0 and Python
+    3.12.3 `hashlib`.
+  - Flags: `sdk.mk` with the SDK default `-march`, plus
+    `-falign-functions=64`.
+- **Validation.** All 48 region records are valid.
+  - Before the regions, every implementation passed the FIPS 180-4 /
+    FIPS 202 known answers.
+  - After each region, every result matched `hashlib`, including all 16
+    RVV lanes.
+  - The harness cross-checks passed, and both repeats are identical.
+  - At `ITER=40` (soc, not a result), the runs also validate, including
+    the RVV remainder step at vl = 8.
+
+SHA-256 chain, 1024 hashes per region. Cycles/hash on soc: axi is
+within 0.02%. Hashes/s is the clock divided by cycles/hash. RVV ×16 is
+aggregate throughput over 16 independent chains.
+
+| Implementation | cycles/hash | hashes/s @62.5 MHz | hashes/s @100 MHz |
+|---|---:|---:|---:|
+| plain C | 9,918.2 | 6,302 | 10,082 |
+| C + Zknh | 6,753.2 | 9,255 | 14,808 |
+| RVV ×16 | 4,642.0 | 13,464 | 21,542 |
+| accelerator, `sigil_sha256_block` | 572.1 | 109,248 | 174,797 |
+| accelerator, `sigil_sha256` | 2,793.1 | 22,376 | 35,802 |
+| accelerator SHA-512 chain (64 B), `sigil_hash` | 2,472.2 | 25,281 | 40,450 |
+| accelerator SHA3-256 chain, `sigil_hash` | 1,370.1 | 45,616 | 72,986 |
+
+Bulk hashing of 64 KiB, in bytes/cycle, soc / axi:
+- SHA-256 plain C: 0.0065 / 0.0065;
+- SHA-256 Zknh: 0.0095 / 0.0095;
+- SHA-256 RVV ×16 (16 × 4 KiB segments): 0.0131 / 0.0130;
+- accelerator SHA-512: 0.2388 / 0.2205;
+- accelerator SHA3-256: 0.2398 / 0.2215.
+
+In MB/s, multiply by the clock in MHz. For example, accelerator SHA-512
+on soc gives 14.9 MB/s at 62.5 MHz and 23.9 MB/s at 100 MHz. There is no
+SHA-256 accelerator bulk row, because its engine has no chaining.
+
+Code alignment matters. Without `-falign-functions=64` (same
+instructions, `unaligned-c7bd3b7/`), these chains took more cycles:
+- SHA-512: 43% more (3,609,723 against 2,531,505);
+- SHA3-256: 37% more;
+- Zknh: 6.8% more.
+
+The extra cycles are fetch latency and 32-bit instructions straddling a
+fetch word.
+
+## #56: whole benchmark suite after integration (2026-10-22)
+
+[`perf-suite-56-2026-10-22/`](perf-suite-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/`, `build-logs/`,
+`perf-run.log`, `compare-evidence.log` and `harness-options-smoke.log`.
+One run of every benchmark after `56-perf-coremark`,
+`56-perf-kernels`, `56-perf-micro` and `56-perf-sha256chain` were
+merged into `56-perf-harness` with the harness changes they asked for.
+It is an integration check, not a new baseline.
+
+- **Design.** `rtl/` tree `89b98cb227c6` (main `eeaa332` plus the
+  simulation-only counters). No #53 pipelining.
+- **Run.** `make -C sim perf CONFIG=default MEM="soc axi" REPEAT=2
+  JOBS=12 CLOCK_MHZ="62.5 100"` at `662bad7` on sigil-verify,
+  2026-10-22T11:05:49Z–11:11:11Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. 10 benchmarks, 14 images, 56
+  simulations.
+- **Validation.** 712/712 region results valid and deterministic.
+  Every image sha256, counter and hardware-counter number is identical
+  to the branch evidence above: dhrystone 8/8 (default configuration),
+  coremark 12/12, kernels 224/224, micro 420/420, sha256chain 48/48.
+- **Harness changes.** Per-region bytes/work per iteration and
+  baselines, a window region, per-variant regions and expect lines,
+  `VARIANTS`, `MAX_CYCLES`, `CLOCK_MHZ`, `cc_commands`, and a
+  row-per-run layout for wide reports (`docs/PERFORMANCE.md`). The
+  options this run does not use are smoke-tested in
+  `harness-options-smoke.log`.
+
+## #56: the benchmark suite on AWS F2 hardware (2026-10-22)
+
+[`perf-f2-56-2026-10-22/`](perf-f2-56-2026-10-22/README.md):
+`README.md` (analysis), `tables.md`, `regions.md`, `results.json`,
+`logs/` (UART capture and host report of all 46 runs),
+`instance-info.txt`, `aws-lifecycle.txt`, `SHA256SUMS` and `scripts/`.
+The #56 benchmark images ran on a real F2 FPGA with the public AFI.
+
+- **Hardware.** One `f2.6xlarge` (`i-0fa8f24634bfa912f`, us-east-1a,
+  FPGA Developer AMI 1.19.2) ran public AFI `agfi-035116450e0a0d093`
+  (Small Shell `0x10212415`). The measured core clock was
+  62.500–62.501 MHz.
+- **Design.** The AFI (built from `4058108`) runs the `default`
+  configuration of the main `eeaa332` design: it predates `VRF_OREG`
+  (#53), and there is no #53 pipelining.
+- **Run.** `sigil_host --ignore-mem-err` (aws-fpga v2.3.5), from
+  2026-10-22T11:25:40Z to 11:27:43Z.
+- **F2 time.** 5 min 35 s running (0.093 instance-hours); the instance
+  is terminated.
+- **Images.** The 16 images are byte-identical to the simulation
+  evidence: the 14 of `perf-suite-56-2026-10-22` and the 2
+  1000-iteration CoreMark images of `perf-coremark-56-2026-10-22`.
+  They were built at `8d15410` with GCC 16.1.0.
+- **Validation.** 46/46 runs are valid. Each run printed `SIGIL TEST
+  PASS` after its own CRC, KAT or known-answer checks, every expect
+  line was present, and there was one `SIGIL PERF` line per region.
+  The UART output equals the simulation's line for line, except
+  numbers on timing lines; no byte was dropped and nothing overflowed.
+  178 of 180 regions retire exactly the simulated `minstret`. The
+  exceptions are the two SHA-512 accelerator poll loops.
+
+| Benchmark | F2 hardware | Simulation, default/axi |
+|---|---:|---:|
+| Dhrystone 2.1, scalar | 0.371 DMIPS/MHz = **23.17 DMIPS** | 0.371 |
+| CoreMark 1.0, 1000 iterations (11.47 s on hardware, `Correct operation validated`) | 1.395 CoreMark/MHz = **87.19 CoreMark** | 1.395 (soc) |
+| SHA-256 accelerator `sigil_sha256_block`, cycles/hash | 572.1 = 109,250 hashes/s | 572.1 |
+| SHA-256 plain C / Zknh / RVV x16, cycles/hash | 9,918.4 / 6,753.4 / 4,642.6 | identical |
+
+How closely the hardware matches the simulation:
+
+- **Agreement.** 145 of 180 regions are within 0.1% of the
+  default-configuration simulation behind the 24-cycle AXI DDR model,
+  and 165 are within 1%. Regions without cache misses repeat
+  cycle-exactly.
+- **Memory-bound regions.** All the larger gaps are cache-miss
+  microbenchmarks:
+  - a refill costs about 1.5 cycles more on the real DDR4 path (D$
+    dependent miss 40.6 against 39.1 cycles);
+  - a dirty write-back costs about 10 cycles less.
+- **The `fpga` (VRF_OREG) simulation.** It is not this AFI's design.
+  In all 61 regions where the two configurations differ, the hardware
+  is closer to `default`: for example, `vse8` at vl=512 takes 1,537.8
+  cycles, against 2,049.8 with `VRF_OREG`.
+
+## #56: deterministic simulation baseline of main `eeaa332`, three configurations (2026-10-22)
+
+[`perf-baseline-56-2026-10-22/`](perf-baseline-56-2026-10-22/README.md):
+`headline.md` (cross-configuration tables), and per configuration
+(`default/`, `sky130/`, `fpga/`) `results.csv`, `report.md`
+(`scripts/perf_report.py`), `results.json`, `runs/`, `build-logs/` and
+`perf-run.log`. Also `env.log`, `synth-view-diff.log`, `tb-build.log`,
+`compare-prior-evidence.log`, `micro_table.md`, `kernels_report.md`,
+`run_baseline.sh` and `baseline_tables.py`. This is the reference
+against which #53 and later changes are compared.
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  simulation-only counters. The synthesis views are byte-identical to
+  `eeaa332` for every flow's defines. No #53 pipelining.
+- **Run.** `run_baseline.sh` at `8d15410` on sigil-verify,
+  2026-10-22T11:20:07Z–11:40:57Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. Fresh testbench builds, then `make
+  -C sim perf CONFIG=<default|sky130|fpga> MEM="soc axi" REPEAT=2
+  JOBS=12`. Every benchmark and variant: 14 images, 168 simulations.
+- **Validation.**
+  - 2136/2136 region results valid, every program self-checked
+    (CRCs, known answers, `hashlib`).
+  - Both repeats identical in every counter.
+  - The 14 images are bit-identical across the three builds.
+  - `default` is identical to `perf-suite-56-2026-10-22` (712/712) and
+    to the branch evidence. The `sky130`/`fpga` Dhrystone results are
+    identical to `perf-dhrystone-56-2026-10-22`.
+- **Headline** (`soc` / `axi`):
+
+  | | default | sky130 | fpga (VRF_OREG) |
+  |---|---:|---:|---:|
+  | Dhrystone `scalar` DMIPS/MHz | 0.371 / 0.371 | 0.216 / 0.201 | 0.371 / 0.371 |
+  | CoreMark `scalar` CoreMark/MHz | 1.395 / 1.395 | 0.868 / 0.867 | 1.395 / 1.395 |
+  | SHA-256 cycles/hash: C, Zknh, RVV ×16, accel block (`soc`) | 9,918 / 6,753 / 4,642 / 572 | 15,634 / 10,747 / 4,949 / 792 | 9,918 / 6,753 / 4,855 / 572 |
+
+- **`fpga`** changes only vector code. Regions with no vector
+  instruction have identical counters. Vector arithmetic costs 1 more
+  cycle per instruction and unit-stride stores 1 more cycle per
+  element (Dhrystone `sdk` +3.2%, SHA-256 RVV +4.6%, memset RVV +29%).
+- **`sky130`** is 1.58–1.85x slower on scalar code. The fetch issue gap
+  is 3 cycles instead of 2, a load takes 5 cycles instead of 2.5, and
+  the 4 KiB direct-mapped D$ misses on every access from an 8 KiB
+  working set.
+
+## #56 / #10: where the cycles go and ranked upgrade candidates (2026-10-22)
+
+[`perf-analysis-56-2026-10-22/`](perf-analysis-56-2026-10-22/README.md)
+holds the analysis behind `docs/PERFORMANCE.md` §12–14:
+
+- `counters/`: `derive.py`, and its output `derived.md`, which has every
+  counter-derived ratio the document quotes, plus helper scripts;
+- `frontend-model/`: the trace-driven front-end model (`fe.cpp`), its
+  run scripts and outputs, the what-if table `whatif.md`, and the
+  model's check against the RTL;
+- `analyses/`: the three analyses as written (front end, memory
+  hierarchy, execution units).
+
+Results: [`docs/PERFORMANCE.md`](../PERFORMANCE.md) §12–14.
+
+- **Inputs.**
+  - The counters of `perf-baseline-56-2026-10-22` (`56-perf-harness`
+    `de21e4b`; `rtl/` tree `89b98cb227c6`, main `eeaa332` plus the
+    simulation-only counters, no #53 pipelining).
+  - `perf-f2-56-2026-10-22`.
+  - Spike 1.1.1-dev (`2c300cd9`) commit traces of the baseline ELFs
+    (`8d15410`).
+  - RTL retirement traces for the SHA chains, from a simulation-only
+    tap in an uncommitted copy (Verilator 5.048).
+  - The model, built with g++ 13.3.0 on sigil-verify and run
+    2026-10-22, about 12:30–12:45Z.
+- **Validation.**
+  - The model of today's core reproduces the RTL cycle counts to within
+    +0.0002% for CoreMark, +0.0014% for Dhrystone and +0.0001% for
+    SHA-256 C and Zknh. On sky130 it is within +0.005%.
+  - `ic_access`, `br_taken`, `jal_redir`, `jalr_redir` and
+    `muldiv_busy` match the RTL counters exactly.
+  - Every (region, variant) pair present in several output sets is
+    identical (`version-consistency.log`).
+  - Every traced program self-checked under Spike, except one `rdtime`
+    rate check in `micro_pipe`. Spike's timer differs from the RTL's,
+    and `micro_pipe` serves only to check the model per mechanism.
+- **Results** (model figures, `default`):
+  - **Decoupled 64-bit fetch:** CoreMark 1.41x, Dhrystone 1.43x,
+    SHA-256 C 2.15x.
+  - **Plus a 64-entry bimodal predictor with a 4-entry RAS:** 1.70x,
+    1.80x and 2.32x.
+  - **Changes that leave fetch alone,** such as dual issue and
+    multithreading, are bounded today by the I$ port. It is 94.9% busy
+    on CoreMark, which caps them at 1.053x.
+  - **SHA-256 (#10):** the accelerator block API takes 572 cycles per
+    hash, against 9,918 for plain C, 6,753 for Zknh and 4,642 for
+    RVV ×16. That is 17.3x plain C, and F2 hardware gives the same
+    counts.
+
+## #56 / #10: gates on the final branch, clean-worktree reproduction of the baseline (2026-10-22)
+
+[`perf-56-gates-2026-10-22.log`](perf-56-gates-2026-10-22.log), with the
+ACT results in
+[`act-core-perf-56-2026-10-22.csv`](act-core-perf-56-2026-10-22.csv). A
+completeness review of #56 and #10 on `56-perf-harness`. `rtl/` tree
+`89b98cb227c6` is the baseline's tree: main `eeaa332` plus the
+simulation-only counters, with no #53 code. The gates ran at `b441f31`
+on sigil-verify, from a fresh worktree, on 2026-10-22 from 13:45 to
+14:59Z. Tools: Verilator 5.048 (`deps/`), CI's 5.020 and the Mac's
+5.044, and riscv64-unknown-elf-gcc 16.1.0.
+
+- **Gates.**
+  - `make lint` is clean on 5.048, 5.020 and 5.044.
+  - With `SYNTHESIS` defined, every flow's preprocessed RTL is
+    byte-identical to `eeaa332`. The `+define+SYNTHESIS` lint gives the
+    same diagnostics as main: 24 `UNUSEDSIGNAL` warnings, all of them
+    main's own.
+  - `make test` passes.
+  - `make core-test`: 235 `TB PASS` lines. Every PASS line is identical
+    to a main `eeaa332` core-test on the same host, cycle counts
+    included. All 1,440 of its coverage files are byte-identical to
+    main's, so coverage is 55.00% (3491/6252) on both.
+  - riscv-tests 123/123; `srammacro` passes (fakeram45, sky130, oreg,
+    vrforeg); all 7 SDK examples pass.
+  - ACT 2,577/2,578 (Vx 821/821, Vls 1,051/1,051, Vf 162/162, scalar and
+    priv 543/544). Only the `PMPSm_cfg_A_tor_zero-00` waiver fails. All
+    2,578 verdicts and cycle counts equal
+    `act-core-w0-stack-2026-10-20.csv`.
+- **Baseline reproduced.** The baseline was rerun from a clean worktree
+  with `make -C sim perf CONFIG=<config> MEM="soc axi"` for `default`,
+  `sky130` and `fpga`, 356 region results each. Every image sha256 and
+  every counter equals `perf-baseline-56-2026-10-22`.
+- **How-to commands.** The `docs/PERFORMANCE.md` §1, §5 and §8 commands
+  work as written, with one exception. The documented quick smoke,
+  `ITER=200`, overruns the 2e8-cycle limit in `kernels`: 0 of 28 valid,
+  about 680 M cycles needed. The quick smoke is now `ITER=1`, which
+  validates all 356 results in 105 s.
+- **CoreMark at 1000 iterations.** `ITER=1000 MAX_CYCLES=1500000000`
+  validates. The `soc` cycles, 716,834,078, equal the CoreMark
+  evidence.
+- **ACT procedure.** At this riscv-arch-test pin, the ELFs had to be
+  built in a different order from `sw/act4-core/README.md`. The vector
+  sources only exist after the first `make elfs`, so the 43 listed
+  generation failures were moved aside after that build, and the build
+  was then rerun.
+
+## #20: ACT Zalrsc-sc case-level probe on the in-house core (2026-10-22, branch `20-isa-followups`)
+
+- Artifacts: [`act-zalrsc-sc-probe-core-2026-10-22.csv`](act-zalrsc-sc-probe-core-2026-10-22.csv)
+  (one row per test case: Sail vs core signature words, default
+  harness configuration), [`act-zalrsc-sc-probe-runs-core-2026-10-22.csv`](act-zalrsc-sc-probe-runs-core-2026-10-22.csv)
+  (one row per test x harness configuration),
+  [`act-zalrsc-sc-probe-core-2026-10-22.log`](act-zalrsc-sc-probe-core-2026-10-22.log)
+  (tool versions, commands, summaries, cycle ranges).
+- Question: the CVA6-era sweep (above, 2026-10-12) recorded ACT
+  `Zalrsc-sc.w`/`sc.d` as a waived hang in the CVA6 testharness memory
+  path and asked for a case-level probe. On the in-house core both
+  ELFs have passed as whole tests since stage 4a; this probe checks
+  them case by case.
+- Method (`scripts/act_zalrsc_sc_probe.sh`, commit `0c46ae5`,
+  sigil-verify, Verilator 5.048, Sail 0.15, riscv-arch-test
+  `6af53584`, GCC 16.1.0 from the pinned 2026.08.27 toolchain):
+  - Tests: stock `Zalrsc-sc.w-00`/`sc.d-00` (275 cases each: 243
+    expect the SC to succeed, 32 expect it to fail) plus "noretry"
+    variants of both, where every constrained LR/SC retry budget
+    `LI(xN, 100)` is cut to 1 (274 per test). A spurious
+    first-attempt SC failure, which the stock retry loop would hide,
+    then reaches the signature. All four were built through the
+    ACT flow (Sail signature + self-check ELF). Sail's signatures
+    for the stock and noretry sources are identical.
+  - Harness configurations: default (L1 caches on), `--no-cache`,
+    and randomized bus timing (`--mem-lat 1:6 --mem-gap 2
+    --mem-ready 70`, seeds 1–16), both cached and uncached: 34 per
+    test.
+  - Each run executes the self-check ELF (5M-cycle budget, so a hang
+    would show as a timeout). It also executes the signature-mode
+    `.sig.elf`, the binary Sail ran, with `CORE_TB_SIGDUMP=1`, and
+    compares all 568 signature words with Sail's `.sig`
+    (`scripts/act_sig_cases.py` maps each word to its test case).
+    Signature-mode ELFs use Sail's HTIF console and halt macros, so
+    `core_tb` gained an opt-in `CORE_TB_HTIF_CONSOLE` mode. Default
+    harness behaviour is unchanged.
+- Result: **136/136 runs PASS** (self-check PASS, signature-mode run
+  completes, all 568 words equal to Sail). **1,100/1,100 cases** match
+  Sail word for word in the default configuration (4 tests x 275).
+  No timeouts. The longest run is 239,766 cycles (stock `sc.w`,
+  uncached with random bus timing).
+- Conclusion: the 2026-10-12 hang is specific to the CVA6
+  model/testharness and does not reproduce on the in-house core,
+  whose LR/SC behaviour matches Sail for every ACT
+  `sc.w`/`sc.d` case under all 34 timing configurations, including
+  with retries disabled. ACT Zalrsc (lr + sc) is claimed for the
+  in-house core.
+
+## #20: Berkeley TestFloat level-2 mulAdd on the in-house FPU (2026-10-22, branch `20-isa-followups`)
+
+- Artifacts: [`testfloat-l2-muladd-core-2026-10-22.csv`](testfloat-l2-muladd-core-2026-10-22.csv)
+  (one row per function x instruction x rounding mode x selection)
+  and [`testfloat-l2-muladd-core-2026-10-22.log`](testfloat-l2-muladd-core-2026-10-22.log)
+  (versions, generator validation, run logs, every chunk result).
+- DUT and check: `rtl/core/sigil_fpu.sv` (RTL identical to `main`
+  `eeaa332`) in the FPU unit TB (`tb/cpp/fpu_tb.cpp --testfloat`).
+  The runs use its uninstrumented build `fpu_tb_fast` (same TB and RTL
+  without coverage counters, about 2x faster). Every case goes through
+  the EX handshake (random idle gaps, 5% delayed acks). Result bits
+  and all five exception flags are compared exactly with SoftFloat 3e
+  `a0c6494c` (RISCV specialization, tininess after rounding), as
+  `testfloat_gen` computes them.
+- Generator: `sw/testfloat/tf_l2_mulAdd.c` with
+  `scripts/testfloat_fpu_l2.sh`. It compiles TestFloat `a9c849f1`'s
+  own level-2 case code (`genCases_f32.c`/`genCases_f64.c`,
+  `random.c`), with a lock-free replica of glibc `rand()`, so the
+  stream can start at any pair index from a saved generator state and
+  run as 33,554,432-pair chunks in parallel (16 jobs, seed 42 as in
+  the level-1 flow). Level-2 mulAdd is 2·N³ cases per rounding mode:
+  each step is a TestFloat random triple followed by the next triple
+  of the (QIn x P2)³ grid, with N = 1,936 (f32) or 4,488 (f64). That
+  is 14,512,627,712 f32 and 180,795,884,544 f64 cases per mode. A
+  stride S > 1 keeps every S-th grid triple and as many random
+  triples. S is prime and coprime with N, so every operand value
+  still appears in every position.
+- Generator validation (`testfloat_fpu_l2.sh validate`): byte-identical
+  to `testfloat_gen -level 2 -seed 42 -r<mode>` for the first
+  20,000,000 lines of `f32_mulAdd` and `f64_mulAdd` in all five modes,
+  and for 2,000,000 lines restored from a checkpoint deep in the
+  stream (from line 3,000,000,001 for f32 and 800,000,001 for f64,
+  RUP). Its fpu_tb lines are byte-identical to
+  `testfloat_fpu_vectors.py` output for the first 1,000,000 cases of
+  each format.
+- Results: **every selection PASS, 0 result or flag mismatches in
+  29,952,200,254 cases**:
+
+  | Function | Instruction | Modes | Selection | Cases checked |
+  |---|---|---|---|---|
+  | f32_mulAdd | fmadd.s | RNE | complete level-2 stream | 14,512,627,712 |
+  | f32_mulAdd | fmadd.s | RTZ, RDN, RUP, RMM | S = 13 | 4 x 1,116,355,978 |
+  | f64_mulAdd | fmadd.d | all 5 | S = 97 | 5 x 1,863,875,100 |
+  | f32_mulAdd | fmadd.s/fmsub.s/fnmsub.s/fnmadd.s, rotating | all 5 | S = 97 | 5 x 149,614,720 |
+  | f64_mulAdd | fmadd.d/fmsub.d/fnmsub.d/fnmadd.d, rotating | all 5 | S = 997 | 5 x 181,339,906 |
+
+  In the rotating rows, random triple r uses opcode r mod 4 and grid
+  triple r uses (r + 2) mod 4, so each opcode gets about a quarter
+  of the cases. Operands are sign-flipped (fmsub: −c, fnmsub: −a,
+  fnmadd: −a and −c) so the expected value stays TestFloat's mulAdd
+  result; SoftFloat and Spike define the negated forms the same way.
+- Limits: complete level 2 ran for `f32_mulAdd` in RNE only. Running
+  the other four f32 modes completely would take about 2.3 core-days.
+  Complete f64 level 2 is 903,979,422,720 cases over five modes,
+  about 40 core-days at this TB's ~260k cases/s per core. Neither
+  was run. Those selections are the decimated level-2 rows above.
+  The host was shared with other jobs (load up to ~45 on 32 vCPUs),
+  so the f32 plan was cut from five complete modes to RNE complete
+  plus S = 13 for the other four. `roundToInt` is not applicable: it
+  has no instruction without Zfa, which this configuration does not
+  implement.
+- Combined with level 1 (all 36 F/D functions x 5 modes,
+  64,648,560 vectors, "Multi-cycle synthesizable FPU" above),
+  TestFloat level-2 mulAdd density on the in-house FPU is now
+  claimed for the selections in the table.
+
+## #20: gates for branch `20-isa-followups` (2026-10-22)
+
+[`isa-followups-20-gates-2026-10-22.log`](isa-followups-20-gates-2026-10-22.log):
+at `0c46ae5` (the `core_tb` HTIF console mode and the `fpu_tb`
+coverage guard; RTL unchanged from `main` `eeaa332`), `make lint`
+clean, `make test` PASS, `make -C sim fpu` PASS (476,563 checks,
+coverage written), riscv-tests 123/123, `make core-test` rc 0
+(2,794 s). At `17aca6b`, the last code change, `make lint` clean
+and `make test` PASS.
+
+## #68 #69 #70 #64: Linux 6.12 + Debian 13 for Sigil, QEMU bring-up (2026-10-22, branch `73-linux-debian`)
+
+Logs in [`linux-debian-73-2026-10-22/`](linux-debian-73-2026-10-22/);
+user guide [`docs/LINUX.md`](../LINUX.md). Everything that runs on the
+SoC for epic #73, built on `sigil-fpga-build` (Ubuntu 24.04) and brought
+up in QEMU against [`LINUX_PLATFORM.md`](../LINUX_PLATFORM.md). **No
+FPGA run yet** (the AFI with the 80 GiB map is not published); the F2
+numbers below are estimates.
+
+**Versions.** Linux **6.12.114** (`sw/linux/kernel/sigil_defconfig`,
+tarball sha256 `7a858991…4af3`); OpenSBI **v1.9** (`cbf9f673`) generic
+`fw_jump` + `sw/linux/opensbi/0001-*.patch`; **Debian 13.7 "trixie"
+riscv64** from `snapshot.debian.org` **`20261020T000000Z`** (trixie,
+-updates, -security), 257 packages
+([`debian-manifest.txt`](linux-debian-73-2026-10-22/debian-manifest.txt):
+gcc/g++ 14.2.0, binutils 2.44, glibc 2.41, gdb 16.3, make 4.4.1, git
+2.47.3, python3 3.13.5, systemd 257.13, numactl/libnuma 2.0.19, …);
+build tools in [`build-versions.txt`](linux-debian-73-2026-10-22/build-versions.txt).
+Two image builds from the snapshot gave a byte-identical manifest.
+
+**Artifacts** (not in git; `sigil-fpga-build:~/os-artifacts/`, all
+checksums in [`SHA256SUMS`](linux-debian-73-2026-10-22/SHA256SUMS)):
+
+| File | Load address | sha256 |
+|---|---|---|
+| `fw_jump.bin` | `0x8000_0000` | `d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf` |
+| `Image` | `0x8020_0000` | `0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790` |
+| `Image-initramfs` (`/init` → `SIGIL_LINUX_BOOT_OK`) | `0x8020_0000` | `2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48` |
+| `sigil-f2.dtb` | `0x8300_0000` | `eb1689b43fe38e01d75e36c569d51bb7ea21c3163c10fb6acafa4b466f521e04` |
+| `sigil-qemu.dtb` / `sigil-sim.dtb` | `0x8300_0000` | `9b8313cc…0a03` / `f144da91…77` |
+| `sigil-debian-13-riscv64.ext4.zst` (222 MB) | `0xC_8000_0000` (PCIS `0x0C_0000_0000`) | `a9cfcbc977fad8968f07200d595b37ed3df51f7877b7fc0ec26d985e5fb5bf33` |
+| raw `.ext4` (8 GiB, after `zstd -d`) | | `c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632` |
+
+**QEMU acceptance: 23/23 PASS** (`python3 scripts/qemu_sigil_check.py
+--fresh`; transcript [`qemu-check.log`](linux-debian-73-2026-10-22/qemu-check.log),
+summary [`qemu-check-summary.txt`](linux-debian-73-2026-10-22/qemu-check-summary.txt)).
+QEMU 8.2.2 `-M virt` shaped like the contract
+(`scripts/qemu_sigil_boot.sh`): one hart with only Sigil's extensions,
+Sv39, DDR4 node 0 = 48 GiB at `0x8000_0000`, the pmem disk = 16 GiB
+file-backed at `0xC_8000_0000`, HBM node 1 = 16 GiB at `0x10_8000_0000`,
+the F2's OpenSBI, kernel and disk image with `sigil-qemu.dtb`.
+
+- Login on `ttyS0` as `sigil` after `SIGIL_LINUX_BOOT_OK Debian GNU/Linux
+  13 (trixie) up, login prompt next`; `Linux sigil 6.12.114-sigil …
+  riscv64`; ISA `rv64imafdch_zicntr_zicond_zicsr_zifencei_zca_zcb_zcd_
+  zba_zbb_zbc_zbkb_zbkc_zbkx_zbs_zknd_zkne_zknh_zve32f_zve32x_zve64d_
+  zve64f_zve64x`; systemd `running`, no failed units; `/` = `/dev/pmem0`
+  ext4 rw.
+- `numactl --hardware`: `available: 2 nodes (0-1)`, node 0 cpus 0 size
+  48305 MB, node 1 (no CPUs) size 16110 MB, distances 10/20.
+- `gcc hello.c && ./a.out` → `Hello from sigil on riscv64`; `make` of
+  the examples on the guest; `malloc_test 512` → `MALLOC OK`; libnuma
+  `numa_alloc_onnode` on nodes 0 and 1 → all pages on the requested node;
+  `memwhere 1024` → `node 0: 1024 MiB`, `numactl --membind=1 memwhere
+  1024` → **`node 1: 1024 MiB`**, `--interleave=0,1` → 512 + 512 MiB.
+- RVV: `rvv_vadd` (intrinsics, `-march=rv64gc_zve64d`) → `hwprobe: zve32x 1
+  zve64x 1 zve64d 1 full-v 0`, `VLEN = 512 bits`, `RVV OK`; `autovec`
+  (`-O3 -march=rv64gc_zve64d_zvl512b`) correct with 7 vector
+  instructions.
+- sudo, python3, git, gdb, strace, vim, file, man; a file written to the
+  pmem disk survives `reboot` (finisher `0x7777`); `poweroff` → `reboot:
+  Power down`, QEMU exits (finisher `0x5555` via SBI SRST).
+- QEMU timings (TCG, **not FPGA**): reset → boot marker 18 s, login prompt
+  21 s; `systemd-analyze` 0.5 s kernel + 9.8 s userspace.
+
+**F2 estimate** (`--icount`: QEMU `-icount shift=4,sleep=off`, 16 ns per
+instruction = a 62.5 MHz hart at IPC 1, [`qemu-icount.log`](linux-debian-73-2026-10-22/qemu-icount.log)):
+`systemd-analyze` 2.07 s kernel + 41.05 s userspace, boot marker at
+41.7 s, `gcc -O2 hello.c` 4.9 s, `python3 -c` 1.0 s. Calibration: the #55
+F2 payload (the sha256-identical 6.6 `Image`, `fw_jump.bin` and DTB of #55)
+reaches `clk: Disabling unused clocks` at 4.74 s in the same icount QEMU
+(≈ 0.30 G instructions, [`old66-f2-payload-icount.log`](linux-debian-73-2026-10-22/old66-f2-payload-icount.log));
+on the F2 that line came at kernel time 385.36 s with a 10 MHz DT timebase
+while `mtime` ran at 62.5 MHz, i.e. 61.7 s = 3.85 G cycles: **≈ 13 cycles
+per instruction**. Scaled: login prompt **≈ 9 min** after reset, `gcc
+hello.c` ≈ 1 min, `python3` start ≈ 15 s at 62.5 MHz, until measured.
+Measured on the F2 later (AFI `agfi-0c8aa56fde1a48495`, section "Debian on
+the F2 with the walker-race fix" below): login prompt 5 min 48 s after the
+SoC release, `gcc hello.c && ./a.out` 22.9 s, `python3 -c` 9.9 s, an estimated 5
+cycles per instruction (F2 times divided by QEMU icount instruction counts).
+
+**Tuning from the icount runs.** Before it
+([`qemu-icount-before-tuning.log`](linux-debian-73-2026-10-22/qemu-icount-before-tuning.log))
+the marker came at 84.2 s and the first login **timed out** (`login:
+timed out after 60 seconds`); with that fixed, `blame` was led by
+`user@1000.service` 37.8 s, `dev-pmem0.device` 30.8 s (boot fsck waiting
+for udev), `systemd-udev-trigger` 25.3 s (512 legacy pty nodes, 8 loop
+devices) and ~5 s each for five `modprobe@` units and `systemd-binfmt`.
+Now: logind sessions of class `background-light` (no per-user service
+manager at login), no boot-time fsck, `LEGACY_PTYS=n`,
+`BLK_DEV_LOOP_MIN_COUNT=0`, those units masked, `LOGIN_TIMEOUT 0`:
+marker 84.2 s → 41.7 s, login a few seconds.
+
+**Findings.** (1) A raw pmem namespace needs `ND_CLAIM`: with BTT, PFN
+and DAX all off, `devm_nsio_enable()` is a `-ENXIO` stub, `nd_pmem`
+fails silently and `root=/dev/pmem0` waits forever; `sigil_defconfig`
+keeps `CONFIG_BTT=y`. (2) Sigil's write-back D$ is not coherent with the
+host's PCIS view, so Linux powers off and reboots only through SBI SRST
+(no syscon reset drivers in the kernel) and the OpenSBI patch runs
+`FENCE.I` (writes back every dirty line on Sigil) before the finisher
+write; a host save after `poweroff` then holds the whole file system.
+(3) 6.12 enables user vector on Zve64d; the vector usercopy threshold is
+1 GiB so the kernel never uses the element-serial vector unit for
+`copy_*_user`. (4) GCC auto-vectorizes for Zve64d only with `_zvl512b`.
+
+**RTL.** The all-RTL SoC model `soc_rtl_tb` (main-checkout build of
+2026-10-21) boots the same kernel as `Image-initramfs` with
+`sigil-sim.dtb` to `SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
+([`soc-rtl-linux-6.12-boot.log`](linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log);
+the 6.6 `defconfig` gate needed 508,905,040 in `soc_tb`). The console
+shows the #63 TX-FIFO character drops of that RTL, not of the kernel.
+`scripts/qemu_reference_boot.sh` (now on `Image-initramfs`, build stamps
+ignored) passes against that log: `QEMU REFERENCE BOOT PASS`.
+
+**Deviations / contract proposals.** QEMU-only: 10 MHz timebase; three
+QEMU NUMA sockets lay out the ranges, so QEMU has two extra harts outside
+the DT (OpenSBI parks them); virtio-mmio slots; no crypto node.
+Proposed for `LINUX_PLATFORM.md`: RTC = PLIC source 11; DTB at
+`0x8300_0000` (`FW_JUMP_FDT_ADDR`, kernel ≤ 46 MiB, initrd `0x8400_0000`);
+**a finisher reboot must not reload the pmem disk** (today
+`sigil_host --on-reboot rerun` reloads every `--load` image); power-off
+and reboot via SBI SRST with the D$ write-back; optional host-written
+`/chosen/rng-seed`; later: Svnapot/Svadu in the ISA string (`misa`
+reports V although the unit is Zve64d — harmless, Linux uses the DT).
+
+## #73 user path: `sigil-linux`, the Sigil Linux user guide, `hbm_touch` (2026-10-22, branch `73-linux-release`)
+
+Logs and harness in [`linux-user-docs-73-2026-10-22/`](linux-user-docs-73-2026-10-22/),
+behind `fpga/scripts/sigil-linux`, `docs/LINUX.md` §4–§5 and
+`docs/PROGRAMMING.md` §8.1. All on `sigil-fpga-build` (Ubuntu 24.04,
+e2fsprogs 1.47.0, zstd 1.5.5, QEMU 8.2.2) with the release files of
+`~/os-artifacts/` (sha256 as in `linux-debian-73-2026-10-22/SHA256SUMS`).
+**No F2 instance was used; nothing here is an FPGA measurement.**
+
+- **`sigil-linux` logic, 35/35** ([`sigil-linux-tests.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests.log),
+  `harness/run_tests.sh`): the real script against a fake `sigil_host`
+  (copies the `--load` disk into a 16 GiB window file, changes the ext4
+  in it with `debugfs` or `resize2fs`, writes the `--save` file, exits
+  with a chosen status) and fake AFI tools, real `sudo`, downloads from a
+  `file://` copy of the release. First run (5 downloads, `SHA256SUMS`
+  verified, sparse unpack: 917 MiB allocated of 8 GiB, AFI loaded, the
+  exact `sigil_host` arguments, guest change saved, `e2fsck -fn` clean);
+  rerun with Ctrl-] (exit 4: no download or AFI load, disk unchanged,
+  `DISK.unclean` has the change); guest `resize2fs` to 16 GiB (disk file
+  follows; superblock size = `dumpe2fs`); `--fresh` with garbage beyond
+  the file system (trimmed to 8 GiB, old disk kept); setup error, no ext4
+  in the window, unpublished tag (disk untouched); corrupted cache
+  (re-downloaded); concurrent run (locked out); a 16 GiB fully written
+  window file in `/dev/shm` → sparse copy of the 8 GiB file system in
+  8.2 s, 969 MiB allocated, byte-identical. Fixed while testing: `zstd -d
+  -f` wrote a fully allocated 8 GiB file (now `--sparse`); a root-owned
+  save file may be unreadable for the user (now `chown`ed).
+  Rerun after `sigil-linux` and the harness were pointed at
+  `agfi-0c8aa56fde1a48495` (script sha256 `5044eed2…a0c175c`): **35/35**
+  ([`sigil-linux-tests-agfi-0c8aa.log`](linux-user-docs-73-2026-10-22/sigil-linux-tests-agfi-0c8aa.log));
+  the output differs from the first log only in the AGFI, the boot-time
+  message (measured 5 min 48 s instead of the estimate), temporary names
+  and timings.
+- **User-guide commands in QEMU, 10/10** ([`qemu-docs-check.log`](linux-user-docs-73-2026-10-22/qemu-docs-check.log),
+  console [`qemu-docs-check-console.log.gz`](linux-user-docs-73-2026-10-22/qemu-docs-check-console.log.gz),
+  `harness/docs_check.py`): files in with `debugfs -w` (owned by root;
+  `sudo chown` fixes it) and a loop mount (`chown -R 1000:1000`); the
+  `LINUX.md` §5.4 `numa_alloc_onnode` program (`harness/hbm.c`) built with
+  `-lnuma`, run plain and under `numactl --membind=1`; `numa_hbm`,
+  `numactl --membind=1 ./memwhere 64` → `node 1: 64 MiB`; RVV intrinsics
+  with `-march=rv64gc_zve64d`, auto-vectorization with
+  `-march=rv64gc_zve64d_zvl512b`; `sudo poweroff`; files out with
+  `debugfs` `cat` / `rdump` and a read-only loop mount; `e2fsck -fn` clean.
+- **`hbm_touch` on the F2 memory map** (`make -C sim fpgatop-f2-examples`,
+  `fpga_top_tb_f2`, Verilator 5.048): `SIGIL TEST PASS hbm_touch` at
+  5,370,652 cycles built with GCC 16.1 ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log))
+  and at 6,153,385 cycles with Ubuntu's GCC 13.2, the compiler `sigil-run`
+  uses ([log](linux-user-docs-73-2026-10-22/hbm_touch-gcc13.fpgatop-f2.log)):
+  256 KiB at HBM `0x10_8000_0000`, at the last 256 KiB of HBM and at DDR4
+  `0x8_8000_0000`, 0 bad words, first buffer intact after the others.
+  Cycle counts reflect the simulated AXI timing. Not yet run on the F2.
+
+## #73 Linux platform on F2: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63, 2026-10-22)
+
+[`f2-platform-73-2026-10-22/SUMMARY.md`](f2-platform-73-2026-10-22/SUMMARY.md).
+Public AFI **`agfi-0a1fd54ef68bdc754`** (`afi-035809e576d7ea8d5`; superseded by
+`agfi-0c8aa56fde1a48495`, the same CL with the core's walker-race fix #74,
+below; do not use it for Linux), core
+62.5 MHz (B1), HBM AXI 250 MHz (H0); post-route WNS +0.150 ns, core clock
++0.635 ns. On a real `f2.6xlarge`: full-range engine memory test of DDR4
+(64 GiB) and HBM (16 GiB), two seeds, 0 errors; sparse core test over both
+(1.3 M lines), 0 errors; refill latency from the core DDR4 729 ns / HBM 813 ns;
+#62 reproduced (SLVERR on the refill of a never-written DDR4 line: ECC) and
+fixed (DDR4 scrubbed once per AFI load, 17 s); #63 fixed (Linux console lines
+intact, 16-byte UART bursts byte-exact); finisher power off / fail code /
+reboot keeping the pmem window; RTC at wall-clock time; raw console with
+Ctrl-] detach; 4 GiB and 8 GiB load/save round trips (3.6 GB/s load,
+1.0 GB/s save); firmware and all SDK examples without `--ignore-mem-err`.
+Simulation: Verilator (`fpgatop-f2-quick` with an 80 GiB sparse model,
+`axibridge` out-of-window, `fpgaocl` v4 registers, `fpgatop`, `core-test`,
+`make test`, `make lint`; CI-parity Verilator 5.020 lint + FPGA targets) and
+HDK XSIM (`test_sigil_regs`, `test_sigil_platform`, `test_sigil_hash`,
+`test_sigil_host_cosim`) — logs in `sim/` and `xsim/`.
+
+## #73 Linux release branch: gates (2026-10-22)
+
+[`linux-release-73-gates-2026-10-22.log`](linux-release-73-gates-2026-10-22.log)
+(`73-linux-release` at `a6051cd`, the merge of `73-f2-memory-platform` and
+`73-linux-debian`; fresh clone on `sigil-fpga-build`): lint clean on Verilator
+5.048, CI's 5.020 and 5.044; `make core-test` (241 TB PASS, 0 fail, including
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick`), riscv-tests
+**123/123**, `make test`, and `socrtl`, `sochash`, `examples` (7/7),
+`fpgatop-quick`, `fpgatop-f2-quick` and `fpgaocl-quick` run explicitly.
+The released OS artifacts match the branch's `SHA256SUMS` (12/12).
+`soc_rtl_tb` built from the release RTL boots Linux 6.12 (`Image-initramfs`,
+`sigil-sim.dtb`) to `SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** (17.5
+min). All 825 kernel console lines are intact. The same boot on main's RTL
+had 4 lines corrupted by #63. The QEMU acceptance run of the Debian image
+passes 23/23. Full ACT was not rerun because `rtl/core` is byte-identical to
+`main` (tree `f573234a`, the tree of the #53 ACT run, 2,577/2,578). Later
+commits up to `ce9fe97` change no RTL; at that commit lint and
+`fpgatop-f2-examples` (`hbm_touch`) pass. The first Debian boot on a real F2
+came later (sections below): it oopsed on `agfi-0a1fd54ef68bdc754` (MMU walker
+race #74); on `agfi-0c8aa56fde1a48495` with the fix it reached the login
+prompt 5 min 48 s after the SoC release and passed 22/22 checks.
+
+## #73 Linux release branch: re-check of the review fixes (2026-10-22)
+
+[`linux-release-73-docs-recheck-2026-10-22.log`](linux-release-73-docs-recheck-2026-10-22.log)
+(no F2 used): rerunning `f2_playground_setup.sh` now updates `~/sigil`
+(`git pull --ff-only`), keeps `~/hello/hello.c` and does not reload a loaded
+AFI (stubbed run). The `LINUX.md` §6 package install through QEMU `--net`
+fails: QEMU 8.2.2's `virt` wires virtio interrupts to the PLIC of its second
+NUMA socket, whose hart is parked (0 interrupts, 0 packets). The replacement,
+a `qemu-user-static` chroot into the disk file on the host, ran verbatim from
+`LINUX.md` on Ubuntu 24.04 (installs `sl` in 18 s, `e2fsck` clean), and the
+changed disk boots in QEMU from a release-only layout and runs the package.
+
+## #73 First Debian boot on a real F2: kernel oops, MMU race (2026-10-22, AFI `agfi-0a1fd54ef68bdc754`, branch `73-linux-debian`)
+
+Run log and A/B table: [`linux-debian-73-2026-10-22/f2-oops-ab.txt`](linux-debian-73-2026-10-22/f2-oops-ab.txt);
+console logs, experiment DTBs and inputs in [`f2-boot/`](linux-debian-73-2026-10-22/f2-boot/).
+The published artifacts of the QEMU bring-up section above, booted exactly
+per `docs/LINUX.md` §4 on the platform AFI (`f2.6xlarge`, core 62.5 MHz):
+
+- **Worked:** 8 GiB disk loaded in 2.38 s (3.61 GB/s); OpenSBI → Linux
+  6.12 with both NUMA nodes (48 GiB DDR4 node 0, 16 GiB HBM node 1),
+  `/dev/pmem0` mounted, `Run /sbin/init` at kernel time 8.2 s, systemd
+  257 up at 12.2 s, `Queued start job for default target` at 73.5 s
+  (kernel time starts only after ~2 min of early memory setup, see the
+  fixed-AFI run below).
+- **Failed:** kernel oopses from 35–130 s into systemd startup in every
+  Debian run — "Unable to handle kernel paging request" at valid
+  linear-map addresses (anon_vma_clone, folio_lruvec_lock) and garbage
+  pointers `0xcccccccccccccccc` (filemap_fault). No login prompt.
+- **Bisection (13 runs):** still fails with no HBM, 2 GiB DDR4, every
+  address below 4 GiB (384 MiB RAM + 1.6 GiB pmem at `0x9800_0000`), quiet
+  console, a DT ISA of plain rv64imafdc, no jump labels/BPF, ASIDs
+  disabled, `transparent_hugepage=never`. Passes: `memstress` (anonymous
+  memory, FENCE.I, fork/COW, AMO/LR-SC; 0 bad in 651 s), and no oops in
+  minutes of `execstress` (busybox fork/exec) or `pmemstress` (ext4 on
+  pmem + dynamic exec from the Debian disk) — stress kernels from
+  `scripts/build_stress_kernels.sh`.
+- **Cause (RTL hunt, branches `73-oops-mmu` / `73-oops-sim-repro`):** an
+  MMU walker race — a data-TLB miss preempting an in-flight fetch walk
+  takes the fetch walk's outstanding PTE response as its own first PTE —
+  needs code-page-crossing ITLB misses plus DDR-like latency; Debian's
+  dynamically linked userland provides both. The Debian boot is re-run on
+  the AFI with the fix.
+- Platform notes for a later issue: SIGINT'd `sigil_host` runs left the
+  SoC running; the following runs' consoles lost bytes until the AFI was
+  reloaded; OpenSBI restarted by itself after some oopses.
+- F2 time: OS agent 2.15 h (09:26–11:35 UTC); instance
+  `i-0172708b8206bb63d` terminated 11:35 UTC.
+
+## #73 Linux oops: fetch-walk preemption fix (2026-10-22, branch `73-oops-fix`)
+
+Root cause, found by the oops hunt (branches `73-oops-mmu`,
+`73-oops-sim-repro`, `73-oops-dcache`): `sigil_mmu` lets a data-TLB miss
+preempt a fetch walk in `W_VS_READ`/`W_G_READ`, but `sigil_core` dropped a
+walker read only on SFENCE.VMA or a trap. The fetch walk's PTE read was
+then taken by the preempting data walk as its root PTE. Two triggers: the
+read is already in flight (PTE line misses, uncached tables), or it is
+issued in the same cycle as the preemption (a D$ hit). The result is a page
+fault on a valid VA, or a wrong superpage translation that returns wrong
+data without a trap. On F2 these are the two kernel oops signatures.
+
+Fix: `sigil_mmu` reports `walk_abandon_o` when a walk ends without
+consuming its PTE read. That covers the preemption and a G-stage
+GPA-width fault, which leaves `W_G_READ` in the cycle it may issue its
+read. The core drops the response of a walker read in flight or issued in
+that cycle. The fix is unconditional. A new simulation-only assertion
+(`a_walk_rsp`) checks that the walker only receives the response to its own
+request.
+
+[`oops-fix-73-2026-10-22/before_after.log`](oops-fix-73-2026-10-22/before_after.log):
+the three new directed tests on the `73-linux-release` RTL (`5458d16`) and
+on the fix, with the same binaries, on `core_tb` and on the opt-in checker
+build (`make -C sim -f Makefile.oops`):
+
+| test | 5458d16: `--mem-lat 1` / rand / `40:50` / `--no-cache` | fix |
+|---|---|---|
+| `ptw_preempt_directed` (uncached tables) | FAIL 0x10D (load page fault on a mapped VA), all 4 | PASS, all 4 |
+| `ptw_preempt_cached_directed` | FAIL 0x1FF (wrong data, no trap), all 4 | PASS, all 4 |
+| `ptw_preempt_twoload_directed` (same-cycle issue) | FAIL 0x11FF / 0x11FF / 0x11FF / 0x1FF (wrong data) | PASS, all 4 |
+
+On the old RTL the checker reports one `stale-walk-rsp` per run. On the fix
+it reports none. With `walk_abandon` masked out of the drop condition, the
+assertion stops all three tests.
+
+[`oops-fix-73-2026-10-22/gates.log`](oops-fix-73-2026-10-22/gates.log)
+(`cb523fa`, fresh clone on `sigil-fpga-build`): lint is clean on 5.048,
+5.020 and 5.044. `make core-test` passes with 253 TB PASS, 0 fail and no
+assertion failures. That is the 241 of the release gate plus the three
+tests in rand, uncached, xinit1 and xinit3, and 40/40 directed runs on
+each SRAM-macro build. riscv-tests pass 123/123. `soc_rtl_tb` boots Linux
+6.12 (`Image-initramfs`) to `SIGIL_LINUX_BOOT_OK` at 261,247,447 cycles,
+the same count as the release gate, so the race did not occur in that
+boot.
+
+## #73 Linux oops: root cause, F2 signature analysis and full gates (2026-10-22, branch `73-oops-fix`)
+
+[`linux-oops-fix-73-2026-10-22/`](linux-oops-fix-73-2026-10-22/README.md)
+covers the Debian oopses on the F2.
+
+**Root cause.** A data-TLB miss preempts an instruction-fetch walk, and the
+data walk takes that walk's PTE response as its own root PTE. The fetch walk
+reads kernel-text root entry 510, so the data walk indexes the kernel's PMD
+table with a linear-map VA[29:21]. That gives both F2 signatures. All 13
+valid-address faults in the F2 logs have VA[29:21] of 12 or more, which are
+invalid entries ("Unable to handle kernel paging request" at a valid
+address). VA[29:21] 3 and 4 map the freed `__init` region, which is poisoned
+with `0xcc`, so the next dependent load faults at `cccccccccccccd1c`. Every
+oops PC is the second of two dependent loads.
+
+**Before/after.** The 13 walker race tests under the checkers pass 0/39 on
+`5458d16` (30 stale walker responses) and 39/39 on the fix.
+
+**Gates at `31a1568`:**
+- lint is clean on Verilator 5.048, 5.020 and 5.044;
+- `make test` passes;
+- `core-test`: 293 TB PASS, 0 fail;
+- riscv-tests: 123/123;
+- full ACT: 2577/2578 (only the PA0 waiver fails; Vx/Vls/Vf all pass);
+- `socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick srammacro` pass;
+- the Linux 6.12 boot on `soc_rtl_tb` reaches `SIGIL_LINUX_BOOT_OK` with a console byte-identical to the release gate's.
+
+**Linux stress under the checkers** (ptwstress v2, execstress): 0
+`stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
+counts. In simulated Linux there was at most one fetch-walk preemption per
+run, in the benign same-cycle-response corner, so simulation does not reach
+the harmful case. The F2 boot with an AFI built from this branch
+(`agfi-0c8aa56fde1a48495`, next two sections) passed: no oops, 22/22 checks.
+
+Issues: #74 (the core bug) and #75 (F2 platform problems seen in the same
+runs).
+
+## #73 F2 AFI with the MMU walker-race fix: `agfi-0c8aa56fde1a48495` (2026-10-22, branch `73-oops-fix`)
+
+[`f2-platform-73-oopsfix-2026-10-22/vivado/`](f2-platform-73-oopsfix-2026-10-22/vivado/build-steps.txt)
+(build steps, manifest, `afi.json`, post-route timing and utilization).
+
+- **Public AFI `afi-059766f9a85c6d39a` / AGFI `agfi-0c8aa56fde1a48495`**,
+  us-east-1, shell `0x10212415`, PCI `0x1D0F:0xF054`, available 16:23 UTC;
+  `loadPermission` group `all` and `Public: true` checked with
+  `aws ec2 describe-fpga-image-attribute` / `describe-fpga-images`.
+- Built from `73-oops-fix` commit **`31a1568`** with the script, flow and
+  recipes of the platform AFI above: core 62.5 MHz (B1), HBM AXI 250 MHz
+  (H0), unencrypted. Its RTL differs from the platform AFI's (`e641930`)
+  only in `rtl/core/sigil_core.sv` and `rtl/core/sigil_mmu.sv` (the
+  walker-race fix #74 and an atomic Svadu A/D update).
+- Post-route: all constraints met, WNS **+0.095 ns** (core clock, 16 ns),
+  HBM AXI +0.198 ns, WHS +0.010 ns; **131,259 LUTs (10.08 %)**, 117,030
+  FFs, 75 RAMB36, 32 DSP for the CL, 82,201 LUTs for the SoC + OCL block.
+  BuildAll 1 h 16 min on the r7iz.8xlarge (16 Vivado threads); a first
+  attempt failed in `opt_design` when the build volume filled up.
+- DCP tarball `2026_10_22-143914.Developer_CL.tar`, 110,192,640 bytes,
+  sha256 `9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246`
+  (`s3://sigil-fpga-afi-891612553438/dcp/`, downloaded again and checked);
+  its routed DCP hashes to the manifest `dcp_hash` `53eed162…11fe73`.
+  Release asset `sigil_f2_linux_cl_dcp_31a1568.Developer_CL.tar`.
+- The release branch ships this RTL: `git diff 31a15689 73-linux-release
+  -- rtl/ fpga/cl_sigil/` is empty; under `fpga/` only the host helper
+  scripts differ (`sigil-linux`, `sigil-run`, `f2_playground_setup.sh`
+  name the new AGFI and the measured boot time), which are not part of the
+  CL.
+- The memory-platform hardware tests ran on the platform AFI and were not
+  repeated on this one; Debian on this AFI is the next section.
+
+## #73 Debian on the F2 with the walker-race fix: login, 22/22 checks, disk persists (2026-10-22, AFI `agfi-0c8aa56fde1a48495`, branch `73-linux-debian`)
+
+Logs: [`linux-debian-73-2026-10-22/f2-boot-fixed/`](linux-debian-73-2026-10-22/f2-boot-fixed/)
+(`f2-run1.txt` full console of boot + acceptance, `f2-run2.txt` second boot
+from the saved disk, `*-summary.txt` check summaries, `f2-instance-info.txt`).
+Same published OS artifacts as above (sha256 in `f2-instance-info.txt`),
+booted exactly per `docs/LINUX.md` §4 on AFI `afi-059766f9a85c6d39a` /
+`agfi-0c8aa56fde1a48495` (branch `73-oops-fix`, RTL `31a1568`: stale MMU
+walker response dropped on preempt/abandon, Svadu A/D write-back lock),
+`f2.6xlarge` `i-0c58fa4d79908ae8b`, core **62.500 MHz** measured.
+
+- **No oops** in either boot (`Oops`/`BUG:`/`WARNING:` count 0).
+- **Boot time** (wall clock from SoC release, 8 GiB disk loaded in 2.42 s
+  before it): `SIGIL_LINUX_BOOT_OK` at **337.7 s**, **login prompt at
+  347.9 s (5 min 48 s)**; second boot 333.2 s / 343.2 s. Of this, ~129 s
+  is OpenSBI + early kernel memory setup for 64 + 16 GiB before the kernel
+  clock starts; then kernel 10.6 s (`Run /sbin/init` at 8.2 s) and systemd
+  userspace 3 min 25.5 s (`systemd-analyze`; `blame` led by
+  `dev-pmem0.device` 2 min 13 s, journald 54 s, logind 48 s, udev-trigger
+  47 s). The QEMU icount estimate (≈ 9 min) was pessimistic: an estimated 5 core
+  cycles per instruction overall (F2 kernel time divided by the QEMU icount
+  instruction count), not 13.
+- **Acceptance: 22/22 PASS** (`scripts/qemu_sigil_check.py --label F2
+  --scale 40 --no-reboot --release 'SoC released'`): login as `sigil`;
+  `uname` 6.12.114-sigil riscv64 + Debian 13; `/proc/cpuinfo` isa with
+  zve64d, `uarch sigil,core`, sv39; systemd `running`, no failed units;
+  `/` = `/dev/pmem0` ext4 rw; `numactl --hardware` **2 nodes: node 0 48305
+  MB (cpus 0), node 1 16110 MB (no cpus)**, distances 10/20; `free -h` 62 GiB;
+  `time (gcc hello.c && ./a.out)` **22.9 s**; `make` of the 6 examples
+  6 min 23 s; `malloc_test 512` MALLOC OK; `numa_hbm 256` all pages on the
+  requested node, dependent load DDR4 1791 ns vs HBM 1878 ns (with TLB
+  misses); `memwhere 1024` node 0, **`numactl --membind=1` → node 1: 1024
+  MiB**, interleave 512 + 512; `rvv_vadd` RVV OK (VLEN 512); `autovec` 7
+  vector instructions; sudo; `python3 -c` **9.9 s**; git/gdb/strace/vim/
+  file/man; a stamp file written; `sudo poweroff` → `reboot: Power down`
+  → `finisher: power off` → host saved the 8 GiB window (0.81 GB/s).
+- **Persistence: PASS** — run 2 loads the saved disk, logs in as root, the
+  stamp file is there (`journalctl --list-boots` shows both boots), power
+  off.
+- F2 time: 0.78 h (16:34–17:21 UTC), instance terminated.
+
+## #73 Linux release branch: final gates at `1d72210` (2026-10-22)
+
+[`linux-release-73-final-gates-2026-10-22.log`](linux-release-73-final-gates-2026-10-22.log)
+(`73-linux-release` at `1d72210`, which includes the walker-race fix #74 and
+the F2 Debian results; fresh clone on `sigil-fpga-build`, at most 8 jobs):
+lint is clean on Verilator 5.048, CI's 5.020 and 5.044. `make test` passes.
+`make core-test` gives 293 TB PASS and 0 fail, with each walker race test
+passing in rand, nocache, xinit1 and xinit3. riscv-tests pass **123/123**.
+`socrtl`, `sochash`, `examples` (7/7), `fpgatop-quick`, `fpgatop-f2-quick`
+and `fpgaocl-quick` pass with the release gate's cycle counts. The walker
+race checker targets pass: `oops-ptw-preempt` 9/9 and `oops-ptw-walker`
+**39/39** with 0 stale walker responses and 0 PTWINV violations, and their
+result lines are identical to the fix branch's. The OS artifacts match the
+branch's `SHA256SUMS` (12/12). `soc_rtl_tb` boots Linux 6.12 to
+`SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** with a console
+byte-identical to the earlier gates and no oops. Full ACT was not rerun:
+`rtl/` (tree `c8bafdb2`), `tb/`, `sim/` and the ACT scripts are identical to
+`31a15689`, where full ACT gave 2,577/2,578 (only the PA0 waiver fails).
+
+## #73 Linux release branch: checks of the second review's fixes (2026-10-22)
+
+[`linux-release-73-review-fixes-2026-10-22.log`](linux-release-73-review-fixes-2026-10-22.log)
+(`73-linux-release`, `1d72210..62370e1`): documentation only. No file
+other than Markdown and evidence logs changed since `1d72210`, so its final
+gates hold, and `rtl/` and `fpga/cl_sigil/` still equal `31a15689`. The
+fixes label the 5 cycles per instruction as an estimate, state that the
+walker race (#74) is in every earlier core (the first public AFI
+`agfi-035116450e0a0d093` is for bare-metal programs only), point the status
+table at the runs on the shipped RTL, and add #75 to `LINUX.md`. No
+relative link or anchor is broken. The notes checklist's placeholder grep
+prints nothing. The superseded AFI appears only as history.
+
 ## #8: riscv-dv random regression vs Spike (2026-10-22)
 
 [`riscv-dv-8-2026-10-22/`](riscv-dv-8-2026-10-22/). Flow, pins and

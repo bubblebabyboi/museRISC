@@ -1,0 +1,12 @@
+# on sigil-verify, R=~/wt/56-perf-coremark at 320cf57 (source deps/env.sh), started 2026-10-22T09:41Z:
+$ python3 cm_long_run.py $R 200000000 '{"scalar": null, "O3": {"description": "scalar ISA, OPT=-O3", "make": {"SIGIL_MARCH": "rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh", "OPT": "-O3"}}, "O3-unroll": {"description": "scalar ISA, OPT=-O3 -funroll-loops", "make": {"SIGIL_MARCH": "rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh", "OPT": "-O3 -funroll-loops"}}, "Os": {"description": "scalar ISA, OPT=-Os", "make": {"SIGIL_MARCH": "rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh", "OPT": "-Os"}}}' -- --root $R --out $R/build/perf/cm-flags --benches coremark --jobs 4 --repeat 1 --riscv-prefix riscv64-unknown-elf- --soc-args "--mem-lat 1:1 --mem-gap 0 --mem-ready 100" --axi-args "--axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100" --run soc:default=$R/build/sim/soc_rtl_tb
+perf: build coremark [scalar] (20 iterations)
+perf: build coremark [O3] (20 iterations)
+perf: build coremark [O3-unroll] (20 iterations)
+perf: build coremark [Os] (20 iterations)
+perf: 4 runs, 4 at a time
+perf: coremark[scalar] region 0 soc/default rep 0: cycles=14337806 instret=5246413 (120.7 s) PASS
+perf: coremark[O3] region 0 soc/default rep 0: cycles=17062942 instret=5423950 (150.39 s) PASS
+perf: coremark[O3-unroll] region 0 soc/default rep 0: cycles=17291002 instret=5446598 (164.23 s) PASS
+perf: coremark[Os] region 0 soc/default rep 0: cycles=20238586 instret=6557699 (178.16 s) PASS
+perf: 4 runs valid, 0 failed; /home/ubuntu/wt/56-perf-coremark/build/perf/cm-flags/results.json, /home/ubuntu/wt/56-perf-coremark/build/perf/cm-flags/report.md

@@ -1,0 +1,31 @@
+# F2 instance used for this evidence (us-east-1). Times UTC, 2026-10-22.
+
+## Launch (11:23:13Z), from the workstation with the AWS CLI
+aws ec2 run-instances --region us-east-1 --image-id ami-069f868732bb588dc \
+  --instance-type f2.6xlarge --count 1 --key-name sigil-fpga \
+  --security-group-ids sg-0fb0bee29464979a3 --subnet-id subnet-0ea9b0025f9797aa7 \
+  --instance-initiated-shutdown-behavior terminate --user-data file://scripts/user-data.sh \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=sigil-f2-perf}]'
+-> i-0fa8f24634bfa912f  pending  us-east-1a  2026-10-22T11:23:13+00:00
+   (AMI: FPGA-Developer-AMI-Ubuntu-1.19.2-2026-07-16T15-09-40.902Z-prod; subnet 172.31.16.0/20)
+
+## Hard cap
+user-data `shutdown -h +55` with shutdown behaviour `terminate`; on the
+instance `shutdown --show` reported "Shutdown scheduled for Thu
+2026-10-22 12:19:12 UTC". Not reached.
+
+## Timeline
+11:23:13  launched; running at 11:23:21, SSH at 11:24:19
+~11:24:50 setup_f2.sh: aws-fpga v2.3.5 sdk_setup, sigil_host build, AFI load
+          ("SETUP_DONE in 32 s", done before 11:25:25)
+11:25:33  smoke run of dhrystone-scalar (logs/smoke/)
+11:25:40  run_f2.sh start; 11:27:43 done (46 runs)
+11:28:04  instance-info.txt; logs copied off
+11:28:48  aws ec2 terminate-instances --region us-east-1 --instance-ids i-0fa8f24634bfa912f
+          -> running -> shutting-down
+11:33:22  aws ec2 wait instance-terminated returned; describe-instances:
+          i-0fa8f24634bfa912f  f2.6xlarge  terminated  User initiated (2026-10-22 11:28:48 GMT)
+
+## F2 time
+Running: 11:23:13 -> 11:28:48 = 5 min 35 s (0.093 instance-hours).
+Until the terminated state: 10 min 9 s (0.169 instance-hours), the upper bound.

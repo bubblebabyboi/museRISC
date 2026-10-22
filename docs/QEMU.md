@@ -8,18 +8,25 @@ remains the only "Linux on our RTL" evidence.
 
 ## Reproduce
 
-Build the kernel Image once (embedded initramfs carrying
+Build the kernel once (`build/linux/Image-initramfs`, the
+Linux 6.12 kernel with an embedded initramfs carrying
 `sw/linux/init.c`), then run the reference boot and the
-user-mode oracle smoke:
+user-mode oracle smoke. Since #68 the reference RTL log is the
+`soc_rtl_tb` boot of that kernel
+(`docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log`)
+and build stamps (`user@host`, `#N SMP <date>`) are ignored in
+the marker diff; the 6.6 result below is the original spike.
+For the full Debian system in QEMU see [`LINUX.md`](LINUX.md).
 
 ```bash
-bash scripts/build_linux_kernel.sh        # if build/linux/Image is absent
+bash scripts/build_linux_kernel.sh        # if build/linux/Image-initramfs is absent
 bash scripts/qemu_reference_boot.sh       # system-mode virt boot + marker diff
 bash scripts/qemu_user_oracle.sh          # static user-mode payload smoke
 ```
 
-Both QEMU scripts run QEMU inside Docker (`ubuntu:24.04`),
-so no host QEMU install is required. The captured QEMU
+The reference boot uses the host's `qemu-system-riscv64` when
+installed and otherwise QEMU inside Docker (`ubuntu:24.04`); the
+user-mode smoke runs in Docker. The captured QEMU
 system-mode log from the spike run is
 [`docs/evidence/qemu-virt-reference-boot-2026-10-14.log`](evidence/qemu-virt-reference-boot-2026-10-14.log).
 

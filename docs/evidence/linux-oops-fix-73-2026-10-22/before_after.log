@@ -1,0 +1,105 @@
+# Issue #73 walker race tests, BEFORE vs AFTER (gate of 73-oops-fix 31a1568, sigil-fpga-build, Verilator 5.048)
+# BEFORE = origin/73-linux-release 5458d16 RTL with the gate tree's simulation-only checkers copied in (untracked);
+# AFTER = the gate worktree at 31a1568. Both: oops_core_tb (core_tb harness + tb/sv/sigil_oops_chk.sv + tb/sv/sigil_ptw_inv.sv),
+# the same 13 test binaries (built at 31a1568), 40M-cycle budget, timings lat1 = --mem-lat 1, rand = --mem-lat 1:6 --mem-gap 2 --mem-ready 70, 40:50 = --mem-lat 40:50
+# (AFTER = make -C sim -f Makefile.oops oops-ptw-walker). stale = OOPSCHK stale-walk-rsp reports, ptwinv = PTWINV live-walk-req-abandoned reports,
+# assert = core SVA failures (a_walk_rsp / a_walk_live exist only in the AFTER RTL).
+
+host ip-172-31-66-228 start 2026-10-22T14:00:14Z
+base 5458d1693938ec5ede801275c7b0c58d8cfe750b (origin/73-linux-release); rtl diff base..gate:
+ rtl/core/sigil_core.sv | 70 +++++++++++++++++++++++++++++++++++++++++---------
+ rtl/core/sigil_mmu.sv  | 43 ++++++++++++++++++++++++++++---
+ 2 files changed, 97 insertions(+), 16 deletions(-)
+untracked copies from the gate tree: ?? sim/Makefile.oops ?? tb/cpp/oops_chk_dpi.cpp ?? tb/sv/sigil_oops_chk.sv ?? tb/sv/sigil_ptw_inv.sv 
+Verilator 5.048 2026-04-26 rev v5.048
+build rc=0
+end 2026-10-22T14:01:20Z
+DONE
+
+test                           timing | BEFORE 5458d16 (73-linux-release RTL)                | AFTER 31a1568 (73-oops-fix)
+ptw_preempt_directed           lat1   | FAIL test 269 stale=1 ptwinv=2 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_directed           rand   | FAIL test 269 stale=1 ptwinv=7 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_directed           40:50  | FAIL test 269 stale=1 ptwinv=51 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_cached_directed    lat1   | FAIL test 511 stale=1 ptwinv=11 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_cached_directed    rand   | FAIL test 511 stale=1 ptwinv=14 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_cached_directed    40:50  | FAIL test 511 stale=1 ptwinv=60 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_twoload_directed   lat1   | FAIL test 4607 stale=1 ptwinv=1 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_twoload_directed   rand   | FAIL test 4607 stale=1 ptwinv=1 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_twoload_directed   40:50  | FAIL test 4607 stale=1 ptwinv=1 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_b2b_directed       lat1   | FAIL test 269 stale=1 ptwinv=3 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_b2b_directed       rand   | FAIL test 269 stale=1 ptwinv=4 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_b2b_directed       40:50  | FAIL test 269 stale=1 ptwinv=49 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_trapdrop_directed  lat1   | FAIL test 2317 stale=1 ptwinv=2 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_trapdrop_directed  rand   | FAIL test 2317 stale=1 ptwinv=4 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_trapdrop_directed  40:50  | FAIL test 2317 stale=1 ptwinv=45 assert=0            | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_hyp_directed       lat1   | FAIL test 4373 stale=1 ptwinv=2 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_hyp_directed       rand   | FAIL test 4373 stale=1 ptwinv=6 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_hyp_directed       40:50  | FAIL test 594197 stale=1 ptwinv=28 assert=0          | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_guest_directed     lat1   | FAIL test 16777493 stale=1 ptwinv=2 assert=0         | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_guest_directed     rand   | FAIL test 16777493 stale=1 ptwinv=5 assert=0         | PASS stale=0 ptwinv=0 assert=0
+ptw_preempt_guest_directed     40:50  | FAIL test 16777493 stale=1 ptwinv=45 assert=0        | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_directed            lat1   | FAIL test 276 stale=1 ptwinv=3 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_directed            rand   | FAIL test 276 stale=1 ptwinv=6 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_directed            40:50  | FAIL test 276 stale=1 ptwinv=48 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_load_directed       lat1   | FAIL test 4373 stale=1 ptwinv=3 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_load_directed       rand   | FAIL test 4373 stale=1 ptwinv=7 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_load_directed       40:50  | FAIL test 4373 stale=1 ptwinv=45 assert=0            | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_redirect_directed   lat1   | FAIL test 276 stale=1 ptwinv=3 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_redirect_directed   rand   | FAIL test 276 stale=1 ptwinv=4 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_gwidth_redirect_directed   40:50  | FAIL test 276 stale=1 ptwinv=44 assert=0             | PASS stale=0 ptwinv=0 assert=0
+ptw_ad_store_race_directed     lat1   | FAIL test 496 stale=0 ptwinv=0 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_ad_store_race_directed     rand   | FAIL test 496 stale=0 ptwinv=0 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_ad_store_race_directed     40:50  | FAIL test 496 stale=0 ptwinv=0 assert=0              | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_directed        lat1   | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_directed        rand   | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_directed        40:50  | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_hyp_directed    lat1   | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_hyp_directed    rand   | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+ptw_svadu_race_hyp_directed    40:50  | FAIL test 12 stale=0 ptwinv=0 assert=0               | PASS stale=0 ptwinv=0 assert=0
+
+BEFORE: 0/39 PASS, stale-walk-rsp reports 30, PTWINV live-walk-req reports 271
+AFTER:  39/39 PASS, stale-walk-rsp reports 0, PTWINV live-walk-req reports 0
+
+# AFTER: PTWCOV corner coverage per run (make -C sim -f Makefile.oops oops-ptw-walker)
+oops_ptw_ad_store_race_directed_1.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_ad_store_race_directed_2.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_ad_store_race_directed_3.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_gwidth_directed_1.log PTWCOV pre=4 inflight=2 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=644 gw_issue=644
+oops_ptw_gwidth_directed_2.log PTWCOV pre=11 inflight=6 inflight_drp=0 rsp_same=4 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+oops_ptw_gwidth_directed_3.log PTWCOV pre=90 inflight=83 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=558 gw_issue=558
+oops_ptw_gwidth_load_directed_1.log PTWCOV pre=3 inflight=1 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+oops_ptw_gwidth_load_directed_2.log PTWCOV pre=12 inflight=5 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=628 gw_issue=628
+oops_ptw_gwidth_load_directed_3.log PTWCOV pre=92 inflight=90 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=548 gw_issue=548
+oops_ptw_gwidth_redirect_directed_1.log PTWCOV pre=3 inflight=3 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=317 gw_issue=317
+oops_ptw_gwidth_redirect_directed_2.log PTWCOV pre=12 inflight=10 inflight_drp=0 rsp_same=1 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=308 gw_issue=308
+oops_ptw_gwidth_redirect_directed_3.log PTWCOV pre=91 inflight=86 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=229 gw_issue=229
+oops_ptw_preempt_b2b_directed_1.log PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_b2b_directed_2.log PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_b2b_directed_3.log PTWCOV pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_cached_directed_1.log PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_cached_directed_2.log PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_cached_directed_3.log PTWCOV pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_directed_1.log PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_directed_2.log PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_directed_3.log PTWCOV pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_guest_directed_1.log PTWCOV pre=47 inflight=36 inflight_drp=0 rsp_same=11 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_guest_directed_2.log PTWCOV pre=55 inflight=44 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_guest_directed_3.log PTWCOV pre=129 inflight=118 inflight_drp=0 rsp_same=9 rsp_drp_same=0 issue_acc=2 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_hyp_directed_1.log PTWCOV pre=24 inflight=12 inflight_drp=0 rsp_same=12 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_hyp_directed_2.log PTWCOV pre=42 inflight=29 inflight_drp=0 rsp_same=6 rsp_drp_same=0 issue_acc=7 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_hyp_directed_3.log PTWCOV pre=329 inflight=313 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=8 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_trapdrop_directed_1.log PTWCOV pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_trapdrop_directed_2.log PTWCOV pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_trapdrop_directed_3.log PTWCOV pre=384 inflight=370 inflight_drp=12 rsp_same=0 rsp_drp_same=2 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_twoload_directed_1.log PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_twoload_directed_2.log PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_preempt_twoload_directed_3.log PTWCOV pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_directed_1.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_directed_2.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_directed_3.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_hyp_directed_1.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_hyp_directed_2.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_ptw_svadu_race_hyp_directed_3.log PTWCOV pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+
+# Exit codes of the three hunter tests: 0x100 | mcause, + (k << 12), + (iter << 16); 0x1FF = wrong data without a trap.
+#   269 = 0x10D load page fault on a mapped VA; 511 = 0x1FF wrong data; 4607 = 0x11FF wrong data at k = 1.

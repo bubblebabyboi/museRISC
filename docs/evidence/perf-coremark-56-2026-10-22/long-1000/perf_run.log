@@ -1,0 +1,11 @@
+# on sigil-verify, R=~/wt/56-perf-coremark at 320cf57 (source deps/env.sh), started 2026-10-22T09:40Z:
+$ python3 cm_long_run.py $R 1500000000 '{"scalar": null, "validation": null}' -- --root $R --out $R/build/perf/cm-long1000 --benches coremark --jobs 4 --repeat 2 --iterations 1000 --riscv-prefix riscv64-unknown-elf- --soc-args "--mem-lat 1:1 --mem-gap 0 --mem-ready 100" --axi-args "--axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100" --run soc:default=$R/build/sim/soc_rtl_tb
+perf: build coremark [scalar] (1000 iterations)
+perf: build coremark [validation] (1000 iterations)
+perf: 4 runs, 4 at a time
+perf: coremark[scalar] region 0 soc/default rep 0: cycles=716834078 instret=262309888 (4168.66 s) PASS
+perf: coremark[scalar] region 0 soc/default rep 1: cycles=716834078 instret=262309888 (4293.87 s) PASS
+perf: coremark[validation] region 0 soc/default rep 0: cycles=718245526 instret=262700093 (4215.29 s) PASS
+perf: coremark[validation] region 0 soc/default rep 1: cycles=718245526 instret=262700093 (4199.49 s) PASS
+perf: determinism over 2 repeats: PASS (identical counts)
+perf: 4 runs valid, 0 failed; /home/ubuntu/wt/56-perf-coremark/build/perf/cm-long1000/results.json, /home/ubuntu/wt/56-perf-coremark/build/perf/cm-long1000/report.md

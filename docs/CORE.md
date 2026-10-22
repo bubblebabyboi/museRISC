@@ -134,9 +134,13 @@ called done:
    (`docs/evidence/act-vector-vfirst-probe-2026-10-13.log`).
 2. LR/SC and AMO fault causes use the load-side cause class the
    privileged spec requires; CVA6 reports store-side causes for LR
-   (waived in the merged evidence, issue #20).
+   (waived in the merged evidence, issue #20). Met: the in-house
+   core takes LR faults through the load path (causes 4/5/13), as
+   Sail does; ACT Zalrsc/ExceptionsSvZalrsc* pass on the core.
 3. PMP `pmpcfg` readback does not silently set bits the software
-   cleared (CVA6 G=1 readback waiver, issue #20).
+   cleared (CVA6 G=1 readback waiver, issue #20). Met: the in-house
+   core has PMP grain G=0 and `pmpaddr` reads back the stored
+   `[53:0]` verbatim (`rtl/core/sigil_csr.sv`).
 4. Misaligned scalar accesses: decide trap-vs-emulate before stage 3
    and test the declared behavior (stage 1 traps; Zicclsm is not
    claimed).
@@ -201,8 +205,21 @@ Pipeline behaviour:
   through the D$ (coherent with PTE stores by construction;
   A/D updates are D$ stores). MEM has priority; an MMU
   flush/abort (SFENCE.VMA, trap) while a walker request is out
-  drops its response. PMP-denied PTE accesses complete without
-  a memory access.
+  drops its response, and so does a walk the MMU abandons
+  itself (`walk_abandon_o`: a data-TLB miss preempting a fetch
+  walk, a G-stage GPA-width fault), including a read issued in
+  the abandoning cycle (issue #73; `ptw_preempt*_directed.S`,
+  `ptw_gwidth*_directed.S`). The A/D update is atomic: from
+  the read of a leaf PTE that needs A/D to its write-back the
+  walker keeps the port (`walk_lock_o`; for a VS leaf under
+  two-stage translation this spans the G-stage walk of the
+  PTE's GPA), so an older store to that PTE cannot land in
+  between and be overwritten by the stale PTE with A set
+  (`ptw_ad_store_race_directed.S`, `ptw_svadu_race*_directed.S`).
+  PMP-denied PTE accesses complete without a memory access.
+  Simulation checks: the walker takes only its own response
+  (`a_walk_rsp`), and a live walker request always belongs to
+  the walk in progress (`a_walk_live`).
 - **FENCE.I** (MISC-MEM funct3=001) serializes in EX like
   SFENCE (redirect to pc+4, younger instructions flushed), then
   in MEM issues `DOP_CLEAN` (D$ writes back every dirty line)

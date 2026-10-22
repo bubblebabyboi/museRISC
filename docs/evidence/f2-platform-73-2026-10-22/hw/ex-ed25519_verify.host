@@ -1,0 +1,10 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded /home/ubuntu/pay/examples/ed25519_verify.bin: 7528 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 6.45 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+
+[sigil_host] result: PASS (SIGIL TEST PASS) after 0.234 s, 14630117 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000009 pc 0x0000000080200010, STATUS 0x000002e0

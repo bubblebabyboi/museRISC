@@ -1,0 +1,190 @@
+== region 0
+instr=1022023 rvc=748007 ld=222002 st=138004 br=174000 br_taken=113999 br_back=112000 br_back_taken=103999 br_fwd_taken=10000 jal=36000 jalr=30000 ret=30000 jalr_call=0 jalr_other=0 mul=0 div=2000 fp=0 vec=6000 strad4=98005 strad8=32003
+fetch_acc_word=1120028 fetch_acc_reuse4=756020 fetch_acc_blk8=416011
+dir.NT.miss=113999
+dir.T.miss=60001
+dir.BTFN.miss=18001
+dir.bim16.miss=6009
+dir.bim32.miss=6009
+dir.bim64.miss=6010
+dir.bim128.miss=6010
+dir.bim256.miss=6010
+dir.bim512.miss=6009
+dir.bim1024.miss=6009
+dir.bim2048.miss=6009
+dir.bim4096.miss=6009
+dir.gsh64h4.miss=8013
+dir.gsh128h6.miss=12019
+dir.gsh256h4.miss=6014
+dir.gsh256h8.miss=4024
+dir.gsh512h6.miss=12019
+dir.gsh512h9.miss=4027
+dir.gsh1024h8.miss=4025
+dir.gsh1024h10.miss=4030
+dir.gsh2048h11.miss=4032
+dir.gsh4096h12.miss=4035
+btb.4w1 taken=149999 hit=98000 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=149999 hit=99999 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=149999 hit=105996 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=149999 hit=113992 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=149999 hit=133982 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=149999 hit=141977 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=149999 hit=141977 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=149999 hit=149973 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=149999 hit=98000 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=149999 hit=98000 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=149999 hit=107995 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=149999 hit=125985 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=149999 hit=137979 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=149999 hit=149973 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=149999 hit=149973 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=149999 hit=149973 jalr_taken=0 jalr_hit=0
+ras.1 returns=30000 correct=24000
+ras.2 returns=30000 correct=28000
+ras.4 returns=30000 correct=30000
+ras.8 returns=30000 correct=30000
+ras.16 returns=30000 correct=30000
+model.F0_rtl cycles=4958301 retired=1022022 ic_acc=1300025 flush=179999 mispred=179999 strad=98005 icmiss=12 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F0ns cycles=4664289 retired=1022022 ic_acc=1202021 flush=179999 mispred=179999 strad=0 icmiss=12 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F1 cycles=4178285 retired=1022022 ic_acc=938017 flush=179999 mispred=179999 strad=152005 icmiss=12 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F2 cycles=3170259 retired=1022020 ic_acc=578008 flush=179999 mispred=179999 strad=0 icmiss=12 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F2s cycles=3560271 retired=1022022 ic_acc=600010 flush=179999 mispred=179999 strad=22003 icmiss=12 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F3 cycles=3086242 retired=1022020 ic_acc=748006 flush=179999 mispred=179999 strad=0 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F3s cycles=3306245 retired=1022020 ic_acc=770007 flush=179999 mispred=179999 strad=20003 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F3q3 cycles=3202225 retired=1022020 ic_acc=884006 flush=179999 mispred=179999 strad=0 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F3w16 cycles=2930204 retired=1022020 ic_acc=550003 flush=179999 mispred=179999 strad=0 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F3w16s cycles=3118203 retired=1022020 ic_acc=556003 flush=179999 mispred=179999 strad=4001 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F4 cycles=2958203 retired=1022020 ic_acc=928004 flush=179999 mispred=179999 strad=0 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F4w4 cycles=3054251 retired=1022020 ic_acc=1228015 flush=179999 mispred=179999 strad=0 icmiss=13 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F5 cycles=2874197 retired=1022020 ic_acc=775998 flush=179999 mispred=179999 strad=0 icmiss=19 dcmiss=12002 pred_taken=0 memst=1054074 hold=6000
+model.F0+jal cycles=4850301 retired=1022022 ic_acc=1264025 flush=143999 mispred=143999 strad=98005 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F0+jal+r1 cycles=4886301 retired=1022022 ic_acc=1264025 flush=143999 mispred=143999 strad=98005 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F0+btfn cycles=4472307 retired=1022022 ic_acc=1138027 flush=18001 mispred=18001 strad=98005 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F0+btfn+r1 cycles=4650307 retired=1022022 ic_acc=1138027 flush=18001 mispred=18001 strad=98005 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F0+bim16 cycles=4436331 retired=1022022 ic_acc=1126035 flush=6009 mispred=6009 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F0+bim16+r1 cycles=4622323 retired=1022022 ic_acc=1126035 flush=6009 mispred=6009 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F0+bim32 cycles=4436331 retired=1022022 ic_acc=1126035 flush=6009 mispred=6009 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F0+bim32+r1 cycles=4622323 retired=1022022 ic_acc=1126035 flush=6009 mispred=6009 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F0+bim64 cycles=4436334 retired=1022022 ic_acc=1126036 flush=6010 mispred=6010 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F0+bim64+r1 cycles=4622325 retired=1022022 ic_acc=1126036 flush=6010 mispred=6010 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F0+bim256 cycles=4436334 retired=1022022 ic_acc=1126036 flush=6010 mispred=6010 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F0+bim256+r1 cycles=4622325 retired=1022022 ic_acc=1126036 flush=6010 mispred=6010 strad=98005 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F0+gsh12 cycles=4430409 retired=1022022 ic_acc=1124061 flush=4035 mispred=4035 strad=98005 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F0+gsh12+r1 cycles=4614375 retired=1022022 ic_acc=1124061 flush=4035 mispred=4035 strad=98005 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F0+perfect cycles=4418304 retired=1022022 ic_acc=1120026 flush=0 mispred=0 strad=98005 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F1+jal cycles=4050283 retired=1022022 ic_acc=900017 flush=143999 mispred=143999 strad=144005 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F1+jal+r1 cycles=4084283 retired=1022022 ic_acc=900017 flush=143999 mispred=143999 strad=144005 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F1+btfn cycles=3578289 retired=1022022 ic_acc=780019 flush=18001 mispred=18001 strad=100005 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F1+btfn+r1 cycles=3748289 retired=1022022 ic_acc=780019 flush=18001 mispred=18001 strad=100005 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F1+bim16 cycles=3528319 retired=1022022 ic_acc=766027 flush=6009 mispred=6009 strad=98006 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F1+bim16+r1 cycles=3706311 retired=1022022 ic_acc=766027 flush=6009 mispred=6009 strad=98006 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F1+bim32 cycles=3528319 retired=1022022 ic_acc=766027 flush=6009 mispred=6009 strad=98006 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F1+bim32+r1 cycles=3706311 retired=1022022 ic_acc=766027 flush=6009 mispred=6009 strad=98006 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F1+bim64 cycles=3528323 retired=1022022 ic_acc=766028 flush=6010 mispred=6010 strad=98007 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F1+bim64+r1 cycles=3706314 retired=1022022 ic_acc=766028 flush=6010 mispred=6010 strad=98007 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F1+bim256 cycles=3528323 retired=1022022 ic_acc=766028 flush=6010 mispred=6010 strad=98007 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F1+bim256+r1 cycles=3706314 retired=1022022 ic_acc=766028 flush=6010 mispred=6010 strad=98007 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F1+gsh12 cycles=3522422 retired=1022022 ic_acc=764053 flush=4035 mispred=4035 strad=98013 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F1+gsh12+r1 cycles=3698388 retired=1022022 ic_acc=764053 flush=4035 mispred=4035 strad=98013 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F1+perfect cycles=3502286 retired=1022022 ic_acc=756018 flush=0 mispred=0 strad=98005 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F2+jal cycles=3050254 retired=1022020 ic_acc=548008 flush=143999 mispred=143999 strad=0 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F2+btfn cycles=2684260 retired=1022020 ic_acc=436010 flush=18001 mispred=18001 strad=0 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F2+bim16 cycles=2640286 retired=1022020 ic_acc=426016 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2+bim32 cycles=2640286 retired=1022020 ic_acc=426016 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2+bim64 cycles=2640288 retired=1022020 ic_acc=426016 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2+bim256 cycles=2640288 retired=1022020 ic_acc=426016 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2+gsh12 cycles=2634364 retired=1022020 ic_acc=424041 flush=4035 mispred=4035 strad=0 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F2+perfect cycles=2610257 retired=1022020 ic_acc=416009 flush=0 mispred=0 strad=0 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F2s+jal cycles=3434268 retired=1022022 ic_acc=570010 flush=143999 mispred=143999 strad=22003 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F2s+jal+r1 cycles=3468269 retired=1022022 ic_acc=570010 flush=143999 mispred=143999 strad=22003 icmiss=12 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F2s+btfn cycles=2998274 retired=1022022 ic_acc=458012 flush=18001 mispred=18001 strad=22003 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F2s+btfn+r1 cycles=3170276 retired=1022022 ic_acc=458012 flush=18001 mispred=18001 strad=22003 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F2s+bim16 cycles=2948303 retired=1022022 ic_acc=448018 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2s+bim16+r1 cycles=3126298 retired=1022022 ic_acc=448018 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2s+bim32 cycles=2948303 retired=1022022 ic_acc=448018 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2s+bim32+r1 cycles=3126298 retired=1022022 ic_acc=448018 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F2s+bim64 cycles=2948305 retired=1022022 ic_acc=448018 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2s+bim64+r1 cycles=3126299 retired=1022022 ic_acc=448018 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2s+bim256 cycles=2948305 retired=1022022 ic_acc=448018 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2s+bim256+r1 cycles=3126299 retired=1022022 ic_acc=448018 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F2s+gsh12 cycles=2942400 retired=1022022 ic_acc=446043 flush=4035 mispred=4035 strad=22003 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F2s+gsh12+r1 cycles=3118370 retired=1022022 ic_acc=446043 flush=4035 mispred=4035 strad=22003 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F2s+perfect cycles=2916271 retired=1022022 ic_acc=438011 flush=0 mispred=0 strad=22003 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F3+jal cycles=2952238 retired=1022020 ic_acc=712008 flush=143999 mispred=143999 strad=0 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3+jal+r1 cycles=2978237 retired=1022020 ic_acc=712008 flush=143999 mispred=143999 strad=0 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3+btfn cycles=2552234 retired=1022020 ic_acc=598010 flush=18001 mispred=18001 strad=0 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3+btfn+r1 cycles=2636231 retired=1022020 ic_acc=594010 flush=18001 mispred=18001 strad=0 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3+bim16 cycles=2496267 retired=1022020 ic_acc=584019 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3+bim16+r1 cycles=2592254 retired=1022020 ic_acc=582018 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3+bim32 cycles=2496267 retired=1022020 ic_acc=584019 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3+bim32+r1 cycles=2592254 retired=1022020 ic_acc=582018 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3+bim64 cycles=2496270 retired=1022020 ic_acc=584020 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3+bim64+r1 cycles=2592256 retired=1022020 ic_acc=582019 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3+bim256 cycles=2496270 retired=1022020 ic_acc=584020 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3+bim256+r1 cycles=2592256 retired=1022020 ic_acc=582019 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3+gsh12 cycles=2484353 retired=1022020 ic_acc=580046 flush=4035 mispred=4035 strad=0 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3+gsh12+r1 cycles=2578332 retired=1022020 ic_acc=578045 flush=4035 mispred=4035 strad=0 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3+perfect cycles=2452229 retired=1022020 ic_acc=568008 flush=0 mispred=0 strad=0 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F3s+jal cycles=3184239 retired=1022020 ic_acc=736009 flush=143999 mispred=143999 strad=20003 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3s+jal+r1 cycles=3210240 retired=1022020 ic_acc=736009 flush=143999 mispred=143999 strad=20003 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3s+btfn cycles=2738236 retired=1022020 ic_acc=630012 flush=18001 mispred=18001 strad=22002 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3s+btfn+r1 cycles=2886238 retired=1022020 ic_acc=628012 flush=18001 mispred=18001 strad=22002 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3s+bim16 cycles=2684267 retired=1022020 ic_acc=618019 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3s+bim16+r1 cycles=2840264 retired=1022020 ic_acc=616019 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3s+bim32 cycles=2684267 retired=1022020 ic_acc=618019 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3s+bim32+r1 cycles=2840264 retired=1022020 ic_acc=616019 flush=6009 mispred=6009 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3s+bim64 cycles=2684270 retired=1022020 ic_acc=618020 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3s+bim64+r1 cycles=2840266 retired=1022020 ic_acc=616020 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3s+bim256 cycles=2684270 retired=1022020 ic_acc=618020 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3s+bim256+r1 cycles=2840266 retired=1022020 ic_acc=616020 flush=6010 mispred=6010 strad=22003 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3s+gsh12 cycles=2672370 retired=1022020 ic_acc=614045 flush=4035 mispred=4035 strad=22003 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3s+gsh12+r1 cycles=2826343 retired=1022020 ic_acc=612045 flush=4035 mispred=4035 strad=22003 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3s+perfect cycles=2628231 retired=1022020 ic_acc=598010 flush=0 mispred=0 strad=20002 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F3w16s+jal cycles=2998199 retired=1022020 ic_acc=536005 flush=143999 mispred=143999 strad=4001 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3w16s+jal+r1 cycles=3028198 retired=1022020 ic_acc=536005 flush=143999 mispred=143999 strad=4001 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F3w16s+btfn cycles=2610212 retired=1022020 ic_acc=488008 flush=18001 mispred=18001 strad=2001 icmiss=13 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3w16s+btfn+r1 cycles=2768210 retired=1022020 ic_acc=488008 flush=18001 mispred=18001 strad=4001 icmiss=13 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F3w16s+bim16 cycles=2572240 retired=1022020 ic_acc=486010 flush=6009 mispred=6009 strad=4001 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3w16s+bim16+r1 cycles=2734234 retired=1022020 ic_acc=486010 flush=6009 mispred=6009 strad=6001 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3w16s+bim32 cycles=2572240 retired=1022020 ic_acc=486010 flush=6009 mispred=6009 strad=4001 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3w16s+bim32+r1 cycles=2734234 retired=1022020 ic_acc=486010 flush=6009 mispred=6009 strad=6001 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F3w16s+bim64 cycles=2572240 retired=1022020 ic_acc=486010 flush=6010 mispred=6010 strad=4001 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3w16s+bim64+r1 cycles=2734234 retired=1022020 ic_acc=486010 flush=6010 mispred=6010 strad=6001 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3w16s+bim256 cycles=2572240 retired=1022020 ic_acc=486010 flush=6010 mispred=6010 strad=4001 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3w16s+bim256+r1 cycles=2734234 retired=1022020 ic_acc=486010 flush=6010 mispred=6010 strad=6001 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F3w16s+gsh12 cycles=2552328 retired=1022020 ic_acc=478028 flush=4035 mispred=4035 strad=2001 icmiss=13 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3w16s+gsh12+r1 cycles=2712299 retired=1022020 ic_acc=478028 flush=4035 mispred=4035 strad=4001 icmiss=13 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F3w16s+perfect cycles=2520211 retired=1022020 ic_acc=466006 flush=0 mispred=0 strad=2001 icmiss=13 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F4+jal cycles=2842196 retired=1022020 ic_acc=884003 flush=143999 mispred=143999 strad=0 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F4+jal+r1 cycles=2872195 retired=1022020 ic_acc=884003 flush=143999 mispred=143999 strad=0 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F4+btfn cycles=2466205 retired=1022020 ic_acc=760007 flush=18001 mispred=18001 strad=0 icmiss=13 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F4+btfn+r1 cycles=2568203 retired=1022020 ic_acc=756007 flush=18001 mispred=18001 strad=0 icmiss=13 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F4+bim16 cycles=2420237 retired=1022020 ic_acc=744019 flush=6009 mispred=6009 strad=0 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4+bim16+r1 cycles=2528227 retired=1022020 ic_acc=738019 flush=6009 mispred=6009 strad=0 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4+bim32 cycles=2420237 retired=1022020 ic_acc=744019 flush=6009 mispred=6009 strad=0 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4+bim32+r1 cycles=2528227 retired=1022020 ic_acc=738019 flush=6009 mispred=6009 strad=0 icmiss=13 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4+bim64 cycles=2420237 retired=1022020 ic_acc=744019 flush=6010 mispred=6010 strad=0 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4+bim64+r1 cycles=2528227 retired=1022020 ic_acc=738019 flush=6010 mispred=6010 strad=0 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4+bim256 cycles=2420237 retired=1022020 ic_acc=744019 flush=6010 mispred=6010 strad=0 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4+bim256+r1 cycles=2528227 retired=1022020 ic_acc=738019 flush=6010 mispred=6010 strad=0 icmiss=13 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4+gsh12 cycles=2412314 retired=1022020 ic_acc=740045 flush=4035 mispred=4035 strad=0 icmiss=13 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F4+gsh12+r1 cycles=2518297 retired=1022020 ic_acc=734045 flush=4035 mispred=4035 strad=0 icmiss=13 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F4+perfect cycles=2388206 retired=1022020 ic_acc=726007 flush=0 mispred=0 strad=0 icmiss=13 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F4w4+jal cycles=2934237 retired=1022020 ic_acc=1160014 flush=143999 mispred=143999 strad=0 icmiss=13 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F4w4+btfn cycles=2534230 retired=1022020 ic_acc=958018 flush=18001 mispred=18001 strad=0 icmiss=12 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F4w4+bim16 cycles=2488263 retired=1022020 ic_acc=938035 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4w4+bim32 cycles=2488263 retired=1022020 ic_acc=938035 flush=6009 mispred=6009 strad=0 icmiss=12 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F4w4+bim64 cycles=2488265 retired=1022020 ic_acc=938036 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4w4+bim256 cycles=2488265 retired=1022020 ic_acc=938036 flush=6010 mispred=6010 strad=0 icmiss=12 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F4w4+gsh12 cycles=2478354 retired=1022020 ic_acc=934081 flush=4035 mispred=4035 strad=0 icmiss=12 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F4w4+perfect cycles=2454230 retired=1022020 ic_acc=922018 flush=0 mispred=0 strad=0 icmiss=12 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F5+jal cycles=2768212 retired=1022020 ic_acc=749997 flush=143999 mispred=143999 strad=0 icmiss=19 dcmiss=12002 pred_taken=36000 memst=1054074 hold=6000
+model.F5+btfn cycles=2426209 retired=1022020 ic_acc=748000 flush=18001 mispred=18001 strad=0 icmiss=19 dcmiss=12002 pred_taken=178000 memst=1054074 hold=6000
+model.F5+bim16 cycles=2386230 retired=1022020 ic_acc=732008 flush=6009 mispred=6009 strad=0 icmiss=19 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F5+bim32 cycles=2386230 retired=1022020 ic_acc=732008 flush=6009 mispred=6009 strad=0 icmiss=19 dcmiss=12002 pred_taken=185992 memst=1054074 hold=6000
+model.F5+bim64 cycles=2386234 retired=1022020 ic_acc=732008 flush=6010 mispred=6010 strad=0 icmiss=19 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F5+bim256 cycles=2386234 retired=1022020 ic_acc=732008 flush=6010 mispred=6010 strad=0 icmiss=19 dcmiss=12002 pred_taken=185991 memst=1054074 hold=6000
+model.F5+gsh12 cycles=2378303 retired=1022020 ic_acc=728010 flush=4035 mispred=4035 strad=0 icmiss=19 dcmiss=12002 pred_taken=183966 memst=1054074 hold=6000
+model.F5+perfect cycles=2358205 retired=1022020 ic_acc=715996 flush=0 mispred=0 strad=0 icmiss=19 dcmiss=12002 pred_taken=179999 memst=1054074 hold=6000
+model.F0+bim64+btb64 cycles=4478355 retired=1022022 ic_acc=1140043 flush=20017 mispred=20017 strad=98005 icmiss=12 dcmiss=12002 pred_taken=167982 memst=1054074 hold=6000
+model.F3s+bim64+btb64j cycles=2742291 retired=1022020 ic_acc=630023 flush=20017 mispred=20017 strad=22003 icmiss=12 dcmiss=12002 pred_taken=167982 memst=1054074 hold=6000

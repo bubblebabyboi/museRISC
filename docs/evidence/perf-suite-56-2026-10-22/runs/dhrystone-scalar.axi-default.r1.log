@@ -1,0 +1,67 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb 200000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/suite/bin/dhrystone-scalar/dhrystone.bin --exit-string 'SIGIL TEST PASS dhrystone' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/suite/runs/dhrystone-scalar.axi-default.r1.perf
+loaded 8112 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/suite/bin/dhrystone-scalar/dhrystone.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+
+Dhrystone Benchmark, Version 2.1 (Language: C)
+
+Program compiled without 'register' attribute
+
+Please give the number of runs through the benchmark: 
+Execution starts, 2000 runs through Dhrystone
+SIGIL PERF region=0 cycles=3070621 instret=1036012
+Execution ends
+
+Final values of the variables used in the benchmark:
+
+Int_Glob:            5
+        should be:   5
+Bool_Glob:           1
+        should be:   1
+Ch_1_Glob:           A
+        should be:   A
+Ch_2_Glob:           B
+        should be:   B
+Arr_1_Glob[8]:       7
+        should be:   7
+Arr_2_Glob[8][7]:    2010
+        should be:   Number_Of_Runs + 10
+Ptr_Glob->
+  Ptr_Comp:          -2147399680
+        should be:   (implementation-dependent)
+  Discr:             0
+        should be:   0
+  Enum_Comp:         2
+        should be:   2
+  Int_Comp:          17
+        should be:   17
+  Str_Comp:          DHRYSTONE PROGRAM, SOME STRING
+        should be:   DHRYSTONE PROGRAM, SOME STRING
+Next_Ptr_Glob->
+  Ptr_Comp:          -2147399680
+        should be:   (implementation-dependent), same as above
+  Discr:             0
+        should be:   0
+  Enum_Comp:         1
+        should be:   1
+  Int_Comp:          18
+        should be:   18
+  Str_Comp:          DHRYSTONE PROGRAM, SOME STRING
+        should be:   DHRYSTONE PROGRAM, SOME STRING
+Int_1_Loc:           5
+        should be:   5
+Int_2_Loc:           13
+        should be:   13
+Int_3_Loc:           7
+        should be:   7
+Enum_Loc:            1
+        should be:   1
+Str_1_Loc:           DHRYSTONE PROGRAM, 1'ST STRING
+        should be:   DHRYSTONE PROGRAM, 1'ST STRING
+Str_2_Loc:           DHRYSTONE PROGRAM, 2'ND STRING
+        should be:   DHRYSTONE PROGRAM, 2'ND STRING
+
+DHRYSTONE runs=2000 cycles=3070621 instret=1036012 cycles/run=1535 DMIPS/MHz=0.370
+DHRYSTONE CHECK OK runs=2000
+SIGIL TEST PASS dhrystone
+FPGA TOP TB PASS run 0 (exit string at 3412235 cycles after reset release)
+AXI: 278 AR (2224 R beats), 11 AW (88 W beats, 11 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

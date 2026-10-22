@@ -9,10 +9,18 @@ path to an MPW shuttle. v1 target is simulation + OpenROAD only.
 ## 2. ISA contract (target, phased)
 
 RV64GCV = RV64I + Zicsr/Zifencei + M + A + F + D + C + V (RVV 1.0),
-privileged spec with Sv39, M/S/U modes (via CVA6). Compliance is only
-claimed per-extension after the matrix in COMPLIANCE.md passes.
-Floating point must pass TestFloat vectors; vector must pass the RVV
-arch tests with a fixed VLEN (default 512 via Ara, configurable).
+privileged spec with M/S/U modes, implemented by the in-house core in
+`rtl/core/` (`docs/CORE.md`). The third-party CVA6+Ara stack was the
+earlier characterization host; its results are the historical rows of
+COMPLIANCE.md. Shipped configuration: RV64IMAFDC + Zba/Zbb/Zbc/Zbs +
+Zicond + Zbkb/Zbkc/Zbkx + Zkne/Zknd/Zknh + Zca/Zcb/Zcd + H, vector as
+Zve64d at a fixed VLEN of 512 (element-serial unit). Configuration
+statements, not gaps: virtual memory is Sv39 only (`satp` MODE is
+WARL Bare/Sv39, `hgatp` Bare/Sv39x4; Sv48/Sv57 are not implemented),
+and Zfa is not implemented (so TestFloat `roundToInt` has no
+instruction to test). Compliance is only claimed per-extension after
+the matrix in COMPLIANCE.md passes. Floating point must pass TestFloat
+vectors; vector must pass the RVV arch tests at the fixed VLEN.
 
 ## 3. Crypto accelerator (`sigil_crypto`, original RTL)
 
