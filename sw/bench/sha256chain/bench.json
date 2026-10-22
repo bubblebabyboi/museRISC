@@ -10,13 +10,15 @@
     "SHA256CHAIN CHECK OK hashes={iterations}"
   ],
   "units": "hashes per region (RVV x16: the hashes are split over 16 independent chains)",
+  "metrics": ["bytes_per_cycle"],
+  "bytes_per_iteration": 32,
   "regions": {
     "0": "sha256 plain C",
-    "1": "sha256 Zknh",
-    "2": "sha256 RVV x16 (multi-buffer)",
-    "3": "sha256 accel sigil_sha256_block",
-    "4": "sha256 accel sigil_sha256",
-    "5": "sha512 accel sigil_hash",
+    "1": {"label": "sha256 Zknh", "baseline": 0},
+    "2": {"label": "sha256 RVV x16 (multi-buffer)", "baseline": 0},
+    "3": {"label": "sha256 accel sigil_sha256_block", "baseline": 0},
+    "4": {"label": "sha256 accel sigil_sha256", "baseline": 0},
+    "5": {"label": "sha512 accel sigil_hash", "bytes_per_iteration": 64},
     "6": "sha3-256 accel sigil_hash"
   },
   "variants": {

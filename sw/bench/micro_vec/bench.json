@@ -7,6 +7,7 @@
     "MICRO CHECK OK micro_vec iterations={iterations} regions=31"
   ],
   "units": "vector instructions per region (cycles/iter = cycles per vector instruction)",
+  "window_region": 1,
   "regions": {
     "1": "empty",
     "2": "vsetvli_same",

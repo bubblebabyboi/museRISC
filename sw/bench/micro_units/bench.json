@@ -5,6 +5,7 @@
   "max_cycles": 20000000,
   "expect": ["MICRO CHECK OK micro_units iterations={iterations} regions=18"],
   "units": "operations per region (cycles/iter = cycles per operation)",
+  "window_region": 1,
   "regions": {
     "1": "empty",
     "2": "mul_dep",

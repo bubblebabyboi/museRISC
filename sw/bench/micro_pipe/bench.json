@@ -7,6 +7,7 @@
     "MICRO CHECK OK micro_pipe iterations={iterations} regions=26"
   ],
   "units": "operations per region (cycles/iter = cycles per operation)",
+  "window_region": 1,
   "regions": {
     "1": "empty",
     "2": "loop",

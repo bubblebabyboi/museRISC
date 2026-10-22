@@ -7,6 +7,7 @@
     "MICRO CHECK OK micro_dmem iterations={iterations} regions=19"
   ],
   "units": "loads/stores per region (cycles/iter = cycles per load/store)",
+  "window_region": 1,
   "regions": {
     "1": "empty",
     "2": "chase_rand_1k",
