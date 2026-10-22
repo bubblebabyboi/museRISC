@@ -145,8 +145,17 @@ $(BUILD)/csr_tb: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/csr_tb) $(RTL)/sigil_csr.sv \
 	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
 
-csr: $(BUILD)/csr_tb
+# FPGA_TIMING form (#53): write-intent read-only check, parallel PMP.
+# (1'b1: CI's Verilator 5.020 -Wall rejects a 32-bit 1 for the bit parameter.)
+$(BUILD)/csr_tb_fpga: $(ROOT)/tb/cpp/csr_tb.cpp $(RTL)/sigil_csr.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/csr_fpga --top-module sigil_csr "-GFPGA_TIMING=1'b1" \
+	  -o $(abspath $(BUILD)/csr_tb_fpga) $(RTL)/sigil_csr.sv \
+	  $(abspath $(ROOT)/tb/cpp/csr_tb.cpp)
+
+csr: $(BUILD)/csr_tb $(BUILD)/csr_tb_fpga
 	cd $(BUILD) && COV_FILE=cov_csr.dat ./csr_tb
+	cd $(BUILD) && { COV_FILE=nocov_csr_fpga.dat ./csr_tb_fpga > csr_fpga.log 2>&1 || { cat csr_fpga.log; exit 1; }; } && \
+	  tail -1 csr_fpga.log | sed 's/$$/ [FPGA_TIMING]/'
 
 ## ---- RTL PLIC unit test (claim arbitration vs a reference model) ----
 $(BUILD)/plic_tb: $(ROOT)/tb/cpp/plic_tb.cpp $(ROOT)/rtl/soc/sigil_plic.sv | $(BUILD) $(OBJ)
@@ -163,8 +172,17 @@ $(BUILD)/mmu_tb: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
 	  -o $(abspath $(BUILD)/mmu_tb) $(RTL)/sigil_mmu.sv \
 	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
 
-mmu: $(BUILD)/mmu_tb
+# FPGA_TIMING form (#53): one-hot port lookups, registered data port.
+$(BUILD)/mmu_tb_fpga: $(ROOT)/tb/cpp/mmu_tb.cpp $(RTL)/sigil_mmu.sv | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/mmu_fpga --top-module sigil_mmu "-GFPGA_TIMING=1'b1" \
+	  -CFLAGS -DMMU_TB_DREG \
+	  -o $(abspath $(BUILD)/mmu_tb_fpga) $(RTL)/sigil_mmu.sv \
+	  $(abspath $(ROOT)/tb/cpp/mmu_tb.cpp)
+
+mmu: $(BUILD)/mmu_tb $(BUILD)/mmu_tb_fpga
 	cd $(BUILD) && COV_FILE=cov_mmu.dat ./mmu_tb
+	cd $(BUILD) && { COV_FILE=nocov_mmu_fpga.dat ./mmu_tb_fpga > mmu_fpga.log 2>&1 || { cat mmu_fpga.log; exit 1; }; } && \
+	  tail -1 mmu_fpga.log | sed 's/$$/ [FPGA_TIMING]/'
 
 ## ---- FPU unit test --------------------------------------------------------
 SOFTFLOAT := $(ROOT)/third_party/berkeley-softfloat-3
@@ -769,13 +787,15 @@ core-xinit: $(BUILD)/core_tb_xinit $(addprefix $(BUILD)/,$(addsuffix .bin,$(TEST
 # behavioural arrays and cache geometry with SIGIL_SRAM_OREG: the
 # two-cycle read pipelines with multi-way caches; srammacro also
 # reruns the small-geometry I$/D$ unit tests with that latency. The
-# "vrforeg" family is the FPGA configuration (#53): SIGIL_VRF_OREG
-# registers only the VRF read outputs, caches unchanged.
+# "vrforeg" family registers only the VRF read outputs (SIGIL_VRF_OREG),
+# caches unchanged. The "fpga" family is the FPGA configuration (#53):
+# SIGIL_VRF_OREG plus the SIGIL_FPGA_TIMING structures.
 include $(ROOT)/rtl/sigil_soc_files.mk
 SRAM_DEF_fakeram45 := +define+SIGIL_SRAM_FAKERAM45
 SRAM_DEF_sky130    := +define+SIGIL_SRAM_SKY130
 SRAM_DEF_oreg      := +define+SIGIL_SRAM_OREG
 SRAM_DEF_vrforeg   := +define+SIGIL_VRF_OREG
+SRAM_DEF_fpga      := +define+SIGIL_VRF_OREG +define+SIGIL_FPGA_TIMING
 # Cache geometry overrides (sigil_cpu / sigil_soc_top parameters).
 SRAM_GEO_sky130    := $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130))
 SRAM_MOD_fakeram45 := $(addprefix $(ROOT)/flow/designs/nangate45/sigil_soc/sram/,\
@@ -784,7 +804,8 @@ SRAM_MOD_sky130 := $(addprefix $(ROOT)/flow/designs/sky130hd/sigil_soc/sram/,\
   sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
 SRAM_MOD_oreg :=
 SRAM_MOD_vrforeg :=
-SRAM_MACROS := fakeram45 sky130 oreg vrforeg
+SRAM_MOD_fpga :=
+SRAM_MACROS := fakeram45 sky130 oreg vrforeg fpga
 .SECONDEXPANSION:
 $(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(FPU_INC) $(RTL)/sigil_vec_pkg.sv \
                  $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
@@ -825,13 +846,23 @@ $(BUILD)/%cache_tb_oreg: $(ROOT)/tb/cpp/%cache_tb.cpp $(ROOT)/tb/cpp/mbus_model.
 	  -o $(abspath $@) $(CACHE_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/$*cache_tb.cpp)
 
+# The same with the FPGA_TIMING structures (#53: idle-cycle array reads).
+$(BUILD)/%cache_tb_fpga: $(ROOT)/tb/cpp/%cache_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CACHE_RTL) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS) $(OBJ)/$*cache_fpga --top-module sigil_$*cache $(CACHE_TB_G) \
+	  $(SRAM_DEF_fpga) -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
+	  -o $(abspath $@) $(CACHE_RTL) \
+	  $(abspath $(ROOT)/tb/cpp/$*cache_tb.cpp)
+
 srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/core_tb_,$(SRAM_MACROS)) \
            $(addprefix $(BUILD)/soc_rtl_tb_,$(SRAM_MACROS)) \
            $(BUILD)/dcache_tb_oreg $(BUILD)/icache_tb_oreg \
+           $(BUILD)/dcache_tb_fpga $(BUILD)/icache_tb_fpga \
            $(addprefix $(BUILD)/,$(addsuffix .bin,$(TESTS))) $(SOCFW)/crypto_soc_test.bin
 	cd $(BUILD) && for c in dcache icache; do \
 	  COV_FILE=nocov_$${c}_oreg.dat ./$${c}_tb_oreg > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
 	  tail -1 srammacro.log | sed "s/$$/ [SRAM_OREG]/"; \
+	  COV_FILE=nocov_$${c}_fpga.dat ./$${c}_tb_fpga > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \
+	  tail -1 srammacro.log | sed "s/$$/ [FPGA_TIMING]/"; \
 	done; \
 	for m in $(SRAM_MACROS); do \
 	  ./vec_tb_$$m > srammacro.log 2>&1 || { cat srammacro.log; exit 1; }; \

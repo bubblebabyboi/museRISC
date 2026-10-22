@@ -1,0 +1,154 @@
+#53 FPGA timing closure: implementation iterations (plan: docs/FPGA_TIMING_53.md), branch 53-mem-stage-pipeline
+
+Tools: Vivado v2025.2 (64-bit) SW Build 6299465, F0 out-of-context flow fpga/f0/f0_ooc.tcl,
+xcvu47p-fsvh2892-2-e, 10 ns, 8 threads per run, on sigil-fpga-build2 (r7iz.8xlarge, FPGA Developer AMI).
+Verilator 5.048 (build2 deps) for lint/sims, 5.044 (macOS) lint. Yosys 0.33 + sv2v v0.0.13 for equivalence.
+Families: classifier of evidence/fpga-timing-53-baseline-2026-10-22.md (first match wins, worst path per endpoint).
+Reference: main eeaa332 + SIGIL_VRF_OREG, base flow: WNS -4.226 ns, TNS -46761 ns, 18180/90745 failing,
+79087 LUT, 32695 FF, 9 BRAM tiles, 29 DSP.
+
+== Iteration 1, 2026-10-22 UTC: plan steps 1-3, F0 strategies
+Commits: 0f735ed FPGA_TIMING parameter/lint/fpga srammacro family; 7a4231c step 1 (CSR read-only check from write
+intent, FP/M requests without ex_illegal); f38d59a step 2 (parallel PMP); 14ee185 step 3 (one-hot TLB port lookups);
+ba00cc3 F0_STRATEGY base/iter/closure; 06ed59f steps 2-3 rewritten as vector reductions; 3adf35e iter default;
+9ccb743 scripts/fpga_timing_equiv.sh.
+Defines: SIGIL_VRF_OREG SIGIL_FPGA_TIMING unless noted.
+
+run          commit   strategy  WNS ns   TNS ns     failing/total  fmax MHz  LUT    FF     BRAM  DSP  wall
+s1           7a4231c  base      -4.052   -44576.1   16399/90756    71.2      79590  32700  9     29   36 min
+s2           f38d59a  base      -5.208   -60449.6   15765/90733    65.8      78095  32693  9     29   36 min
+s3           14ee185  base      -5.609   -68567.8   15694/90730    64.1      78293  32691  9     29   31 min
+h1-base      06ed59f  base      -3.913   -41635.6   15370/90719    71.9      78577  32687  9     29   32 min
+h1-iter      06ed59f  iter      -2.298   -16270.5   14020/90742    81.3      79480  32703  9     29   47 min
+h1-closure   06ed59f  closure   -1.709   -8984.7    12808/90822    85.4      80697  32779  9     29   104 min
+main-iter    eeaa332  iter      (running at commit time; stopped in iteration 2 without a result, see below)
+Hold: WHS +0.041..+0.042 ns in every run.
+Reports and checkpoints (not committed): sigil-fpga-build2:~/wt/53-sN/build/f0-sN-10ns (N=1..3),
+~/wt/53-h1-<strategy>/build/f0-h1-<strategy>-10ns; impl_fail_* from fpga/f0/f0_timing_reports.tcl (no cuts).
+
+Worst paths:
+s1       exmem_ctrl_q[funct3] -> VLS index -> 64-bit add -> D-TLB CAM -> mmu_d_pa -> PMP -> mem_issue ->
+         pma_cacheable -> D$ tag LUTRAM WE, 50 levels (step 1 removed the 68-level csr_we -> ex_illegal -> FPU/M ->
+         exmem_result_q tail: that sink went -4.226 -> -2.290, pc_r -4.004 -> -2.204)
+s2/s3    same family A path, longer: the first parallel PMP and one-hot select were written as accumulating loops and
+         synthesized into serial OR chains (TLB select 10+ LUTs in series; PMP 2.6 ns vs 2.1 ns serial)
+h1-base  vls_i_q -> VLS index -> mem_va -> CAM -> mmu_d_pa -> PMP -> mem_issue -> pma_cacheable -> D$ data BRAM
+         ENBWREN, 47 levels
+h1-iter  exmem_ctrl_q[bext_op] -> VLS address -> exmem_addr -> CAM -> mmu_d_pa -> PMP -> mem_issue -> pma_cacheable
+         -> D$ data BRAM ENBWREN, 40 levels (3.6 ns logic / 8.4 ns route)
+h1-closure vls_started_q -> VLS address -> exmem_addr (2.69) -> CAM -> mmu_d_pa (6.59) -> PMP -> mem_issue (9.40) ->
+         pma_cacheable -> D$ data BRAM ENARDEN, 43 levels (3.3 ns logic / 8.1 ns route)
+Arrivals on the worst path (VA -> mmu_d_pa -> pmp_allow_data, ns):
+s1 3.10 -> 8.29 -> 10.35 | s2 3.32 -> 8.52 -> 11.11 | s3 3.15 -> 9.22 -> 11.89 | h1-base 2.94 -> 7.56 -> 9.95 |
+h1-iter 2.85 -> 6.79 -> ~9.0 (mem_issue 9.76)
+
+Families, h1-iter (06ed59f, iter):
+| A MEM data translate -> MEM consumers | -2.298 | 40 | 13309 endpoints | sinks: D$ enables -2.298, CSR regs -2.000,
+  MMU -1.869, vector/VRF -1.682, VLS seq -1.264, pc_r -1.174, pipeline CE -1.168 |
+| B IF fetch translate (pc_r -> pc_r)      | -1.916 | 38 | 647 |
+| G2 EX FPU rounding -> exmem_result_q     | -0.287 | 44 | 53  |
+| C D-TLB lookup -> walker                 | -0.189 | 32 | 11  |
+(D, E, F, G1, H, I, J, K, L not visible under A/B: no endpoint whose worst path is theirs fails.)
+Families, h1-closure: A -1.709 (12100; sinks D$ enables -1.709, CSR regs -1.592, MMU -1.243, pipeline CE -0.920,
+  pipeline D -0.753, vector/VRF -0.751, mul/div -0.674, pc_r -0.409), B -1.514 (648, boot_q/pc_r -> pc_r),
+  G2 -0.576 (60, FPU rnd_q -> exmem_result_q).
+Families, h1-base: A -3.913 (14580), B -3.292 (649), G2 -1.946, G1 -1.276, L -0.397, C -0.291 (was -1.390), K -0.131.
+
+Functional gates at 06ed59f (build2, Verilator 5.048; logs ~/wt/53-g1/build/gates53/):
+lint 5.048: 21 lint runs, 0 warnings (adds soc_top/core/cpu with SIGIL_FPGA_TIMING); lint 5.044 (macOS): 21 runs, 0
+make test: ALL PHASE-0 KATs PASS
+riscv-tests default: 123/123 PASS; fpga (core_tb_fpga): 123/123 PASS
+directed fpga (core_tb_fpga, random bus latency): 37/37 CORE TB PASS
+make core-test: rc=0, 240 TB PASS lines, 0 FAIL, incl. CSR/MMU TB [FPGA_TIMING], srammacro fpga: VEC TB PASS,
+  CORE TB PASS 37 directed runs, SOC RTL TB PASS at 27689496 cycles (= vrforeg); ALL 7 EXAMPLES PASS
+PMP miter (Verilator, sigil_csr FPGA_TIMING=1, per-cycle check): 300000 vectors x 3 ports PASS; detects a dropped
+  priority mask.
+Cycle counts (fixed seeds, random bus latency): directed 26 runs + riscv-tests 123 ELFs:
+  main default vs 06ed59f default: IDENTICAL; main vrforeg vs 06ed59f fpga: IDENTICAL (steps 1-3 cycle-neutral).
+ASIC invariance (scripts/fpga_timing_equiv.sh, FPGA_TIMING=0 vs origin/main eeaa332): sigil_csr EQUIVALENT
+  (3936 cells, 231 s); sigil_mmu EQUIVALENT (5125 cells, 2627 s). sigil_core: generate-if else
+  branches are the main code, csr_we only names its intent term; cycle counts identical (not formally checked).
+
+Result: not met (WNS < 0). Best at 06ed59f: -1.709 ns (closure, 85.4 MHz); -2.298 ns (iter, 81.3 MHz, the
+per-step measurement flow from now on); base flow -3.913 ns (reference -4.226). All runs: 0 cycles added.
+Remaining: family A is the MEM translate chain itself (VA -> CAM -> PA -> PMP -> mem_issue/mem_exc -> D$ enables,
+CSR/MMU/pipeline CEs), so the next lever is plan step 5 (D-TLB lookup in EX into mt_q, replay, registered walk
+port, VLS port) with step 6 (speculative S_IDLE cache reads: removes pma_cacheable -> D$ enable, ~2 ns of the worst
+path); family B (fetch translate -> pc_r / IF-ID CE, -1.5..-1.9) is step 7.
+
+== Iteration 2, 2026-10-22 UTC: plan steps 5, 7, 6 (registered data translation, fetch page register,
+   idle-cycle cache reads)
+Commits: ab643d3 step 5 (mt_q in sigil_mmu behind a new dl_* lookup port: EX AGU or MEM replay / VLS element,
+select from flops; walk start from a live registered miss; chg_q replay after any TLB/walk-fault update);
+7ab4af3 step 5 fix (a VLS misalignment fault/trim seen while the element's translation is pending no longer
+resets the sequencer: vec_trap_directed test 3 hung at ab643d3); 4e2b8d8 step 7 (it_q + ir_q in sigil_mmu,
+tagged with the TLB match key); c0d787f equiv script (dl_* gate-only ports); d7e8e41 step 6 (I$/D$ array reads
+and request registers every S_IDLE cycle; data-port payload selected from flops, mem_port_sel); 2524cd3 equiv
+script (I$/D$ with package + black-box arrays). Committed RTL head: d7e8e41 (later commits: scripts/docs only).
+Defines: SIGIL_VRF_OREG SIGIL_FPGA_TIMING.
+
+run          commit   strategy  WNS ns   TNS ns     failing/total  fmax MHz  LUT    FF     BRAM  DSP  WHS ns  wall
+s5           ab643d3  iter      +0.055   0.000      0/91078        100.6     77500  32816  9     29   +0.029  29 min
+s7           4e2b8d8  iter      +0.401   0.000      0/92112        104.2     77379  33350  9     29   +0.042  19 min
+s6 (head)    d7e8e41  iter      +0.614   0.000      0/92083        106.5     77121  33313  9     29   +0.019  19 min
+s7           4e2b8d8  closure   +0.532   0.000      0/91891        105.6     78028  33116  9     29   +0.019  25 min
+s6 (head)    d7e8e41  closure   +0.828   0.000      0/92079        109.0     78100  33311  9     29   +0.042  24 min
+main-iter    eeaa332  iter      stopped at 13:09Z after 98 min in synth_design Timing Optimization (the branch RTL
+                                takes 10-14 min there); no result. Main's iter number is not needed any more.
+Reports and checkpoints (not committed): sigil-fpga-build2:~/wt/53-s5/build/f0-s5-iter-10ns,
+~/wt/53-s7/build/f0-s7-{iter,closure}-10ns, ~/wt/53-s6/build/f0-s6-{iter,closure}-10ns; near_critical.rpt in each
+(worst path per endpoint under a slack limit, grouped by start -> end register group; ~/wt/near53.tcl).
+
+Worst paths (all met):
+s5    pc_r -> pc_r_reg[55]/D, 38 levels (+0.055; 9.93 ns: 3.1 logic / 6.9 route). Under +0.5 ns: 318 endpoints:
+      pc_r -> pc_r +0.055 (62), pc_r -> I$ tag LUTRAM WE +0.143 (88), pc_r -> straddle_lo_q +0.223, pc_r -> I$ rd_q
+      +0.336, pc_r -> ifid_* +0.337, csr vl_q -> mt_q.pa +0.389 (VLS), csr pmpaddr -> D$ data BRAM +0.399 (PMP ->
+      mem_issue -> D$ enable).
+s7    csr vl_q -> u_mmu/g_dreg.mt_q_reg[pa]/D, 26 levels (+0.401; 9.58 ns: 2.4 logic / 7.1 route): vl -> VLS
+      in-range compare -> D-port select -> one-hot CAM -> mt_q. Under +0.5 ns: 6 endpoints, all this path.
+      Step 7 removed every fetch path from the list.
+s6    same path, 28 levels (+0.614; 9.37 ns: 2.5 logic / 6.9 route). Under +1.0 ns: 1201 endpoints:
+      vl_q -> mt_q.pa +0.614 (23), SHA-512 round -> h +0.766 (12), fabric a_q -> Keccak state +0.857 (1163),
+      SHA-512 round -> a +0.950 (2), fabric -> Keccak round +0.998 (1). No CPU fetch, MEM/PMP, D$/I$, CSR, FPU or
+      vector path within 1 ns.
+Closure-strategy worst paths: s7 and s6 both exmem_ctrl_q[bext_op] -> VLS address -> D-port select -> CAM ->
+mt_q.pa[19] (+0.532, +0.828).
+
+Functional gates at d7e8e41 (build2, Verilator 5.048; logs ~/wt/53-s6/build/gates53/, 13:26-14:12Z):
+lint 5.048: 21 lint runs, 0 warnings; lint 5.044 (macOS): 21 runs, 0 warnings. (CI's 5.020 not run: no Docker
+  daemon on the Mac or build2.)
+make test: ALL PHASE-0 KATs PASS
+riscv-tests default: 123/123 PASS; fpga (core_tb_fpga, random bus latency): 123/123 PASS
+directed fpga (core_tb_fpga, random bus latency): 37/37 CORE TB PASS
+make core-test: rc=0, 262 PASS lines, 0 FAIL (2530 s), incl. CSR/MMU TB [FPGA_TIMING], DCACHE/ICACHE TB
+  [FPGA_TIMING] (new), srammacro fpga: VEC TB PASS, CORE TB PASS 37 directed runs, SOC RTL TB PASS at 27689496
+  cycles (= vrforeg); ALL 7 EXAMPLES PASS.
+Simulation checks active in every fpga run: memory-op AGU == alu_result; one-hot D lookup == find_entry; mt_q ==
+  the lookup of MEM's own access in MEM's context whenever MEM uses it; the D port never serves MEM on an edge where
+  MEM moves on; it_q's page == the full I-port lookup whenever IF uses it; data-port payload owner == issuing side;
+  a_mem_kept (no MEM access abandoned in flight, i.e. no replay under an issued access).
+Step 5 bug found and fixed on the way: vec_trap_directed test 3 (indexed load, misaligned element 2) hung at
+  ab643d3 (main's VLS sequencer restarts at element 0 on vls_fault even while MEM stalls; with the registered
+  translation an indexed element always waits one cycle in ACC); fixed in 7ab4af3.
+
+Cycle counts (scripts as iteration 1, fixed seeds, random bus latency; ~/wt/cyc53-it2):
+  main default vs d7e8e41 default: directed 26 runs IDENTICAL, riscv-tests 124 rows IDENTICAL.
+  main vrforeg vs d7e8e41 fpga: riscv-tests identical except rv64si-p-dirty 661 -> 669 (+8; paging on), total
+  137643 -> 137651; directed identical except vm_directed 19883 -> 19909 (+26), hyp_directed 3778 -> 3811 (+33),
+  vec_directed 3395 -> 3405 (+10, indexed elements), ptw_drop_directed 37647 -> 37878 (+231). Bare-metal code
+  without paging or indexed vector accesses: 0 cycles.
+ASIC invariance (scripts/fpga_timing_equiv.sh, FPGA_TIMING=0 vs origin/main eeaa332; Yosys 0.33, sv2v v0.0.13):
+  sigil_mmu EQUIVALENT (5125 cells, 2674 s), sigil_csr EQUIVALENT (3936 cells, 225 s) at c0d787f;
+  sigil_dcache EQUIVALENT (2077 cells, 23 s), sigil_icache EQUIVALENT (769 cells, 1 s) at d7e8e41 (arrays as
+  black boxes; a gate built with SIGIL_FPGA_TIMING leaves 4 cells unproven on the I$). sigil_core: its #53 changes
+  are generate-if else branches with main's expression, tie-offs of the new MMU port, and a walk_issue term that is
+  constant true with FPGA_TIMING=0; cycle counts identical (not formally checked).
+Linux / KVM: not measured. The RTL soc_tb (prebuilt 2026-10-14 OpenSBI/Linux 6.6 images) ran OpenSBI identically
+  in both settings and was still in the kernel's silent early phase after 46 min (main vrforeg) / 30 min (fpga);
+  a boot needs more than 500M cycles at an earlier-recorded ~17k cycles/s, so the runs were stopped.
+
+Result: MET. Post-route WNS >= 0 at 10 ns on the committed RTL head d7e8e41: +0.614 ns with iter (106.5 MHz, 0
+failing endpoints, hold +0.019), +0.828 ns with closure (109.0 MHz). From the -2.298 ns (iter) of iteration 1:
+step 5 alone gives +0.055 (the MEM translate chain, family A, is gone; fetch then limits), step 7 +0.401 (fetch
+gone), step 6 +0.614. Remaining margin, iter: VLS vl -> in-range -> D-port select -> CAM -> mt_q (+0.614), SHA-512
+round (+0.766), fabric -> Keccak state (+0.857). Steps 4 and 8-13 are not needed for the F0 target.

@@ -2015,6 +2015,18 @@ levels) — the next #53 step. Gates: core-test 234 PASS (incl. the new
 `vrforeg` srammacro family), riscv-tests 123/123, full ACT 2,577/2,578
 on `core_tb_vrforeg`, lint clean on Verilator 5.044/5.048/5.020.
 
+## #53 FPGA timing baseline: all failing paths, by family (2026-10-22)
+
+[`fpga-timing-53-baseline-2026-10-22.md`](fpga-timing-53-baseline-2026-10-22.md):
+`main` `eeaa332` with `SIGIL_VRF_OREG` at 10 ns (Vivado 2025.2 OOC,
+WNS −4.226 ns, 18,180 failing endpoints) grouped into 13 path families
+with worst slack, logic levels and endpoint counts. The new
+`fpga/f0/f0_timing_reports.tcl` writes the per-endpoint reports and
+peels families with the cut steps in `fpga/f0/f0_cuts.tcl`. The MEM
+data translate (D-TLB + PMP in one cycle, −4.226 ns) hides almost every
+endpoint; under it fail the fetch translate/PMP path (−3.857 / −2.307),
+the Bext EX path (−2.163) and nine smaller families (−1.43 … −0.48 ns).
+
 ## #11: whole-SoC place-and-route on nangate45 — GDS generated (2026-10-21)
 
 [`soc-pnr-nangate45-11-2026-10-21/`](soc-pnr-nangate45-11-2026-10-21/)

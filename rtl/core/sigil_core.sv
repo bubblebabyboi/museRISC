@@ -94,7 +94,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
 
   logic [11:0] csr_addr;
   logic [63:0] csr_rdata, csr_rmw_rdata, csr_wdata, csr_src;
-  logic        csr_illegal, csr_we;
+  logic        csr_illegal, csr_we, csr_wr_intent;
   logic        sys_illegal;
   logic [2:0]  sys_op;
   logic [63:0] xret_pc;
@@ -114,6 +114,10 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        walk_req, walk_we, walk_grant, walk_abandon, walk_lock;
   logic [63:0] walk_addr, walk_wdata;
   logic [1:0]  walk_acc;
+  // MMU data lookup port (FPGA_TIMING, #53; see g_dl)
+  logic [63:0] dl_va, dl_satp;
+  logic [1:0]  dl_priv;
+  logic        dl_write, dl_exec, dl_virt, dl_sum, dl_mxr, dl_ld, dl_vld;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
   logic        mem_port_done; // MEM's data-port access completes this cycle
   logic        fpu_req, fpu_done;
@@ -347,7 +351,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic [63:0] alu_a, alu_b, alu_result, muldiv_result;
   logic [63:0] ex_result;
   logic        branch_taken;
-  logic        ex_misalign, ex_illegal;
+  logic        ex_misalign, ex_illegal, fp_illegal;
   logic        ex_exc, ex_gva;
   logic [63:0] ex_cause, ex_tval, ex_gpa;
   logic        ex_ret, ex_serialize;
@@ -510,12 +514,23 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // the unit (kill). See docs/CORE.md "EX-stage multi-cycle
   // units". A new unit adds its req && !done term to
   // ex_mc_busy and uses the same ack/kill.
-  assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
-                   !ex_illegal;
   // M unit (sigil_muldiv_mc): MUL* 3 EX cycles, DIV*/REM*
   // 2 (x/0, overflow) or 3..35 (operand-dependent).
-  assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q &&
-                      !ex_illegal;
+  // FPGA_TIMING (#53): the requests drop ex_illegal. For an FP op it
+  // equals fp_illegal and for an M op it is 0 (the CSR, system,
+  // vector, FP and M decode classes are disjoint), but the netlist
+  // form also carries the CSR checks and, through them, MEM's
+  // exception/stall verdict into the FPU and M unit.
+  if (FPGA_TIMING) begin : g_mc_req
+    assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                     !fp_illegal;
+    assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q;
+  end else begin : g_mc_req_off
+    assign fpu_req = idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                     !ex_illegal;
+    assign muldiv_req = idex_valid_q && idex_ctrl_q.muldiv && !idex_exc_q &&
+                        !ex_illegal;
+  end
   assign ex_mc_busy = (fpu_req && !fpu_done) ||
                       (muldiv_req && !muldiv_done);
   // EX holds for a busy multi-cycle unit or the vector unit.
@@ -558,7 +573,6 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   );
   // FP instructions need FS != Off; dynamic rounding mode must
   // name a real mode (static bad rms are illegal at decode).
-  logic fp_illegal;
   assign fp_illegal = (idex_ctrl_q.fp && (csr_fs == 2'b00)) ||
                       (idex_ctrl_q.fp_rm &&
                        (idex_ctrl_q.funct3 == 3'b111) &&
@@ -672,6 +686,29 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       if (chk_armed && (|u_muldiv.g_mc.state_q) &&
           (fpu_req || vec_busy || (u_fpu.state_q != u_fpu.S_IDLE)))
         $error("sigil_core: M unit in flight with the FPU/vector unit");
+    end
+  end
+  // FPGA_TIMING (#53) step 1: the FP/M requests equal main's form,
+  // and a CSR op whose read-only check saw the write intent without
+  // csr_we leaves EX only ahead of an older trap (an exception in
+  // MEM), which flushes it the next cycle.
+  if (FPGA_TIMING) begin : g_fpga_req_chk
+    logic csr_intent_only_q;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) csr_intent_only_q <= 1'b0;
+      else csr_intent_only_q <= ex_advance && idex_valid_q &&
+                                idex_ctrl_q.csr && !idex_exc_q &&
+                                csr_wr_intent && !csr_we;
+    end
+    always_ff @(posedge clk_i) begin
+      if (chk_armed &&
+          ((fpu_req != (idex_valid_q && idex_ctrl_q.fp_op && !idex_exc_q &&
+                        !ex_illegal)) ||
+           (muldiv_req != (idex_valid_q && idex_ctrl_q.muldiv &&
+                           !idex_exc_q && !ex_illegal))))
+        $error("sigil_core: FP/M request differs from the ex_illegal form");
+      if (chk_armed && csr_intent_only_q && !trap_fire)
+        $error("sigil_core: CSR op left EX on its write intent without a trap");
     end
   end
 `endif
@@ -1084,10 +1121,11 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   end
   // !mem_stall: a CSR write must not commit while an older
   // instruction is parked in MEM (it could still page-fault).
+  assign csr_wr_intent = (idex_ctrl_q.funct3[1:0] == 2'b01) ||
+                         (idex_rs1_addr_q != 5'd0);
   assign csr_we = idex_valid_q && idex_ctrl_q.csr && !idex_exc_q &&
                   !trap_fire && !mem_exc && !mem_stall && !vec_ex_stall &&
-                  ((idex_ctrl_q.funct3[1:0] == 2'b01) ||
-                   (idex_rs1_addr_q != 5'd0));
+                  csr_wr_intent;
   assign sfence_fire = idex_valid_q &&
                        (idex_ctrl_q.sfence || idex_ctrl_q.hfence) &&
                        !idex_exc_q && !sys_illegal && !mem_stall;
@@ -1416,6 +1454,18 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
     vls_vrf_wd = wd << {vls_el_off(vls_i, vls_eew_code), 3'b000};
   end
 
+  // The sequence ends with the instruction leaving MEM. FPGA_TIMING
+  // (#53): an element can be held in ACC while its translation is
+  // looked up (mmu_d_* registered); a misalignment fault or trim seen
+  // then ends the sequence only once the translation resolves and MEM
+  // moves on (main's sequencer would restart at element 0 meanwhile).
+  logic vls_end;
+  if (FPGA_TIMING) begin : g_vls_end
+    assign vls_end = (vls_done || vls_fault) &&
+                     !(data_access && !mmu_d_ok && !mmu_d_fault);
+  end else begin : g_vls_end_off
+    assign vls_end = vls_done || vls_fault;
+  end
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       vls_started_q <= 1'b0;
@@ -1423,7 +1473,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       vls_f_q <= 3'd0;
       vls_i_q <= 10'd0;
       vls_ea_q <= 64'd0;
-    end else if (!vls_is || vls_done || vls_fault || trap_fire) begin
+    end else if (!vls_is || vls_end || trap_fire) begin
       vls_started_q <= 1'b0;
       vls_ph_q <= VLS_RD;
       vls_f_q <= 3'd0;
@@ -1527,8 +1577,25 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign mem_port_done = mem_rsp && (!exmem_ctrl_q.amo || amo_wr_q);
   // Walker: PMP-denied PTE accesses complete at once with no
   // memory access (the MMU turns them into access faults).
+  // The data-port payload is MEM's when MEM issues. FPGA_TIMING (#53)
+  // step 6: it is MEM's whenever MEM holds a translated data access
+  // or FENCE.I (from flops), so the request address no longer waits
+  // for MEM's PMP verdict and port arbitration; the walker then waits
+  // a cycle while MEM holds an access it does not issue (PMP denial,
+  // misaligned element, failing SC), which leaves MEM that cycle.
+  // The walker's A/D lock (walk_lock, from MMU state flops) overrides
+  // it: MEM waits for the write-back (mem_issue), so the payload is
+  // the walker's for the whole lock and the walker never waits on MEM.
+  logic mem_port_sel;
+  if (FPGA_TIMING) begin : g_port_sel
+    assign mem_port_sel = ((data_access && mmu_d_ok) || mem_fencei) &&
+                          !walk_lock;
+  end else begin : g_port_sel_off
+    assign mem_port_sel = mem_issue;
+  end
   assign walk_issue = walk_req && pmp_allow_walk && !dq_pend_q &&
-                      (!mem_needs_port || walk_lock) && !trap_fire && !freeze;
+                      (!mem_needs_port || walk_lock) && !trap_fire && !freeze &&
+                      !(FPGA_TIMING && mem_port_sel);
   assign walk_skip = walk_req && !pmp_allow_walk && !dq_pend_q &&
                      (!mem_needs_port || walk_lock) && !trap_fire && !freeze;
   assign walk_rsp = drsp_valid_i && dq_pend_q && dq_walk_q && !dq_drop_q;
@@ -1598,6 +1665,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   a_mem_kept: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       (dq_pend_q && !dq_walk_q) |-> (!trap_take && mem_needs_port))
     else $error("core: MEM data access abandoned in flight");
+  a_port_sel: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      dreq_valid_o |-> (mem_port_sel == mem_issue))
+    else $error("core: data-port payload owner differs from the issuing side");
   a_drsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       drsp_valid_i |-> dq_pend_q)
     else $error("core: data response with no request");
@@ -1732,7 +1802,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
         wdata = eff_store_data;
       end
     endcase
-    if (!mem_issue) begin
+    if (!mem_port_sel) begin
       // PTE read, or A/D writeback of the leaf PTE.
       dreq_addr_o = walk_addr;
       dreq_op_o = walk_we ? DOP_STORE : DOP_LOAD;
@@ -1840,7 +1910,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // CSR / privileged unit
   // ------------------------------------------------------------
-  sigil_csr u_csr (
+  sigil_csr #(.FPGA_TIMING(FPGA_TIMING)) u_csr (
       .clk_i         (clk_i),
       .rst_ni        (rst_ni),
       .addr_i        (csr_addr),
@@ -1848,6 +1918,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .rmw_rdata_o   (csr_rmw_rdata),
       .illegal_o     (csr_illegal),
       .wr_en_i       (csr_we),  // module itself suppresses illegal writes
+      .wr_intent_i   (csr_wr_intent),
       .frm_o         (csr_frm),
       .fs_o          (csr_fs),
       .fflags_we_i   (csr_fflags_we || vec_fflags_we),
@@ -1939,7 +2010,68 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // MMU (Sv39 + Svnapot TLB and walker)
   // ------------------------------------------------------------
-  sigil_mmu u_mmu (
+  // FPGA_TIMING (#53) step 5: registered data translation. The MMU's
+  // D outputs (mmu_d_*) are its register of a lookup on the dl_* port,
+  // so MEM's PMP check, request and exception logic start from flops.
+  // The port serves, by a select from flops only:
+  // - MEM, while its access waits for a usable translation (miss,
+  //   walk in progress, or a capture invalidated by a TLB update):
+  //   the register reloads with MEM's own lookup every cycle (replay;
+  //   +1 cycle per data walk);
+  // - MEM, for a vector load/store element about to be accessed (RD
+  //   with elements left, RW): the element address comes from flops,
+  //   so non-indexed elements cost no cycle. An indexed element's
+  //   address needs the index read, so its RD/RW capture is not
+  //   valid and ACC replays once (+1 cycle per active element);
+  // - otherwise EX: its address from a dedicated adder (equal to
+  //   alu_result for every memory op) in EX's translation context,
+  //   captured on the EX->MEM edge. Context is unchanged until MEM
+  //   is done with it: CSR writes (EX) wait for !mem_stall, xRET and
+  //   SFENCE flush younger instructions, and traps flush everything.
+  // A port that served MEM always holds MEM (mem_stall), so the EX
+  // capture is never lost.
+  if (FPGA_TIMING) begin : g_dl
+    logic        dl_mem, dl_hlv;
+    logic [63:0] agu;
+    assign agu = ex_rs1 + idex_imm_q;
+    assign dl_mem = (data_access && !mmu_d_ok && !mmu_d_fault) ||
+                    (vls_is && (((vls_ph == VLS_RD) && vls_in_range) ||
+                                (vls_ph == VLS_RW)));
+    assign dl_hlv = dl_mem ? exmem_ctrl_q.hlv : idex_ctrl_q.hlv;
+    assign dl_va = dl_mem ? mem_va : agu;
+    assign dl_write = dl_mem ? exmem_ctrl_q.mem_write : idex_ctrl_q.mem_write;
+    assign dl_exec = dl_mem ? exmem_ctrl_q.hlvx : idex_ctrl_q.hlvx;
+    assign dl_priv = dl_hlv ? (csr_spvp ? 2'b01 : 2'b00) : eff_priv_data;
+    assign dl_virt = dl_hlv ? 1'b1 : dvirt;
+    assign dl_satp = dl_hlv ? csr_vsatp : csr_satp;
+    assign dl_sum = dl_hlv ? csr_vs_sum : csr_sum;
+    assign dl_mxr = dl_hlv ? (csr_vs_mxr || csr_hs_mxr) : csr_mxr;
+    assign dl_ld = dl_mem || (!trap_take && !freeze && !mem_stall);
+    assign dl_vld = !(dl_mem && vls_is && vls_indexed && (vls_ph != VLS_ACC));
+`ifndef SYNTHESIS
+    always_ff @(posedge clk_i) begin
+      if (chk_armed && idex_valid_q &&
+          (idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) &&
+          (agu != alu_result))
+        $error("sigil_core: memory-op AGU differs from alu_result");
+      if (chk_armed && dl_mem && !trap_take && !freeze && !mem_stall)
+        $error("sigil_core: MEM moved on while the D port served it");
+    end
+`endif
+  end else begin : g_dl_off
+    assign dl_va = 64'd0;
+    assign dl_write = 1'b0;
+    assign dl_exec = 1'b0;
+    assign dl_priv = 2'd0;
+    assign dl_virt = 1'b0;
+    assign dl_satp = 64'd0;
+    assign dl_sum = 1'b0;
+    assign dl_mxr = 1'b0;
+    assign dl_ld = 1'b0;
+    assign dl_vld = 1'b0;
+  end
+
+  sigil_mmu #(.FPGA_TIMING(FPGA_TIMING)) u_mmu (
       .clk_i            (clk_i),
       .rst_ni           (rst_ni),
       .satp_i           (csr_fsatp),
@@ -1971,6 +2103,16 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_fault_page_o   (mmu_d_fault_page),
       .d_fault_guest_o  (mmu_d_fault_guest),
       .d_fault_gpa_o    (mmu_d_fault_gpa),
+      .dl_va_i          (dl_va),
+      .dl_write_i       (dl_write),
+      .dl_exec_i        (dl_exec),
+      .dl_priv_i        (dl_priv),
+      .dl_virt_i        (dl_virt),
+      .dl_satp_i        (dl_satp),
+      .dl_sum_i         (dl_sum),
+      .dl_mxr_i         (dl_mxr),
+      .dl_ld_i          (dl_ld),
+      .dl_vld_i         (dl_vld),
       .walk_req_o       (walk_req),
       .walk_abandon_o   (walk_abandon),
       .walk_lock_o      (walk_lock),

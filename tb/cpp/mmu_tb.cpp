@@ -61,10 +61,26 @@ int main(int argc, char** argv) {
         mem[pa + uint64_t(i)] = uint8_t(v >> (8 * i));
   };
   int pmp_mode = 0;  // 0 allow, 2 deny A/D writebacks only
+  // The data lookup port (dl_*, read with FPGA_TIMING) mirrors MEM's
+  // access and reloads every cycle, as the core's port does while MEM
+  // waits for its translation.
+  auto mirror_dl = [&]() {
+    d->dl_va_i = d->d_va_i;
+    d->dl_write_i = d->d_write_i;
+    d->dl_exec_i = d->d_exec_i;
+    d->dl_priv_i = d->d_priv_i;
+    d->dl_virt_i = d->d_virt_i;
+    d->dl_satp_i = d->d_satp_i;
+    d->dl_sum_i = d->sum_i;
+    d->dl_mxr_i = d->mxr_i;
+    d->dl_ld_i = 1;
+    d->dl_vld_i = 1;
+  };
   auto tick = [&]() {
     // Combinational port service, then the clock edge applies
     // an A/D writeback exactly once.
     d->d_satp_i = d->satp_i;  // this TB uses one context unless noted
+    mirror_dl();
     d->clk_i = 0;
     d->walk_rdata_i = rd64(d->walk_addr_o & ~7ull);
     d->eval();
@@ -116,6 +132,11 @@ int main(int argc, char** argv) {
     d->d_va_i = va;
     d->d_write_i = write ? 1 : 0;
     d->d_priv_i = uint8_t(priv);
+#ifdef MMU_TB_DREG
+    // Registered data port: capture this access's lookup first (the
+    // core presents a new MEM access with its EX lookup).
+    tick();
+#endif
     d->d_valid_i = 1;
     int rc = 3;
     for (int i = 0; i < 120; ++i) {
@@ -305,10 +326,10 @@ int main(int argc, char** argv) {
   d->if_va_i = 0x408000ull;
   d->if_priv_i = 1;
   d->walk_grant_i = 0;
-  tick();  // walker latches the fetch request, holds in W_READ
   d->d_va_i = 0x409000ull;
   d->d_write_i = 0;
   d->d_priv_i = 1;
+  tick();  // walker latches the fetch request, holds in W_READ
   d->d_valid_i = 1;
   tick();  // data preempts the fetch walk
   d->walk_grant_i = 1;

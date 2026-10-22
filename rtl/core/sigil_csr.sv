@@ -12,7 +12,11 @@
 //   privilege of every instruction currently in flight.
 // - satp is stored here; translation itself lives in the MMU.
 `default_nettype none
-module sigil_csr (
+module sigil_csr #(
+    // FPGA timing structures (#53, sigil_cache_pkg::FPGA_TIMING):
+    // read-only check from the write intent, parallel PMP.
+    parameter bit FPGA_TIMING = 1'b0
+) (
     input  wire        clk_i,
     input  wire        rst_ni,
     // CSR read/write port (EX)
@@ -25,6 +29,11 @@ module sigil_csr (
     output logic [63:0] rmw_rdata_o,
     output logic       illegal_o,     // access faults as illegal-instr
     input  wire        wr_en_i,       // commit wdata_i at the next edge
+    // The EX op writes if it commits (CSRRW, or a nonzero source):
+    // wr_en_i without its commit conditions. Read with FPGA_TIMING.
+    /* verilator lint_off UNUSEDSIGNAL */
+    input  wire        wr_intent_i,
+    /* verilator lint_on UNUSEDSIGNAL */
     input  wire [63:0] wdata_i,
     // Privileged-instruction legality helpers (EX)
     output logic       sys_illegal_o, // mret/sret/wfi/sfence not allowed now
@@ -421,7 +430,16 @@ module sigil_csr (
   assign csr_priv_ok = (priv_rank >= addr_i[9:8]);
   // The core only asserts wr_en_i for actual writes; read-only
   // CSRs (addr[11:10]==2'b11) fault on any write attempt.
-  assign csr_write_attempt = wr_en_i;
+  // FPGA_TIMING (#53): the attempt is the static write intent, so
+  // illegal_o no longer waits for wr_en_i's commit conditions (MEM's
+  // exception/stall verdict). The two differ only while the op
+  // cannot leave EX or is flushed by an older trap; the write itself
+  // still commits on wr_en_i.
+  if (FPGA_TIMING) begin : g_wr_attempt
+    assign csr_write_attempt = wr_intent_i;
+  end else begin : g_wr_attempt_off
+    assign csr_write_attempt = wr_en_i;
+  end
   // Counter access control: mcounteren gates S and U reads of
   // the unprivileged counters (0xC00-0xC1F), scounteren gates U.
   logic counter_blocked, counter_virt;
@@ -725,9 +743,65 @@ module sigil_csr (
     return allow;
   endfunction
 
-  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
-  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
-  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
+  // Parallel form of pmp_check (FPGA_TIMING, #53), same verdict:
+  // every entry's match and permission are computed side by side
+  // and the lowest-numbered match is picked by a mask (no match
+  // below it) instead of a 16-deep priority chain. TOR takes its
+  // lower bound from entry i-1's upper compare (a >= prev is
+  // !(a < prev)), so a port needs 16 magnitude comparators instead
+  // of 32. Written as vector reductions: an accumulating loop
+  // synthesizes back into a chain.
+  /* verilator lint_off UNUSEDSIGNAL */
+  function automatic logic pmp_check_par(
+      input logic [63:0] addr,
+      input logic [1:0]  acc,
+      input logic [1:0]  priv);
+    logic [53:0] a54, enc, napot_mask;
+    logic [15:0] lt, ge_prev, hit, perm, first;
+    a54 = addr[55:2];
+    for (int i = 0; i < 16; i++) lt[i] = (a54 < pmpaddr_q[i][53:0]);
+    ge_prev[0] = 1'b1;
+    for (int i = 1; i < 16; i++) ge_prev[i] = !lt[i-1];
+    for (int i = 0; i < 16; i++) begin
+      enc = pmpaddr_q[i][53:0];
+      napot_mask = enc ^ (enc + 54'd1);
+      unique case (pmpcfg_q[i][4:3])
+        2'b00:   hit[i] = 1'b0;                                     // OFF
+        2'b01:   hit[i] = ge_prev[i] && lt[i];                      // TOR
+        2'b10:   hit[i] = (a54 == enc);                             // NA4
+        default: hit[i] = ((a54 ^ enc) & ~napot_mask) == 54'd0;     // NAPOT
+      endcase
+      if ((priv == PRIV_M) && !pmpcfg_q[i][7]) perm[i] = 1'b1;
+      else if (acc == 2'd0) perm[i] = pmpcfg_q[i][0];
+      else if (acc == 2'd1) perm[i] = pmpcfg_q[i][1];
+      else if (acc == 2'd3) perm[i] = pmpcfg_q[i][0] && pmpcfg_q[i][2];
+      else                  perm[i] = pmpcfg_q[i][2];
+    end
+    for (int i = 0; i < 16; i++) begin
+      first[i] = hit[i] && ((hit & ((16'd1 << i) - 16'd1)) == 16'd0);
+    end
+    return ((priv == PRIV_M) && (hit == 16'd0)) || |(first & perm);
+  endfunction
+  /* verilator lint_on UNUSEDSIGNAL */
+
+  if (FPGA_TIMING) begin : g_pmp_par
+    assign pmp_allow_a_o = pmp_check_par(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
+    assign pmp_allow_b_o = pmp_check_par(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
+    assign pmp_allow_c_o = pmp_check_par(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
+`ifndef SYNTHESIS
+    // Every cycle: the parallel verdict equals main's serial one.
+    always_ff @(posedge clk_i) begin
+      if ((pmp_allow_a_o != pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i)) ||
+          (pmp_allow_b_o != pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i)) ||
+          (pmp_allow_c_o != pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i)))
+        $error("sigil_csr: parallel PMP verdict differs from pmp_check");
+    end
+`endif
+  end else begin : g_pmp_par_off
+    assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
+    assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
+    assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
+  end
 
   // PMP write locking: an entry is locked by its own L bit, and
   // pmpaddr[i] is also locked when entry i+1 is a locked TOR entry

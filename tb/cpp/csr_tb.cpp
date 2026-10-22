@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
   auto rd = [&](uint16_t addr) {
     d->addr_i = addr;
     d->wr_en_i = 0;
+    d->wr_intent_i = 0;
     d->eval();
     return d->rdata_o;
   };
@@ -45,16 +46,20 @@ int main(int argc, char** argv) {
     d->addr_i = addr;
     d->wdata_i = value;
     d->wr_en_i = 1;
+    d->wr_intent_i = 1;
     tick();
     d->wr_en_i = 0;
+    d->wr_intent_i = 0;
     d->eval();
   };
   auto illegal = [&](uint16_t addr, bool write) {
     d->addr_i = addr;
     d->wr_en_i = write ? 1 : 0;
+    d->wr_intent_i = write ? 1 : 0;  // read-only check under FPGA_TIMING
     d->eval();
     const bool ill = d->illegal_o != 0;
     d->wr_en_i = 0;
+    d->wr_intent_i = 0;
     return ill;
   };
 
@@ -63,6 +68,7 @@ int main(int argc, char** argv) {
   d->addr_i = 0;
   d->wdata_i = 0;
   d->wr_en_i = 0;
+  d->wr_intent_i = 0;
   d->sys_op_i = 0;
   d->ret_en_i = 0;
   d->trap_take_i = 0;
