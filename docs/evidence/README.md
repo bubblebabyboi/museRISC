@@ -2679,3 +2679,50 @@ Results: [`docs/PERFORMANCE.md`](../PERFORMANCE.md) §12–14.
     hash, against 9,918 for plain C, 6,753 for Zknh and 4,642 for
     RVV ×16. That is 17.3x plain C, and F2 hardware gives the same
     counts.
+
+## #56 / #10: gates on the final branch, clean-worktree reproduction of the baseline (2026-10-22)
+
+[`perf-56-gates-2026-10-22.log`](perf-56-gates-2026-10-22.log), with the
+ACT results in
+[`act-core-perf-56-2026-10-22.csv`](act-core-perf-56-2026-10-22.csv). A
+completeness review of #56 and #10 on `56-perf-harness`. `rtl/` tree
+`89b98cb227c6` is the baseline's tree: main `eeaa332` plus the
+simulation-only counters, with no #53 code. The gates ran at `b441f31`
+on sigil-verify, from a fresh worktree, on 2026-10-22 from 13:45 to
+14:59Z. Tools: Verilator 5.048 (`deps/`), CI's 5.020 and the Mac's
+5.044, and riscv64-unknown-elf-gcc 16.1.0.
+
+- **Gates.**
+  - `make lint` is clean on 5.048, 5.020 and 5.044.
+  - With `SYNTHESIS` defined, every flow's preprocessed RTL is
+    byte-identical to `eeaa332`. The `+define+SYNTHESIS` lint gives the
+    same diagnostics as main: 24 `UNUSEDSIGNAL` warnings, all of them
+    main's own.
+  - `make test` passes.
+  - `make core-test`: 235 `TB PASS` lines. Every PASS line is identical
+    to a main `eeaa332` core-test on the same host, cycle counts
+    included. All 1,440 of its coverage files are byte-identical to
+    main's, so coverage is 55.00% (3491/6252) on both.
+  - riscv-tests 123/123; `srammacro` passes (fakeram45, sky130, oreg,
+    vrforeg); all 7 SDK examples pass.
+  - ACT 2,577/2,578 (Vx 821/821, Vls 1,051/1,051, Vf 162/162, scalar and
+    priv 543/544). Only the `PMPSm_cfg_A_tor_zero-00` waiver fails. All
+    2,578 verdicts and cycle counts equal
+    `act-core-w0-stack-2026-10-20.csv`.
+- **Baseline reproduced.** The baseline was rerun from a clean worktree
+  with `make -C sim perf CONFIG=<config> MEM="soc axi"` for `default`,
+  `sky130` and `fpga`, 356 region results each. Every image sha256 and
+  every counter equals `perf-baseline-56-2026-10-22`.
+- **How-to commands.** The `docs/PERFORMANCE.md` §1, §5 and §8 commands
+  work as written, with one exception. The documented quick smoke,
+  `ITER=200`, overruns the 2e8-cycle limit in `kernels`: 0 of 28 valid,
+  about 680 M cycles needed. The quick smoke is now `ITER=1`, which
+  validates all 356 results in 105 s.
+- **CoreMark at 1000 iterations.** `ITER=1000 MAX_CYCLES=1500000000`
+  validates. The `soc` cycles, 716,834,078, equal the CoreMark
+  evidence.
+- **ACT procedure.** At this riscv-arch-test pin, the ELFs had to be
+  built in a different order from `sw/act4-core/README.md`. The vector
+  sources only exist after the first `make elfs`, so the 43 listed
+  generation failures were moved aside after that build, and the build
+  was then rerun.

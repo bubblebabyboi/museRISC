@@ -541,6 +541,14 @@ against (§1, `perf_report.py --diff`).
     the same `TB PASS` lines and cycle counts as main, coverage is
     identical, and riscv-tests pass 123/123 (`perf-dhrystone-56`
     `gates.log`).
+  - The full gate set passes again on the final branch, from a clean
+    worktree: `make lint` on Verilator 5.020, 5.044 and 5.048, `make
+    test`, `make core-test` (every coverage file byte-identical to
+    main's), riscv-tests 123/123, `srammacro`, the SDK examples and ACT
+    2,577/2,578 (only the `PMPSm_cfg_A_tor_zero-00` waiver fails).
+    Rerun from that clean worktree, all three configurations reproduce
+    the baseline counter for counter
+    ([`perf-56-gates-2026-10-22.log`](evidence/perf-56-gates-2026-10-22.log)).
 - **Simulation.** `run_baseline.sh` at `8d15410` ran on sigil-verify on
   2026-10-22 from 11:20 to 11:41Z. Tools: Verilator 5.048,
   riscv64-unknown-elf-gcc 16.1.0 and Python 3.12.3.
@@ -1174,6 +1182,7 @@ CoreMark/MHz projection of about 2.02, replaced by about 1.96.
 | [`perf-baseline-56-2026-10-22`](evidence/perf-baseline-56-2026-10-22/README.md) | **The baseline (§11–12).** Main `eeaa332`, `default`/`sky130`/`fpga` × `soc`/`axi`, `REPEAT=2`, 2136/2136 valid. Includes `headline.md`, per-config `results.csv`/`report.md`, `micro_table.md` and `kernels_report.md`. |
 | [`perf-f2-56-2026-10-22`](evidence/perf-f2-56-2026-10-22/README.md) | **F2 hardware (§10, §11.3).** 46/46 runs on the public AFI at 62.5 MHz, compared region by region with the simulation. Includes the run and validation scripts. |
 | [`perf-analysis-56-2026-10-22`](evidence/perf-analysis-56-2026-10-22/README.md) | **Analysis (§12–14).** Counter-derived tables, the front-end model (source, runs, what-if table, check against the RTL), and the three analyses. |
+| [`perf-56-gates-2026-10-22.log`](evidence/perf-56-gates-2026-10-22.log) | Gates on the final branch (lint, test, core-test, riscv-tests, srammacro, examples, ACT with [`act-core-perf-56-2026-10-22.csv`](evidence/act-core-perf-56-2026-10-22.csv)), the baseline reproduced from a clean worktree, and the how-to commands of §1 run as written |
 | [`perf-suite-56-2026-10-22`](evidence/perf-suite-56-2026-10-22/README.md) | The whole suite after integration (`default`), identical to the branch sets |
 | [`perf-dhrystone-56-2026-10-22`](evidence/perf-dhrystone-56-2026-10-22/report.md) | First Dhrystone baseline, including the `oreg` configuration, and the gates run on the harness RTL |
 | [`perf-coremark-56-2026-10-22`](evidence/perf-coremark-56-2026-10-22/README.md) | CoreMark port, 1000-iteration runs for the 10 s rule, flag sweep |
