@@ -2117,3 +2117,10 @@ ECDSA and Ed25519 verify (tampered inputs rejected), OpenSBI to S-mode,
 and **Linux 6.6 to userspace**. Runs used `sigil_host --ignore-mem-err`
 (#62); UART character drops (#63) and pre-rename Linux payloads (#64)
 are tracked.
+
+## SDK examples on F2 hardware (2026-10-22)
+
+[`f2-sdk-examples-2026-10-22/SUMMARY.md`](f2-sdk-examples-2026-10-22/SUMMARY.md):
+all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
+hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
+on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.

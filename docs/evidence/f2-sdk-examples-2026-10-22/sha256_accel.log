@@ -1,0 +1,13 @@
+[sigil-run] built /tmp/sigil-run-vLue/sha256_accel/build/sha256_accel.bin (9752 bytes)
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded /tmp/sigil-run-vLue/sha256_accel/build/sha256_accel.bin: 9752 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+software SHA-256 (C and Zknh) known answers ok
+accelerator SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+accelerator == software for lengths 0..55
+SHA-256 of 55 bytes: accelerator 4374 cycles (1407 instr), sw C 13058 cycles (4896 instr), sw Zknh 11222 cycles (4341 instr)
+SIGIL TEST PASS
+[sigil_host] result: PASS (SIGIL TEST PASS) after 0.020 s, 1240110 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000003 pc 0x00000000800009ba, STATUS 0x00000062

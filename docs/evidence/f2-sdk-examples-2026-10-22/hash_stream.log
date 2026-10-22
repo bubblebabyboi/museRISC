@@ -1,0 +1,16 @@
+[sigil-run] built /tmp/sigil-run-QKZG/hash_stream/build/hash_stream.bin (9072 bytes)
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] discarded 11 UART bytes from a previous run
+[sigil_host] loaded /tmp/sigil-run-QKZG/hash_stream/build/hash_stream.bin: 9072 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+SHA-512: 9 lengths ok
+SHA3-256: 7 lengths ok
+SHA3-256("abc") = 3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532
+piecewise streaming ok
+SHAKE256 300-byte output ok
+1000 bytes: SHA-512 6288 cycles (6.28 cycles/byte), SHA3-256 5298 cycles (5.29 cycles/byte)
+SIGIL TEST PASS hash
+[sigil_host] result: PASS (SIGIL TEST PASS) after 0.004 s, 242677 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000003 pc 0x00000000800009ba, STATUS 0x00000062

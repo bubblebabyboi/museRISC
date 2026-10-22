@@ -1,0 +1,12 @@
+[sigil-run] built /tmp/sigil-run-58k2/vector_dot/build/vector_dot.bin (4776 bytes)
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded /tmp/sigil-run-58k2/vector_dot/build/vector_dot.bin: 4776 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+VLEN = 512 bits, e32/m1 holds 16 elements
+dot(1000 x int32) = -46917125580279812: vector 12577 cycles (145 instr), scalar 21030 cycles (7013 instr)
+copy 4096 bytes: vector (e8) 24791 cycles, scalar memcpy 7271 cycles
+SIGIL TEST PASS vector_dot
+[sigil_host] result: PASS (SIGIL TEST PASS) after 0.013 s, 822421 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x8000000000000003 pc 0x00000000800009ba, STATUS 0x00000062

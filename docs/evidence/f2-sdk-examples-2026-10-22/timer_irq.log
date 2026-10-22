@@ -1,0 +1,12 @@
+[sigil-run] built /tmp/sigil-run-wBpo/timer_irq/build/timer_irq.bin (4288 bytes)
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] discarded 6 UART bytes from a previous run
+[sigil_host] loaded /tmp/sigil-run-wBpo/timer_irq/build/timer_irq.bin: 4288 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+10 timer interrupts in 18351 cycles; latency: first 783 (held by MIE=0), worst of the rest 203 cycles
+SIGIL TEST PASS timer_irq
+
+[sigil_host] result: PASS (SIGIL TEST PASS) after 0.001 s, 63538 core cycles
+[sigil_host] measured core clock: 62.495 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 11, last cause 0x8000000000000003 pc 0x00000000800009ba, STATUS 0x00000052
