@@ -9,4 +9,6 @@ set cuts {
   {d_translate {{.*/mmu_d_[a-z_]+(\[[0-9]+\])?} {.*/pmp_allow_data}}}
   {tlb_lookup  {{.*/entry_match[a-z0-9_]*(\[[0-9]+\])?}
                 {.*/fetch_va[0-9]*(\[[0-9]+\])?} {.*/perm_ok[a-z0-9_]*}}}
+  {bext        {{.*/bext_result(\[[0-9]+\])?}}}
+  {csr_rw      {{.*/csr_wdata(\[[0-9]+\])?} {.*/csr_rdata(\[[0-9]+\])?}}}
 }
