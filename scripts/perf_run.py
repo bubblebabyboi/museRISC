@@ -175,7 +175,14 @@ def build(bench, variant, vcfg, iterations, out_root, prefix):
     if prefix:
         make_vars["RISCV_PREFIX"] = prefix
     cmd = ["make", "-C", bench["dir"]] + [f"{k}={v}" for k, v in make_vars.items()]
-    p = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    # The build log records the compiler command lines (cc_commands), so
+    # do not inherit `make -s` from a `make -s -C sim perf`.
+    env = dict(os.environ)
+    flags = env.get("MAKEFLAGS", "").split(" ")
+    if flags and flags[0] and not flags[0].startswith("-"):
+        flags[0] = flags[0].replace("s", "")
+        env["MAKEFLAGS"] = " ".join(flags).strip()
+    p = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
     log = os.path.join(out, "build.log")
     with open(log, "w") as f:
         f.write("$ " + shlex.join(cmd) + "\n" + p.stdout + p.stderr)
