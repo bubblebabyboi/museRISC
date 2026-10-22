@@ -93,6 +93,22 @@ Y  riscv_directed_instr_lib.py riscv_jal_instr: exclude the reserved
    nothing; "jal tp" clobbered the trap handlers' stack pointer).
 Z  riscv_loop_instr.py: loop counter and limit registers all distinct
    (SV unique {cnt, limit}); "bge t3, t3, target" looped forever.
+AA isa/riscv_compressed_instr.py: compressed FP loads/stores (c.fld,
+   c.fsd, c.fldsp, c.fsdsp, c.flw family) print FP register operands
+   and "(sp)" (integer register names: assembler "illegal operands").
+AB riscv_load_store_instr_lib.py gen_load_store_instr: the "unaligned"
+   branch was indented under the 8-byte alignment test instead of under
+   `if not cfg.enable_unaligned_load_store`, so every access that was
+   not 8-byte aligned allowed lh/sh/lw/sw/ld/sd: programs hit misaligned
+   traps, which end a riscv-dv test in the generic exception handler.
+AC riscv_asm_program_gen.py: exception dispatch as in SV (ECALL from U
+   and S as well as M, and BREAKPOINT) and an ebreak handler (a TODO in
+   pygen) that resumes after the 2- or 4-byte ebreak; the first ebreak
+   used to end riscv_ebreak_test.
+AD riscv_instr_gen_config.py ra_c: the return-address register differs
+   from the configured sp/tp registers (pygen compared with the literal
+   x2/x4, so "jal t6" could overwrite the kernel stack pointer t6 and the
+   next trap handler trapped forever).
 
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen/pygen_src/isa/riscv_b_instr.py
 --- a/pygen/pygen_src/isa/riscv_b_instr.py
@@ -136,6 +152,32 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_b_instr.py b/pygen
  
      # Coverage related functions
      def update_src_regs(self, operands):
+diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_compressed_instr.py b/pygen/pygen_src/isa/riscv_compressed_instr.py
+--- a/pygen/pygen_src/isa/riscv_compressed_instr.py
++++ b/pygen/pygen_src/isa/riscv_compressed_instr.py
+@@ -166,6 +166,22 @@
+     def convert2asm(self, prefix=""):
+         asm_str = pkg_ins.format_string(string=self.get_instr_name(),
+                                         length=pkg_ins.MAX_INSTR_STR_LEN)
++        # Sigil patch: FP operands of compressed FP loads/stores.
++        fp_ls = {riscv_instr_name_t.C_FLD: "{a} f{rd}, {imm}({rs1})",
++                 riscv_instr_name_t.C_FLW: "{a} f{rd}, {imm}({rs1})",
++                 riscv_instr_name_t.C_FSD: "{a} f{rs2}, {imm}({rs1})",
++                 riscv_instr_name_t.C_FSW: "{a} f{rs2}, {imm}({rs1})",
++                 riscv_instr_name_t.C_FLDSP: "{a} f{rd}, {imm}(sp)",
++                 riscv_instr_name_t.C_FLWSP: "{a} f{rd}, {imm}(sp)",
++                 riscv_instr_name_t.C_FSDSP: "{a} f{rs2}, {imm}(sp)",
++                 riscv_instr_name_t.C_FSWSP: "{a} f{rs2}, {imm}(sp)"}
++        if self.instr_name in fp_ls:
++            asm_str = fp_ls[self.instr_name].format(
++                a=asm_str, rd=int(self.rd), rs1=self.rs1.name, rs2=int(self.rs2),
++                imm=self.get_imm())
++            if self.comment != "":
++                asm_str = asm_str + " #" + self.comment
++            return asm_str.lower()
+         if self.category != riscv_instr_category_t.SYSTEM:
+             if self.format in [riscv_instr_format_t.CI_FORMAT, riscv_instr_format_t.CIW_FORMAT]:
+                 if self.instr_name is riscv_instr_name_t.C_NOP:
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/isa/riscv_instr.py b/pygen/pygen_src/isa/riscv_instr.py
 --- a/pygen/pygen_src/isa/riscv_instr.py
 +++ b/pygen/pygen_src/isa/riscv_instr.py
@@ -417,6 +459,55 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_asm_program_gen.py b/p
  
      # Generate the interrupt and trap handler for different privileged mode.
      # The trap handler checks the xCAUSE to determine the type of the exception and jumps to
+@@ -813,11 +837,23 @@
+         instr.extend(("csrr x{}, {} # {}".format(cfg.gpr[0], hex(epc), epc.name),
+                       "csrr x{}, {} # {}".format(cfg.gpr[0], hex(cause), cause.name),
+                       # Check if it's an ECALL exception. Jump to ECALL exception handler
+-                      # TODO ECALL_SMODE, ECALL_UMODE
++                      # Sigil patch: ECALL_UMODE/SMODE and BREAKPOINT as in SV
++                      "li x{}, {} # ECALL_UMODE".format(cfg.gpr[1],
++                                                        hex(exception_cause_t.ECALL_UMODE)),
++                      "beq x{}, x{}, {}ecall_handler".format(
++                      cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
++                      "li x{}, {} # ECALL_SMODE".format(cfg.gpr[1],
++                                                        hex(exception_cause_t.ECALL_SMODE)),
++                      "beq x{}, x{}, {}ecall_handler".format(
++                      cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
+                       "li x{}, {} # ECALL_MMODE".format(cfg.gpr[1],
+                                                         hex(exception_cause_t.ECALL_MMODE)),
+                       "beq x{}, x{}, {}ecall_handler".format(
+                       cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
++                      "li x{}, {} # BREAKPOINT".format(cfg.gpr[1],
++                                                        hex(exception_cause_t.BREAKPOINT)),
++                      "beq x{}, x{}, {}ebreak_handler".format(
++                      cfg.gpr[0], cfg.gpr[1], pkg_ins.hart_prefix(hart)),
+                       # Illegal instruction exception
+                       "li x{}, {} # ILLEGAL_INSTRUCTION".format(
+                       cfg.gpr[1], hex(exception_cause_t.ILLEGAL_INSTRUCTION)),
+@@ -890,8 +926,21 @@
+     # TODO: Support ebreak exception delegation
+     # TODO: handshake the correct Xcause CSR based on delegation privil. mode
+     def gen_ebreak_handler(self, hart):
+-        # TODO
+-        pass
++        # Sigil patch: SV gen_ebreak_handler, stepping over 2 or 4 bytes.
++        instr = []
++        g0, g1 = cfg.gpr[0], cfg.gpr[1]
++        instr.extend(("csrr  x{}, {}".format(g0, hex(privileged_reg_t.MEPC)),
++                      "lhu   x{}, 0(x{})".format(g1, g0),
++                      "andi  x{}, x{}, 3".format(g1, g1),
++                      "addi  x{}, x{}, -3".format(g1, g1),
++                      "addi  x{}, x{}, 2".format(g0, g0),
++                      "bnez  x{}, 1f".format(g1),
++                      "addi  x{}, x{}, 2".format(g0, g0),
++                      "1: csrw  {}, x{}".format(hex(privileged_reg_t.MEPC), g0)))
++        pkg_ins.pop_gpr_from_kernel_stack(privileged_reg_t.MSTATUS, privileged_reg_t.MSCRATCH,
++                                          cfg.mstatus_mprv, cfg.sp, cfg.tp, instr)
++        instr.append("mret")
++        self.gen_section(pkg_ins.get_label("ebreak_handler", hart), instr)
+ 
+     # Illegal instruction handler
+     # Note: Save the illegal instruction to MTVAL is optional in the spec, and mepc could be
 diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_callstack_gen.py b/pygen/pygen_src/riscv_callstack_gen.py
 --- a/pygen/pygen_src/riscv_callstack_gen.py
 +++ b/pygen/pygen_src/riscv_callstack_gen.py
@@ -474,6 +565,17 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_instr_gen_config.py b/
  from importlib import import_module
  from pygen_src.riscv_instr_pkg import (mtvec_mode_t, f_rounding_mode_t,
                                         riscv_reg_t, privileged_mode_t,
+@@ -378,8 +379,8 @@
+ 
+     @vsc.constraint
+     def ra_c(self):
+-        self.ra != riscv_reg_t.SP
+-        self.ra != riscv_reg_t.TP
++        self.ra != self.sp  # Sigil patch: the configured registers
++        self.ra != self.tp
+         self.ra != riscv_reg_t.ZERO
+ 
+     @vsc.constraint
 @@ -468,6 +469,10 @@
          pass
  
@@ -605,6 +707,59 @@ diff -ruN -x __pycache__ -x sigil a/pygen/pygen_src/riscv_load_store_instr_lib.p
              if not cfg.enable_unaligned_load_store:
                  if (self.addr[i] & 1) == 0:
                      allowed_instr.extend(
+@@ -177,32 +191,32 @@
+                                     (riscv_instr_group_t.RV32DC in rcs.supported_isa)):
+                                 allowed_instr.extend(
+                                     [riscv_instr_name_t.C_FLD, riscv_instr_name_t.C_FSD])
+-                else:  # unalligned load/store
+-                    allowed_instr.extend([riscv_instr_name_t.LW, riscv_instr_name_t.SW,
+-                                          riscv_instr_name_t.LH, riscv_instr_name_t.LHU,
+-                                          riscv_instr_name_t.SH])
+-                    # Compressed load/store still needs to be alligned
+-                    if (self.offset[i] in range(128) and (self.offset[i] % 4 == 0) and
+-                        (riscv_instr_group_t.RV32C in rcs.supported_isa) and
++            else:  # unalligned load/store (Sigil patch: dedented, see AB)
++                allowed_instr.extend([riscv_instr_name_t.LW, riscv_instr_name_t.SW,
++                                      riscv_instr_name_t.LH, riscv_instr_name_t.LHU,
++                                      riscv_instr_name_t.SH])
++                # Compressed load/store still needs to be alligned
++                if (self.offset[i] in range(128) and (self.offset[i] % 4 == 0) and
++                    (riscv_instr_group_t.RV32C in rcs.supported_isa) and
++                        enable_compressed_load_store):
++                    if self.rs1_reg == riscv_reg_t.SP:
++                        allowed_instr.extend(
++                            [riscv_instr_name_t.C_LWSP, riscv_instr_name_t.C_SWSP])
++                    else:
++                        allowed_instr.extend(
++                            [riscv_instr_name_t.C_LW, riscv_instr_name_t.C_SW])
++                if rcs.XLEN >= 64:
++                    allowed_instr.extend(
++                        [riscv_instr_name_t.LWU, riscv_instr_name_t.LD, riscv_instr_name_t.SD])
++                    if (self.offset[i] in range(256) and (self.offset[i] % 8 == 0) and
++                        (riscv_instr_group_t.RV64C in rcs.supported_isa) and
+                             enable_compressed_load_store):
+                         if self.rs1_reg == riscv_reg_t.SP:
+                             allowed_instr.extend(
+                                 [riscv_instr_name_t.C_LWSP, riscv_instr_name_t.C_SWSP])
+                         else:
+                             allowed_instr.extend(
+-                                [riscv_instr_name_t.C_LW, riscv_instr_name_t.C_SW])
+-                    if rcs.XLEN >= 64:
+-                        allowed_instr.extend(
+-                            [riscv_instr_name_t.LWU, riscv_instr_name_t.LD, riscv_instr_name_t.SD])
+-                        if (self.offset[i] in range(256) and (self.offset[i] % 8 == 0) and
+-                            (riscv_instr_group_t.RV64C in rcs.supported_isa) and
+-                                enable_compressed_load_store):
+-                            if self.rs1_reg == riscv_reg_t.SP:
+-                                allowed_instr.extend(
+-                                    [riscv_instr_name_t.C_LWSP, riscv_instr_name_t.C_SWSP])
+-                            else:
+-                                allowed_instr.extend(
+-                                    [riscv_instr_name_t.C_LD, riscv_instr_name_t.C_SD])
++                                [riscv_instr_name_t.C_LD, riscv_instr_name_t.C_SD])
+             instr = riscv_instr.get_load_store_instr(allowed_instr)
+             instr.has_rs1 = 0
+             instr.has_imm = 0
 @@ -285,8 +299,8 @@
          offset_ = vsc.rand_int32_t()
          self.offset = [0] * self.num_load_store
