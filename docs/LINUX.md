@@ -150,9 +150,12 @@ HBM), the test finisher and RTC (epic #73, phase 1–2) and a
 `sigil_host` that can bulk-load the disk image into the pmem window
 (PCIS offset `0x0C_0000_0000`) and save it back after power-off.
 
-> **Status:** written against the contract; the commands and measured
-> numbers are filled in by the F2 integration run (see
-> `docs/evidence/README.md`, "Debian on Sigil").
+> **Status (2026-10-22):** first F2 attempt on AFI `agfi-0a1fd54ef68bdc754`:
+> the disk loads in 2.4 s, Linux reaches `/sbin/init` 8.2 s after release
+> with all 64 + 16 GiB, systemd starts, but the kernel oopses 35–130 s
+> into userspace because of a core MMU walker race (found and fixed on the
+> RTL side; see `docs/evidence/linux-debian-73-2026-10-22/f2-oops-ab.txt`).
+> The login prompt, check results and boot times come with the next AFI.
 
 The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 
@@ -331,7 +334,8 @@ saving, or the copy may hold a dirty, unjournaled state.
 
 | | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | F2 estimate (62.5 MHz) |
 |---|---:|---:|---:|
-| reset → login prompt | 21 s | 42 s | **≈ 9 min** |
+| reset → `/sbin/init` (kernel) | 2 s | 2.1 s | **8.2 s measured** (64 + 16 GiB) |
+| reset → login prompt | 21 s | 42 s | ≈ 9 min (estimate) |
 | `gcc -O2 hello.c` | < 1 s | 4.9 s | ≈ 1 min |
 | `python3 -c 'print(42)'` | < 1 s | 1.0 s | ≈ 15 s |
 

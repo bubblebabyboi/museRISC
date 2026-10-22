@@ -1,0 +1,233 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded small.ext4: 1677721600 bytes at 0x98000000 (PCIS 0x18000000) in 0.465 s = 3.61 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded fw_jump.bin: 277840 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 3.72 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded Image: 15470592 bytes at 0x80200000 (PCIS 0x200000) in 0.004 s = 3.61 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded sigil-f2-lowpa.dtb: 6748 bytes at 0x83000000 (PCIS 0x3000000) in 0.000 s = 7.07 GB/s, head/tail verified in 0.000 s
+[sigil_host] console: Ctrl-] detaches
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 0 s
+
+OpenSBI v1.9
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name               : Sigil RV64 SoC on AWS F2 (VU47P)
+Platform Features           : medeleg
+Platform HART Count         : 1
+Platform HART Protection    : pmp
+Platform IPI Device         : aclint-mswi
+Platform Timer Device       : aclint-mtimer @ 62500000Hz
+Platform Console Device     : uart8250
+Platform HSM Device         : ---
+Platform PMU Device         : ---
+Platform Reboot Device      : syscon-reboot
+Platform Shutdown Device    : syscon-poweroff
+Platform Suspend Device     : ---
+Platform CPPC Device        : ---
+Firmware Base               : 0x80000000
+Firmware Size               : 321 KB
+Firmware RW Offset          : 0x40000
+Firmware RW Size            : 65 KB
+Firmware Heap Offset        : 0x47000
+Firmware Heap Size          : 37 KB (total), 0 KB (reserved), 13 KB (used), 23 KB (free)
+Firmware Scratch Size       : 4096 B (total), 504 B (used), 3592 B (free)
+Runtime SBI Version         : 3.0
+Standard SBI Extensions     : time,rfnc,ipi,base,hsm,srst,pmu,dbcn,fwft,legacy,dbtr,sse
+Experimental SBI Extensions : none
+
+Domain0 Name                : root
+Domain0 Boot HART           : 0
+Domain0 HARTs               : 0x0*
+Domain0 Region00            : 0x0000000080040000-0x000000008005ffff M: (F,R,W) S/U: ()
+Domain0 Region01            : 0x0000000080000000-0x000000008003ffff M: (F,R,X) S/U: ()
+Domain0 Region02            : 0x0000000000100000-0x0000000000100fff M: (I,R,W) S/U: (R,W)
+Domain0 Region03            : 0x0000000010000000-0x0000000010000fff M: (I,R,W) S/U: (R,W)
+Domain0 Region04            : 0x0000000002000000-0x000000000200ffff M: (I,R,W) S/U: ()
+Domain0 Region05            : 0x000000000c000000-0x000000000fffffff M: (I,R,W) S/U: (R,W)
+Domain0 Region06            : 0x0000000000000000-0xffffffffffffffff M: () S/U: (R,W,X)
+Domain0 Next Address        : 0x0000000080200000
+Domain0 Next Arg1           : 0x0000000083000000
+Domain0 Next Mode           : S-mode
+Domain0 SysReset            : yes
+Domain0 SysSuspend          : yes
+
+Boot HART ID                : 0
+Boot HART Domain            : root
+Boot HART Priv Version      : v1.12
+Boot HART Base ISA          : rv64imafdcbvh
+Boot HART ISA Extensions    : zicntr,sdtrig,f,d
+Boot HART PMP Count         : 16
+Boot HART PMP Granularity   : 2 bits
+Boot HART PMP Address Bits  : 54
+Boot HART MHPM Info         : 0 (0x00000000)
+Boot HART Debug Triggers    : 1 triggers
+Boot HART MIDELEG           : 0x0000000000000666
+Boot HART MEDELEG           : 0x0000000000f0b509
+[    0.000000] Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #1 SMP Thu Oct 22 07:20:18 UTC 2026
+[    0.000000] Machine model: Sigil RV64 SoC on AWS F2 (VU47P)
+[    0.000000] SBI specification v3.0 detected
+[    0.000000] SBI implementation ID=0x1 Version=0x10009
+[    0.000000] SBI TIME extension detected
+[    0.000000] SBI IPI extension detected
+[    0.000000] SBI RFENCE extension detected
+[    0.000000] SBI SRST extension detected
+[    0.000000] SBI DBCN extension detected
+[    0.000000] earlycon: sbi0 at I/O port 0x0 (options '')
+[    0.000000] printk: legacy bootconsole [sbi0] enabled
+[    0.000000] Disabled 4-level and 5-level paging
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x0000000080000000..0x000000008003ffff (256 KiB) nomap non-reusable mmode_resv1@80000000
+[    0.000000] OF: reserved mem: 0x0000000080040000..0x000000008005ffff (128 KiB) nomap non-reusable mmode_resv0@80040000
+[    0.000000] NODE_DATA(0) allocated [mem 0x97ff8200-0x97ff957f]
+[    0.000000] Zone ranges:
+[    0.000000]   DMA32    [mem 0x0000000080000000-0x0000000097ffffff]
+[    0.000000]   Normal   empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080000000-0x000000008005ffff]
+[    0.000000]   node   0: [mem 0x0000000080060000-0x0000000097ffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080000000-0x0000000097ffffff]
+[    0.000000] SBI HSM extension detected
+[    0.000000] riscv: base ISA extensions acdfhim
+[    0.000000] riscv: ELF capabilities acdfim
+[    0.000000] percpu: Embedded 21 pages/cpu s45528 r8192 d32296 u86016
+[    0.000000] Kernel command line: console=ttyS0,115200 earlycon=sbi root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl
+[    0.000000] Dentry cache hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 98304
+[    0.000000] Policy zone: DMA32
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=1.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] RCU Tasks Trace: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] riscv-intc: 64 local interrupts mapped
+[    0.000000] riscv: providing IPIs using SBI IPI extension
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.000000] clocksource: riscv_clocksource: mask: 0xffffffffffffffff max_cycles: 0x1cd42e208c, max_idle_ns: 881590405314 ns
+[    0.000033] sched_clock: 64 bits at 63MHz, resolution 16ns, wraps every 4398046511096ns
+[    0.006697] Calibrating delay loop (skipped), value calculated using timer frequency.. 125.00 BogoMIPS (lpj=625000)
+[    0.007982] pid_max: default: 32768 minimum: 301
+[    0.012297] LSM: initializing lsm=capability
+[    0.019054] Mount-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+[    0.020414] Mountpoint-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+[    0.125226] ASID allocator using 16 bits (65536 entries)
+[    0.132770] rcu: Hierarchical SRCU implementation.
+[    0.133520] rcu: 	Max phase no-delay instances is 1000.
+[    0.159197] EFI services will not be available.
+[    0.166348] smp: Bringing up secondary CPUs ...
+[    0.167291] smp: Brought up 1 node, 1 CPU
+[    0.173085] Memory: 351288K/393216K available (6012K kernel code, 4724K rwdata, 2048K rodata, 2191K init, 383K bss, 40204K reserved, 0K cma-reserved)
+[    0.193507] devtmpfs: initialized
+[    0.253962] futex hash table entries: 256 (order: 2, 16384 bytes, linear)
+[    0.266512] DMI not present or invalid.
+[    0.309419] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.323557] DMA: preallocated 128 KiB GFP_KERNEL pool for atomic allocations
+[    0.325271] DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.508789] cpu0: Ratio of byte access time to unaligned word access is 0.01, unaligned accesses are slow
+[    0.597834] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.598697] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.690356] clocksource: Switched to clocksource riscv_clocksource
+[    0.767598] NET: Registered PF_INET protocol family
+[    0.778063] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.860724] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.862192] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.863558] TCP established hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.867212] TCP bind hash table entries: 4096 (order: 5, 131072 bytes, linear)
+[    0.874464] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.878235] UDP hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    0.879896] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    0.885968] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.889813] kvm [1]: hypervisor extension available
+[    0.891239] kvm [1]: using Sv39x4 G-stage page table format
+[    0.891996] kvm [1]: VMID 14 bits available
+[    0.953272] workingset: timestamp_bits=44 max_order=17 bucket_order=0
+[    0.971287] fuse: init (API version 7.41)
+[    0.985542] NET: Registered PF_ALG protocol family
+[    0.993724] io scheduler mq-deadline registered
+[    0.994523] io scheduler kyber registered
+[    0.996171] io scheduler bfq registered
+[    1.008701] riscv-plic: interrupt-controller@c000000: mapped 32 interrupts with 1 handlers for 2 contexts.
+[    1.034275] Serial: 8250/16550 driver, 1 ports, IRQ sharing disabled
+[    1.065880] printk: legacy console [ttyS0] disabled
+[    1.082721] 10000000.serial: ttyS0 at MMIO 0x10000000 (irq = 12, base_baud = 115200) is a 16550A
+[    1.084352] printk: legacy console [ttyS0] enabled
+[    1.084352] printk: legacy console [ttyS0] enabled
+[    1.085615] printk: legacy bootconsole [sbi0] disabled
+[    1.085615] printk: legacy bootconsole [sbi0] disabled
+[    1.112346] loop: module loaded
+[    1.148741] tun: Universal TUN/TAP device driver, 1.6
+[    1.173299] nd_pmem namespace0.0: unable to guarantee persistence of writes
+[    1.227755] goldfish_rtc 101000.rtc: registered as rtc0
+[    1.229138] goldfish_rtc 101000.rtc: setting system clock to 2026-10-22T10:47:18 UTC (1792666038)
+[    1.242099] riscv-pmu-sbi: SBI PMU extension is available
+[    1.243570] riscv-pmu-sbi: 16 firmware and 2 hardware counters
+[    1.244462] riscv-pmu-sbi: Perf sampling/filtering is not supported as sscof extension is not available
+[    1.261877] NET: Registered PF_INET6 protocol family
+[    1.303553] Segment Routing with IPv6
+[    1.307627] In-situ OAM (IOAM) with IPv6
+[    1.311014] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    1.333327] NET: Registered PF_PACKET protocol family
+[    1.335464] Key type dns_resolver registered
+[    1.925607] Demotion targets for Node 0: null
+[    1.943299] clk: Disabling unused clocks
+[    2.028321] EXT4-fs (pmem0): mounted filesystem c85885cf-db40-4762-a107-7c9f48b5cbff ro with ordered data mode. Quota mode: disabled.
+[    2.031133] VFS: Mounted root (ext4 filesystem) readonly on device 259:0.
+[    2.035002] devtmpfs: mounted
+[    2.111482] Freeing unused kernel image (initmem) memory: 2188K
+[    2.113578] Run /sbin/init as init process
+[    6.125229] systemd[1]: systemd 257.13-1~deb13u1 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF -XKBCOMMON -UTMP +SYSVINIT +LIBARCHIVE)
+[    6.127970] systemd[1]: Detected architecture riscv64.
+
+Welcome to Debian GNU/Linux 13 (trixie)!
+
+[    6.232743] systemd[1]: Initializing machine ID from random generator.
+[    6.238629] systemd[1]: Installed transient /etc/machine-id file.
+[   31.337139] systemd[1]: bpf-restrict-fs: BPF LSM hook not enabled in the kernel, BPF LSM not supported.
+[   35.325025] Unable to handle kernel paging request at virtual address ffffffd601f21b60
+[   35.325980] Oops [#1]
+[   35.326546] Modules linked in:
+[   35.327290] CPU: 0 UID: 0 PID: 46 Comm: systemd-ssh-gen Not tainted 6.12.114-sigil #1
+[   35.328303] Hardware name: Sigil RV64 SoC on AWS F2 (VU47P) (DT)
+[   35.329002] epc : anon_vma_clone+0x62/0x196
+[   35.330102]  ra : anon_vma_clone+0x5a/0x196
+[   35.331088] epc : ffffffff8019c608 ra : ffffffff8019c600 sp : ffffffc6001bbac0
+[   35.331997]  gp : ffffffff80ec0a18 tp : ffffffd601e2af00 t0 : ffffffff80c003c8
+[   35.332890]  t1 : ffffffd602992c40 t2 : ffffffd601f14a00 s0 : ffffffc6001bbb40
+[   35.333780]  s1 : ffffffd602992c00 a0 : ffffffd602992c00 a1 : 0000000000000d6c
+[   35.334671]  a2 : 0000000000000040 a3 : ffffffff8019c600 a4 : 0000000000000000
+[   35.335535]  a5 : 0000000000000000 a6 : 0000000000000002 a7 : 0000000000000d6d
+[   35.336378]  s2 : ffffffd601f14a00 s3 : 0000000000000000 s4 : ffffffd601f20200
+[   35.337262]  s5 : ffffffd601f14a58 s6 : 0000000000002800 s7 : ffffffff80ec1d18
+[   35.338138]  s8 : ffffffd601e0a918 s9 : ffffffd601e0a8c0 s10: 0000000000000001
+[   35.339012]  s11: ffffffd601f21b60 t3 : ffffffc6001bbd70 t4 : 0000000000000002
+[   35.339884]  t5 : 0000000000000001 t6 : 0000000000000003
+[   35.340587] status: 0000000200000120 badaddr: ffffffd601f21b60 cause: 000000000000000d
+[   35.341500] [<ffffffff8019c608>] anon_vma_clone+0x62/0x196
+[   35.342646] [<ffffffff801a5678>] __split_vma+0x100/0x290
+[   35.343843] [<ffffffff801a5cc2>] vma_modify+0x29c/0x514
+[   35.345025] [<ffffffff801a6c3e>] vma_modify_flags+0x7a/0x98
+[   35.346218] [<ffffffff801953c4>] mprotect_fixup+0x6e/0x1fe
+[   35.347245] [<ffffffff801956dc>] do_mprotect_pkey.constprop.0+0x188/0x2bc
+[   35.348360] [<ffffffff80195824>] __riscv_sys_mprotect+0x14/0x24
+[   35.349418] [<ffffffff805d83c2>] do_trap_ecall_u+0x72/0x196
+[   35.350474] [<ffffffff805e0f82>] handle_exception+0x142/0x14e
+[   35.352090] Code: 4d05 b503 000b 85da b0ef 0691 84aa c971 3d83 008a (b703) 000d 
+[   35.353787] ---[ end trace 0000000000000000 ]---
+[  121.721831] systemd[1]: Failed to fork off sandboxing environment for executing generators: Protocol error
+[!!!!!!] Failed to start up manager.
+[  121.793891] systemd[1]: Freezing execution.

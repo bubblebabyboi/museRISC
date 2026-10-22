@@ -1,0 +1,2 @@
+/include/ "lowpa.dts"
+/ { chosen { bootargs = "console=ttyS0,115200 earlycon=sbi root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl transparent_hugepage=never"; }; };

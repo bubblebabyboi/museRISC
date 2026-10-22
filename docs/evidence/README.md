@@ -2245,3 +2245,39 @@ Proposed for `LINUX_PLATFORM.md`: RTC = PLIC source 11; DTB at
 and reboot via SBI SRST with the D$ write-back; optional host-written
 `/chosen/rng-seed`; later: Svnapot/Svadu in the ISA string (`misa`
 reports V although the unit is Zve64d — harmless, Linux uses the DT).
+
+### First Debian boot on a real F2 (2026-10-22, AFI `agfi-0a1fd54ef68bdc754`): kernel oops, MMU race
+
+Run log and A/B table: [`linux-debian-73-2026-10-22/f2-oops-ab.txt`](linux-debian-73-2026-10-22/f2-oops-ab.txt);
+console logs, experiment DTBs and inputs in [`f2-boot/`](linux-debian-73-2026-10-22/f2-boot/).
+The published artifacts above, booted exactly per `docs/LINUX.md` §4 on
+the platform AFI (`f2.6xlarge`, core 62.5 MHz):
+
+- **Worked:** 8 GiB disk loaded in 2.38 s (3.61 GB/s); OpenSBI → Linux
+  6.12 with both NUMA nodes (48 GiB DDR4 node 0, 16 GiB HBM node 1),
+  `/dev/pmem0` mounted, `Run /sbin/init` at **8.2 s** after release
+  (64 GiB of memory init included), systemd 257 up at 12.2 s,
+  `Queued start job for default target` at 73.5 s.
+- **Failed:** kernel oopses from 35–130 s into systemd startup in every
+  Debian run — "Unable to handle kernel paging request" at valid
+  linear-map addresses (anon_vma_clone, folio_lruvec_lock) and garbage
+  pointers `0xcccccccccccccccc` (filemap_fault). No login prompt.
+- **Bisection (13 runs):** still fails with no HBM, 2 GiB DDR4, every
+  address below 4 GiB (384 MiB RAM + 1.6 GiB pmem at `0x9800_0000`), quiet
+  console, a DT ISA of plain rv64imafdc, no jump labels/BPF, ASIDs
+  disabled, `transparent_hugepage=never`. Passes: `memstress` (anonymous
+  memory, FENCE.I, fork/COW, AMO/LR-SC; 0 bad in 651 s), and no oops in
+  minutes of `execstress` (busybox fork/exec) or `pmemstress` (ext4 on
+  pmem + dynamic exec from the Debian disk) — stress kernels from
+  `scripts/build_stress_kernels.sh`.
+- **Cause (RTL hunt, branches `73-oops-mmu` / `73-oops-sim-repro`):** an
+  MMU walker race — a data-TLB miss preempting an in-flight fetch walk
+  takes the fetch walk's outstanding PTE response as its own first PTE —
+  needs code-page-crossing ITLB misses plus DDR-like latency; Debian's
+  dynamically linked userland provides both. The Debian boot is re-run on
+  the AFI with the fix.
+- Platform notes for a later issue: SIGINT'd `sigil_host` runs left the
+  SoC running; the following runs' consoles lost bytes until the AFI was
+  reloaded; OpenSBI restarted by itself after some oopses.
+- F2 time: OS agent 2.15 h (09:26–11:35 UTC); instance
+  `i-0172708b8206bb63d` terminated 11:35 UTC.
