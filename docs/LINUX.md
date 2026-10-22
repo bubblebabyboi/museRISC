@@ -371,6 +371,7 @@ shows where the time goes.
 | `sw/linux/kernel/sigil.config`, `sigil_defconfig` | kernel configuration (fragment and full defconfig) |
 | `sw/linux/dts/sigil.dtsi` + `sigil-{f2,qemu,sim}.dts` | device trees, one source |
 | `sw/linux/sigil.dts` | historic name, = `sigil-sim.dts` (Verilator gate) |
+| `sw/linux/opensbi/*.patch` | applied to OpenSBI v1.9 by `build_opensbi.sh` (D$ write-back before a system reset) |
 | `sw/linux/debian/overlay/` | files the image adds to Debian (fstab, issue, motd, systemd tuning, boot marker, helpers) |
 | `sw/linux/debian/examples/` | `~/examples` in the image |
 | `sw/linux/init.c`, `boot_stub.S` | initramfs `/init` (`SIGIL_LINUX_BOOT_OK`) and the simulator boot stub |
