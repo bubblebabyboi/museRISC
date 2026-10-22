@@ -4,9 +4,11 @@
 #   vivado -mode batch -source fpga/f0/f0_ooc.tcl -tclargs <out_dir> [period_ns] [DEFINE ...]
 # Extra DEFINEs are passed to synthesis (e.g. SIGIL_VRF_OREG, #53).
 # F0_STRATEGY (environment, #53) picks the flow:
-#   base (default) - clock defined after synthesis, default directives;
-#   iter           - timing-driven synthesis (clock read before
-#                    synth_design, PerformanceOptimized), base implementation;
+#   iter (default) - timing-driven synthesis (clock read before
+#                    synth_design, PerformanceOptimized), default
+#                    implementation directives;
+#   base           - the flow of the #51/#53 baselines up to 2026-10-22:
+#                    clock defined after synthesis, default directives;
 #   closure        - iter synthesis, then ExploreWithRemap / ExtraTimingOpt
 #                    (0.5 ns setup uncertainty while placing) /
 #                    AggressiveExplore phys_opt and route, post-route
@@ -18,7 +20,7 @@ set period [expr {[llength $argv] > 1 ? [lindex $argv 1] : 10.0}]
 set defines [concat SYNTHESIS [lrange $argv 2 end]]
 # Part of the F2 Small Shell, aws-fpga HDK v2.3.5 (shell 0x10212415).
 set part   xcvu47p-fsvh2892-2-e
-set strategy [expr {[info exists ::env(F0_STRATEGY)] ? $::env(F0_STRATEGY) : "base"}]
+set strategy [expr {[info exists ::env(F0_STRATEGY)] ? $::env(F0_STRATEGY) : "iter"}]
 if {$strategy ni {base iter closure}} { error "F0_STRATEGY must be base, iter or closure" }
 file mkdir $out
 set_param general.maxThreads 8
