@@ -5,9 +5,12 @@
 #                     memory, FENCE.I, fork/COW, AMO + LR/SC, 6 processes)
 #   Image-execstress  sw/linux/stress/execstress.sh + Debian's static
 #                     busybox (6 parallel fork/exec loops)
-# Outputs: build/linux/stress/{Image-memstress,Image-execstress,SHA256SUMS}.
-# Boot them like Image-initramfs (OpenSBI fw_jump + any sigil-*.dtb); they
-# need no disk. Run scripts/build_linux_kernel.sh first (source + config).
+#   Image-pmemstress  sw/linux/stress/pmemstress.sh + busybox: mounts the
+#                     Debian disk (/dev/pmem0) read-only, checksums files
+#                     and execs Debian binaries from it (needs the disk)
+# Outputs: build/linux/stress/{Image-memstress,Image-execstress,Image-pmemstress,SHA256SUMS}.
+# Boot them like Image-initramfs (OpenSBI fw_jump + any sigil-*.dtb);
+# only pmemstress needs the disk image in the pmem window. Run scripts/build_linux_kernel.sh first (source + config).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 KVER=6.12.114
@@ -53,4 +56,5 @@ LIST
 }
 build Image-memstress "$OUT/initramfs/memstress" ""
 build Image-execstress "$PWD/sw/linux/stress/execstress.sh" "file /bin/busybox $BB 0755 0 0"
-( cd "$OUT" && sha256sum Image-memstress Image-execstress > SHA256SUMS && cat SHA256SUMS )
+build Image-pmemstress "$PWD/sw/linux/stress/pmemstress.sh" "file /bin/busybox $BB 0755 0 0"
+( cd "$OUT" && sha256sum Image-memstress Image-execstress Image-pmemstress > SHA256SUMS && cat SHA256SUMS )
