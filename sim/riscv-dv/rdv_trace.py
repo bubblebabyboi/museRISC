@@ -28,7 +28,11 @@ Comparison rules (first divergence wins):
   logged by both or neither. fcsr/vcsr writes are split into their
   fields first (Spike logs the fields), and an sstatus write is checked
   against the mstatus value Spike logs for it;
-- vector registers: compared where both sides logged the register;
+- vector registers: compared where both sides logged the register; a
+  register only one side logged must already hold that value on the
+  other side (its last logged value, 0 at reset): a write that leaves
+  the register unchanged, e.g. a mask compare with every element
+  masked off, may be logged by one side only;
 - traps: cause, epc and tval;
 - the reference is cut after the first store to ``tohost`` (HTIF exit)
   and the DUT trace must reach that same record.
@@ -336,10 +340,31 @@ def _diff(ref, dut):
     return d
 
 
+def _vreg_one_sided(ref, dut, last_ref_v, last_dut_v):
+    """Vector registers logged by one side only: the other side's
+    register (last logged value, 0 at reset) must already hold the
+    logged value."""
+    d = []
+    for r in sorted(set(ref.v) - set(dut.v)):
+        if last_dut_v.get(r, 0) != ref.v[r]:
+            d.append("v%d: ref wrote 0x%x, dut logged no write (dut v%d 0x%x)" % (
+                r, ref.v[r], r, last_dut_v.get(r, 0)))
+    for r in sorted(set(dut.v) - set(ref.v)):
+        if last_ref_v.get(r, 0) != dut.v[r]:
+            d.append("v%d: dut wrote 0x%x, ref logged no write (ref v%d 0x%x)" % (
+                r, dut.v[r], r, last_ref_v.get(r, 0)))
+    return d
+
+
 def compare(ref, dut, context=4):
     """Returns (ok, first_divergence_one_line, detail_lines)."""
+    last_ref_v, last_dut_v = {}, {}
     for i in range(min(len(ref), len(dut))):
         diffs = _diff(ref[i], dut[i])
+        if not diffs and ref[i].kind == "I":
+            diffs = _vreg_one_sided(ref[i], dut[i], last_ref_v, last_dut_v)
+        last_ref_v.update(ref[i].v)
+        last_dut_v.update(dut[i].v)
         if diffs:
             detail = ["first divergence at record %d (spike log line %d, dut trace line %d)"
                       % (i, ref[i].src, dut[i].src)]
