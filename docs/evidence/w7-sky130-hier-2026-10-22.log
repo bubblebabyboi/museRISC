@@ -320,6 +320,42 @@ die").
   17:05:41Z; results in ~/sb/build/{results,logs,reports}/sky130hd/
   sigil_hier_sigil_crypto_top/{w34,w34p}.
 
+  w34 / w34p up to detailed routing (17:05-17:19Z):
+                       w34 (3400 x 780)     w34p (+1 site padding)
+    placement          17:06-17:11Z         17:06-17:11Z
+    GPL target density 0.527 -> 0.577       0.689 -> 0.723
+                       (timing-driven)
+    utilization        43.9 % after DPL     44.1 %
+    CTS setup / hold   +11.88 / +0.37 ns    +11.83 / +0.38 ns
+    GRT stage          6.6 min, 0 overflow  5.5 min, 0 overflow
+      met1/2/3/4       70.1 / 61.6 / 44.8 / 72.4 / 62.8 / 52.0 /
+                       28.8 %               29.7 %
+                       (v3: 81.2 / 67.5 / 68.7 / 37.6 %)
+      wirelength       9.40 m               9.91 m
+      antenna repair   1,407 -> 0 nets      1,555 -> 28 nets
+                       (3,386 diodes)       (5,150 diodes)
+    after GRT setup /  +11.62 / +0.39 ns    +9.77 / +0.40 ns
+      hold WS
+  The padding (w34p) costs 5 % wire and more antenna diodes and did
+  not route faster (below).
+  Detailed routing, first pass (8 threads at the low CPU weight next to
+  the two 16-thread CPU block routes), violations per iteration:
+    w34   224,918 / 157,175 / 145,682 / 28,672 / 5,472 / 1,686 / 919 /
+          582 / 376 / 226 / 51 / 17 / 1 / 1 / 0 (iteration 14), 7,236 s
+          (iterations 0-3 22-27 min each, then 1-8 min)
+    w34p  240,629 / 158,476 / 148,430 / 30,877 / 7,208 / 2,808 /
+          1,091 / 659 / 368 / 209 / 70 / 24 / 15 / 15 / 0 (iteration
+          14), 7,448 s
+  So the 3400 um slot routes clean in one 2 h pass where the 2770 um
+  slot (v3, 53 % utilization) is still at 1,295 violations after 20
+  iterations and 7 h (v3 iterations 14-19: 2,696 / 2,464 / 2,216 /
+  2,461 / 1,564 / 1,295, 26-32 min each).
+  Post-route antenna check (ORFS repair loop, up to
+  MAX_REPAIR_ANTENNAS_ITER_DRT passes): w34 400 violations -> 648
+  diodes inserted, w34p 434 -> 878; each then re-runs detailed routing
+  incrementally (w34: 67,822 / 30,070 at iterations 0-1, 6.5 and 4 min;
+  w34p: 86,457 at iteration 0), in progress at 19:40Z.
+
 == CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
   Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
   above, 16 threads each, snapshot 2db5230aa893.
