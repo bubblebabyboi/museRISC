@@ -1,0 +1,57 @@
+Sigil Debian on F2: kernel-oops A/B runs (epic #73, 2026-10-22)
+=================================================================
+AFI agfi-0a1fd54ef68bdc754 (afi-035809e576d7ea8d5), f2.6xlarge i-0172708b8206bb63d,
+core 62.5 MHz, sigil_host from 73-f2-memory-platform d7697ad. OS artifacts:
+sigil-fpga-build:~/os-artifacts/ (SHA256SUMS). Logs: F2 /mnt/nvme/os73/<log>,
+copied to docs/evidence/linux-debian-73-2026-10-22/f2-boot/ at the end.
+Times are kernel uptime (printk). "low-PA" = sigil-f2-lowpa.dtb: 384 MiB RAM
+at 0x8000_0000 + 1.6 GiB pmem at 0x9800_0000 (shrunk copy of the image,
+small.ext4), everything below 4 GiB, no HBM.
+
+Signature seen in every failing run (35-130 s into systemd startup):
+ (a) "Unable to handle kernel paging request" at a VALID linear-map address
+     (e.g. ffffffd601dd3548 = PA 0x81DD_3548 inside 384 MiB of RAM), epc
+     anon_vma_clone+0x62 (fork) or folio_lruvec_lock_irqsave+0x42;
+ (b) garbage pointers 0xcccccccccccccccc (badaddr cccccccccccccd1c) in
+     filemap_fault+0x2c / filemap_map_pages+0x58.
+SLUB red-zoning is off (no SLUB_DEBUG_ON / slub_debug=, no KFENCE).
+
+#  time(UTC) config                                       result                          log
+-- --------- -------------------------------------------- ------------------------------- ---------------------------
+1  09:29     full map (48 GiB DDR4 n0 + 16 GiB HBM n1),    OOPS t=89.5 s (mount: filemap_  f2-boot1-oops.log
+             8 GiB disk @0xC_8000_0000, sigil-f2.dtb,      fault, 0xcccc); #4 at 107.8 s
+             --console (check script)                      folio_lruvec_lock; stall
+2  09:43     no HBM node (48 GiB DDR4), disk high          OOPS t=89.4 s folio_lruvec_lock exp-nohbm.host
+3  09:47     2 GiB DDR4 (<4 GiB), disk still high          OOPS t=132.3 s folio_lruvec_lock exp-ddr2g.host
+4  09:51     2 GiB + quiet loglevel=1, no status output    OOPS t=77 s, then RCU stall     exp-ddr2g-quiet.host
+5  10:02     2 GiB + DT ISA rv64imafdc only (no B/Zk/      OOPS t=101.7 s                  exp-minisa.host
+             Zve/H used by the kernel)                     folio_lruvec_lock
+6  10:33     memstress initramfs, full map (fresh AFI      PASS: 0 bad, 1 proc 109.5 s,    exp-memstress3.log
+             load): anon memory + FENCE.I + fork/COW +     6 procs 651.5 s
+             AMO/LR-SC, 1 then 6 processes
+7  10:47     low-PA (everything < 4 GiB)                   OOPS t=35.3 s anon_vma_clone    exp-lowpa.log
+                                                           @ffffffd601f21b60 (valid)
+8  10:51     low-PA + kernel without JUMP_LABEL and        OOPS t=85.6 s anon_vma_clone    exp-nobpfjl.log
+             without BPF_SYSCALL/CGROUP_BPF                @ffffffd601dd3548 (valid)
+9  10:58     execstress v1 (busybox fork/exec, no disk),   no oops in 13 min; not          exp-execstress-v1.log
+             low-PA DTB                                    finished (v1 had no progress
+                                                           output); stopped for A/B
+10 11:12     low-PA + ASID allocator disabled              OOPS t=116.6 s anon_vma_clone   exp-noasid.log
+             (context.c: use_asid_allocator never on;      @ffffffd602997958 (valid), then
+             kernel prints "ASID allocator disabled")      filemap_fault
+11 11:14     low-PA + transparent_hugepage=never           (running)                       exp-nothp.log
+
+Platform side notes (for a platform issue, not fixed here):
+- UART garbling after interrupted runs. Sequence: run 1 (sigil_host --console
+  under pexpect) was stopped with SIGINT (sudo pkill -INT sigil_host); runs
+  2-5 were started with --no-markers --timeout N (no --console, stdin
+  /dev/null) and each previous sigil_host was SIGINT'd before the next
+  started. From run 3 on, the console output lost many bytes ("[ 0.798996]
+  IPortr_h hatable en, 14 bs" for "IP idents hash table entries"), also in
+  the following --console runs (memstress, run "memstress2"), already in the
+  OpenSBI banner. After fpga-clear-local-image + fpga-load-local-image (and
+  the automatic DDR4 scrub) the console was byte-exact again (runs 6-11).
+- Self restarts: within single sigil_host runs (exp-nohbm.host,
+  exp-ddr2g.host, exp-minisa.host) the OpenSBI banner appears again after the
+  kernel oopsed, i.e. the SoC restarted from the boot ROM without a host
+  reload (--on-reboot exit was given; no "finisher: reboot" message).
