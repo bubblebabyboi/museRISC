@@ -2388,3 +2388,35 @@ each SRAM-macro build. riscv-tests pass 123/123. `soc_rtl_tb` boots Linux
 6.12 (`Image-initramfs`) to `SIGIL_LINUX_BOOT_OK` at 261,247,447 cycles,
 the same count as the release gate, so the race did not occur in that
 boot.
+
+## #73 Linux oops: root cause, F2 signature analysis and full gates (2026-10-22, branch `73-oops-fix`)
+
+[`linux-oops-fix-73-2026-10-22/`](linux-oops-fix-73-2026-10-22/README.md)
+covers the Debian oopses on the F2.
+
+**Root cause.** A data-TLB miss preempts an instruction-fetch walk, and the
+data walk takes that walk's PTE response as its own root PTE. The fetch walk
+reads kernel-text root entry 510, so the data walk indexes the kernel's PMD
+table with a linear-map VA[29:21]. That gives both F2 signatures. All 13
+valid-address faults in the F2 logs have VA[29:21] of 12 or more, which are
+invalid entries ("Unable to handle kernel paging request" at a valid
+address). VA[29:21] 3 and 4 map the freed `__init` region, which is poisoned
+with `0xcc`, so the next dependent load faults at `cccccccccccccd1c`. Every
+oops PC is the second of two dependent loads.
+
+**Before/after.** The 13 walker race tests under the checkers pass 0/39 on
+`5458d16` (30 stale walker responses) and 39/39 on the fix.
+
+**Gates at `31a1568`:**
+- lint is clean on Verilator 5.048, 5.020 and 5.044;
+- `make test` passes;
+- `core-test`: 293 TB PASS, 0 fail;
+- riscv-tests: 123/123;
+- full ACT: 2577/2578 (only the PA0 waiver fails; Vx/Vls/Vf all pass);
+- `socrtl sochash examples fpgatop-quick fpgatop-f2-quick fpgaocl-quick srammacro` pass;
+- the Linux 6.12 boot on `soc_rtl_tb` reaches `SIGIL_LINUX_BOOT_OK` with a console byte-identical to the release gate's.
+
+**Linux stress under the checkers** (ptwstress v2, execstress): 0
+`stale-walk-rsp`. The unpatched runs also report 0 at identical cycle
+counts, so simulated Linux never reaches the race. The F2 boot with an AFI
+built from this branch is still to come.
