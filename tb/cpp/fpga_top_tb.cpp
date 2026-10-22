@@ -8,6 +8,7 @@
 //
 // Usage: fpga_top_tb [max_cycles] --load 0xADDR=FILE [--load ...]
 //          [--boot 0xADDR] [--no-cache] [--exit-string TEXT]
+//          [--fail-string TEXT]
 //          [--tohost 0xADDR] [--uart-log FILE] [--uart-in FILE]
 //          [--uart-pop PCT] [--rerun N] [--reset-mid N] [--trace-traps]
 //          [--axi-lat A:B] [--axi-gap N] [--axi-ready PCT]
@@ -27,7 +28,9 @@
 //     byte (default 50).
 // Every cycle: cycle_count_o must advance by one, mem_err_o and
 // uart_tx_overflow_o must stay low.
-// Exit status: 0 pass, 1 fail (tohost != 1, harness check), 2
+//   --fail-string: UART text that ends the run as a failure (after
+//     the rest of that line, at most 1M cycles).
+// Exit status: 0 pass, 1 fail (tohost != 1, fail string, harness check), 2
 // timeout/usage, 4 AXI protocol violation.
 #include "Vsigil_fpga_top.h"
 #include "verilated.h"
@@ -74,7 +77,7 @@ int main(int argc, char** argv) {
   std::vector<std::pair<uint64_t, const char*>> loads;
   const char* uart_log_path = nullptr;
   const char* uart_in_path = nullptr;
-  std::string exit_string;
+  std::string exit_string, fail_string;
   bool trace_traps = false, cache_en = true;
   int uart_pop_pct = 50, reruns = 0;
   uint64_t reset_mid = 0;
@@ -108,6 +111,8 @@ int main(int argc, char** argv) {
       reruns = std::atoi(argv[++i]);
     } else if (std::strcmp(argv[i], "--exit-string") == 0 && need(i)) {
       exit_string = argv[++i];
+    } else if (std::strcmp(argv[i], "--fail-string") == 0 && need(i)) {
+      fail_string = argv[++i];
     } else if (std::strcmp(argv[i], "--trace-traps") == 0) {
       trace_traps = true;
     } else if (argv[i][0] == '+') {
@@ -211,8 +216,14 @@ int main(int argc, char** argv) {
   int run_idx = 0;
   std::string uart_out;
   int rc = 2;
-  uint64_t cycle = 0;
+  uint64_t cycle = 0, fail_at = 0;
   for (; cycle < max_cycles; ++cycle) {
+    if (fail_at != 0 && cycle - fail_at > 1000000) {
+      std::fprintf(stderr, "\nFPGA TOP TB FAIL: fail string at %llu cycles after release\n",
+                   U(fail_at - run_start));
+      rc = 1;
+      break;
+    }
     // Host side of the control interface (inputs for this cycle).
     if (phase == HOLD && phase_cycles >= 64 && dut->soc_in_reset_o) {
       // Images are loaded (backdoor, as the host's DMA/PCIe writes
@@ -279,6 +290,17 @@ int main(int argc, char** argv) {
       if (tohost_result == 0) {
         std::fprintf(stderr, "\nFPGA TOP TB FAIL: tohost = 0x%llx (test %llu)\n",
                      U(tohost_val), U(tohost_val >> 1));
+        rc = 1;
+        break;
+      }
+      if (pop && fail_at == 0 && !fail_string.empty() &&
+          uart_out.find(fail_string) != std::string::npos) {
+        fail_at = cycle;
+      }
+      if (pop && fail_at != 0 && tx_byte == '\n') {
+        std::fflush(stdout);
+        std::fprintf(stderr, "\nFPGA TOP TB FAIL: fail string at %llu cycles after release\n",
+                     U(fail_at - run_start));
         rc = 1;
         break;
       }

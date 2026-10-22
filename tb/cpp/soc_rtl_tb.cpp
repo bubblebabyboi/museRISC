@@ -11,10 +11,13 @@
 // Usage: soc_rtl_tb [max_cycles] --boot 0xADDR
 //          --load 0xADDR=FILE [--load ...]
 //          [--uart-log FILE] [--uart-in FILE]
-//          [--exit-string TEXT] [--trace-traps] [--no-cache]
+//          [--exit-string TEXT] [--fail-string TEXT]
+//          [--trace-traps] [--no-cache]
 //          [--mem-lat A:B] [--mem-gap N] [--mem-ready PCT]
 //          [--mem-seed S]
-// Exit status: 0 exit string seen, 2 timeout/usage error.
+// Exit status: 0 exit string seen, 1 fail string seen (the run
+// continues to the end of that UART line, at most 1M cycles, so the
+// reason is printed), 2 timeout/usage error.
 // With no --exit-string, success is a trap-free run to
 // max_cycles is NOT assumed: timeout (2) is returned.
 #include "Vsigil_soc_top.h"
@@ -56,7 +59,7 @@ int main(int argc, char** argv) {
   std::vector<std::pair<uint64_t, const char*>> loads;
   const char* uart_log_path = nullptr;
   const char* uart_in_path = nullptr;
-  std::string exit_string;
+  std::string exit_string, fail_string;
   bool trace_traps = false;
   bool cache_en = true;
   MbusConfig bus_cfg;
@@ -81,6 +84,8 @@ int main(int argc, char** argv) {
       uart_in_path = argv[++i];
     } else if (std::strcmp(argv[i], "--exit-string") == 0 && need(i)) {
       exit_string = argv[++i];
+    } else if (std::strcmp(argv[i], "--fail-string") == 0 && need(i)) {
+      fail_string = argv[++i];
     } else if (std::strcmp(argv[i], "--trace-traps") == 0) {
       trace_traps = true;
     } else if (argv[i][0] == '+') {
@@ -165,7 +170,9 @@ int main(int argc, char** argv) {
 
   std::string uart_out;
   uint64_t rx_pace = 0;
+  uint64_t fail_at = 0;  // cycle the fail string was seen (0 = not yet)
   for (uint64_t cycle = 0; cycle < max_cycles; ++cycle) {
+    if (fail_at != 0 && cycle - fail_at > 1000000) break;
     // Push at most one RX byte every 8 cycles via the
     // parallel byte port (serial RX is exercised by the
     // UART unit behaviour, not this platform harness).
@@ -223,10 +230,26 @@ int main(int argc, char** argv) {
         dut->final();
         return 0;
       }
+      if (fail_at == 0 && !fail_string.empty() &&
+          uart_out.find(fail_string) != std::string::npos) {
+        fail_at = cycle + 1;
+      }
+      if (fail_at != 0 && tx_byte == '\n') {
+        std::fprintf(stderr, "\nSOC RTL TB FAIL (fail string at %llu cycles)\n",
+                     static_cast<unsigned long long>(fail_at));
+        dut->final();
+        return 1;
+      }
       if (uart_out.size() > (1u << 20)) {
         uart_out.erase(0, uart_out.size() - 1024);
       }
     }
+  }
+  if (fail_at != 0) {
+    std::fprintf(stderr, "\nSOC RTL TB FAIL (fail string at %llu cycles)\n",
+                 static_cast<unsigned long long>(fail_at));
+    dut->final();
+    return 1;
   }
   std::fprintf(stderr, "\nSOC RTL TB TIMEOUT after %llu cycles\n",
                static_cast<unsigned long long>(max_cycles));

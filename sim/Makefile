@@ -67,8 +67,9 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
-        fpgaocl-quick fpgaocl
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick coverage
+        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick \
+     examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
 # Caches on, seeded random bus latency/gaps/backpressure.
@@ -444,6 +445,46 @@ sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
 	  --load 0x80000000=$(abspath $(SOCFW))/hash_soc_test.bin \
 	  --exit-string "SOC HASH PASS"
 
+## ---- SDK example programs (sw/examples, sw/sdk) -----------------------
+# Each example is self-checking and ends with "SIGIL TEST PASS <name>"
+# or "SIGIL TEST FAIL <name>: ..." (docs/PROGRAMMING.md). `examples`
+# builds every one through its own Makefile (sw/sdk/sdk.mk, output in
+# build/examples/<name>/) and runs it on soc_rtl_tb (default SoC
+# build, caches on, randomized memory latency) to its PASS line; a FAIL
+# line, a trap or EXAMPLE_MAX_CYCLES without PASS fails the target.
+# Independent per-example targets, so `make -j` runs them in parallel.
+# Logs: build/examples/<name>.log.
+EXAMPLES     := hello timer_irq sha256_accel hash_stream ed25519_verify vector_dot fp_math
+EXDIR        := $(abspath $(ROOT)/build/examples)
+EXAMPLE_MAX_CYCLES ?= 60000000
+EXAMPLES_ARGS ?= $(CORE_RAND_ARGS)
+
+# Always delegate to the example's Makefile (it knows its sources and
+# rebuilds only when something changed).
+.PHONY: $(addprefix example-bin-,$(EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
+        $(addprefix fpgatop-example-,$(EXAMPLES))
+$(addprefix example-bin-,$(EXAMPLES)): example-bin-%: | $(EXDIR)
+	@$(MAKE) --no-print-directory -s -C $(ROOT)/sw/examples/$* OUT=$(EXDIR)/$* \
+	  RISCV_PREFIX=$(RISCV_PREFIX) > $(EXDIR)/$*.build.log 2>&1 || \
+	  { cat $(EXDIR)/$*.build.log; exit 1; }
+$(EXDIR):
+	mkdir -p $@
+examples-bins: $(addprefix example-bin-,$(EXAMPLES))
+
+$(addprefix example-,$(EXAMPLES)): example-%: example-bin-% $(BUILD)/soc_rtl_tb
+	@start=$$(date +%s); \
+	if $(BUILD)/soc_rtl_tb $(EXAMPLE_MAX_CYCLES) $(EXAMPLES_ARGS) \
+	    --load 0x80000000=$(EXDIR)/$*/$*.bin \
+	    --exit-string "SIGIL TEST PASS $*" --fail-string "SIGIL TEST FAIL" \
+	    > $(EXDIR)/$*.log 2>&1; then \
+	  echo "EXAMPLE PASS $* ($$(grep -o 'at [0-9]* cycles' $(EXDIR)/$*.log), $$(( $$(date +%s) - start )) s)"; \
+	else \
+	  tail -30 $(EXDIR)/$*.log; echo "EXAMPLE FAIL $* (log: $(EXDIR)/$*.log)"; exit 1; \
+	fi
+
+examples: $(addprefix example-,$(EXAMPLES))
+	@echo "ALL $(words $(EXAMPLES)) EXAMPLES PASS on soc_rtl_tb"
+
 ## ---- FPGA SoC top + mbus->AXI4 bridge (issue #52) ---------------------
 FPGADIR    := $(ROOT)/rtl/fpga
 BRIDGE_RTL := $(FPGADIR)/sigil_mbus_axi4.sv
@@ -501,7 +542,10 @@ FPGA_FW := $(addprefix $(SOCFW)/,fpga_smoke_test.bin hash_soc_test.bin \
 # full runs with a SoC reset between them) and sochash through the
 # FPGA top. fpgatop adds both crypto images (64-bit AXI) and
 # crypto_soc_test on 512-bit AXI (~4 min in all; the crypto images
-# run ~28M cycles each). fpgatop-rvtests / fpgatop-hello are separate.
+# run ~28M cycles each) and every SDK example (fpgatop-examples, ~45 s).
+# fpgatop-rvtests / fpgatop-hello are separate. `all` (core-test) runs
+# the SDK examples on soc_rtl_tb (~35 s) and hello + timer_irq through
+# the FPGA top (a few seconds).
 fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	cd $(BUILD) && for tb in fpga_top_tb fpga_top_tb_w512; do \
 	  ./$$tb 50000000 $(FPGA_AXI_ARGS) --reset-mid 3000000 --rerun 1 \
@@ -511,7 +555,23 @@ fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	done
 	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
-fpgatop: fpgatop-quick
+# SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
+# the same binaries and pass/fail strings as `examples`.
+FPGATOP_EXAMPLES ?= $(EXAMPLES)
+$(addprefix fpgatop-example-,$(EXAMPLES)): fpgatop-example-%: example-bin-% $(BUILD)/fpga_top_tb
+	@start=$$(date +%s); \
+	if $(BUILD)/fpga_top_tb $(EXAMPLE_MAX_CYCLES) $(FPGA_AXI_ARGS) \
+	    --load 0x80000000=$(EXDIR)/$*/$*.bin \
+	    --exit-string "SIGIL TEST PASS $*" --fail-string "SIGIL TEST FAIL" \
+	    > $(EXDIR)/$*.fpgatop.log 2>&1; then \
+	  echo "FPGATOP EXAMPLE PASS $* ($$(grep -o 'at [0-9]* cycles' $(EXDIR)/$*.fpgatop.log), $$(( $$(date +%s) - start )) s)"; \
+	else \
+	  tail -30 $(EXDIR)/$*.fpgatop.log; echo "FPGATOP EXAMPLE FAIL $* (log: $(EXDIR)/$*.fpgatop.log)"; exit 1; \
+	fi
+fpgatop-examples: $(addprefix fpgatop-example-,$(FPGATOP_EXAMPLES))
+	@echo "ALL $(words $(FPGATOP_EXAMPLES)) EXAMPLES PASS on fpga_top_tb"
+
+fpgatop: fpgatop-quick fpgatop-examples
 	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
 	  ./fpga_top_tb 400000000 $(FPGA_AXI_ARGS) \
 	    --load 0x80000000=$(SOCFW)/$$fw.bin --exit-string "SOC CRYPTO PASS" || exit 1; \
