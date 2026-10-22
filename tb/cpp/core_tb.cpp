@@ -13,7 +13,11 @@
 // - ELF64 (riscv-tests, ACT): PT_LOAD segments are placed
 //   at their physical addresses, boot PC = entry point, and the
 //   run ends on the HTIF convention: a write to `tohost` of 1 =
-//   pass, (n << 1) | 1 = failing subtest n.
+//   pass, (n << 1) | 1 = failing subtest n. With CORE_TB_HTIF_CONSOLE
+//   set, HTIF console writes (tohost low word = character, then high
+//   word 0x0101_0000: device 1, cmd 1, as the ACT signature-mode
+//   ELFs built with sail_macros.h print) are echoed as "HTIF: <line>"
+//   and cleared, and the halt decision waits for the high-word store.
 //
 // Stores are observed at the core's data port (dbg_st_*), so
 // test exit and HTIF work even though tohost is cacheable and a
@@ -40,6 +44,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -130,6 +135,9 @@ int main(int argc, char** argv) {
   long expect_trap = -1;
   long irq_timer_after = -1;
   bool trace = std::getenv("CORE_TB_TRACE") != nullptr;
+  const bool htif_console = std::getenv("CORE_TB_HTIF_CONSOLE") != nullptr;
+  bool tohost_lo_pending = false;  // console mode: low word stored
+  std::string htif_line;
   bool cache_en = true;
   MbusConfig bus_cfg;
   for (int i = 2; i < argc; ++i) {
@@ -374,9 +382,25 @@ int main(int argc, char** argv) {
           arch.Wb(base + uint64_t(i), static_cast<uint8_t>(wdata >> (8 * i)));
         }
       }
-      if (elf_mode && (base >> 12) == (tohost_addr >> 12)) {
+      if (elf_mode && htif_console && base == tohost_addr && (be & 0xF0) == 0) {
+        tohost_lo_pending = true;  // decide when the high word lands
+      } else if (elf_mode && htif_console && tohost_lo_pending &&
+                 (base >> 12) == (tohost_addr >> 12) && base != tohost_addr) {
+        // another store in the tohost page between the two halves
+      } else if (elf_mode && (base >> 12) == (tohost_addr >> 12)) {
+        tohost_lo_pending = false;
         const uint64_t th = arch.R64(tohost_addr);
-        if (th != 0) {
+        if (htif_console && (th >> 48) == 0x0101) {
+          const char ch = static_cast<char>(th & 0xFF);
+          if (ch == '\n') {
+            std::printf("HTIF: %s\n", htif_line.c_str());
+            htif_line.clear();
+          } else {
+            htif_line.push_back(ch);
+          }
+          for (int i = 0; i < 8; ++i) arch.Wb(tohost_addr + uint64_t(i), 0);
+        } else if (th != 0) {
+          if (!htif_line.empty()) std::printf("HTIF: %s\n", htif_line.c_str());
           if (th == 1) {
             std::printf("CORE TB PASS %s (htif, %llu cycles)\n", prog_path,
                         static_cast<unsigned long long>(cycle + 1));
