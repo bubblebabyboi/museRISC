@@ -1600,6 +1600,24 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   a_irsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
       irsp_valid_i |-> ifq_pend_q)
     else $error("core: fetch response with no request");
+  // The walker takes only the response to its own request: when a
+  // response reaches it (walk_rsp) it still presents the PTE
+  // address and kind it issued. A walk that takes the read of a
+  // walk it replaced (issue #73) fails here.
+  /* verilator coverage_off */
+  logic [63:0] chk_walk_addr_q;
+  logic        chk_walk_we_q;
+  always_ff @(posedge clk_i) begin
+    if (walk_issue && dreq_ready_i) begin
+      chk_walk_addr_q <= walk_addr;
+      chk_walk_we_q <= walk_we;
+    end
+  end
+  /* verilator coverage_on */
+  a_walk_rsp: assert property (@(posedge clk_i) disable iff (!chk_live_q)
+      walk_rsp |-> ((walk_addr == chk_walk_addr_q) &&
+                    (walk_we == chk_walk_we_q)))
+    else $error("core: walker took the response to another walk's request");
 `endif
 
   logic [63:0] mem_rdata;  // (load_shifted is forward-declared)
