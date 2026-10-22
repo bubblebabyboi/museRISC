@@ -47,3 +47,25 @@ sigil 31a15689bec847a51357d4dcacc361a4986b548a recipe_b=B1 recipe_hbm=H0 aws-fpg
 7455:AWS FPGA: (15:55:30): Finished building design checkpoints for customer design cl_sigil
 7462:AWS FPGA: 2026-10-22 15:55:36 - Build completes
 7465:AWS FPGA: Build Time = 1:16:19.425624. 
+# --- after the build ---
+# Post-route: "SUCCESS: Design has no negative slack path" (post_route.dcp, not
+# .VIOLATED); WNS +0.095 ns (core clk_out2_clk_mmcm_b, 16 ns), WHS +0.010 ns.
+# Upload (tarball sha256 checked again after download from S3):
+#   aws s3 cp 2026_10_22-143914.Developer_CL.tar s3://sigil-fpga-afi-891612553438/dcp/
+#   sha256 9dd83d291f2bea57026f3eb1d623c89260273fb0c051be318ecbba449a30d246
+# AFI (afi.json), created 2026-10-22 16:00:33 UTC, state available 16:23:14 UTC:
+#   aws ec2 create-fpga-image --region us-east-1
+#     --name sigil-linux-platform-oopsfix-2026_10_22-143914
+#     --input-storage-location Bucket=sigil-fpga-afi-891612553438,Key=dcp/2026_10_22-143914.Developer_CL.tar
+#     --logs-storage-location Bucket=sigil-fpga-afi-891612553438,Key=logs/
+#   -> afi-059766f9a85c6d39a / agfi-0c8aa56fde1a48495, shell 0x10212415,
+#      PCI 0x1d0f:0xf054 (subsystem 0x5160:0x1d0f)
+# Public load permission NOT yet granted (still private): owner to run
+#   aws ec2 modify-fpga-image-attribute --region us-east-1 --fpga-image-id afi-059766f9a85c6d39a
+#     --operation-type add --user-groups all --attribute loadPermission
+# Attempt 1 (tag 2026_10_22-135457, same source) failed in opt_design ("Failed to
+# generate and synthesize debug IP xilinx.com:ip:ddr4_phy:2.2"): the instance's root
+# file system was filled to 0 bytes free by other jobs at 14:27:54 UTC (syslog "No
+# space left on device"). opt_design re-run on its post_link DCP passed at 8 and 16
+# threads (same checksum). Attempt 2 (this AFI) ran in /dev/shm and was copied to
+# ~/oopsfix-afi/build-143914/ on sigil-fpga-build (checkpoints, reports, logs).
