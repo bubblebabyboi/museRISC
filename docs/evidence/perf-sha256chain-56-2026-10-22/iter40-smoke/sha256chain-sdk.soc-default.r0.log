@@ -1,0 +1,23 @@
+$ /home/ubuntu/wt/56-perf-sha256chain/build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/scratch-sha256chain/iter40/bin/sha256chain-sdk/sha256chain.bin --exit-string 'SIGIL TEST PASS sha256chain' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-sha256chain/iter40/runs/sha256chain-sdk.soc-default.r0.perf
+loaded 27096 bytes at 0x80000000 from /home/ubuntu/scratch-sha256chain/iter40/bin/sha256chain-sdk/sha256chain.bin
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=396928 instret=145126
+RESULT sha256 plain C: 40 hash, 396928 cycles, 145126 instret, cycles/hash 9923.20, bytes/cycle 0.0032, hash/s at 62.5 MHz 6298, at 100 MHz 10077
+SIGIL PERF region=1 cycles=270336 instret=106727
+RESULT sha256 Zknh: 40 hash, 270336 cycles, 106727 instret, cycles/hash 6758.40, bytes/cycle 0.0047, hash/s at 62.5 MHz 9248, at 100 MHz 14796
+SIGIL PERF region=2 cycles=200647 instret=10534
+RESULT sha256 RVV x16: 40 hash, 200647 cycles, 10534 instret, cycles/hash 5016.18, bytes/cycle 0.0064, hash/s at 62.5 MHz 12460, at 100 MHz 19936
+SIGIL PERF region=3 cycles=22939 instret=6378
+RESULT sha256 accel sigil_sha256_block: 40 hash, 22939 cycles, 6378 instret, cycles/hash 573.48, bytes/cycle 0.0558, hash/s at 62.5 MHz 108985, at 100 MHz 174376
+SIGIL PERF region=4 cycles=111828 instret=40222
+RESULT sha256 accel sigil_sha256: 40 hash, 111828 cycles, 40222 instret, cycles/hash 2795.70, bytes/cycle 0.0114, hash/s at 62.5 MHz 22356, at 100 MHz 35769
+SIGIL PERF region=5 cycles=99021 instret=39550
+RESULT sha512 accel sigil_hash: 40 hash, 99021 cycles, 39550 instret, cycles/hash 2475.53, bytes/cycle 0.0259, hash/s at 62.5 MHz 25247, at 100 MHz 40395
+SIGIL PERF region=6 cycles=54888 instret=21709
+RESULT sha3-256 accel sigil_hash: 40 hash, 54888 cycles, 21709 instret, cycles/hash 1372.20, bytes/cycle 0.0233, hash/s at 62.5 MHz 45547, at 100 MHz 72876
+sha256 chain h_40 = eaf8f605fec7dbb3a28eb431938f288b1ea086aeb3e6a02b938ca7453fdb93e4
+SHA256CHAIN CHECK OK hashes=40
+SIGIL TEST PASS sha256chain
+SOC RTL TB PASS (exit string at 2205632 cycles)

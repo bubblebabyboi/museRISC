@@ -2385,3 +2385,73 @@ What the calibration shows:
     quotes 1,025 cycles for `vle8` at vl=512; this run measures 1,536
     MEM cycles in the SoC with the D$.
   - `vsetvli` costs an ALU op, whether vtype changes or not.
+
+## #56 / #10: SHA-256 hash chain and 64 KiB bulk hashing (2026-10-22)
+
+[`perf-sha256chain-56-2026-10-22/`](perf-sha256chain-56-2026-10-22/report.md)
+holds:
+- `report.md`, `results.csv` and `results.json`;
+- `runs/`: the UART log and `SIGIL_PERF` records of all 8 simulations;
+- `perf-run.log`, the harness console output with the determinism
+  check;
+- the build logs;
+- the generated `hashlib` known-answer headers;
+- `iter40-smoke/`;
+- `unaligned-c7bd3b7/` with `diff-unaligned-c7bd3b7-vs-aligned.md`.
+
+The benchmarks are described in
+[`sw/bench/sha256chain/README.md`](../../sw/bench/sha256chain/README.md).
+
+- **Design.** The `rtl/` tree is `89b98cb`, identical to harness
+  `534f846`: main `eeaa332` plus the simulation-only counters. No #53
+  changes are included.
+- **Benchmarks.** Commit `2b8e1ae` (branch `56-perf-sha256chain`).
+- **Run.** `make -C sim perf BENCHES="sha256chain sha256chain_bulk"
+  CONFIG=default MEM="soc axi" REPEAT=2 JOBS=4` on sigil-verify.
+  - Results written 2026-10-22T09:55:45Z.
+  - Tools: Verilator 5.048, riscv64-unknown-elf-gcc 16.1.0 and Python
+    3.12.3 `hashlib`.
+  - Flags: `sdk.mk` with the SDK default `-march`, plus
+    `-falign-functions=64`.
+- **Validation.** All 48 region records are valid.
+  - Before the regions, every implementation passed the FIPS 180-4 /
+    FIPS 202 known answers.
+  - After each region, every result matched `hashlib`, including all 16
+    RVV lanes.
+  - The harness cross-checks passed, and both repeats are identical.
+  - At `ITER=40` (soc, not a result), the runs also validate, including
+    the RVV remainder step at vl = 8.
+
+SHA-256 chain, 1024 hashes per region. Cycles/hash on soc: axi is
+within 0.02%. Hashes/s is the clock divided by cycles/hash. RVV ×16 is
+aggregate throughput over 16 independent chains.
+
+| Implementation | cycles/hash | hashes/s @62.5 MHz | hashes/s @100 MHz |
+|---|---:|---:|---:|
+| plain C | 9,918.2 | 6,302 | 10,082 |
+| C + Zknh | 6,753.2 | 9,255 | 14,808 |
+| RVV ×16 | 4,642.0 | 13,464 | 21,542 |
+| accelerator, `sigil_sha256_block` | 572.1 | 109,248 | 174,797 |
+| accelerator, `sigil_sha256` | 2,793.1 | 22,376 | 35,802 |
+| accelerator SHA-512 chain (64 B), `sigil_hash` | 2,472.2 | 25,281 | 40,450 |
+| accelerator SHA3-256 chain, `sigil_hash` | 1,370.1 | 45,616 | 72,986 |
+
+Bulk hashing of 64 KiB, in bytes/cycle, soc / axi:
+- SHA-256 plain C: 0.0065 / 0.0065;
+- SHA-256 Zknh: 0.0095 / 0.0095;
+- SHA-256 RVV ×16 (16 × 4 KiB segments): 0.0131 / 0.0130;
+- accelerator SHA-512: 0.2388 / 0.2205;
+- accelerator SHA3-256: 0.2398 / 0.2215.
+
+In MB/s, multiply by the clock in MHz. For example, accelerator SHA-512
+on soc gives 14.9 MB/s at 62.5 MHz and 23.9 MB/s at 100 MHz. There is no
+SHA-256 accelerator bulk row, because its engine has no chaining.
+
+Code alignment matters. Without `-falign-functions=64` (same
+instructions, `unaligned-c7bd3b7/`), these chains took more cycles:
+- SHA-512: 43% more (3,609,723 against 2,531,505);
+- SHA3-256: 37% more;
+- Zknh: 6.8% more.
+
+The extra cycles are fetch latency and 32-bit instructions straddling a
+fetch word.
