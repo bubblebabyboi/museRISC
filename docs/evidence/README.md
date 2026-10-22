@@ -2548,3 +2548,22 @@ walker response dropped on preempt/abandon, Svadu A/D write-back lock),
   stamp file is there (`journalctl --list-boots` shows both boots), power
   off.
 - F2 time: 0.78 h (16:34–17:21 UTC), instance terminated.
+
+## #73 Linux release branch: final gates at `1d72210` (2026-10-22)
+
+[`linux-release-73-final-gates-2026-10-22.log`](linux-release-73-final-gates-2026-10-22.log)
+(`73-linux-release` at `1d72210`, which includes the walker-race fix #74 and
+the F2 Debian results; fresh clone on `sigil-fpga-build`, at most 8 jobs):
+lint is clean on Verilator 5.048, CI's 5.020 and 5.044. `make test` passes.
+`make core-test` gives 293 TB PASS and 0 fail, with each walker race test
+passing in rand, nocache, xinit1 and xinit3. riscv-tests pass **123/123**.
+`socrtl`, `sochash`, `examples` (7/7), `fpgatop-quick`, `fpgatop-f2-quick`
+and `fpgaocl-quick` pass with the release gate's cycle counts. The walker
+race checker targets pass: `oops-ptw-preempt` 9/9 and `oops-ptw-walker`
+**39/39** with 0 stale walker responses and 0 PTWINV violations, and their
+result lines are identical to the fix branch's. The OS artifacts match the
+branch's `SHA256SUMS` (12/12). `soc_rtl_tb` boots Linux 6.12 to
+`SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** with a console
+byte-identical to the earlier gates and no oops. Full ACT was not rerun:
+`rtl/` (tree `c8bafdb2`), `tb/`, `sim/` and the ACT scripts are identical to
+`31a15689`, where full ACT gave 2,577/2,578 (only the PA0 waiver fails).
