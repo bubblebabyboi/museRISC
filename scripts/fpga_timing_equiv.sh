@@ -5,14 +5,15 @@
 # is proven equivalent to the REF (default origin/main) version with
 # Yosys: equiv_make, equiv_struct, equiv_simple, equiv_induct.
 # SystemVerilog is converted with sv2v (SV2V=/path/to/sv2v).
-#   scripts/fpga_timing_equiv.sh [module ...]   (default: sigil_csr sigil_mmu)
-# Logs: build/fpga_timing_equiv/<module>/eq.log. sigil_mmu takes ~45 min.
+#   scripts/fpga_timing_equiv.sh [module ...]   (default: sigil_csr sigil_mmu sigil_dcache sigil_icache)
+# Logs: build/fpga_timing_equiv/<module>/eq.log. sigil_mmu takes ~45 min;
+# sigil_dcache / sigil_icache read sigil_cache_pkg from the same side.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SV2V=${SV2V:-sv2v}
 REF=${REF:-origin/main}
 mods=("$@")
-[ ${#mods[@]} -gt 0 ] || mods=(sigil_csr sigil_mmu)
+[ ${#mods[@]} -gt 0 ] || mods=(sigil_csr sigil_mmu sigil_dcache sigil_icache)
 # Ports only this branch has, read only with FPGA_TIMING: internal wires
 # (undriven, unused) for the proof.
 declare -A extra_ports=([sigil_csr]="wr_intent_i"
@@ -23,11 +24,26 @@ for mod in "${mods[@]}"; do
   rm -rf "$d"; mkdir -p "$d"
   git show "$REF:rtl/core/$mod.sv" > "$d/gold.sv"
   cp "rtl/core/$mod.sv" "$d/gate.sv"
-  "$SV2V" -DSYNTHESIS "$d/gold.sv" > "$d/gold.v"
-  "$SV2V" -DSYNTHESIS "$d/gate.sv" > "$d/gate.v"
+  # Modules that import sigil_cache_pkg (the caches) read it from the
+  # same side, with SIGIL_FPGA_TIMING undefined; their (unchanged)
+  # sigil_sram_sp arrays are black boxes, so the proof covers every
+  # array port.
+  gold_pkg=(); gate_pkg=(); lib=""
+  if grep -q "sigil_cache_pkg" "$d/gate.sv"; then
+    git show "$REF:rtl/core/sigil_cache_pkg.sv" > "$d/gold_pkg.sv"
+    cp rtl/core/sigil_cache_pkg.sv "$d/gate_pkg.sv"
+    gold_pkg=("$d/gold_pkg.sv"); gate_pkg=("$d/gate_pkg.sv")
+  fi
+  if grep -q "sigil_sram_sp" "$d/gate.sv"; then
+    "$SV2V" -DSYNTHESIS rtl/core/sigil_cache_pkg.sv rtl/core/sigil_sram_sp.sv > "$d/sram.v"
+    lib="$d/sram.v"
+  fi
+  "$SV2V" -DSYNTHESIS "${gold_pkg[@]}" "$d/gold.sv" > "$d/gold.v"
+  "$SV2V" -DSYNTHESIS "${gate_pkg[@]}" "$d/gate.sv" > "$d/gate.v"
   # Yosys rejects the unpacked arrays sv2v lists in sensitivity lists.
   perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$d/gold.v" "$d/gate.v"
   {
+    [ -z "$lib" ] || echo "read_verilog -lib $lib"
     echo "read_verilog -mem2reg $d/gold.v"
     echo "rename $mod gold"
     echo "read_verilog -mem2reg $d/gate.v"
