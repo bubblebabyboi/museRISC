@@ -1,0 +1,57 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/soc_rtl_tb_sky130 20000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_pipe-default/micro_pipe.bin --exit-string 'SIGIL TEST PASS micro_pipe' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/micro_pipe-default.soc-sky130.r1.perf
+loaded 37392 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_pipe-default/micro_pipe.bin
+SIGIL PERF region=1 cycles=46 instret=9
+MICRO region=1 empty ops=4096 cycles=46 instret=9 cycles/op=0.011
+SIGIL PERF region=2 cycles=36901 instret=8200
+MICRO region=2 loop ops=4096 cycles=36901 instret=8200 cycles/op=9.009
+SIGIL PERF region=3 cycles=12493 instret=4143
+MICRO region=3 alu32_dep ops=4096 cycles=12493 instret=4143 cycles/op=3.050
+SIGIL PERF region=4 cycles=12499 instret=4145
+MICRO region=4 alu32_indep ops=4096 cycles=12499 instret=4145 cycles/op=3.052
+SIGIL PERF region=5 cycles=12493 instret=4143
+MICRO region=5 alu16_dep ops=4096 cycles=12493 instret=4143 cycles/op=3.050
+SIGIL PERF region=6 cycles=24934 instret=4144
+MICRO region=6 alu32_straddle ops=4096 cycles=24934 instret=4144 cycles/op=6.087
+SIGIL PERF region=7 cycles=12502 instret=4142
+MICRO region=7 br_nt ops=4096 cycles=12502 instret=4142 cycles/op=3.052
+SIGIL PERF region=8 cycles=24793 instret=4143
+MICRO region=8 br_taken ops=4096 cycles=24793 instret=4143 cycles/op=6.053
+SIGIL PERF region=9 cycles=24796 instret=4138
+MICRO region=9 jal ops=4096 cycles=24796 instret=4138 cycles/op=6.054
+SIGIL PERF region=10 cycles=61630 instret=12331
+MICRO region=10 call_ret ops=4096 cycles=61630 instret=12331 cycles/op=15.046
+SIGIL PERF region=11 cycles=61636 instret=12333
+MICRO region=11 jalr_call_ret ops=4096 cycles=61636 instret=12333 cycles/op=15.048
+SIGIL PERF region=12 cycles=53935 instret=17547
+MICRO region=12 brpat_never ops=4096 cycles=53935 instret=17547 cycles/op=13.168
+SIGIL PERF region=13 cycles=66223 instret=17547
+MICRO region=13 brpat_always ops=4096 cycles=66223 instret=17547 cycles/op=16.168
+SIGIL PERF region=14 cycles=60079 instret=17547
+MICRO region=14 brpat_alt ops=4096 cycles=60079 instret=17547 cycles/op=14.668
+SIGIL PERF region=15 cycles=60079 instret=17547
+MICRO region=15 brpat_rand ops=4096 cycles=60079 instret=17547 cycles/op=14.668
+SIGIL PERF region=16 cycles=20686 instret=4138
+MICRO region=16 ld_dep ops=4096 cycles=20686 instret=4138 cycles/op=5.050
+SIGIL PERF region=17 cycles=20692 instret=4144
+MICRO region=17 ld_indep ops=4096 cycles=20692 instret=4144 cycles/op=5.052
+SIGIL PERF region=18 cycles=32955 instret=8235
+MICRO region=18 ld_use1 ops=4096 cycles=32955 instret=8235 cycles/op=8.046
+SIGIL PERF region=19 cycles=32984 instret=8236
+MICRO region=19 ld_use2 ops=4096 cycles=32984 instret=8236 cycles/op=8.053
+SIGIL PERF region=20 cycles=20691 instret=4142
+MICRO region=20 st ops=4096 cycles=20691 instret=4142 cycles/op=5.052
+SIGIL PERF region=21 cycles=12472 instret=4138
+MICRO region=21 rdcycle ops=4096 cycles=12472 instret=4138 cycles/op=3.045
+SIGIL PERF region=22 cycles=12475 instret=4138
+MICRO region=22 rdtime ops=4096 cycles=12475 instret=4138 cycles/op=3.046
+SIGIL PERF region=23 cycles=12508 instret=4138
+MICRO region=23 csrr ops=4096 cycles=12508 instret=4138 cycles/op=3.054
+SIGIL PERF region=24 cycles=12493 instret=4142
+MICRO region=24 csrw ops=4096 cycles=12493 instret=4142 cycles/op=3.050
+SIGIL PERF region=25 cycles=12472 instret=4138
+MICRO region=25 csrrw ops=4096 cycles=12472 instret=4138 cycles/op=3.045
+SIGIL PERF region=26 cycles=12472 instret=4137
+MICRO region=26 fence ops=4096 cycles=12472 instret=4137 cycles/op=3.045
+MICRO CHECK OK micro_pipe iterations=4096 regions=26
+SIGIL TEST PASS micro_pipe
+SOC RTL TB PASS (exit string at 2319731 cycles)

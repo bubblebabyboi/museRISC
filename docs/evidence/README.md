@@ -2124,3 +2124,605 @@ are tracked.
 all 7 `sw/examples` programs (hello, timer_irq, sha256_accel,
 hash_stream, ed25519_verify, vector_dot, fp_math) pass on the public AFI
 on a real `f2.6xlarge`, built on the instance with Ubuntu GCC 13.2.
+
+## #56: performance harness, first baseline — Dhrystone 2.1 (2026-10-22)
+
+[`perf-dhrystone-56-2026-10-22/`](perf-dhrystone-56-2026-10-22/report.md):
+`report.md`, `results.csv`, `results.json` (every counter plus
+metadata), `runs/` (UART log and `SIGIL_PERF` record of all 32 runs),
+the build logs with the full compiler command lines,
+`synth-view-diff.log`, `cross-sim-5.020.log` and `gates.log`. Method:
+[`docs/PERFORMANCE.md`](../PERFORMANCE.md).
+
+- **Design.** main `eeaa332` RTL, measured before any #53 pipelining.
+  Harness commit `534f846` (branch `56-perf-harness`) adds only
+  `` `ifndef SYNTHESIS`` code. `scripts/synth_view_diff.sh eeaa332
+  534f846` shows the preprocessed RTL is byte-identical under
+  `SYNTHESIS` alone and with `SIGIL_SRAM_FAKERAM45`,
+  `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_OREG` and `SIGIL_VRF_OREG`
+  (`synth-view-diff.log`).
+- **Run.** `make -C sim perf BENCHES=dhrystone CONFIG="default sky130
+  oreg fpga" MEM="soc axi" JOBS=4 REPEAT=2 VJOBS=4` on sigil-verify
+  (c7i.8xlarge, Ubuntu 24.04), results written 2026-10-22T08:34:51Z, with Verilator 5.048
+  and riscv64-unknown-elf-gcc 16.1.0 (`deps/`). The 8 testbench builds
+  plus 32 simulations took 4 min 33 s. Earlier runs at `623c576` and
+  `e3b40fc` (same counter logic) gave byte-identical records.
+- **Benchmark.** Dhrystone 2.1 (netlib `dhry-c`, ported:
+  `sw/bench/dhrystone/README.md`), 2000 runs. Flags: `sdk.mk` (`-O2
+  -mstrict-align -mcmodel=medany -ffreestanding -std=gnu11`, separate
+  compilation, no LTO) plus `-fno-inline` (ground rules). Two variants:
+  - `scalar`, the headline:
+    `-march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`;
+  - `sdk`: the SDK default `-march`, with V.
+- **Memory models.**
+  - `soc`: `soc_rtl_tb`, fixed 1-cycle first-beat latency.
+  - `axi`: `fpga_top_tb`, through the 64-bit `sigil_mbus_axi4` bridge,
+    with a fixed 24-cycle AXI latency.
+- **Validation.** 32/32 runs valid:
+  - the program self-checked every final value;
+  - `cycles` = `mcycle` delta and `instret` = `minstret` delta;
+  - the accounting sums to `cycles`;
+  - both repeats are identical in all 91 record fields;
+  - the same images on a Verilator 5.020 build give identical records.
+
+DMIPS/MHz (= 2000 / cycles × 10^6 / 1757, over the `Number_Of_Runs`
+loop):
+
+| Variant | Memory | default | sky130 | oreg | fpga (VRF_OREG) |
+|---|---|---:|---:|---:|---:|
+| **scalar** | soc | **0.371** | **0.216** | 0.225 | **0.371** |
+| scalar | axi | 0.371 | 0.201 | 0.225 | 0.371 |
+| sdk (V) | soc | 0.327 | 0.191 | 0.202 | 0.317 |
+| sdk (V) | axi | 0.327 | 0.173 | 0.202 | 0.317 |
+
+Scalar, default, soc: 3,070,244 cycles and 1,036,022 instructions,
+IPC 0.337, 1,535 cycles per Dhrystone. The cycles break down as:
+
+| Category | % of cycles |
+|---|---:|
+| retire | 33.7 |
+| fetch: I$ hit latency / issue gap | 40.6 |
+| fetch: 32-bit instruction straddles a fetch word | 8.9 |
+| MEM: D$ hit latency | 12.7 |
+| squashed wrong-path instructions | 3.7 |
+| M unit | 0.2 |
+| load-use | 0.1 |
+
+Observations:
+
+- **Fetch dominates.** The core issues one fetch per 2 cycles (3 with
+  `SRAM_OREG`) and refetches the word for the second compressed half.
+  Fetch costs 49.5% of cycles, at 1.45 I$ accesses per instruction.
+- **`SRAM_OREG` alone costs +65% cycles.** On top of that, the sky130
+  4 KiB direct-mapped D$ adds 4 conflict misses per Dhrystone: +4.1%
+  of cycles at 1-cycle memory, +12.0% behind the AXI model. sky130 is
+  the only configuration where Dhrystone is memory-latency sensitive.
+- **V code generation is slower here.** GCC turns the 56-byte record
+  copy into `vle8`/`vse8`, which takes 19.3% of cycles on the
+  element-serial vector LS. The `sdk` build is 13.4% slower than
+  `scalar`.
+- **Effective miss penalties.** I$: 12 cycles (soc) and 37 (axi).
+  D$: 21–27 (soc) and 62–77 (axi).
+- **Projection only:** at F2's 62.5 MHz, the scalar figure is about
+  23 DMIPS. No hardware run.
+
+Gates on `534f846` (`gates.log`):
+- `make lint` is clean on Verilator 5.048, 5.020 (CI version) and 5.044.
+- `make test` passes.
+- `make core-test`: 235/235 `TB PASS` lines, identical to a core-test
+  run of main `eeaa332` on the same host apart from wall-clock seconds.
+  Every cycle count is the same, including the SDK examples. Coverage
+  is identical: 55.00% (3491/6252).
+- riscv-tests: 123/123.
+
+## #56: CoreMark on the performance harness (2026-10-22)
+
+[`perf-coremark-56-2026-10-22/`](perf-coremark-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/` (UART log and
+`SIGIL_PERF` record of all 12 runs), the build logs, `fetch.log`
+(pinned-source fetch and checks), `host-reference.log` (native x86-64
+CRC references), `long-1000/` (10 s rule), `flag-sweep/` (`-O2` vs
+`-O3`/`-Os`), `image-check.log`, `rerun-final.log` and
+`cm_long_run.py`. Port and method:
+[`sw/bench/coremark/README.md`](../../sw/bench/coremark/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  harness's simulation-only counters, as in the Dhrystone entry above.
+  No #53 pipelining.
+- **Benchmark.** EEMBC CoreMark 1.0, eembc/coremark `b56889a7`,
+  unmodified, fetched into the git-ignored `third_party/coremark` and
+  sha256/md5-checked. 2K data set, data on the stack, 20 iterations,
+  `-O2`, every file with the same flags, no LTO. Commit `320cf57`
+  (branch `56-perf-coremark`); the final code `4526052` rebuilds
+  byte-identical images.
+- **Run.** `make -C sim perf BENCHES=coremark CONFIG=default MEM="soc
+  axi" REPEAT=2 JOBS=12` on sigil-verify, results written
+  2026-10-22T09:39:42Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0.
+- **Validation.** 12/12 runs valid and deterministic. The port checked
+  the seed, list, matrix and state CRCs and `crcfinal` against a native
+  x86-64 build of the same sources; both EEMBC seed sets validate (run
+  rule 2).
+
+| Variant | soc | axi |
+|---|---:|---:|
+| **scalar** (`rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh`), CoreMark/MHz | **1.395** | 1.395 |
+| sdk (with V) | 1.372 | 1.372 |
+| validation seeds (scalar) | 1.392 | 1.392 |
+
+- Scalar, soc: 14,337,806 cycles for 20 iterations, IPC 0.366. Fetch
+  latency and straddles take 45.8% of cycles; the L1s hold CoreMark
+  (39 I$ and 11 D$ misses, all cold), so the 24-cycle AXI model adds
+  only 1,250 cycles.
+- **10 s rule.** 1000-iteration runs (`long-1000/`, about 70 minutes
+  of simulation each, 11.5 s of region at 62.5 MHz) give the same
+  1.395 (performance seeds) and 1.392 (validation seeds), and CoreMark
+  printed `Correct operation validated`.
+- `-O3` is 19% slower than `-O2` here (more straddling fetches), so
+  `-O2` is the headline.
+- Only the default configuration was measured; sky130, oreg and fpga
+  are still to run.
+
+## #56: vector and FP kernels, C vs RVV (2026-10-22)
+
+[`perf-kernels-56-2026-10-22/`](perf-kernels-56-2026-10-22/README.md):
+13 kernels from `sw/bench/kernels`: int32/int64 add, daxpy, saxpy, fp64
+and int32 dot products, memcpy and memset (e64 and e8), 32x32
+dgemm/sgemm, a 16-tap fp32 FIR, and int8/int16 widening MACs. Each runs
+as scalar C and as RVV intrinsics and is checked bit for bit against a
+scalar reference, which is in turn checked against a known answer from
+an exact host model.
+
+- **Run.** Default configuration, `soc` and `axi` memory models, two
+  repeats. Commit `7ea3e51` (branch `56-perf-kernels`), main `eeaa332`
+  design, Verilator 5.048, GCC 16.1.0.
+- **Validation.** 224/224 region results valid and deterministic. Fault
+  injection: 7 wrong results, 7 failed runs.
+- **RVV speedup over scalar C** (soc): 1.51–2.96x (memset 2.96x,
+  fir_f32 2.56x, memcpy 2.51x, sgemm 2.07x, dgemm 1.85x, idot 1.51x).
+  The e8 forms of memcpy/memset are 2.5–3x *slower* than scalar.
+- **Bottlenecks.**
+  - Vector load/store: about 3 cycles per element.
+  - FP vector ops: 8 cycles per element (`vfmacc` = 8N + 4).
+  - Scalar C: front-end bound, IPC 0.22–0.42.
+- **GCC 16 `-O3` auto-vectorization** reaches 1.0–1.67x.
+- **Caveat.** Shifting the scalar C code by 2 bytes moves its cycles by
+  -24% to +26%, from 32-bit instructions straddling a 4-byte fetch
+  word. The kernels are therefore 64-byte aligned.
+
+## #56: performance harness, microbenchmarks (2026-10-22)
+
+[`perf-micro-56-2026-10-22/`](perf-micro-56-2026-10-22/micro_table.md):
+`micro_table.md` (cycles per operation for every region, where the
+cycles go per operation, derived cache parameters), the harness's
+`report.md`, `results.csv` and `results.json`, `runs/` (UART log and
+`SIGIL_PERF` records of all 20 simulations), `build-micro_*.log`
+(full compiler command lines), `perf-run.log` (harness console) and
+`determinism.log`. Method:
+[`sw/bench/micro_common/README.md`](../../sw/bench/micro_common/README.md).
+
+- **Design.** `rtl/` tree `89b98cb227c6`: the harness branch's RTL
+  (`534f846`, main `eeaa332` plus the simulation-only counters, see the
+  Dhrystone entry above). Measured before any #53 pipelining. The
+  benchmarks are on branch `56-perf-micro` (`904d59e`), which adds only
+  `sw/bench/micro_*` to `56-perf-harness` `d2b3df4`.
+- **Run.** `make -C sim perf BENCHES="micro_pipe micro_units micro_dmem
+  micro_imem micro_vec" CONFIG=default MEM="soc axi" REPEAT=2 JOBS=10`
+  on sigil-verify (c7i.8xlarge, Ubuntu 24.04), results written
+  2026-10-22T09:54:30Z, Verilator 5.048, riscv64-unknown-elf-gcc
+  16.1.0 (`deps/`). 20 simulations in 34 s.
+- **Benchmarks.** Five benchmarks, 105 regions, each region one
+  mechanism running exactly `iterations` operations (assembly kernels,
+  unrolled loops), so the harness's cycles/iteration is cycles per
+  operation. Each benchmark has an `empty` region that measures the
+  window's own cost (66–81 cycles soc, 91–131 axi); `micro_table.md`
+  also lists every value net of it.
+- **Validation.** 420/420 region results valid (105 regions x 2 memory
+  models x 2 repeats):
+  - every kernel result matched its value computed in C (sums, counts,
+    nodes reached, stored elements), and each program printed `MICRO
+    CHECK OK`;
+  - in every record, `cycles` = `mcycle` delta, `instret` = `minstret`
+    delta and the accounting sums to `cycles`;
+  - both repeats are identical, and a second harness invocation at
+    `49352b9` (same images, sha256 in `determinism.log`) gave identical
+    records too: 4 identical runs of each of the 210 (region, memory
+    model) pairs.
+
+Cycles per operation, default configuration, raw as the harness
+reports them. micro_pipe, micro_units and micro_vec show soc; axi is
+within 0.1 cycles of it for every region in those three:
+
+| micro_pipe | cycles/op |
+|---|---:|
+| `add` 32-bit, dependent or independent | 2.04 |
+| `c.add` 16-bit | 2.04 |
+| 32-bit `add` straddling two fetch words | 4.06 |
+| branch not taken | 2.04 |
+| branch taken; `jal` | 4.04 |
+| call + `ret` with a one-instruction callee (`jal` or `jalr`) | 10.04 |
+| loop trip (`addi` + taken `bnez`) | 6.02 |
+| data-dependent branch: never / always / alternating / random 50% taken | 8.61 / 10.61 / 9.61 / 9.61 |
+| `ld` hit, dependent (load-to-load) | 3.03 |
+| `ld` hit, independent; `sd` hit | 2.54 |
+| `ld` + `add` using it, distance 1 / distance 2 (per pair) | 4.04 / 4.04 |
+| `rdcycle`, `rdtime`, `csrr`, `csrw`, `csrrw`, `fence` | 2.04 |
+
+| micro_units | dependent | independent | docs/CORE.md EX cycles |
+|---|---:|---:|---:|
+| `mul` | 4.20 | 4.19 | 3 |
+| `div`, 63 quotient bits | 36.18 | 36.18 | 35 |
+| `div`, dividend < divisor | | 4.15 | 3 |
+| `divw`, 31 quotient bits | 20.18 | | 19 |
+| `rem`, 62 quotient bits | | 35.17 | 34 |
+| `fadd.d` / `fmul.d` | 6.20 / 6.18 | 6.16 | 5 |
+| `fmadd.d` | 8.19 | | 7 |
+| `fdiv.d` / `fsqrt.d` | 33.17 / 33.17 | 33.17 / 33.15 | 32 |
+| `fdiv.s` / `fsqrt.s` | 18.18 / 18.17 | | 17 |
+
+| micro_dmem (one 64-byte line per load) | soc | axi |
+|---|---:|---:|
+| random chase, 1–12 KiB | 3.10 | 3.10 |
+| random chase, 16 KiB | 3.12 | 3.18 |
+| random chase, 20 / 24 / 32 KiB | 7.47 / 9.93 / 12.24 | 17.43 / 25.47 / 33.03 |
+| random chase, 64 / 128 / 256 KiB | 13.96 / 14.11 / 14.11 | 38.67 / 39.15 / 39.15 |
+| address-order chase, 4 / 8 / 16 / 32 KiB | 3.10 / 3.10 / 3.12 / 10.48 | 3.10 / 3.11 / 3.18 / 27.27 |
+| load stream, per 8-byte `ld` | 4.27 | 7.41 |
+| store stream into dirty lines, per 8-byte `sd` | 6.25 | 13.02 |
+
+| micro_imem (straight-line 32-bit code), cycles/instruction | soc | axi |
+|---|---:|---:|
+| footprint 1–4 KiB | 2.01–2.06 | 2.01–2.06 |
+| 6 / 8 KiB | 2.04 / 2.03 | 2.11 / 2.09 |
+| 12 / 16 / 24 / 32 KiB | 2.47 / 2.53 / 2.58 / 2.61 | 3.52 / 3.71 / 3.89 / 3.98 |
+
+| micro_vec | cycles per vector instruction |
+|---|---:|
+| `vsetvli`, same vtype / alternating vtype | 2.43 / 2.49 (2.12 / 2.17 net of window) |
+| `vadd.vv` e8, vl = 1 / 8 / 64 / 512 | 7.43 / 14.40 / 70.40 / 518.40 (N + 6.4) |
+| `vadd.vv` e64, vl = 8 | 14.41 |
+| `vle8.v`, vl = 1 / 8 / 64 / 512 | 4.96 / 25.92 / 193.92 / 1,537.92 (3N + 1.9) |
+| `vse8.v`, vl = 1 / 8 / 64 / 512 | 4.98 / 25.93 / 193.93 / 1,537.93 |
+| `vmul.vv` / `vfadd.vv` / `vredsum.vs` e64, vl = 8 | 70.42 / 54.47 / 16.47 |
+
+What the calibration shows:
+
+- **Every instruction costs at least 2 cycles: one fetch per
+  instruction, 2 cycles per fetch.** Compressed code fetches no faster:
+  `c.add` costs the same as `add`, at 1.02 I$ accesses per instruction,
+  because the word is fetched again for the second half. A 32-bit
+  instruction that straddles two fetch words costs 4.
+- **A redirect costs 2 cycles, and there is no prediction.** A taken
+  branch, `jal` or `jalr` costs 2 cycles more than falling through:
+  one squashed wrong-path slot plus one refetch slot. A data-dependent
+  branch costs the same at a 50% taken rate whether the pattern
+  alternates or is random, exactly midway between never taken and
+  always taken. Its cost depends only on the outcome.
+- **Load-use bubbles hide in the fetch gap.**
+  - An L1 load hit costs 2.5 cycles independent and 3 dependent
+    (load-to-load).
+  - A load followed by an ALU consumer costs 4.04 per pair at distance
+    1 and at distance 2.
+  - CSR accesses, `rdcycle`, `rdtime` and `fence` cost the same as an
+    ALU op. They do not serialize.
+- **The M unit and FPU do not overlap work.** Every operation costs its
+  `docs/CORE.md` EX occupancy plus 1.1 cycles (net of window), and
+  dependent and independent sequences cost the same.
+- **D$ (16 KiB, 4-way).**
+  - A random working set of up to 16 KiB hits (0.002 misses per load).
+    The miss rate is 40% at 20 KiB, 83% at 32 KiB and 100% from
+    128 KiB.
+  - A clean miss costs 12.0 cycles (soc) or 37.0 cycles (axi), as
+    `dc_miss_cyc / dc_miss`. A dependent load that misses costs 14.1 or
+    39.1 cycles.
+  - Streaming loads move 1.87 or 1.08 bytes/cycle.
+- **I$ (8 KiB, 2-way).**
+  - Straight-line footprints up to 4 KiB never miss. At 6–8 KiB,
+    3.5–4.5% of line fetches miss: round-robin victim conflicts with
+    the driver's lines.
+  - From 12 KiB, 67–88% of line fetches miss. The rate is never 100%,
+    because the shared round-robin pointer leaves some lines resident.
+  - The miss penalty is 12.0 cycles (soc) or 37.0 cycles (axi).
+- **Vector.**
+  - Arithmetic matches `docs/CORE.md` exactly in the vector unit
+    (`stk_vec`): `vadd` N+4, e64 `vmul` (4+4)N+4, `vfadd` 6N+4,
+    `vredsum` N+6. Each vector instruction adds about 2.1 cycles of
+    issue on top.
+  - Unit-stride `vle8`/`vse8` take **3 cycles per element** in MEM
+    (`stk_vls` = 3N). `docs/CORE.md` gives 2 per element plus 1, and
+    quotes 1,025 cycles for `vle8` at vl=512; this run measures 1,536
+    MEM cycles in the SoC with the D$.
+  - `vsetvli` costs an ALU op, whether vtype changes or not.
+
+## #56 / #10: SHA-256 hash chain and 64 KiB bulk hashing (2026-10-22)
+
+[`perf-sha256chain-56-2026-10-22/`](perf-sha256chain-56-2026-10-22/report.md)
+holds:
+- `report.md`, `results.csv` and `results.json`;
+- `runs/`: the UART log and `SIGIL_PERF` records of all 8 simulations;
+- `perf-run.log`, the harness console output with the determinism
+  check;
+- the build logs;
+- the generated `hashlib` known-answer headers;
+- `iter40-smoke/`;
+- `unaligned-c7bd3b7/` with `diff-unaligned-c7bd3b7-vs-aligned.md`.
+
+The benchmarks are described in
+[`sw/bench/sha256chain/README.md`](../../sw/bench/sha256chain/README.md).
+
+- **Design.** The `rtl/` tree is `89b98cb`, identical to harness
+  `534f846`: main `eeaa332` plus the simulation-only counters. No #53
+  changes are included.
+- **Benchmarks.** Commit `2b8e1ae` (branch `56-perf-sha256chain`).
+- **Run.** `make -C sim perf BENCHES="sha256chain sha256chain_bulk"
+  CONFIG=default MEM="soc axi" REPEAT=2 JOBS=4` on sigil-verify.
+  - Results written 2026-10-22T09:55:45Z.
+  - Tools: Verilator 5.048, riscv64-unknown-elf-gcc 16.1.0 and Python
+    3.12.3 `hashlib`.
+  - Flags: `sdk.mk` with the SDK default `-march`, plus
+    `-falign-functions=64`.
+- **Validation.** All 48 region records are valid.
+  - Before the regions, every implementation passed the FIPS 180-4 /
+    FIPS 202 known answers.
+  - After each region, every result matched `hashlib`, including all 16
+    RVV lanes.
+  - The harness cross-checks passed, and both repeats are identical.
+  - At `ITER=40` (soc, not a result), the runs also validate, including
+    the RVV remainder step at vl = 8.
+
+SHA-256 chain, 1024 hashes per region. Cycles/hash on soc: axi is
+within 0.02%. Hashes/s is the clock divided by cycles/hash. RVV ×16 is
+aggregate throughput over 16 independent chains.
+
+| Implementation | cycles/hash | hashes/s @62.5 MHz | hashes/s @100 MHz |
+|---|---:|---:|---:|
+| plain C | 9,918.2 | 6,302 | 10,082 |
+| C + Zknh | 6,753.2 | 9,255 | 14,808 |
+| RVV ×16 | 4,642.0 | 13,464 | 21,542 |
+| accelerator, `sigil_sha256_block` | 572.1 | 109,248 | 174,797 |
+| accelerator, `sigil_sha256` | 2,793.1 | 22,376 | 35,802 |
+| accelerator SHA-512 chain (64 B), `sigil_hash` | 2,472.2 | 25,281 | 40,450 |
+| accelerator SHA3-256 chain, `sigil_hash` | 1,370.1 | 45,616 | 72,986 |
+
+Bulk hashing of 64 KiB, in bytes/cycle, soc / axi:
+- SHA-256 plain C: 0.0065 / 0.0065;
+- SHA-256 Zknh: 0.0095 / 0.0095;
+- SHA-256 RVV ×16 (16 × 4 KiB segments): 0.0131 / 0.0130;
+- accelerator SHA-512: 0.2388 / 0.2205;
+- accelerator SHA3-256: 0.2398 / 0.2215.
+
+In MB/s, multiply by the clock in MHz. For example, accelerator SHA-512
+on soc gives 14.9 MB/s at 62.5 MHz and 23.9 MB/s at 100 MHz. There is no
+SHA-256 accelerator bulk row, because its engine has no chaining.
+
+Code alignment matters. Without `-falign-functions=64` (same
+instructions, `unaligned-c7bd3b7/`), these chains took more cycles:
+- SHA-512: 43% more (3,609,723 against 2,531,505);
+- SHA3-256: 37% more;
+- Zknh: 6.8% more.
+
+The extra cycles are fetch latency and 32-bit instructions straddling a
+fetch word.
+
+## #56: whole benchmark suite after integration (2026-10-22)
+
+[`perf-suite-56-2026-10-22/`](perf-suite-56-2026-10-22/README.md):
+`report.md`, `results.csv`, `results.json`, `runs/`, `build-logs/`,
+`perf-run.log`, `compare-evidence.log` and `harness-options-smoke.log`.
+One run of every benchmark after `56-perf-coremark`,
+`56-perf-kernels`, `56-perf-micro` and `56-perf-sha256chain` were
+merged into `56-perf-harness` with the harness changes they asked for.
+It is an integration check, not a new baseline.
+
+- **Design.** `rtl/` tree `89b98cb227c6` (main `eeaa332` plus the
+  simulation-only counters). No #53 pipelining.
+- **Run.** `make -C sim perf CONFIG=default MEM="soc axi" REPEAT=2
+  JOBS=12 CLOCK_MHZ="62.5 100"` at `662bad7` on sigil-verify,
+  2026-10-22T11:05:49Z–11:11:11Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. 10 benchmarks, 14 images, 56
+  simulations.
+- **Validation.** 712/712 region results valid and deterministic.
+  Every image sha256, counter and hardware-counter number is identical
+  to the branch evidence above: dhrystone 8/8 (default configuration),
+  coremark 12/12, kernels 224/224, micro 420/420, sha256chain 48/48.
+- **Harness changes.** Per-region bytes/work per iteration and
+  baselines, a window region, per-variant regions and expect lines,
+  `VARIANTS`, `MAX_CYCLES`, `CLOCK_MHZ`, `cc_commands`, and a
+  row-per-run layout for wide reports (`docs/PERFORMANCE.md`). The
+  options this run does not use are smoke-tested in
+  `harness-options-smoke.log`.
+
+## #56: the benchmark suite on AWS F2 hardware (2026-10-22)
+
+[`perf-f2-56-2026-10-22/`](perf-f2-56-2026-10-22/README.md):
+`README.md` (analysis), `tables.md`, `regions.md`, `results.json`,
+`logs/` (UART capture and host report of all 46 runs),
+`instance-info.txt`, `aws-lifecycle.txt`, `SHA256SUMS` and `scripts/`.
+The #56 benchmark images ran on a real F2 FPGA with the public AFI.
+
+- **Hardware.** One `f2.6xlarge` (`i-0fa8f24634bfa912f`, us-east-1a,
+  FPGA Developer AMI 1.19.2) ran public AFI `agfi-035116450e0a0d093`
+  (Small Shell `0x10212415`). The measured core clock was
+  62.500–62.501 MHz.
+- **Design.** The AFI (built from `4058108`) runs the `default`
+  configuration of the main `eeaa332` design: it predates `VRF_OREG`
+  (#53), and there is no #53 pipelining.
+- **Run.** `sigil_host --ignore-mem-err` (aws-fpga v2.3.5), from
+  2026-10-22T11:25:40Z to 11:27:43Z.
+- **F2 time.** 5 min 35 s running (0.093 instance-hours); the instance
+  is terminated.
+- **Images.** The 16 images are byte-identical to the simulation
+  evidence: the 14 of `perf-suite-56-2026-10-22` and the 2
+  1000-iteration CoreMark images of `perf-coremark-56-2026-10-22`.
+  They were built at `8d15410` with GCC 16.1.0.
+- **Validation.** 46/46 runs are valid. Each run printed `SIGIL TEST
+  PASS` after its own CRC, KAT or known-answer checks, every expect
+  line was present, and there was one `SIGIL PERF` line per region.
+  The UART output equals the simulation's line for line, except
+  numbers on timing lines; no byte was dropped and nothing overflowed.
+  178 of 180 regions retire exactly the simulated `minstret`. The
+  exceptions are the two SHA-512 accelerator poll loops.
+
+| Benchmark | F2 hardware | Simulation, default/axi |
+|---|---:|---:|
+| Dhrystone 2.1, scalar | 0.371 DMIPS/MHz = **23.17 DMIPS** | 0.371 |
+| CoreMark 1.0, 1000 iterations (11.47 s on hardware, `Correct operation validated`) | 1.395 CoreMark/MHz = **87.19 CoreMark** | 1.395 (soc) |
+| SHA-256 accelerator `sigil_sha256_block`, cycles/hash | 572.1 = 109,250 hashes/s | 572.1 |
+| SHA-256 plain C / Zknh / RVV x16, cycles/hash | 9,918.4 / 6,753.4 / 4,642.6 | identical |
+
+How closely the hardware matches the simulation:
+
+- **Agreement.** 145 of 180 regions are within 0.1% of the
+  default-configuration simulation behind the 24-cycle AXI DDR model,
+  and 165 are within 1%. Regions without cache misses repeat
+  cycle-exactly.
+- **Memory-bound regions.** All the larger gaps are cache-miss
+  microbenchmarks:
+  - a refill costs about 1.5 cycles more on the real DDR4 path (D$
+    dependent miss 40.6 against 39.1 cycles);
+  - a dirty write-back costs about 10 cycles less.
+- **The `fpga` (VRF_OREG) simulation.** It is not this AFI's design.
+  In all 61 regions where the two configurations differ, the hardware
+  is closer to `default`: for example, `vse8` at vl=512 takes 1,537.8
+  cycles, against 2,049.8 with `VRF_OREG`.
+
+## #56: deterministic simulation baseline of main `eeaa332`, three configurations (2026-10-22)
+
+[`perf-baseline-56-2026-10-22/`](perf-baseline-56-2026-10-22/README.md):
+`headline.md` (cross-configuration tables), and per configuration
+(`default/`, `sky130/`, `fpga/`) `results.csv`, `report.md`
+(`scripts/perf_report.py`), `results.json`, `runs/`, `build-logs/` and
+`perf-run.log`. Also `env.log`, `synth-view-diff.log`, `tb-build.log`,
+`compare-prior-evidence.log`, `micro_table.md`, `kernels_report.md`,
+`run_baseline.sh` and `baseline_tables.py`. This is the reference
+against which #53 and later changes are compared.
+
+- **Design.** `rtl/` tree `89b98cb227c6`: main `eeaa332` plus the
+  simulation-only counters. The synthesis views are byte-identical to
+  `eeaa332` for every flow's defines. No #53 pipelining.
+- **Run.** `run_baseline.sh` at `8d15410` on sigil-verify,
+  2026-10-22T11:20:07Z–11:40:57Z, Verilator 5.048,
+  riscv64-unknown-elf-gcc 16.1.0. Fresh testbench builds, then `make
+  -C sim perf CONFIG=<default|sky130|fpga> MEM="soc axi" REPEAT=2
+  JOBS=12`. Every benchmark and variant: 14 images, 168 simulations.
+- **Validation.**
+  - 2136/2136 region results valid, every program self-checked
+    (CRCs, known answers, `hashlib`).
+  - Both repeats identical in every counter.
+  - The 14 images are bit-identical across the three builds.
+  - `default` is identical to `perf-suite-56-2026-10-22` (712/712) and
+    to the branch evidence. The `sky130`/`fpga` Dhrystone results are
+    identical to `perf-dhrystone-56-2026-10-22`.
+- **Headline** (`soc` / `axi`):
+
+  | | default | sky130 | fpga (VRF_OREG) |
+  |---|---:|---:|---:|
+  | Dhrystone `scalar` DMIPS/MHz | 0.371 / 0.371 | 0.216 / 0.201 | 0.371 / 0.371 |
+  | CoreMark `scalar` CoreMark/MHz | 1.395 / 1.395 | 0.868 / 0.867 | 1.395 / 1.395 |
+  | SHA-256 cycles/hash: C, Zknh, RVV ×16, accel block (`soc`) | 9,918 / 6,753 / 4,642 / 572 | 15,634 / 10,747 / 4,949 / 792 | 9,918 / 6,753 / 4,855 / 572 |
+
+- **`fpga`** changes only vector code. Regions with no vector
+  instruction have identical counters. Vector arithmetic costs 1 more
+  cycle per instruction and unit-stride stores 1 more cycle per
+  element (Dhrystone `sdk` +3.2%, SHA-256 RVV +4.6%, memset RVV +29%).
+- **`sky130`** is 1.58–1.85x slower on scalar code. The fetch issue gap
+  is 3 cycles instead of 2, a load takes 5 cycles instead of 2.5, and
+  the 4 KiB direct-mapped D$ misses on every access from an 8 KiB
+  working set.
+
+## #56 / #10: where the cycles go and ranked upgrade candidates (2026-10-22)
+
+[`perf-analysis-56-2026-10-22/`](perf-analysis-56-2026-10-22/README.md)
+holds the analysis behind `docs/PERFORMANCE.md` §12–14:
+
+- `counters/`: `derive.py`, and its output `derived.md`, which has every
+  counter-derived ratio the document quotes, plus helper scripts;
+- `frontend-model/`: the trace-driven front-end model (`fe.cpp`), its
+  run scripts and outputs, the what-if table `whatif.md`, and the
+  model's check against the RTL;
+- `analyses/`: the three analyses as written (front end, memory
+  hierarchy, execution units).
+
+Results: [`docs/PERFORMANCE.md`](../PERFORMANCE.md) §12–14.
+
+- **Inputs.**
+  - The counters of `perf-baseline-56-2026-10-22` (`56-perf-harness`
+    `de21e4b`; `rtl/` tree `89b98cb227c6`, main `eeaa332` plus the
+    simulation-only counters, no #53 pipelining).
+  - `perf-f2-56-2026-10-22`.
+  - Spike 1.1.1-dev (`2c300cd9`) commit traces of the baseline ELFs
+    (`8d15410`).
+  - RTL retirement traces for the SHA chains, from a simulation-only
+    tap in an uncommitted copy (Verilator 5.048).
+  - The model, built with g++ 13.3.0 on sigil-verify and run
+    2026-10-22, about 12:30–12:45Z.
+- **Validation.**
+  - The model of today's core reproduces the RTL cycle counts to within
+    +0.0002% for CoreMark, +0.0014% for Dhrystone and +0.0001% for
+    SHA-256 C and Zknh. On sky130 it is within +0.005%.
+  - `ic_access`, `br_taken`, `jal_redir`, `jalr_redir` and
+    `muldiv_busy` match the RTL counters exactly.
+  - Every (region, variant) pair present in several output sets is
+    identical (`version-consistency.log`).
+  - Every traced program self-checked under Spike, except one `rdtime`
+    rate check in `micro_pipe`. Spike's timer differs from the RTL's,
+    and `micro_pipe` serves only to check the model per mechanism.
+- **Results** (model figures, `default`):
+  - **Decoupled 64-bit fetch:** CoreMark 1.41x, Dhrystone 1.43x,
+    SHA-256 C 2.15x.
+  - **Plus a 64-entry bimodal predictor with a 4-entry RAS:** 1.70x,
+    1.80x and 2.32x.
+  - **Changes that leave fetch alone,** such as dual issue and
+    multithreading, are bounded today by the I$ port. It is 94.9% busy
+    on CoreMark, which caps them at 1.053x.
+  - **SHA-256 (#10):** the accelerator block API takes 572 cycles per
+    hash, against 9,918 for plain C, 6,753 for Zknh and 4,642 for
+    RVV ×16. That is 17.3x plain C, and F2 hardware gives the same
+    counts.
+
+## #56 / #10: gates on the final branch, clean-worktree reproduction of the baseline (2026-10-22)
+
+[`perf-56-gates-2026-10-22.log`](perf-56-gates-2026-10-22.log), with the
+ACT results in
+[`act-core-perf-56-2026-10-22.csv`](act-core-perf-56-2026-10-22.csv). A
+completeness review of #56 and #10 on `56-perf-harness`. `rtl/` tree
+`89b98cb227c6` is the baseline's tree: main `eeaa332` plus the
+simulation-only counters, with no #53 code. The gates ran at `b441f31`
+on sigil-verify, from a fresh worktree, on 2026-10-22 from 13:45 to
+14:59Z. Tools: Verilator 5.048 (`deps/`), CI's 5.020 and the Mac's
+5.044, and riscv64-unknown-elf-gcc 16.1.0.
+
+- **Gates.**
+  - `make lint` is clean on 5.048, 5.020 and 5.044.
+  - With `SYNTHESIS` defined, every flow's preprocessed RTL is
+    byte-identical to `eeaa332`. The `+define+SYNTHESIS` lint gives the
+    same diagnostics as main: 24 `UNUSEDSIGNAL` warnings, all of them
+    main's own.
+  - `make test` passes.
+  - `make core-test`: 235 `TB PASS` lines. Every PASS line is identical
+    to a main `eeaa332` core-test on the same host, cycle counts
+    included. All 1,440 of its coverage files are byte-identical to
+    main's, so coverage is 55.00% (3491/6252) on both.
+  - riscv-tests 123/123; `srammacro` passes (fakeram45, sky130, oreg,
+    vrforeg); all 7 SDK examples pass.
+  - ACT 2,577/2,578 (Vx 821/821, Vls 1,051/1,051, Vf 162/162, scalar and
+    priv 543/544). Only the `PMPSm_cfg_A_tor_zero-00` waiver fails. All
+    2,578 verdicts and cycle counts equal
+    `act-core-w0-stack-2026-10-20.csv`.
+- **Baseline reproduced.** The baseline was rerun from a clean worktree
+  with `make -C sim perf CONFIG=<config> MEM="soc axi"` for `default`,
+  `sky130` and `fpga`, 356 region results each. Every image sha256 and
+  every counter equals `perf-baseline-56-2026-10-22`.
+- **How-to commands.** The `docs/PERFORMANCE.md` §1, §5 and §8 commands
+  work as written, with one exception. The documented quick smoke,
+  `ITER=200`, overruns the 2e8-cycle limit in `kernels`: 0 of 28 valid,
+  about 680 M cycles needed. The quick smoke is now `ITER=1`, which
+  validates all 356 results in 105 s.
+- **CoreMark at 1000 iterations.** `ITER=1000 MAX_CYCLES=1500000000`
+  validates. The `soc` cycles, 716,834,078, equal the CoreMark
+  evidence.
+- **ACT procedure.** At this riscv-arch-test pin, the ELFs had to be
+  built in a different order from `sw/act4-core/README.md`. The vector
+  sources only exist after the first `make elfs`, so the 43 listed
+  generation failures were moved aside after that build, and the build
+  was then rerun.

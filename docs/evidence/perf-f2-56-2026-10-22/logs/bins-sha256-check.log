@@ -1,0 +1,16 @@
+coremark-scalar-1000.bin: OK
+coremark-scalar.bin: OK
+coremark-sdk.bin: OK
+coremark-validation-1000.bin: OK
+coremark-validation.bin: OK
+dhrystone-scalar.bin: OK
+dhrystone-sdk.bin: OK
+kernels-autovec.bin: OK
+kernels-scalar.bin: OK
+micro_dmem-default.bin: OK
+micro_imem-default.bin: OK
+micro_pipe-default.bin: OK
+micro_units-default.bin: OK
+micro_vec-default.bin: OK
+sha256chain-sdk.bin: OK
+sha256chain_bulk-sdk.bin: OK

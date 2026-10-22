@@ -220,5 +220,11 @@ module sigil_cpu import sigil_cache_pkg::*; #(
       .rsp_valid_i    (bus_rsp_valid_i),
       .rsp_last_i     (bus_rsp_last_i)
   );
+
+`ifndef SYNTHESIS
+  // Simulation-only performance event counters (issue #56,
+  // docs/PERFORMANCE.md): passive, never read by synthesis.
+`include "sigil_perf.svh"
+`endif
 endmodule
 `default_nettype wire

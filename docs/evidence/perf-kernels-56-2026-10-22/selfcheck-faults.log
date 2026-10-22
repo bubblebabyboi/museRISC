@@ -1,0 +1,108 @@
+# kernels self-check fault injection, 2026-10-22T10:30:27Z, commit 94d9ee7, riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+## case c_daxpy_one_element: kern_c.c
+   24c24
+   <   for (size_t i = 0; i < n; i++) y[i] = a * x[i] + y[i];
+   ---
+   >   for (size_t i = 0; i < n; i++) y[i] = a * x[i] + y[i] + (i == 300 ? 0.0625 : 0.0);
+   KERNEL vadd_i32 CHECK OK elem=1024 iterations=1
+   KERNEL vadd_i64 CHECK OK elem=512 iterations=1
+   KERNEL daxpy: C MISMATCH at byte 2405
+   SIGIL TEST FAIL kernels: daxpy
+   SOC RTL TB FAIL (fail string at 1692167 cycles)
+   testbench exit status 1: failed, as required
+
+## case kat_wrong: kernels_kat.h
+   6c6
+   < #define KAT_VADD_I32 0x6c3c6ed2b2e5e720ull
+   ---
+   > #define KAT_VADD_I32 0x6c3c6ed2b2e5e721ull
+   KERNEL vadd_i32: reference hash 6c3c6ed2b2e5e720, KAT 6c3c6ed2b2e5e721
+   KERNEL vadd_i32: reference vs KAT MISMATCH
+   SIGIL TEST FAIL kernels: vadd_i32
+   SOC RTL TB FAIL (fail string at 495632 cycles)
+   testbench exit status 1: failed, as required
+
+## case ref_sgemm_one_element: ref.c
+   84c84
+   <       c[i * n + j] = s;
+   ---
+   >       c[i * n + j] = (i == 5 && j == 7) ? s + 1.0f : s;
+   KERNEL vadd_i32 CHECK OK elem=1024 iterations=1
+   KERNEL vadd_i64 CHECK OK elem=512 iterations=1
+   KERNEL daxpy CHECK OK elem=512 iterations=1
+   KERNEL saxpy CHECK OK elem=1024 iterations=1
+   KERNEL ddot CHECK OK elem=512 iterations=1
+   KERNEL idot_i32 CHECK OK elem=1024 iterations=1
+   KERNEL memcpy CHECK OK byte=4096 iterations=1
+   KERNEL memset CHECK OK byte=4096 iterations=1
+   KERNEL dgemm CHECK OK mac=32768 iterations=1
+   KERNEL sgemm: reference hash 6bb7623e32b9357e, KAT 2876d79b559ca167
+   KERNEL sgemm: reference vs KAT MISMATCH
+   SIGIL TEST FAIL kernels: sgemm
+   SOC RTL TB FAIL (fail string at 12324188 cycles)
+   testbench exit status 1: failed, as required
+
+## case rvv_ddot_wrong_operand: kern_rvv.c
+   58c58
+   <     acc = __riscv_vfmacc_vv_f64m8_tu(acc, vx, vy, vl);
+   ---
+   >     acc = __riscv_vfmacc_vv_f64m8_tu(acc, vx, vx, vl);
+   KERNEL vadd_i32 CHECK OK elem=1024 iterations=1
+   KERNEL vadd_i64 CHECK OK elem=512 iterations=1
+   KERNEL daxpy CHECK OK elem=512 iterations=1
+   KERNEL saxpy CHECK OK elem=1024 iterations=1
+   KERNEL ddot: RVV MISMATCH
+   SIGIL TEST FAIL kernels: ddot
+   SOC RTL TB FAIL (fail string at 2839640 cycles)
+   testbench exit status 1: failed, as required
+
+## case rvv_mac_i16_last_strip: kern_rvv.c
+   182c182
+   <     acc = __riscv_vwmacc_vv_i32m8_tu(acc, vx, vy, vl);
+   ---
+   >     acc = __riscv_vwmacc_vv_i32m8_tu(acc, vx, vy, n > vl ? vl : vl - 1);
+   KERNEL vadd_i32 CHECK OK elem=1024 iterations=1
+   KERNEL vadd_i64 CHECK OK elem=512 iterations=1
+   KERNEL daxpy CHECK OK elem=512 iterations=1
+   KERNEL saxpy CHECK OK elem=1024 iterations=1
+   KERNEL ddot CHECK OK elem=512 iterations=1
+   KERNEL idot_i32 CHECK OK elem=1024 iterations=1
+   KERNEL memcpy CHECK OK byte=4096 iterations=1
+   KERNEL memset CHECK OK byte=4096 iterations=1
+   KERNEL dgemm CHECK OK mac=32768 iterations=1
+   KERNEL sgemm CHECK OK mac=32768 iterations=1
+   KERNEL fir_f32 CHECK OK mac=16384 iterations=1
+   KERNEL mac_i8 CHECK OK mac=4096 iterations=1
+   KERNEL mac_i16: RVV MISMATCH
+   SIGIL TEST FAIL kernels: mac_i16
+   SOC RTL TB FAIL (fail string at 16476957 cycles)
+   testbench exit status 1: failed, as required
+
+## case rvv_memcpy_overrun: kern_rvv.c
+   83c83
+   <   for (size_t vl, w = n / 8; w > 0; w -= vl, sp += vl, dp += vl) {
+   ---
+   >   for (size_t vl, w = n / 8 + 1; w > 0; w -= vl, sp += vl, dp += vl) {
+   KERNEL vadd_i32 CHECK OK elem=1024 iterations=1
+   KERNEL vadd_i64 CHECK OK elem=512 iterations=1
+   KERNEL daxpy CHECK OK elem=512 iterations=1
+   KERNEL saxpy CHECK OK elem=1024 iterations=1
+   KERNEL ddot CHECK OK elem=512 iterations=1
+   KERNEL idot_i32 CHECK OK elem=1024 iterations=1
+   KERNEL memcpy: RVV wrote outside its output (guard band)
+   KERNEL memcpy: RVV MISMATCH
+   SIGIL TEST FAIL kernels: memcpy
+   SOC RTL TB FAIL (fail string at 4099857 cycles)
+   testbench exit status 1: failed, as required
+
+## case rvv_vadd_short_store: kern_rvv.c
+   20c20
+   <     __riscv_vse32_v_i32m8(c, __riscv_vadd_vv_i32m8(va, vb, vl), vl);
+   ---
+   >     __riscv_vse32_v_i32m8(c, __riscv_vadd_vv_i32m8(va, vb, vl), vl > 1 ? vl - 1 : vl);
+   KERNEL vadd_i32: RVV MISMATCH at byte 508
+   SIGIL TEST FAIL kernels: vadd_i32
+   SOC RTL TB FAIL (fail string at 618806 cycles)
+   testbench exit status 1: failed, as required
+
+RESULT: all 7 injected faults detected (every run failed)

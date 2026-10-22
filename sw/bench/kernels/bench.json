@@ -1,0 +1,159 @@
+{
+  "name": "kernels",
+  "description": "13 vector/FP kernels, portable C vs RVV 1.0 intrinsics, each checked bit for bit against a scalar reference and a host KAT",
+  "iterations": 4,
+  "max_cycles": 200000000,
+  "units": "calls of the region's kernel (cycles/iteration = cycles per call)",
+  "expect": [
+    "KERNEL vadd_i32 CHECK OK elem=1024 iterations={iterations}",
+    "KERNEL vadd_i64 CHECK OK elem=512 iterations={iterations}",
+    "KERNEL daxpy CHECK OK elem=512 iterations={iterations}",
+    "KERNEL saxpy CHECK OK elem=1024 iterations={iterations}",
+    "KERNEL ddot CHECK OK elem=512 iterations={iterations}",
+    "KERNEL idot_i32 CHECK OK elem=1024 iterations={iterations}",
+    "KERNEL memcpy CHECK OK byte=4096 iterations={iterations}",
+    "KERNEL memset CHECK OK byte=4096 iterations={iterations}",
+    "KERNEL dgemm CHECK OK mac=32768 iterations={iterations}",
+    "KERNEL sgemm CHECK OK mac=32768 iterations={iterations}",
+    "KERNEL fir_f32 CHECK OK mac=16384 iterations={iterations}",
+    "KERNEL mac_i8 CHECK OK mac=4096 iterations={iterations}",
+    "KERNEL mac_i16 CHECK OK mac=2048 iterations={iterations}",
+    "KERNELS CHECK OK kernels=13 iterations={iterations}"
+  ],
+  "regions": {
+    "10": {"label": "vadd_i32 C", "work_per_iteration": 1024, "work_unit": "elem"},
+    "11": {"label": "vadd_i32 RVV", "work_per_iteration": 1024, "work_unit": "elem", "baseline": 10},
+    "20": {"label": "vadd_i64 C", "work_per_iteration": 512, "work_unit": "elem"},
+    "21": {"label": "vadd_i64 RVV", "work_per_iteration": 512, "work_unit": "elem", "baseline": 20},
+    "30": {"label": "daxpy C", "work_per_iteration": 512, "work_unit": "elem"},
+    "31": {"label": "daxpy RVV", "work_per_iteration": 512, "work_unit": "elem", "baseline": 30},
+    "40": {"label": "saxpy C", "work_per_iteration": 1024, "work_unit": "elem"},
+    "41": {"label": "saxpy RVV", "work_per_iteration": 1024, "work_unit": "elem", "baseline": 40},
+    "50": {"label": "ddot C", "work_per_iteration": 512, "work_unit": "elem"},
+    "51": {"label": "ddot RVV", "work_per_iteration": 512, "work_unit": "elem", "baseline": 50},
+    "60": {"label": "idot_i32 C", "work_per_iteration": 1024, "work_unit": "elem"},
+    "61": {"label": "idot_i32 RVV", "work_per_iteration": 1024, "work_unit": "elem", "baseline": 60},
+    "70": {"label": "memcpy C", "work_per_iteration": 4096, "work_unit": "byte"},
+    "71": {"label": "memcpy RVV", "work_per_iteration": 4096, "work_unit": "byte", "baseline": 70},
+    "72": {"label": "memcpy RVV-e8", "work_per_iteration": 4096, "work_unit": "byte", "baseline": 70},
+    "80": {"label": "memset C", "work_per_iteration": 4096, "work_unit": "byte"},
+    "81": {"label": "memset RVV", "work_per_iteration": 4096, "work_unit": "byte", "baseline": 80},
+    "82": {"label": "memset RVV-e8", "work_per_iteration": 4096, "work_unit": "byte", "baseline": 80},
+    "90": {"label": "dgemm C", "work_per_iteration": 32768, "work_unit": "mac"},
+    "91": {"label": "dgemm RVV", "work_per_iteration": 32768, "work_unit": "mac", "baseline": 90},
+    "100": {"label": "sgemm C", "work_per_iteration": 32768, "work_unit": "mac"},
+    "101": {"label": "sgemm RVV", "work_per_iteration": 32768, "work_unit": "mac", "baseline": 100},
+    "110": {"label": "fir_f32 C", "work_per_iteration": 16384, "work_unit": "mac"},
+    "111": {"label": "fir_f32 RVV", "work_per_iteration": 16384, "work_unit": "mac", "baseline": 110},
+    "120": {"label": "mac_i8 C", "work_per_iteration": 4096, "work_unit": "mac"},
+    "121": {"label": "mac_i8 RVV", "work_per_iteration": 4096, "work_unit": "mac", "baseline": 120},
+    "130": {"label": "mac_i16 C", "work_per_iteration": 2048, "work_unit": "mac"},
+    "131": {"label": "mac_i16 RVV", "work_per_iteration": 2048, "work_unit": "mac", "baseline": 130}
+  },
+  "variants": {
+    "scalar": {
+      "description": "C kernels for the scalar ISA (-march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh, -O2): C = scalar baseline",
+      "make": {}
+    },
+    "autovec": {
+      "description": "C kernels with the SDK -march (with V) at -O3: C = GCC 16 auto-vectorization (at -O2 it vectorizes only the FIR inner loop)",
+      "make": {
+        "KERNELS_C_MARCH": "rv64gcv_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh",
+        "KERNELS_C_OPT": "-O3"
+      }
+    }
+  },
+  "kernels": [
+    {
+      "id": 1,
+      "name": "vadd_i32",
+      "units": 1024,
+      "unit": "elem",
+      "what": "c[i] = a[i] + b[i], int32, n = 1024"
+    },
+    {
+      "id": 2,
+      "name": "vadd_i64",
+      "units": 512,
+      "unit": "elem",
+      "what": "c[i] = a[i] + b[i], int64, n = 512"
+    },
+    {
+      "id": 3,
+      "name": "daxpy",
+      "units": 512,
+      "unit": "elem",
+      "what": "y[i] += a * x[i], fp64, n = 512 (in place)"
+    },
+    {
+      "id": 4,
+      "name": "saxpy",
+      "units": 1024,
+      "unit": "elem",
+      "what": "y[i] += a * x[i], fp32, n = 1024 (in place)"
+    },
+    {
+      "id": 5,
+      "name": "ddot",
+      "units": 512,
+      "unit": "elem",
+      "what": "sum x[i] * y[i], fp64, n = 512"
+    },
+    {
+      "id": 6,
+      "name": "idot_i32",
+      "units": 1024,
+      "unit": "elem",
+      "what": "sum x[i] * y[i], int32 x int32 -> int64, n = 1024"
+    },
+    {
+      "id": 7,
+      "name": "memcpy",
+      "units": 4096,
+      "unit": "byte",
+      "what": "copy 4096 bytes, 8-byte aligned (C: SDK memcpy; RVV: e64; RVV-e8: e8)"
+    },
+    {
+      "id": 8,
+      "name": "memset",
+      "units": 4096,
+      "unit": "byte",
+      "what": "fill 4096 bytes, 8-byte aligned (C: SDK memset; RVV: e64; RVV-e8: e8)"
+    },
+    {
+      "id": 9,
+      "name": "dgemm",
+      "units": 32768,
+      "unit": "mac",
+      "what": "C = A B, 32 x 32 fp64, row-major"
+    },
+    {
+      "id": 10,
+      "name": "sgemm",
+      "units": 32768,
+      "unit": "mac",
+      "what": "C = A B, 32 x 32 fp32, row-major"
+    },
+    {
+      "id": 11,
+      "name": "fir_f32",
+      "units": 16384,
+      "unit": "mac",
+      "what": "y[i] = sum h[k] x[i+k], fp32, 1024 outputs x 16 taps"
+    },
+    {
+      "id": 12,
+      "name": "mac_i8",
+      "units": 4096,
+      "unit": "mac",
+      "what": "sum x[i] * y[i], int8 x int8 -> int32 (RVV: vwmul + vwadd.wv), n = 4096"
+    },
+    {
+      "id": 13,
+      "name": "mac_i16",
+      "units": 2048,
+      "unit": "mac",
+      "what": "sum x[i] * y[i], int16 x int16 -> int32 (RVV: vwmacc), n = 2048"
+    }
+  ]
+}

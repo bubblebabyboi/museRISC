@@ -1,0 +1,19 @@
+$ /home/ubuntu/wt/56-perf-sha256chain/build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/scratch-sha256chain/iter40/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin --exit-string 'SIGIL TEST PASS sha256chain_bulk' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-sha256chain/iter40/runs/sha256chain_bulk-sdk.soc-default.r0.perf
+loaded 25912 bytes at 0x80000000 from /home/ubuntu/scratch-sha256chain/iter40/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=6326589 instret=2315305
+RESULT sha256 plain C: 40 KiB, 6326589 cycles, 2315305 instret, cycles/KiB 158164.73, bytes/cycle 0.0065, KiB/s at 62.5 MHz 395, at 100 MHz 632
+SIGIL PERF region=1 cycles=4317469 instret=1710895
+RESULT sha256 Zknh: 40 KiB, 4317469 cycles, 1710895 instret, cycles/KiB 107936.73, bytes/cycle 0.0095, KiB/s at 62.5 MHz 579, at 100 MHz 926
+SIGIL PERF region=2 cycles=3148205 instret=141521
+RESULT sha256 RVV x16: 40 KiB, 3148205 cycles, 141521 instret, cycles/KiB 78705.13, bytes/cycle 0.0130, KiB/s at 62.5 MHz 794, at 100 MHz 1271
+SIGIL PERF region=3 cycles=172782 instret=41885
+RESULT sha512 accel sigil_hash: 40 KiB, 172782 cycles, 41885 instret, cycles/KiB 4319.55, bytes/cycle 0.2371, KiB/s at 62.5 MHz 14469, at 100 MHz 23151
+SIGIL PERF region=4 cycles=171293 instret=41468
+RESULT sha3-256 accel sigil_hash: 40 KiB, 171293 cycles, 41468 instret, cycles/KiB 4282.33, bytes/cycle 0.2391, KiB/s at 62.5 MHz 14595, at 100 MHz 23352
+sha256 of the 40 KiB buffer = 813bd0c7d9b8ecfaa4463eefe8b3bcb8b1662d5f02b5a071716d503d3bf968f9
+SHA256CHAIN_BULK CHECK OK kib=40
+SIGIL TEST PASS sha256chain_bulk
+SOC RTL TB PASS (exit string at 15940111 cycles)

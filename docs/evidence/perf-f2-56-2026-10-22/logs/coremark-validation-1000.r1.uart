@@ -1,0 +1,20 @@
+SIGIL PERF region=0 cycles=718246817 instret=262700080
+2K validation run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 718246817
+Total time (secs): 11.491949
+Iterations/Sec   : 87.017441
+Iterations       : 1000
+Compiler version : GCC16.1.0
+Compiler flags   : -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno
+Memory location  : STACK
+seedcrc          : 0x18f2
+[0]crclist       : 0xe3c1
+[0]crcmatrix     : 0x0747
+[0]crcstate      : 0x8d84
+[0]crcfinal      : 0x26c2
+Correct operation validated. See README.md for run and reporting rules.
+COREMARK validation run: iterations=1000 cycles=718246817 instret=262700080 cycles/iteration=718246 CoreMark/MHz=1.392
+COREMARK CRC seedcrc=0x18f2 crclist=0xe3c1 crcmatrix=0x0747 crcstate=0x8d84 crcfinal=0x26c2 (crcfinal matches the host reference)
+COREMARK CHECK OK iterations=1000
+SIGIL TEST PASS coremark

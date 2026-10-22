@@ -1,0 +1,16 @@
+perf: build sha256chain [sdk] (1024 iterations)
+perf: build sha256chain_bulk [sdk] (64 iterations)
+perf: 2 runs, 2 at a time
+perf: sha256chain[sdk] region 0 soc/default rep 0: cycles=10208495 instret=3714106 (141.46 s) PASS
+perf: sha256chain[sdk] region 1 soc/default rep 0: cycles=7385318 instret=2731066 (141.46 s) PASS
+perf: sha256chain[sdk] region 2 soc/default rep 0: cycles=4753409 instret=219781 (141.46 s) PASS
+perf: sha256chain[sdk] region 3 soc/default rep 0: cycles=602189 instret=162832 (141.46 s) PASS
+perf: sha256chain[sdk] region 4 soc/default rep 0: cycles=2876530 instret=1029138 (141.46 s) PASS
+perf: sha256chain[sdk] region 5 soc/default rep 0: cycles=3609723 instret=1010703 (141.46 s) PASS
+perf: sha256chain[sdk] region 6 soc/default rep 0: cycles=1920058 instret=550930 (141.46 s) PASS
+perf: sha256chain_bulk[sdk] region 0 soc/default rep 0: cycles=10115438 instret=3701940 (112.85 s) PASS
+perf: sha256chain_bulk[sdk] region 1 soc/default rep 0: cycles=6903364 instret=2735418 (112.85 s) PASS
+perf: sha256chain_bulk[sdk] region 2 soc/default rep 0: cycles=5509491 instret=224334 (112.85 s) PASS
+perf: sha256chain_bulk[sdk] region 3 soc/default rep 0: cycles=275406 instret=66479 (112.85 s) PASS
+perf: sha256chain_bulk[sdk] region 4 soc/default rep 0: cycles=274201 instret=66065 (112.85 s) PASS
+perf: 12 runs valid, 0 failed; /home/ubuntu/scratch-sha256chain/unaligned/results.json, /home/ubuntu/scratch-sha256chain/unaligned/report.md

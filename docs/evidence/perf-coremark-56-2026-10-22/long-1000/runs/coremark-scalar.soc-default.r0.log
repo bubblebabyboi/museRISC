@@ -1,0 +1,24 @@
+$ /home/ubuntu/wt/56-perf-coremark/build/sim/soc_rtl_tb 1500000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-coremark/build/perf/cm-long1000/bin/coremark-scalar/coremark.bin --exit-string 'SIGIL TEST PASS coremark' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-coremark/build/perf/cm-long1000/runs/coremark-scalar.soc-default.r0.perf
+loaded 13408 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-coremark/build/perf/cm-long1000/bin/coremark-scalar/coremark.bin
+SIGIL PERF region=0 cycles=716834049 instret=262309875
+2K performance run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 716834049
+Total time (secs): 11.469345
+Iterations/Sec   : 87.188939
+Iterations       : 1000
+Compiler version : GCC16.1.0
+Compiler flags   : -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno
+Memory location  : STACK
+seedcrc          : 0xe9f5
+[0]crclist       : 0xe714
+[0]crcmatrix     : 0x1fd7
+[0]crcstate      : 0x8e3a
+[0]crcfinal      : 0xd340
+Correct operation validated. See README.md for run and reporting rules.
+CoreMark 1.0 : 87.188939 / GCC16.1.0 -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno / STACK
+COREMARK performance run: iterations=1000 cycles=716834049 instret=262309875 cycles/iteration=716834 CoreMark/MHz=1.395
+COREMARK CRC seedcrc=0xe9f5 crclist=0xe714 crcmatrix=0x1fd7 crcstate=0x8e3a crcfinal=0xd340 (crcfinal matches the host reference)
+COREMARK CHECK OK iterations=1000
+SIGIL TEST PASS coremark
+SOC RTL TB PASS (exit string at 717105296 cycles)

@@ -1,0 +1,20 @@
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=10156458 instret=3714094
+RESULT sha256 plain C: 1024 hash, 10156458 cycles, 3714094 instret, cycles/hash 9918.42, bytes/cycle 0.0032, hash/s at 62.5 MHz 6301, at 100 MHz 10082
+SIGIL PERF region=1 cycles=6915520 instret=2731057
+RESULT sha256 Zknh: 1024 hash, 6915520 cycles, 2731057 instret, cycles/hash 6753.44, bytes/cycle 0.0047, hash/s at 62.5 MHz 9255, at 100 MHz 14807
+SIGIL PERF region=2 cycles=4754020 instret=219768
+RESULT sha256 RVV x16: 1024 hash, 4754020 cycles, 219768 instret, cycles/hash 4642.60, bytes/cycle 0.0069, hash/s at 62.5 MHz 13462, at 100 MHz 21540
+SIGIL PERF region=3 cycles=585813 instret=162834
+RESULT sha256 accel sigil_sha256_block: 1024 hash, 585813 cycles, 162834 instret, cycles/hash 572.08, bytes/cycle 0.0559, hash/s at 62.5 MHz 109250, at 100 MHz 174800
+SIGIL PERF region=4 cycles=2860317 instret=1029142
+RESULT sha256 accel sigil_sha256: 1024 hash, 2860317 cycles, 1029142 instret, cycles/hash 2793.28, bytes/cycle 0.0115, hash/s at 62.5 MHz 22375, at 100 MHz 35800
+SIGIL PERF region=5 cycles=2531597 instret=1011729
+RESULT sha512 accel sigil_hash: 1024 hash, 2531597 cycles, 1011729 instret, cycles/hash 2472.26, bytes/cycle 0.0259, hash/s at 62.5 MHz 25280, at 100 MHz 40449
+SIGIL PERF region=6 cycles=1403031 instret=555037
+RESULT sha3-256 accel sigil_hash: 1024 hash, 1403031 cycles, 555037 instret, cycles/hash 1370.15, bytes/cycle 0.0234, hash/s at 62.5 MHz 45616, at 100 MHz 72985
+sha256 chain h_1024 = 014f68f1316b596d8f66923bacb9555f83e22c9887068760371c5b3f299e464b
+SHA256CHAIN CHECK OK hashes=1024
+SIGIL TEST PASS sha256chain

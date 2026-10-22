@@ -1,0 +1,1288 @@
+== region 10
+instr=2655 rvc=561 ld=2 st=4 br=268 br_taken=255 br_back=260 br_back_taken=255 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=1280 strad4=1312 strad8=528
+fetch_acc_word=3967 fetch_acc_reuse4=2382 fetch_acc_blk8=1323
+dir.NT.miss=255
+dir.T.miss=13
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=13
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=13
+dir.gsh256h8.miss=21
+dir.gsh512h6.miss=17
+dir.gsh512h9.miss=23
+dir.gsh1024h8.miss=21
+dir.gsh1024h10.miss=25
+dir.gsh2048h11.miss=27
+dir.gsh4096h12.miss=29
+btb.4w1 taken=259 hit=250 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=259 hit=248 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 11
+instr=373 rvc=101 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=160 strad4=104 strad8=36
+fetch_acc_word=477 fetch_acc_reuse4=356 fetch_acc_blk8=182
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=23
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=23
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 20
+instr=2653 rvc=557 ld=2 st=4 br=272 br_taken=255 br_back=260 br_back_taken=255 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=1280 strad4=792 strad8=520
+fetch_acc_word=3445 fetch_acc_reuse4=2632 fetch_acc_blk8=1574
+dir.NT.miss=255
+dir.T.miss=17
+dir.BTFN.miss=5
+dir.bim16.miss=14
+dir.bim32.miss=14
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=11
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=12
+dir.gsh256h8.miss=20
+dir.gsh512h6.miss=17
+dir.gsh512h9.miss=22
+dir.gsh1024h8.miss=20
+dir.gsh1024h10.miss=24
+dir.gsh2048h11.miss=26
+dir.gsh4096h12.miss=28
+btb.4w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 21
+instr=373 rvc=101 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=160 strad4=104 strad8=36
+fetch_acc_word=477 fetch_acc_reuse4=356 fetch_acc_blk8=182
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=23
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=23
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 30
+instr=2657 rvc=557 ld=2 st=4 br=272 br_taken=255 br_back=260 br_back_taken=255 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4 vec=1288 strad4=788 strad8=520
+fetch_acc_word=3445 fetch_acc_reuse4=2637 fetch_acc_blk8=1575
+dir.NT.miss=255
+dir.T.miss=17
+dir.BTFN.miss=5
+dir.bim16.miss=14
+dir.bim32.miss=14
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=12
+dir.gsh128h6.miss=16
+dir.gsh256h4.miss=12
+dir.gsh256h8.miss=19
+dir.gsh512h6.miss=16
+dir.gsh512h9.miss=21
+dir.gsh1024h8.miss=20
+dir.gsh1024h10.miss=24
+dir.gsh2048h11.miss=26
+dir.gsh4096h12.miss=28
+btb.4w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 31
+instr=341 rvc=93 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4 vec=160 strad4=112 strad8=40
+fetch_acc_word=453 fetch_acc_reuse4=329 fetch_acc_blk8=186
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=14
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=21
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 40
+instr=2653 rvc=561 ld=2 st=4 br=268 br_taken=255 br_back=260 br_back_taken=255 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4 vec=1288 strad4=1308 strad8=784
+fetch_acc_word=3961 fetch_acc_reuse4=2376 fetch_acc_blk8=1318
+dir.NT.miss=255
+dir.T.miss=13
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=13
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=13
+dir.gsh256h8.miss=21
+dir.gsh512h6.miss=17
+dir.gsh512h9.miss=23
+dir.gsh1024h8.miss=21
+dir.gsh1024h10.miss=25
+dir.gsh2048h11.miss=27
+dir.gsh4096h12.miss=29
+btb.4w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 41
+instr=341 rvc=93 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4 vec=160 strad4=112 strad8=40
+fetch_acc_word=453 fetch_acc_reuse4=329 fetch_acc_blk8=186
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=14
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=21
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 50
+instr=3385 rvc=549 ld=2 st=8 br=264 br_taken=255 br_back=260 br_back_taken=255 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4 vec=2304 strad4=1544 strad8=773
+fetch_acc_word=4929 fetch_acc_reuse4=3365 fetch_acc_blk8=1815
+dir.NT.miss=255
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=22
+dir.gsh512h6.miss=18
+dir.gsh512h9.miss=24
+dir.gsh1024h8.miss=22
+dir.gsh1024h10.miss=26
+dir.gsh2048h11.miss=28
+dir.gsh4096h12.miss=30
+btb.4w1 taken=259 hit=251 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=259 hit=248 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=259 hit=256 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 51
+instr=333 rvc=101 ld=2 st=8 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=152 strad4=120 strad8=44
+fetch_acc_word=453 fetch_acc_reuse4=316 fetch_acc_blk8=162
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=23
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=18
+dir.gsh512h6.miss=23
+dir.gsh512h9.miss=18
+dir.gsh1024h8.miss=18
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=27 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 60
+instr=4173 rvc=1061 ld=2 st=8 br=520 br_taken=511 br_back=516 br_back_taken=511 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=2072 strad4=1568 strad8=528
+fetch_acc_word=5741 fetch_acc_reuse4=4156 fetch_acc_blk8=2082
+dir.NT.miss=511
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=20
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=22
+dir.gsh512h6.miss=20
+dir.gsh512h9.miss=24
+dir.gsh1024h8.miss=22
+dir.gsh1024h10.miss=26
+dir.gsh2048h11.miss=28
+dir.gsh4096h12.miss=30
+btb.4w1 taken=515 hit=507 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 61
+instr=589 rvc=165 ld=2 st=8 br=72 br_taken=63 br_back=68 br_back_taken=63 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=280 strad4=216 strad8=77
+fetch_acc_word=805 fetch_acc_reuse4=569 fetch_acc_blk8=291
+dir.NT.miss=63
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=20
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=24
+dir.gsh512h6.miss=20
+dir.gsh512h9.miss=26
+dir.gsh1024h8.miss=24
+dir.gsh1024h10.miss=28
+dir.gsh2048h11.miss=30
+dir.gsh4096h12.miss=32
+btb.4w1 taken=67 hit=59 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=67 hit=56 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 70
+instr=10357 rvc=6209 ld=2050 st=2052 br=2064 br_taken=2047 br_back=2052 br_back_taken=2047 br_fwd_taken=0 jal=8 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=0 strad4=4111 strad8=2054
+fetch_acc_word=14468 fetch_acc_reuse4=8277 fetch_acc_blk8=4147
+dir.NT.miss=2047
+dir.T.miss=17
+dir.BTFN.miss=5
+dir.bim16.miss=15
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=15
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=15
+dir.gsh256h8.miss=21
+dir.gsh512h6.miss=17
+dir.gsh512h9.miss=23
+dir.gsh1024h8.miss=21
+dir.gsh1024h10.miss=25
+dir.gsh2048h11.miss=27
+dir.gsh4096h12.miss=29
+btb.4w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=2055 hit=2043 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 71
+instr=277 rvc=101 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=96 strad4=99 strad8=65
+fetch_acc_word=376 fetch_acc_reuse4=229 fetch_acc_blk8=146
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=18
+dir.gsh256h4.miss=15
+dir.gsh256h8.miss=17
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=17
+dir.gsh1024h8.miss=17
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 72
+instr=273 rvc=161 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=96 strad4=99 strad8=65
+fetch_acc_word=372 fetch_acc_reuse4=221 fetch_acc_blk8=114
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=21
+dir.gsh128h6.miss=21
+dir.gsh256h4.miss=21
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=24 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 80
+instr=6265 rvc=2098 ld=2 st=2052 br=2064 br_taken=2047 br_back=2052 br_back_taken=2047 br_fwd_taken=0 jal=8 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=4 div=0 fp=0 vec=0 strad4=2067 strad8=9
+fetch_acc_word=8332 fetch_acc_reuse4=6243 fetch_acc_blk8=4154
+dir.NT.miss=2047
+dir.T.miss=17
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=21
+dir.gsh128h6.miss=17
+dir.gsh256h4.miss=20
+dir.gsh256h8.miss=21
+dir.gsh512h6.miss=17
+dir.gsh512h9.miss=23
+dir.gsh1024h8.miss=21
+dir.gsh1024h10.miss=25
+dir.gsh2048h11.miss=27
+dir.gsh4096h12.miss=29
+btb.4w1 taken=2055 hit=2042 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=2055 hit=2045 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=2055 hit=2040 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=2055 hit=2042 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=2055 hit=2051 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 81
+instr=241 rvc=109 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=4 div=0 fp=0 vec=72 strad4=37 strad8=35
+fetch_acc_word=278 fetch_acc_reuse4=192 fetch_acc_blk8=126
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=21
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 82
+instr=217 rvc=129 ld=2 st=4 br=40 br_taken=31 br_back=36 br_back_taken=31 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=72 strad4=83 strad8=45
+fetch_acc_word=300 fetch_acc_reuse4=173 fetch_acc_blk8=94
+dir.NT.miss=31
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=15
+dir.gsh128h6.miss=21
+dir.gsh256h4.miss=15
+dir.gsh256h8.miss=16
+dir.gsh512h6.miss=21
+dir.gsh512h9.miss=16
+dir.gsh1024h8.miss=16
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=18
+btb.4w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=35 hit=26 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=35 hit=24 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=35 hit=32 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 90
+instr=828349 rvc=422313 ld=262146 st=4100 br=135304 br_taken=127111 br_back=131076 br_back_taken=126979 br_fwd_taken=132 jal=4096 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=135168 vec=0 strad4=12808 strad8=8456
+fetch_acc_word=841157 fetch_acc_reuse4=684848 fetch_acc_blk8=406170
+dir.NT.miss=127111
+dir.T.miss=8193
+dir.BTFN.miss=4229
+dir.bim16.miss=4235
+dir.bim32.miss=4231
+dir.bim64.miss=4231
+dir.bim128.miss=4231
+dir.bim256.miss=4231
+dir.bim512.miss=4231
+dir.bim1024.miss=4231
+dir.bim2048.miss=4231
+dir.bim4096.miss=4231
+dir.gsh64h4.miss=4243
+dir.gsh128h6.miss=4250
+dir.gsh256h4.miss=4243
+dir.gsh256h8.miss=4258
+dir.gsh512h6.miss=4250
+dir.gsh512h9.miss=4262
+dir.gsh1024h8.miss=4258
+dir.gsh1024h10.miss=4266
+dir.gsh2048h11.miss=4270
+dir.gsh4096h12.miss=4274
+btb.4w1 taken=131207 hit=130942 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=131207 hit=131189 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=131207 hit=131195 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=131207 hit=130942 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 91
+instr=26693 rvc=8881 ld=4098 st=4 br=4360 br_taken=4095 br_back=4356 br_back_taken=4095 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=8576 strad4=1036 strad8=387
+fetch_acc_word=27729 fetch_acc_reuse4=22317 fetch_acc_blk8=13210
+dir.NT.miss=4095
+dir.T.miss=265
+dir.BTFN.miss=261
+dir.bim16.miss=136
+dir.bim32.miss=136
+dir.bim64.miss=136
+dir.bim128.miss=136
+dir.bim256.miss=136
+dir.bim512.miss=136
+dir.bim1024.miss=136
+dir.bim2048.miss=136
+dir.bim4096.miss=136
+dir.gsh64h4.miss=144
+dir.gsh128h6.miss=151
+dir.gsh256h4.miss=144
+dir.gsh256h8.miss=156
+dir.gsh512h6.miss=151
+dir.gsh512h9.miss=159
+dir.gsh1024h8.miss=156
+dir.gsh1024h10.miss=162
+dir.gsh2048h11.miss=165
+dir.gsh4096h12.miss=168
+btb.4w1 taken=4099 hit=4089 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=4099 hit=4089 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=4099 hit=4087 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 100
+instr=828349 rvc=156073 ld=262146 st=4100 br=135304 br_taken=127111 br_back=131076 br_back_taken=126979 br_fwd_taken=132 jal=4096 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=135168 vec=0 strad4=266256 strad8=131085
+fetch_acc_word=1094605 fetch_acc_reuse4=815789 fetch_acc_blk8=410011
+dir.NT.miss=127111
+dir.T.miss=8193
+dir.BTFN.miss=4229
+dir.bim16.miss=4231
+dir.bim32.miss=4231
+dir.bim64.miss=4231
+dir.bim128.miss=4231
+dir.bim256.miss=4231
+dir.bim512.miss=4231
+dir.bim1024.miss=4231
+dir.bim2048.miss=4231
+dir.bim4096.miss=4231
+dir.gsh64h4.miss=4241
+dir.gsh128h6.miss=4251
+dir.gsh256h4.miss=4242
+dir.gsh256h8.miss=4258
+dir.gsh512h6.miss=4251
+dir.gsh512h9.miss=4262
+dir.gsh1024h8.miss=4258
+dir.gsh1024h10.miss=4266
+dir.gsh2048h11.miss=4270
+dir.gsh4096h12.miss=4274
+btb.4w1 taken=131207 hit=130938 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=131207 hit=130946 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=131207 hit=131186 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=131207 hit=131191 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=131207 hit=131200 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 101
+instr=26693 rvc=4785 ld=4098 st=4 br=4360 br_taken=4095 br_back=4356 br_back_taken=4095 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=8576 strad4=13188 strad8=4612
+fetch_acc_word=39881 fetch_acc_reuse4=26292 fetch_acc_blk8=13214
+dir.NT.miss=4095
+dir.T.miss=265
+dir.BTFN.miss=261
+dir.bim16.miss=135
+dir.bim32.miss=136
+dir.bim64.miss=136
+dir.bim128.miss=136
+dir.bim256.miss=136
+dir.bim512.miss=136
+dir.bim1024.miss=136
+dir.bim2048.miss=136
+dir.bim4096.miss=136
+dir.gsh64h4.miss=148
+dir.gsh128h6.miss=150
+dir.gsh256h4.miss=144
+dir.gsh256h8.miss=156
+dir.gsh512h6.miss=150
+dir.gsh512h9.miss=159
+dir.gsh1024h8.miss=156
+dir.gsh1024h10.miss=162
+dir.gsh2048h11.miss=165
+dir.gsh4096h12.miss=168
+btb.4w1 taken=4099 hit=4090 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=4099 hit=4090 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=4099 hit=4090 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=4099 hit=4087 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=4099 hit=4095 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 110
+instr=86081 rvc=28717 ld=2 st=4100 br=8204 br_taken=4095 br_back=8196 br_back_taken=4095 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=4096 vec=36864 strad4=32781 strad8=12290
+fetch_acc_word=118862 fetch_acc_reuse4=73772 fetch_acc_blk8=36890
+dir.NT.miss=4095
+dir.T.miss=4109
+dir.BTFN.miss=4101
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=11
+dir.gsh128h6.miss=13
+dir.gsh256h4.miss=11
+dir.gsh256h8.miss=15
+dir.gsh512h6.miss=13
+dir.gsh512h9.miss=15
+dir.gsh1024h8.miss=15
+dir.gsh1024h10.miss=17
+dir.gsh2048h11.miss=17
+dir.gsh4096h12.miss=19
+btb.4w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=4099 hit=4096 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 111
+instr=3489 rvc=1165 ld=514 st=4 br=584 br_taken=511 br_back=548 br_back_taken=511 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=1120 strad4=43 strad8=38
+fetch_acc_word=3532 fetch_acc_reuse4=2925 fetch_acc_blk8=1723
+dir.NT.miss=511
+dir.T.miss=73
+dir.BTFN.miss=37
+dir.bim16.miss=63
+dir.bim32.miss=40
+dir.bim64.miss=40
+dir.bim128.miss=40
+dir.bim256.miss=40
+dir.bim512.miss=40
+dir.bim1024.miss=40
+dir.bim2048.miss=40
+dir.bim4096.miss=40
+dir.gsh64h4.miss=48
+dir.gsh128h6.miss=56
+dir.gsh256h4.miss=48
+dir.gsh256h8.miss=61
+dir.gsh512h6.miss=56
+dir.gsh512h9.miss=64
+dir.gsh1024h8.miss=61
+dir.gsh1024h10.miss=67
+dir.gsh2048h11.miss=70
+dir.gsh4096h12.miss=73
+btb.4w1 taken=515 hit=505 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=515 hit=505 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=515 hit=503 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=515 hit=511 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 120
+instr=11341 rvc=4137 ld=2 st=8 br=1032 br_taken=1023 br_back=1028 br_back_taken=1023 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=7192 strad4=3103 strad8=1042
+fetch_acc_word=14444 fetch_acc_reuse4=10297 fetch_acc_blk8=5151
+dir.NT.miss=1023
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=13
+dir.gsh128h6.miss=20
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=24
+dir.gsh512h6.miss=20
+dir.gsh512h9.miss=26
+dir.gsh1024h8.miss=24
+dir.gsh1024h10.miss=28
+dir.gsh2048h11.miss=30
+dir.gsh4096h12.miss=32
+btb.4w1 taken=1027 hit=1019 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=1027 hit=1024 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 121
+instr=709 rvc=297 ld=2 st=8 br=72 br_taken=63 br_back=68 br_back_taken=63 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=400 strad4=205 strad8=71
+fetch_acc_word=914 fetch_acc_reuse4=624 fetch_acc_blk8=350
+dir.NT.miss=63
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=10
+dir.bim32.miss=8
+dir.bim64.miss=8
+dir.bim128.miss=8
+dir.bim256.miss=8
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=18
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=22
+dir.gsh512h6.miss=18
+dir.gsh512h9.miss=24
+dir.gsh1024h8.miss=22
+dir.gsh1024h10.miss=26
+dir.gsh2048h11.miss=28
+dir.gsh4096h12.miss=30
+btb.4w1 taken=67 hit=56 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=67 hit=59 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=67 hit=59 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=67 hit=56 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=67 hit=56 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 130
+instr=4173 rvc=1061 ld=2 st=8 br=520 br_taken=511 br_back=516 br_back_taken=511 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=2072 strad4=1568 strad8=528
+fetch_acc_word=5741 fetch_acc_reuse4=4156 fetch_acc_blk8=2082
+dir.NT.miss=511
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=7
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=20
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=22
+dir.gsh512h6.miss=20
+dir.gsh512h9.miss=24
+dir.gsh1024h8.miss=22
+dir.gsh1024h10.miss=26
+dir.gsh2048h11.miss=28
+dir.gsh4096h12.miss=30
+btb.4w1 taken=515 hit=507 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=515 hit=512 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4
+== region 131
+instr=589 rvc=165 ld=2 st=8 br=72 br_taken=63 br_back=68 br_back_taken=63 br_fwd_taken=0 jal=4 jalr=4 ret=4 jalr_call=0 jalr_other=0 mul=0 div=0 fp=0 vec=280 strad4=216 strad8=77
+fetch_acc_word=805 fetch_acc_reuse4=569 fetch_acc_blk8=291
+dir.NT.miss=63
+dir.T.miss=9
+dir.BTFN.miss=5
+dir.bim16.miss=8
+dir.bim32.miss=7
+dir.bim64.miss=7
+dir.bim128.miss=7
+dir.bim256.miss=7
+dir.bim512.miss=7
+dir.bim1024.miss=7
+dir.bim2048.miss=7
+dir.bim4096.miss=7
+dir.gsh64h4.miss=14
+dir.gsh128h6.miss=20
+dir.gsh256h4.miss=14
+dir.gsh256h8.miss=24
+dir.gsh512h6.miss=20
+dir.gsh512h9.miss=26
+dir.gsh1024h8.miss=24
+dir.gsh1024h10.miss=28
+dir.gsh2048h11.miss=30
+dir.gsh4096h12.miss=32
+btb.4w1 taken=67 hit=59 jalr_taken=0 jalr_hit=0
+btb.8w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.16w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.32w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w1 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.4w2 taken=67 hit=56 jalr_taken=0 jalr_hit=0
+btb.8w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.16w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.32w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.64w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.128w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.256w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+btb.512w2 taken=67 hit=64 jalr_taken=0 jalr_hit=0
+ras.1 returns=4 correct=4
+ras.2 returns=4 correct=4
+ras.4 returns=4 correct=4
+ras.8 returns=4 correct=4
+ras.16 returns=4 correct=4

@@ -1,0 +1,25 @@
+$ /home/ubuntu/wt/56-perf-coremark/build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-coremark/build/perf/cm-flags/bin/coremark-scalar/coremark.bin --exit-string 'SIGIL TEST PASS coremark' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-coremark/build/perf/cm-flags/runs/coremark-scalar.soc-default.r0.perf
+loaded 13400 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-coremark/build/perf/cm-flags/bin/coremark-scalar/coremark.bin
+SIGIL PERF region=0 cycles=14337777 instret=5246400
+2K performance run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 14337777
+Total time (secs): 0.229404
+Iterations/Sec   : 87.182274
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 20
+Compiler version : GCC16.1.0
+Compiler flags   : -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno
+Memory location  : STACK
+seedcrc          : 0xe9f5
+[0]crclist       : 0xe714
+[0]crcmatrix     : 0x1fd7
+[0]crcstate      : 0x8e3a
+[0]crcfinal      : 0x4983
+Errors detected
+COREMARK performance run: iterations=20 cycles=14337777 instret=5246400 cycles/iteration=716888 CoreMark/MHz=1.394
+COREMARK NOTE timed region 0.229 s at 62500000 Hz < 10 s: core_main's 10 s ERROR and 'Errors detected' lines refer to that run rule only (not reportable as a CoreMark score)
+COREMARK CRC seedcrc=0xe9f5 crclist=0xe714 crcmatrix=0x1fd7 crcstate=0x8e3a crcfinal=0x4983 (crcfinal matches the host reference)
+COREMARK CHECK OK iterations=20
+SIGIL TEST PASS coremark
+SOC RTL TB PASS (exit string at 14587345 cycles)

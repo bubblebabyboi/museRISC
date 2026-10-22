@@ -1,0 +1,23 @@
+make: Entering directory '/home/ubuntu/wt/56-perf-sha256chain/sim'
+python3 /home/ubuntu/wt/56-perf-sha256chain/scripts/perf_run.py --root /home/ubuntu/wt/56-perf-sha256chain \
+  --out /home/ubuntu/scratch-sha256chain/iter40 --benches "sha256chain sha256chain_bulk" --jobs 2 --repeat 1 \
+  --iterations 40 --riscv-prefix riscv64-unknown-elf- \
+  --soc-args "--mem-lat 1:1 --mem-gap 0 --mem-ready 100" --axi-args "--axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100" \
+  --run soc:default=/home/ubuntu/wt/56-perf-sha256chain/build/sim/soc_rtl_tb
+perf: build sha256chain [sdk] (40 iterations)
+perf: build sha256chain_bulk [sdk] (40 iterations)
+perf: 2 runs, 2 at a time
+perf: sha256chain[sdk] region 0 soc/default rep 0: cycles=396956 instret=145138 (10.3 s) PASS
+perf: sha256chain[sdk] region 1 soc/default rep 0: cycles=270362 instret=106738 (10.3 s) PASS
+perf: sha256chain[sdk] region 2 soc/default rep 0: cycles=200695 instret=10545 (10.3 s) PASS
+perf: sha256chain[sdk] region 3 soc/default rep 0: cycles=22984 instret=6389 (10.3 s) PASS
+perf: sha256chain[sdk] region 4 soc/default rep 0: cycles=111876 instret=40233 (10.3 s) PASS
+perf: sha256chain[sdk] region 5 soc/default rep 0: cycles=99058 instret=39560 (10.3 s) PASS
+perf: sha256chain[sdk] region 6 soc/default rep 0: cycles=54925 instret=21720 (10.3 s) PASS
+perf: sha256chain_bulk[sdk] region 0 soc/default rep 0: cycles=6326637 instret=2315317 (74.04 s) PASS
+perf: sha256chain_bulk[sdk] region 1 soc/default rep 0: cycles=4317523 instret=1710906 (74.04 s) PASS
+perf: sha256chain_bulk[sdk] region 2 soc/default rep 0: cycles=3148252 instret=141532 (74.04 s) PASS
+perf: sha256chain_bulk[sdk] region 3 soc/default rep 0: cycles=172830 instret=41896 (74.04 s) PASS
+perf: sha256chain_bulk[sdk] region 4 soc/default rep 0: cycles=171338 instret=41480 (74.04 s) PASS
+perf: 12 runs valid, 0 failed; /home/ubuntu/scratch-sha256chain/iter40/results.json, /home/ubuntu/scratch-sha256chain/iter40/report.md
+make: Leaving directory '/home/ubuntu/wt/56-perf-sha256chain/sim'

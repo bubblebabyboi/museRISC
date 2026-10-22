@@ -1,0 +1,21 @@
+$ /home/ubuntu/wt/56-perf-sha256chain/build/sim/fpga_top_tb 200000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/scratch-sha256chain/final/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin --exit-string 'SIGIL TEST PASS sha256chain_bulk' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-sha256chain/final/runs/sha256chain_bulk-sdk.axi-default.r0.perf
+loaded 25912 bytes at 0x80000000 from /home/ubuntu/scratch-sha256chain/final/bin/sha256chain_bulk-sdk/sha256chain_bulk.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=10145581 instret=3701929
+RESULT sha256 plain C: 64 KiB, 10145581 cycles, 3701929 instret, cycles/KiB 158524.70, bytes/cycle 0.0065, KiB/s at 62.5 MHz 394, at 100 MHz 631
+SIGIL PERF region=1 cycles=6931154 instret=2735407
+RESULT sha256 Zknh: 64 KiB, 6931154 cycles, 2735407 instret, cycles/KiB 108299.28, bytes/cycle 0.0095, KiB/s at 62.5 MHz 577, at 100 MHz 923
+SIGIL PERF region=2 cycles=5049462 instret=224320
+RESULT sha256 RVV x16: 64 KiB, 5049462 cycles, 224320 instret, cycles/KiB 78897.84, bytes/cycle 0.0130, KiB/s at 62.5 MHz 792, at 100 MHz 1267
+SIGIL PERF region=3 cycles=297203 instret=66461
+RESULT sha512 accel sigil_hash: 64 KiB, 297203 cycles, 66461 instret, cycles/KiB 4643.80, bytes/cycle 0.2205, KiB/s at 62.5 MHz 13459, at 100 MHz 21534
+SIGIL PERF region=4 cycles=295826 instret=66044
+RESULT sha3-256 accel sigil_hash: 64 KiB, 295826 cycles, 66044 instret, cycles/KiB 4622.28, bytes/cycle 0.2215, KiB/s at 62.5 MHz 13521, at 100 MHz 21634
+sha256 of the 64 KiB buffer = 4af0113637fb17b7940e0dcc462dd1ff004effed74281f36ade27a6de61ca6a1
+SHA256CHAIN_BULK CHECK OK kib=64
+SIGIL TEST PASS sha256chain_bulk
+FPGA TOP TB PASS run 0 (exit string at 25149326 cycles after reset release)
+AXI: 8390 AR (67120 R beats), 2073 AW (16584 W beats, 2073 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

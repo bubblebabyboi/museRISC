@@ -1,0 +1,13 @@
+# Determinism across two harness invocations (each REPEAT=2) on sigil-verify
+# A = first run, B = the evidence run (this directory). The images are identical;
+# the commits between A and B change only the README and micro_table.py.
+A: commit 49352b98263b630559cbf6a493c1afe98616c0af dirty=False date=2026-10-22T09:51:24Z repeat=2 deterministic=True valid=420 failed=0
+B: commit 904d59eb3081c0f6e91c8902473def5519eb06a4 dirty=False date=2026-10-22T09:54:30Z repeat=2 deterministic=True valid=420 failed=0
+image micro_dmem-default: A 9b4694a0e1414d13fe276da2e0d16fbfa50caeb61bf5e625a19f06050b6e933c B 9b4694a0e1414d13fe276da2e0d16fbfa50caeb61bf5e625a19f06050b6e933c identical
+image micro_imem-default: A 45f135d297d3a19e31aae650443e798ab74d815f9411484add16e4d08a458cc2 B 45f135d297d3a19e31aae650443e798ab74d815f9411484add16e4d08a458cc2 identical
+image micro_pipe-default: A 2ba45578d87e87afb1bfcad4d52efdcf20ffe95002744b806a7aa99ee8ca20ba B 2ba45578d87e87afb1bfcad4d52efdcf20ffe95002744b806a7aa99ee8ca20ba identical
+image micro_units-default: A 4f75e144b097a1a9ae12b1d967750f98f45004dfbbb9ac5d9cdc155f10da67b5 B 4f75e144b097a1a9ae12b1d967750f98f45004dfbbb9ac5d9cdc155f10da67b5 identical
+image micro_vec-default: A 7702b22c9da8d92be4bcd0f74e9532386f22625030ad76b47fb21cc25024931b B 7702b22c9da8d92be4bcd0f74e9532386f22625030ad76b47fb21cc25024931b identical
+region records: A 420, B 420, identical in every field (all counters + hardware counters): 420
+fields per record: 91 counters + 2 hardware-counter values
+(bench, region, config, memory) keys: 210; identical in all 4 runs: 210

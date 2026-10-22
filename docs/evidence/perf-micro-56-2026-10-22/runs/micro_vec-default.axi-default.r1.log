@@ -1,0 +1,69 @@
+$ /home/ubuntu/wt/56-perf-micro/build/sim/fpga_top_tb 40000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/scratch-micro/perf-evidence/bin/micro_vec-default/micro_vec.bin --exit-string 'SIGIL TEST PASS micro_vec' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-micro/perf-evidence/runs/micro_vec-default.axi-default.r1.perf
+loaded 10368 bytes at 0x80000000 from /home/ubuntu/scratch-micro/perf-evidence/bin/micro_vec-default/micro_vec.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+SIGIL PERF region=1 cycles=27 instret=11
+MICRO region=1 empty ops=256 cycles=27 instret=11 cycles/op=0.105
+SIGIL PERF region=2 cycles=588 instret=282
+MICRO region=2 vsetvli_same ops=256 cycles=588 instret=282 cycles/op=2.297
+SIGIL PERF region=3 cycles=625 instret=282
+MICRO region=3 vsetvli_toggle ops=256 cycles=625 instret=282 cycles/op=2.441
+SIGIL PERF region=4 cycles=1861 instret=279
+MICRO region=4 vadd_e8_vl1 ops=256 cycles=1861 instret=279 cycles/op=7.270
+SIGIL PERF region=5 cycles=2117 instret=279
+MICRO region=5 vadd_e8_vl2 ops=256 cycles=2117 instret=279 cycles/op=8.270
+SIGIL PERF region=6 cycles=2629 instret=279
+MICRO region=6 vadd_e8_vl4 ops=256 cycles=2629 instret=279 cycles/op=10.270
+SIGIL PERF region=7 cycles=3653 instret=279
+MICRO region=7 vadd_e8_vl8 ops=256 cycles=3653 instret=279 cycles/op=14.270
+SIGIL PERF region=8 cycles=5701 instret=279
+MICRO region=8 vadd_e8_vl16 ops=256 cycles=5701 instret=279 cycles/op=22.270
+SIGIL PERF region=9 cycles=9797 instret=279
+MICRO region=9 vadd_e8_vl32 ops=256 cycles=9797 instret=279 cycles/op=38.270
+SIGIL PERF region=10 cycles=17989 instret=279
+MICRO region=10 vadd_e8_vl64 ops=256 cycles=17989 instret=279 cycles/op=70.270
+SIGIL PERF region=11 cycles=34373 instret=279
+MICRO region=11 vadd_e8_vl128 ops=256 cycles=34373 instret=279 cycles/op=134.270
+SIGIL PERF region=12 cycles=67141 instret=279
+MICRO region=12 vadd_e8_vl256 ops=256 cycles=67141 instret=279 cycles/op=262.270
+SIGIL PERF region=13 cycles=132677 instret=279
+MICRO region=13 vadd_e8_vl512 ops=256 cycles=132677 instret=279 cycles/op=518.270
+SIGIL PERF region=14 cycles=1264 instret=282
+MICRO region=14 vle8_vl1 ops=256 cycles=1264 instret=282 cycles/op=4.938
+SIGIL PERF region=15 cycles=1996 instret=282
+MICRO region=15 vle8_vl2 ops=256 cycles=1996 instret=282 cycles/op=7.797
+SIGIL PERF region=16 cycles=3532 instret=282
+MICRO region=16 vle8_vl4 ops=256 cycles=3532 instret=282 cycles/op=13.797
+SIGIL PERF region=17 cycles=6604 instret=282
+MICRO region=17 vle8_vl8 ops=256 cycles=6604 instret=282 cycles/op=25.797
+SIGIL PERF region=18 cycles=12748 instret=282
+MICRO region=18 vle8_vl16 ops=256 cycles=12748 instret=282 cycles/op=49.797
+SIGIL PERF region=19 cycles=25036 instret=282
+MICRO region=19 vle8_vl32 ops=256 cycles=25036 instret=282 cycles/op=97.797
+SIGIL PERF region=20 cycles=49612 instret=282
+MICRO region=20 vle8_vl64 ops=256 cycles=49612 instret=282 cycles/op=193.797
+SIGIL PERF region=21 cycles=98764 instret=282
+MICRO region=21 vle8_vl128 ops=256 cycles=98764 instret=282 cycles/op=385.797
+SIGIL PERF region=22 cycles=197068 instret=282
+MICRO region=22 vle8_vl256 ops=256 cycles=197068 instret=282 cycles/op=769.797
+SIGIL PERF region=23 cycles=393676 instret=282
+MICRO region=23 vle8_vl512 ops=256 cycles=393676 instret=282 cycles/op=1537.797
+SIGIL PERF region=24 cycles=1228 instret=282
+MICRO region=24 vse8_vl1 ops=256 cycles=1228 instret=282 cycles/op=4.797
+SIGIL PERF region=25 cycles=6604 instret=282
+MICRO region=25 vse8_vl8 ops=256 cycles=6604 instret=282 cycles/op=25.797
+SIGIL PERF region=26 cycles=49612 instret=282
+MICRO region=26 vse8_vl64 ops=256 cycles=49612 instret=282 cycles/op=193.797
+SIGIL PERF region=27 cycles=393676 instret=282
+MICRO region=27 vse8_vl512 ops=256 cycles=393676 instret=282 cycles/op=1537.797
+SIGIL PERF region=28 cycles=3653 instret=279
+MICRO region=28 vadd_e64_vl8 ops=256 cycles=3653 instret=279 cycles/op=14.270
+SIGIL PERF region=29 cycles=18026 instret=279
+MICRO region=29 vmul_e64_vl8 ops=256 cycles=18026 instret=279 cycles/op=70.414
+SIGIL PERF region=30 cycles=13934 instret=281
+MICRO region=30 vfadd_e64_vl8 ops=256 cycles=13934 instret=281 cycles/op=54.430
+SIGIL PERF region=31 cycles=4170 instret=281
+MICRO region=31 vredsum_e64_vl8 ops=256 cycles=4170 instret=281 cycles/op=16.289
+MICRO CHECK OK micro_vec iterations=256 regions=31
+SIGIL TEST PASS micro_vec
+FPGA TOP TB PASS run 0 (exit string at 2607682 cycles after reset release)
+AXI: 187 AR (1496 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 0 R 0 B 0
