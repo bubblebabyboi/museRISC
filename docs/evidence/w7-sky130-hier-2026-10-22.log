@@ -428,8 +428,10 @@ die").
     453 against 400). Wire 23.19 m, 2,177,625 vias.
   s116 finish: 6_report stopped on PSM-0069 ("Check connectivity
     failed on VDD", static IR analysis of the platform's
-    PWR_NETS_VOLTAGES "VDD 1.8"). All 18,345 reported items are on
-    or at the 7 OpenRAM macros, none on the std-cell grid: the macros
+    PWR_NETS_VOLTAGES "VDD 1.8"). All 12,083 items of its VDD.rpt
+    (2,076 shorts, 7 unconnected instances, 10,000 unconnected shapes,
+    where that list stops) are on or at the 7 OpenRAM macros, none on
+    the std-cell grid: the macros
     as "unconnected instances" (inside the block their met4 straps are
     block pins that meet the std-cell straps only through the top
     level's met5 stripes), their unstrapped periphery vdd squares as
