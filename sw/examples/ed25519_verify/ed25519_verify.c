@@ -10,8 +10,9 @@
  * Checks:
  *   1. the genuine signature is accepted
  *   2. the message changed (0x72 -> 0x73) is rejected (MISMATCH)
- *   3. S with bit 0 flipped is rejected (MISMATCH)
- *   4. S >= L (non-canonical) is rejected before any curve math (BAD_S)
+ *   3. S >= L (non-canonical) is rejected before any curve math (BAD_S)
+ * (sw/soc-tests/ed25519_soc_test.c also covers a corrupted S and
+ * RFC 8032 TEST 1.)
  * One verify is about 7.4M cycles (thousands of field ops over MMIO):
  * ~0.12 s at the interim 62.5 MHz F2 clock, ~13 s in soc_rtl_tb. */
 #include "sigil.h"
@@ -46,15 +47,9 @@ int main(void) {
   sigil_printf("verify(changed message) = %d\n", rc);
   SIGIL_CHECK(rc == SIGIL_ED25519_MISMATCH);
 
-  /* 3. Corrupted S. */
+  /* 3. S = 2^255 - 1 >= L. */
   uint8_t bad[64];
-  memcpy(bad, sig, 64);
-  bad[32] ^= 1;
-  rc = sigil_ed25519_verify(pub, msg, sizeof msg, bad);
-  sigil_printf("verify(S bit flipped) = %d\n", rc);
-  SIGIL_CHECK(rc == SIGIL_ED25519_MISMATCH);
-
-  /* 4. S = 2^255 - 1 >= L. */
+  memcpy(bad, sig, 32);
   memset(bad + 32, 0xff, 32);
   bad[63] = 0x7f;
   rc = sigil_ed25519_verify(pub, msg, sizeof msg, bad);
