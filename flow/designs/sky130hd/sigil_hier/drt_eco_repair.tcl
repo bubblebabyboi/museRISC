@@ -20,7 +20,8 @@
 # `make run RUN_SCRIPT=<this> FLOW_VARIANT=<copy> SIGIL_ECO_SPEF=<spef>`;
 # make then continues with 5_3_fillcell .. finish .. abstract.
 # (s116b ran the single-round version of commit 2d0e70a, without the
-# OpenRCX check.)
+# OpenRCX check; s116c the rounds of 2884120, without
+# SIGIL_NET_MAX_LEN.)
 source $::env(SCRIPTS_DIR)/load.tcl
 load_design 5_2_route.odb 5_1_grt.sdc
 proc sigil_env { name default } {
@@ -32,6 +33,7 @@ set setup_margin [sigil_env SIGIL_SETUP_MARGIN 0.3]
 set hold_margin [sigil_env SIGIL_HOLD_MARGIN 0.05]
 set ant_rounds [sigil_env SIGIL_ANT_ROUNDS 8]
 set eco_rounds [sigil_env SIGIL_ECO_ROUNDS 1]
+set net_max_len [sigil_env SIGIL_NET_MAX_LEN 0]
 set allow_congestion ""
 if { [lsearch -exact $::env(GLOBAL_ROUTE_ARGS) -allow_congestion] >= 0 } {
   set allow_congestion -allow_congestion
@@ -39,6 +41,26 @@ if { [lsearch -exact $::env(GLOBAL_ROUTE_ARGS) -allow_congestion] >= 0 } {
 proc sigil_report { tag } {
   report_check_types -max_slew -max_capacitance -max_fanout -digits 3 > /dev/null
   puts "sigil eco $tag: setup WNS [sta::format_time [sta::worst_slack_cmd max] 3] TNS [sta::format_time [sta::total_negative_slack_cmd max] 3] ([sta::endpoint_violation_count max] endpoints), hold WNS [sta::format_time [sta::worst_slack_cmd min] 3] ([sta::endpoint_violation_count min]), max slew [sta::max_slew_violation_count], max cap [sta::max_capacitance_violation_count], max fanout [sta::max_fanout_violation_count]"
+}
+# Nets with a max-slew / max-cap violation under the current parasitics
+proc sigil_violating_nets { } {
+  with_output_to_variable txt {
+    report_check_types -max_slew -max_capacitance -violators -digits 3
+  }
+  set nets [dict create]
+  foreach line [split $txt "\n"] {
+    if { [regexp {^(\S+)\s+\S+\s+\S+\s+\S+\s+\(VIOLATED\)} $line -> p] } {
+      set pin [sta::find_pin $p]
+      if { $pin eq "NULL" || $pin eq "" } {
+        continue
+      }
+      set net [get_nets -quiet -of_objects $pin]
+      if { $net ne "" } {
+        dict set nets [get_full_name $net] $net
+      }
+    }
+  }
+  return $nets
 }
 proc sigil_clean { } {
   report_check_types -max_slew -max_capacitance -max_fanout -digits 3 > /dev/null
@@ -69,6 +91,18 @@ for { set r 1 } { $r <= $eco_rounds } { incr r } {
   # legalization change, from -start_incremental on)
   log_cmd global_route -start_incremental {*}$allow_congestion
   log_cmd repair_design -slew_margin $slew_margin -cap_margin $cap_margin -verbose
+  # repair_design buffers from a placement Steiner tree; a net whose
+  # global route detours (congestion) keeps its slew violation there.
+  # SIGIL_NET_MAX_LEN (um, 0 = off): each net still violating is
+  # repaired again with that maximum wire length, i.e. buffered along
+  # its Steiner tree into pieces the router re-routes separately.
+  if { $net_max_len > 0 } {
+    set vnets [sigil_violating_nets]
+    puts "sigil eco: round $r, [dict size $vnets] nets still violate slew / cap: [dict keys $vnets]"
+    dict for {name net} $vnets {
+      rsz::repair_net_cmd $net [sta::distance_ui_sta $net_max_len] $slew_margin $cap_margin
+    }
+  }
   detailed_placement_helper
   log_cmd global_route -end_incremental {*}$allow_congestion
   sigil_report "round $r after repair_design"
