@@ -95,11 +95,13 @@ starts there; a single comparison can be re-run by hand:
 sim/riscv-dv/rdv_trace.py --elf T.elf --spike spike.log --dut dut.trace
 ```
 
-Generation is deterministic per seed (pygen seeds Python's `random`
-from `--seed`), so a failing (test, seed) reproduces with
-`TESTS=<test> SEEDS=<seed>`. The seed also seeds `core_tb`'s random bus
-latency/backpressure (`--mem-lat 1:6 --mem-gap 2 --mem-ready 70
---mem-seed <seed>`, as in `make riscv-tests`).
+Generation is deterministic: pygen seeds Python's `random` from its
+`--seed`, which the driver derives from the test name and the seed
+(`gen_seed` column, CRC32 of the name plus the seed; with the bare seed
+every test would draw the same boot mode). A failing (test, seed)
+reproduces with `TESTS=<test> SEEDS=<seed>`. The seed also seeds
+`core_tb`'s random bus latency/backpressure (`--mem-lat 1:6 --mem-gap 2
+--mem-ready 70 --mem-seed <seed>`, as in `make riscv-tests`).
 
 ### Pins and versions
 
@@ -127,7 +129,7 @@ implements against what riscv-dv's pygen can generate:
 | Zba, Zbb/Zbs RV64 W forms, Zbkb (rest), Zbkc, Zbkx, Zkne, Zknd, Zknh, Zicond | no | not in pygen; covered by the directed `sigil_bitmanip_crypto_test` |
 | RVV 1.0 Zve64d, VLEN 512 | no | pygen has no vector instruction classes; covered by the directed `sigil_vector_test` |
 | H | no | not in pygen |
-| M/S/U | yes | all three boot modes |
+| M/S/U | yes | all three boot modes: `+boot_mode` where the test asks for one, otherwise random per (test, seed) as in SV (patch V). pygen does not delegate traps (`gen_delegation_instr` is a TODO), so every trap is handled in M-mode |
 | Sv39 (+Svnapot) | no (`SATP_MODE = BARE`) | pygen cannot build page tables (`create_page_table` is a TODO upstream) |
 | PMP, 16 entries, G=0 | opened, not tested | pygen's PMP setup is a TODO; [`user_init.s`](../sim/riscv-dv/user_extension/user_init.s) opens entry 0 (NAPOT, RWX, whole PA space) so S/U code can run |
 | misaligned loads/stores trap | yes | `riscv_unaligned_load_store_test`; the generated handler skips the access |
@@ -136,19 +138,33 @@ implements against what riscv-dv's pygen can generate:
 
 pygen at this pin is a partial port of the SV generator and has bugs
 that stop generation or make programs wrong. The setup applies fixes A
-to S, each described in the
-[patch header](../sim/riscv-dv/patches/pygen-sigil.patch): Python 3.12
-(`imp`), wrong `randrange` bounds, enum/string mix-ups in instruction
-selection (the AMO stream drew from every instruction), the AMO/LR/SC
-register constraints, the loop stream (counter update and branch were
-unconstrained, so loops need not terminate) and its instruction mixing,
-the load/store streams (offsets the encodings cannot hold, `la zero`,
-addresses off by one), a hang when a generator error happens inside a
-multiprocessing worker, the B-extension enable, and same-width LR/SC
-pairs. Without these, every test with a load/store stream fails to
-assemble at 10,000 instructions. Sub-programs (the
-call stack) are not implemented in pygen at all: every test runs with
-`+num_of_sub_program=0`.
+to Z and AA to AD, each described in the
+[patch header](../sim/riscv-dv/patches/pygen-sigil.patch). In groups:
+
+- generation fails: Python 3.12 (`imp`), wrong `randrange` bounds,
+  enum/string mix-ups in instruction selection, an AMO stream that
+  cannot be constructed, unsatisfiable register picks, a
+  multiprocessing hang on any generator error, no SSTATUS/SIE model;
+- programs do not assemble: load/store offsets the encodings cannot
+  hold, `la zero`, compressed FP loads/stores printed with integer
+  registers, a missing S-mode trap handler section;
+- programs are wrong or end early: S/U boots that silently stayed in
+  M-mode and no random boot mode; operand fields shared between
+  instruction copies (loads through another stream's base register);
+  load/store addresses off by one and a mis-indented "unaligned" branch
+  (misaligned accesses in every test); loops whose counter update and
+  branch were unconstrained or used one register for counter and limit
+  (endless loops); `ra`/`jal` destinations that overwrite the trap
+  handlers' stack pointer; no ebreak handler and no ECALL-from-S/U
+  dispatch; the AMO stream drawing from every instruction, and LR/SC
+  without base-register constraints or with mismatched widths;
+  `+enable_b_extension` ignored by most B groups.
+
+Before these fixes, at 10,000 instructions every test with a
+load/store stream failed to assemble, and most of the rest ended within
+a few hundred instructions at a misaligned access or the first ebreak.
+Sub-programs (the call stack) are not implemented in pygen at all:
+every test runs with `+num_of_sub_program=0`.
 
 ### Reference model configuration (Spike)
 
@@ -172,10 +188,14 @@ spike --isa=rv64imafdcbvh_zicsr_zifencei_zicntr_zbc_zbkb_zbkc_zbkx_zkne_zknd_zkn
 ### DUT trace (simulation only)
 
 `rtl/core/sigil_core.sv` ends with a block under `` `ifndef SYNTHESIS ``
-that writes the trace when the simulation gets `+sigil_trace=<file>`
-(`core_tb` passes plusargs through). Synthesis never sees it, nothing in
-it feeds back into the design, and without the plusarg it writes
-nothing. One line per retired instruction or trap:
+that writes the trace when the simulation is built with
+`+define+SIGIL_COMMIT_TRACE` (as `build/sim/core_tb` is) and run with
+`+sigil_trace=<file>`. Synthesis never sees it, nothing in it feeds back
+into the design, and without the plusarg it writes nothing. (The define
+keeps the `$value$plusargs` call out of harnesses that never pass their
+arguments to Verilator, such as `fpga_ocl_tb`, where Verilator would
+abort.) `make lint` checks the core with and without the define. One
+line per retired instruction or trap:
 
 ```
 I <cycle> <priv> <pc> <insn> [x<n>=<v>] [f<n>=<v>] [c<csr>=<v>] [m<va>:<bytes>=<data>] [v<n>=<512 bits>]...
@@ -252,11 +272,11 @@ Supported (18 generated + 2 directed):
 | `riscv_loop_test` | base | `riscv_loop_instr` x20 (needs patches O/P) |
 | `riscv_no_fence_test` | base | pygen never emits FENCE in random streams anyway |
 | `riscv_illegal_instr_test` | base | 5 illegal instructions per 1000 |
-| `riscv_ebreak_test` | base | breakpoint exceptions (needs patch E) |
-| `riscv_unaligned_load_store_test` | base | misaligned accesses trap |
+| `riscv_ebreak_test` | base | about 50 breakpoint exceptions per run, each resumed by the handler (patches E, AC) |
+| `riscv_unaligned_load_store_test` | base | Sigil traps misaligned accesses, and riscv-dv's handler ends the test at the first one (as SV riscv-dv does for such a target): one misaligned trap per run |
 | `riscv_mmu_stress_test` | base | load/store stress in a random boot mode; satp Bare |
 | `riscv_machine_mode_rand_test` | rv64gc | |
-| `riscv_privileged_mode_rand_test` | rv64gc | random boot mode |
+| `riscv_privileged_mode_rand_test` | rv64gc | random boot mode (patch V) |
 | `riscv_u_mode_rand_test` | rv32imc_sv32 | U-mode |
 | `riscv_non_compressed_instr_test` | rv32imc | assembled without C/Zcb |
 | `riscv_amo_test` | rv64gc | LR/SC and AMO streams (needs patches G-M, R) |

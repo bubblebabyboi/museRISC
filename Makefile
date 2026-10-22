@@ -58,6 +58,7 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_muldiv_mc rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_muldiv_mc -GCOMB=1 rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu $(CORE_RTL) $(CACHE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu +define+SIGIL_COMMIT_TRACE $(CORE_RTL) $(CACHE_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 $(SRAM_MODELS_FAKERAM45) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)

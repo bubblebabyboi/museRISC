@@ -366,8 +366,10 @@ crypto: sha256 sha512 keccak ecfield cryptotop hashstream
 ## ---- Core harness + directed software ---------------------------------
 # core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
 # plus the default DRAM window at 0x8000_0000 (ELF tests).
+# SIGIL_COMMIT_TRACE: the core's sim-only retire trace reads
+# +sigil_trace=FILE (riscv-dv regression, docs/VERIFICATION.md).
 $(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu +define+SIGIL_COMMIT_TRACE \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/core_tb) $(CPU_RTL) \

@@ -2199,15 +2199,22 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // fflags, store and VRF side effects) rides along in shadow
   // registers loaded under the pipeline registers' own update
   // conditions. Nothing here feeds back into the design; without
-  // the plusarg nothing is written.
+  // the plusarg nothing is written. The plusarg is read only in builds
+  // with +define+SIGIL_COMMIT_TRACE (core_tb, sim/Makefile): Verilator
+  // aborts a $value$plusargs call in a harness that never called
+  // commandArgs (e.g. fpga_ocl_tb).
   int          tr_fd;
-  string       tr_path;
   initial begin
     tr_fd = 0;
-    if ($value$plusargs("sigil_trace=%s", tr_path)) begin
-      tr_fd = $fopen(tr_path, "w");
-      if (tr_fd == 0) $error("sigil_core: cannot open trace file %s", tr_path);
+`ifdef SIGIL_COMMIT_TRACE
+    begin
+      string path;
+      if ($value$plusargs("sigil_trace=%s", path)) begin
+        tr_fd = $fopen(path, "w");
+        if (tr_fd == 0) $error("sigil_core: cannot open trace file %s", path);
+      end
     end
+`endif
   end
   final if (tr_fd != 0) $fclose(tr_fd);
 
