@@ -11,22 +11,27 @@ disk `/dev/pmem0`.
 The platform contract both sides build against is
 [`LINUX_PLATFORM.md`](LINUX_PLATFORM.md). This guide covers what is in
 the system, how to build it, how to boot it in QEMU and on an AWS F2
-FPGA, and how to use it.
+FPGA, and how to use it. To boot it on your own F2, go to
+[§4](#4-boot-debian-on-your-f2); to use it, [§5](#5-using-sigil-linux).
 
 ## Contents
 
 1. [What you get](#1-what-you-get)
 2. [Build it](#2-build-it)
 3. [Boot it in QEMU](#3-boot-it-in-qemu)
-4. [Boot it on the F2](#4-boot-it-on-the-f2)
-5. [Logging in](#5-logging-in)
-6. [Writing programs: gcc, make, gdb](#6-writing-programs-gcc-make-gdb)
-7. [DDR4 and HBM: NUMA nodes 0 and 1](#7-ddr4-and-hbm-numa-nodes-0-and-1)
-8. [Vector code (Zve64d, VLEN 512)](#8-vector-code-zve64d-vlen-512)
-9. [The disk: pmem, saving it back, adding packages](#9-the-disk-pmem-saving-it-back-adding-packages)
-10. [Boot time and speed](#10-boot-time-and-speed)
-11. [Limits](#11-limits)
-12. [Files and versions](#12-files-and-versions)
+4. [Boot Debian on your F2](#4-boot-debian-on-your-f2): [one command](#41-one-command-sigil-linux), [by hand](#42-by-hand-the-sigil_host-command-reference)
+5. [Using Sigil Linux](#5-using-sigil-linux): [logging in](#51-logging-in),
+   [what is installed](#52-what-is-installed),
+   [compiling](#53-compiling-programs-on-the-board),
+   [DDR4 and HBM](#54-ddr4-and-hbm-numa-nodes-0-and-1),
+   [vector code](#55-vector-code-zve64d-vlen-512),
+   [files in and out](#56-getting-files-in-and-out),
+   [shutting down](#57-shutting-down-safely),
+   [it is slow](#58-it-is-slow)
+6. [The disk: pmem, saving it back, adding packages](#6-the-disk-pmem-saving-it-back-adding-packages)
+7. [Boot time and speed](#7-boot-time-and-speed)
+8. [Limits](#8-limits)
+9. [Files and versions](#9-files-and-versions)
 
 ## 1. What you get
 
@@ -57,10 +62,10 @@ tmux, htop, file, strace, lsof, tree, time, bc; **python3 3.13**;
 **numactl + libnuma-dev**, ndctl; man-db with manpages and manpages-dev;
 xz/zstd/bzip2; iproute2/ping (no network on the F2 yet, #72). The full
 package list with versions is the image's `manifest.txt` (recorded in
-the evidence directory). `~/examples` holds small C programs (§6–§8).
+the evidence directory). `~/examples` holds small C programs (§5.3–§5.5).
 
 Tuned for a slow single hart (each item measured in QEMU's
-instruction-counting mode, §10): no apt/man-db/fstrim/e2scrub timers,
+instruction-counting mode, §7): no apt/man-db/fstrim/e2scrub timers,
 no network services, no ndctl/cxl monitors, no `modprobe@` units for
 built-in drivers, no binfmt service; no boot-time fsck (it would wait
 for udev to announce `/dev/pmem0`; ext4 replays its journal at mount);
@@ -117,7 +122,7 @@ The first run makes `build/debian/sigil-disk.img`, a sparse 16 GiB copy
 of the built image; it is the pmem window, file-backed and shared, so
 whatever the guest writes stays in that file across QEMU runs (like
 saving the F2 window back). `--fresh` starts again from the built image,
-`--disk FILE` uses another disk, `--net` adds a NIC (§9),
+`--disk FILE` uses another disk, `--net` adds a NIC (§6),
 `--initramfs` boots the `SIGIL_LINUX_BOOT_OK` smoke kernel instead.
 
 The QEMU machine follows the contract: one hart with Sigil's
@@ -136,23 +141,95 @@ kernel and disk image as the F2. Deviations, all from QEMU:
 - **virtio-mmio slots** (QEMU virt) in `sigil-qemu.dtb` for the
   optional NIC; **no crypto engine** node (QEMU has flash at
   `0x2000_0000`).
-- QEMU is fast: its timings say nothing about the FPGA (§10).
+- QEMU is fast: its timings say nothing about the FPGA (§7).
 
 `python3 scripts/qemu_sigil_check.py [--fresh]` is the automated
 acceptance run: boot, log in on the console, compile and run the
 examples, check NUMA placement and RVV, sudo, a file surviving a
 reboot, and power-off.
 
-## 4. Boot it on the F2
+## 4. Boot Debian on your F2
 
-The F2 needs the AFI with the full memory map (64 GiB DDR4 + 16 GiB
-HBM), the test finisher and RTC (epic #73, phase 1–2) and a
-`sigil_host` that can bulk-load the disk image into the pmem window
-(PCIS offset `0x0C_0000_0000`) and save it back after power-off.
+All you need is an AWS account that can launch F2 instances. The FPGA
+image is Sigil's **public AFI `agfi-0a1fd54ef68bdc754`** (64 GiB DDR4 +
+16 GiB HBM, test finisher, RTC; [`FPGA_F2.md`](FPGA_F2.md#flash-sigil-on-your-own-f2)),
+and the boot files and the Debian disk come from the GitHub release
+`sigil-linux-f2-2026-10-22`. An `f2.6xlarge` (us-east-1, the smallest
+F2) costs about $2/h On-Demand: stop it when you are done.
 
-> **Status:** written against the contract; the commands and measured
-> numbers are filled in by the F2 integration run (see
-> `docs/evidence/README.md`, "Debian on Sigil").
+> **Status:** the AFI passed its hardware tests
+> ([`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md))
+> and this Debian passed 23/23 acceptance checks in QEMU
+> ([`evidence/linux-debian-73-2026-10-22/`](evidence/linux-debian-73-2026-10-22/)).
+> First Debian boot on the F2: `<F2 Debian boot evidence: pending>`.
+
+### 4.1 One command: `sigil-linux`
+
+On a new `f2.6xlarge` launched from the AWS **FPGA Developer AMI**
+(Ubuntu), logged in as `ubuntu`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bubblebabyboi/sigil/main/fpga/scripts/f2_playground_setup.sh | bash
+tmux                 # recommended: if SSH drops, Debian and your work survive inside tmux
+~/bin/sigil-linux    # downloads, unpacks your disk, loads the AFI, boots to the login prompt
+```
+
+The setup script runs once per instance. It installs the AWS FPGA
+runtime SDK (aws-fpga v2.3.5), a bare-metal RISC-V GCC, `zstd` and
+`tmux`, clones Sigil into `~/sigil`, builds `sigil_host`, loads the
+AFI, and puts `sigil-run` (bare-metal programs,
+[`PROGRAMMING.md`](PROGRAMMING.md)) and `sigil-linux` in `~/bin`.
+
+[`sigil-linux`](../fpga/scripts/sigil-linux) then:
+
+1. downloads `fw_jump.bin`, `Image`, `sigil-f2.dtb` and
+   `sigil-debian-13-riscv64.ext4.zst` (about 240 MB) from the release
+   into `~/.cache/sigil-linux/<tag>/`, once, and checks them against the
+   release's `SHA256SUMS`;
+2. unpacks the Debian image once into **`~/sigil-disk.ext4`**: your
+   disk, an 8 GiB ext4 file system stored sparse (about 0.9 GiB on the
+   volume at first);
+3. loads the Sigil AFI if the FPGA does not have it; the first boot
+   after a load also zeroes all 64 GiB of DDR4 (about 17 s, #62);
+4. boots OpenSBI + Linux with your disk in the pmem window and your
+   terminal as the console (the `sigil_host` command of §4.2);
+5. after you power Debian off, copies the pmem window back into
+   `~/sigil-disk.ext4`, so the next `sigil-linux` continues where you
+   left off.
+
+The login prompt appears **`<F2 boot time: pending>`** after the start
+(estimate from QEMU: about 9 minutes at 62.5 MHz, §7). Log in as
+`sigil` / `sigil` and go on with §5.
+
+| Command | |
+|---|---|
+| `sigil-linux` | boot your disk (made on the first run) |
+| `sigil-linux --fresh` | start again from the release image; the old disk is kept as `~/sigil-disk.ext4.old` |
+| `sigil-linux --disk ~/work.ext4` | use another disk file, e.g. one per project (made from the release image if it does not exist) |
+| `sigil-linux --tag TAG` | boot another release (or set `SIGIL_LINUX_TAG`) |
+| `sigil-linux -- --log console.log` | options after `--` go to `sigil_host` (here: also write the console to a file) |
+
+How a session ends:
+
+| You | Debian | Your disk |
+|---|---|---|
+| `sudo poweroff` | shuts down; OpenSBI writes back the L1 D$ and powers off through the test finisher | **saved**: `sigil-linux` reads the 16 GiB window back, trims it to the file system and replaces `~/sigil-disk.ext4` |
+| `sudo reboot` | restarts on the same disk: `sigil_host` reloads OpenSBI, the kernel and the DTB, not the disk | the session goes on |
+| Ctrl-] | keeps running on the FPGA, but nothing can reattach to it | **not saved**: `~/sigil-disk.ext4` stays as it was; the window at that moment is kept as `~/sigil-disk.ext4.unclean` (`e2fsck -f` it before use) |
+| SSH drops, outside tmux | `sigil_host` ends with your shell | **not saved** |
+
+Rerunning is safe: the downloads, your disk and a loaded AFI are
+reused, and the disk file is only ever replaced by a copy saved after a
+clean power-off. The save goes to `/dev/shm` first (the window comes
+back over PCIe at about 1 GB/s; the instance has 256 GiB of RAM) and
+then into the disk file as a sparse copy, so only the blocks the file
+system uses reach the EBS volume (≈ 130 MB/s). If you grew the file
+system (`sudo resize2fs /dev/pmem0`, §6), the disk file grows with it.
+Space needed in your home directory: the downloads (≈ 240 MB), your
+disk (≈ 0.9 GiB to start, more as you add files) and, while saving, one
+more copy of it.
+
+### 4.2 By hand: the `sigil_host` command (reference)
 
 The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 
@@ -166,21 +243,34 @@ The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 OpenSBI is built with `FW_JUMP_FDT_ADDR=0x83000000`, so the DTB stays
 where the host put it and the kernel may be up to 46 MiB.
 
-With the platform's `sigil_host` (options as on the `73-f2-memory-platform`
-branch; confirmed by the F2 run):
+What `sigil-linux` does, by hand (after the setup script, or steps 1–4
+of [`FPGA_F2.md`](FPGA_F2.md#flash-sigil-on-your-own-f2)):
 
 ```sh
-zstd -d sigil-debian-13-riscv64.ext4.zst          # 8 GiB raw image
-sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
+R=https://github.com/bubblebabyboi/sigil/releases/download/sigil-linux-f2-2026-10-22
+for f in SHA256SUMS fw_jump.bin Image sigil-f2.dtb sigil-debian-13-riscv64.ext4.zst; do curl -fsSLO "$R/$f"; done
+sha256sum -c --ignore-missing SHA256SUMS
+zstd -d --sparse sigil-debian-13-riscv64.ext4.zst     # 8 GiB ext4 image
+sudo ~/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2.dtb \
      --load 0xC80000000=sigil-debian-13-riscv64.ext4 \
      --save 0xC80000000=sigil-disk-saved.ext4:8G \
-     --console --on-reboot exit
+     --console
 ```
 
-`--console` is an interactive raw terminal (Ctrl-] detaches); after
-`poweroff` the host saves the first 8 GiB of the pmem window, the whole
-file system, and that file boots next time. `--on-reboot exit` until a
-reboot can keep the disk (below).
+- `--linux --fw --image --dtb` load OpenSBI, the kernel and the DTB at
+  the addresses above; `--load 0xC80000000=FILE` puts the disk at the
+  start of the pmem window.
+- `--console` makes your terminal a raw console; Ctrl-] detaches (exit
+  status 4, the SoC keeps running).
+- `--save 0xC80000000=FILE:8G` writes the first 8 GiB of the window to
+  `FILE` when the run ends: the whole file system unless you grew it
+  (then `:16G`). `sigil_host` saves however the run ended; only a save
+  after `poweroff` (exit status 0) is a consistent disk. Next time,
+  `--load 0xC80000000=sigil-disk-saved.ext4`. Saving straight to the
+  root EBS volume is disk-bound (≈ 130 MB/s); `/dev/shm` or the
+  instance NVMe is not.
+- `--on-reboot rerun` (the default) handles a guest `reboot` as in
+  §4.1; `--on-reboot exit` ends the run instead (exit status 5).
 
 The QEMU acceptance run drives the F2 the same way (timeouts × 40, no
 reboot round; a second run checks the saved disk):
@@ -202,9 +292,21 @@ before it writes the test finisher. After `poweroff` the pmem window in
 DDR4 therefore holds the complete file system and the host can save it.
 `reboot` keeps DDR4: the host must reload OpenSBI, the kernel and the
 DTB (Linux reused that memory) but **not** the disk image, or the
-reboot discards everything written since boot.
+reboot discards everything written since boot. `sigil_host --on-reboot
+rerun` does exactly that: checked on the F2 with the platform test
+firmware (`platform-reboot` in the platform evidence), and Debian's
+`reboot` keeps the disk in QEMU; Debian `reboot` on the F2:
+`<pending>`.
 
-## 5. Logging in
+## 5. Using Sigil Linux
+
+### 5.1 Logging in
+
+On the F2 the login prompt comes `<F2 boot time: pending>` after
+`sigil-linux` starts (estimate: about 9 minutes, §7). Until then the
+console shows OpenSBI's banner, the kernel log and systemd starting
+services; `SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login
+prompt next` is printed just before the prompt:
 
 ```
 Sigil RV64 SoC - Debian GNU/Linux 13 sigil ttyS0
@@ -225,7 +327,18 @@ not carry the window size; `agetty` asks the terminal, and
 `sigil-resize` asks again if needed (run it after resizing the window).
 In QEMU, Ctrl-A X quits and Ctrl-A C opens the QEMU monitor.
 
-## 6. Writing programs: gcc, make, gdb
+### 5.2 What is installed
+
+Debian 13 "trixie" riscv64 (257 packages; the full list is the image's
+`manifest.txt`, a release asset, or `dpkg -l` on the board):
+**build-essential** (gcc/g++ 14.2, binutils 2.44, make 4.4, glibc 2.41
+headers), **gdb 16**, git, pkgconf, patch; vim, nano, less, tmux, htop,
+file, strace, lsof, tree, time, bc; **python3 3.13**; **numactl +
+libnuma-dev**; man pages; xz/zstd/bzip2. `~/examples` holds small C
+programs with a `Makefile` (`make && make run`). There is no network on
+the F2 yet (#72), so `apt install` works only in QEMU (§6).
+
+### 5.3 Compiling programs on the board
 
 The board has a native toolchain; nothing to cross-compile:
 
@@ -241,16 +354,19 @@ sigil@sigil:~$ cd examples && make && make run
 
 `~/examples`: `hello.c`, `malloc_test.c` (glibc malloc/realloc/free,
 small brk and large mmap blocks, one big block touched page by page),
-`numa_hbm.c` and `memwhere.c` (§7), `rvv_vadd.c` (§8). gdb, strace and
-`man 3 printf` work as on any Debian machine. Default code generation is
-Debian's `rv64gc`; add `-march=rv64gc_zba_zbb_zbs_zicond` for the bit
-manipulation extensions, `_zve64d_zvl512b` for vector code.
+`numa_hbm.c` and `memwhere.c` (§5.4), `rvv_vadd.c` and `autovec.c`
+(§5.5). gdb, strace and `man 3 printf` work as on any Debian machine.
+Default code generation is Debian's `rv64gc`; add
+`-march=rv64gc_zba_zbb_zbs_zicond` for the bit-manipulation extensions,
+`_zve64d_zvl512b` for vector code. On the F2, `gcc -O2 hello.c` takes
+`<F2 measured: pending>` (estimate: about a minute, §7): keep programs
+in several small files and let `make` rebuild only what changed.
 
 Cross-compiling from a PC also works (Ubuntu/Debian
 `gcc-riscv64-linux-gnu`): the image's glibc is 2.41, so link statically
 (`-static`) or against a matching sysroot. A full Linux SDK is #71.
 
-## 7. DDR4 and HBM: NUMA nodes 0 and 1
+### 5.4 DDR4 and HBM: NUMA nodes 0 and 1
 
 ```console
 sigil@sigil:~$ numactl --hardware
@@ -273,17 +389,47 @@ node     0    1
   prefers HBM but may spill; `numactl --interleave=0,1` stripes pages.
 - **Parts of a program:** link with `-lnuma` and use
   `numa_alloc_onnode(size, 1)` / `numa_free()`, or `mbind()` /
-  `set_mempolicy()` from `<numaif.h>`.
+  `set_mempolicy()` from `<numaif.h>`:
+
+  ```c
+  /* hbm.c: one buffer in HBM, one in DDR4.  gcc -O2 hbm.c -lnuma -o hbm */
+  #include <numa.h>
+  #include <stdio.h>
+  #include <string.h>
+
+  int main(void) {
+    size_t size = 64 << 20;                      /* 64 MiB each */
+    if (numa_available() < 0) return 1;
+    char *hbm = numa_alloc_onnode(size, 1);      /* node 1 = HBM */
+    char *ddr = numa_alloc_onnode(size, 0);      /* node 0 = DDR4 */
+    if (!hbm || !ddr) return 1;
+    memset(hbm, 1, size);                        /* pages are placed at first touch */
+    memcpy(ddr, hbm, size);
+    long long free_hbm;
+    numa_node_size64(1, &free_hbm);
+    printf("copied %zu MiB from HBM to DDR4, %lld MiB of HBM free\n", size >> 20, free_hbm >> 20);
+    numa_free(hbm, size);
+    numa_free(ddr, size);
+    return 0;
+  }
+  ```
+
 - **Check where memory landed:** `~/examples/memwhere 1024` prints the
   node of every page of a malloc'd buffer (`numactl --membind=1
   ./memwhere 1024` → `node 1: 1024 MiB`); `numastat -p PID`;
   `/sys/devices/system/node/node1/meminfo`.
-- `~/examples/numa_hbm [MiB]` allocates on each node with libnuma,
-  verifies the placement and times a write pass and a dependent-load
-  (pointer-chasing) pass on each node — on the F2 this shows the
-  latency/bandwidth difference between DDR4 and HBM.
+- `~/examples/numa_hbm [MiB]` (`make numa_hbm`, i.e. `gcc -O2 -Wall
+  numa_hbm.c -lnuma -o numa_hbm`) allocates on each node with
+  `numa_alloc_onnode`, verifies the placement page by page
+  (`numa_move_pages`) and times a write pass and a dependent-load
+  (pointer-chasing) pass on each node.
+  On the F2 it shows the difference. Measured from bare-metal code, a
+  cold 64-byte refill takes 729 ns from DDR4 and 813 ns from HBM, and a
+  sequential read runs at 77 MB/s from DDR4 and 70 MB/s from HBM: with
+  one memory request in flight both are latency-bound, so for this core
+  HBM is not faster, it is 16 GiB more memory you can place data in.
 
-## 8. Vector code (Zve64d, VLEN 512)
+### 5.5 Vector code (Zve64d, VLEN 512)
 
 Sigil implements the embedded vector profile **Zve64d** (all SEW up to
 64, single and double FP) with VLEN = 512, not the full V extension.
@@ -301,9 +447,77 @@ gcc -O3 -march=rv64gc_zve64d_zvl512b prog.c             # auto-vectorization
 daxpy and an int64 reduction against scalar code. `zvl512b` tells GCC
 the vector length so it vectorizes loops; without it GCC assumes the
 Zve64d minimum (64 bits) and usually does not. Do not use
-`-march=rv64gcv`: binaries for full V may use instructions Zve64d lacks.
+`-march=rv64gcv` (or `rv64gcv_zvl512b`): binaries for full V may use
+instructions Zve64d lacks. The vector unit is element-serial
+([`PROGRAMMING.md`](PROGRAMMING.md#11-vector-code)): vector code runs
+far fewer instructions, but is not dramatically faster yet.
 
-## 9. The disk: pmem, saving it back, adding packages
+### 5.6 Getting files in and out
+
+There is no network on the F2 yet (#72). Files travel in the disk file,
+while Debian is **not** running (`sigil-linux` reads the disk file at
+boot and overwrites it at power-off, so changes made to it in between
+are lost):
+
+- **In, with a loop mount** (any number of files):
+
+  ```sh
+  sudo mount -o loop ~/sigil-disk.ext4 /mnt
+  sudo cp -r myproject /mnt/home/sigil/ && sudo chown -R 1000:1000 /mnt/home/sigil/myproject
+  sudo umount /mnt
+  ```
+
+- **In, with `debugfs`** (no root, no mount; one file at a time; the
+  file arrives owned by root, so `sudo chown sigil:sigil ~/prog.c` on
+  the board):
+
+  ```sh
+  debugfs -w -R "write prog.c /home/sigil/prog.c" ~/sigil-disk.ext4
+  ```
+
+- **Out, after `sudo poweroff`** (once `sigil-linux` has saved the disk):
+
+  ```sh
+  debugfs -R "cat /home/sigil/results.txt" ~/sigil-disk.ext4 > results.txt
+  debugfs -R "rdump /home/sigil/results ." ~/sigil-disk.ext4     # a whole directory
+  ```
+
+  or `sudo mount -o loop,ro ~/sigil-disk.ext4 /mnt`.
+- **A few lines of text:** paste them into `cat > file` on the console
+  (Ctrl-D ends it).
+
+These commands were checked in QEMU with the release image (the
+root-owned `debugfs` file, the loop-mounted copy owned by `sigil`, files
+read back after `sudo poweroff`, `e2fsck -fn` clean).
+
+### 5.7 Shutting down safely
+
+`sudo poweroff` (password `sigil`), then wait: Debian stops its
+services and remounts the disk read-only, and OpenSBI writes the L1 D$
+back before it powers off through the test finisher; then `sigil-linux`
+saves the disk and prints `disk saved: ...`. Only this path keeps your work.
+`sudo reboot` restarts Debian on the same disk without saving it to the
+host (it stays in DDR4). Ctrl-], a dropped SSH session outside tmux, or
+stopping the instance with Debian still running lose everything since
+the last power-off (§4.1). Stop the F2 instance (`sudo shutdown -h
+now` on the host, or the EC2 console) only after `sigil-linux` has
+returned; `~/sigil-disk.ext4` is on the EBS volume and survives a stop.
+
+### 5.8 It is slow
+
+Sigil Linux on the F2 is a complete Debian, but on a slow machine. The
+core runs at an interim **62.5 MHz** and needs about **13 cycles per
+instruction** running Linux (derived from the #55 F2 boot, §7): it is in
+order, its L1 caches block on a miss, it has one memory request in
+flight, and a cold refill from DDR4 takes ≈ 46 cycles (729 ns). That is roughly 5
+million instructions per second. Booting takes `<F2 boot time: pending>`
+(estimate ≈ 9 min), `gcc hello.c` about a minute and starting `python3`
+about 15 s (estimates, §7). Use it to run and measure code on Sigil, not
+to build big projects: compile small programs, keep `make` incremental,
+and run long jobs under `nohup`. A faster FPGA clock (#53) and the
+microarchitecture work (#61) are the planned fixes.
+
+## 6. The disk: pmem, saving it back, adding packages
 
 The root file system lives in RAM: the host copies the ext4 image into
 the pmem window before boot, Linux exposes the window as `/dev/pmem0`
@@ -312,9 +526,10 @@ persistence", which is expected for DRAM) and mounts it as `/`. Writes
 are as fast as memory. They persist as long as the window is not
 overwritten: across `reboot` (the finisher resets the SoC, not the
 DDR4), and across runs if the host saves the window back to a file
-after `poweroff` (F2: `sigil_host` save; QEMU: automatically, the disk
-file is the window). Always `poweroff` (or at least `sync`) before
-saving, or the copy may hold a dirty, unjournaled state.
+after `poweroff` (F2: `sigil-linux`, or `sigil_host --save`, §4; QEMU:
+automatically, the disk file is the window). Always `poweroff` (or at
+least `sync`) before saving, or the copy may hold a dirty, unjournaled
+state.
 
 - **Checking the file system:** there is no fsck at boot. Run
   `e2fsck -f` on a saved image on the host while nothing uses it.
@@ -324,10 +539,10 @@ saving, or the copy may hold a dirty, unjournaled state.
 - **More packages:** the F2 has no network yet (#72). Boot the same disk
   in QEMU with `--net`, then `sudo sigil-qemu-net && sudo apt update &&
   sudo apt install ...`, power off, and use that disk on the F2.
-- **Files in and out:** loop-mount the image on the host (`sudo mount -o
-  loop sigil-disk.img /mnt`) while nothing is running on it.
+- **Files in and out:** §5.6 (loop mount or `debugfs` on the disk file
+  while nothing is running on it).
 
-## 10. Boot time and speed
+## 7. Boot time and speed
 
 | | QEMU (TCG, build instance) | QEMU `--icount` (62.5 MHz at IPC 1) | F2 estimate (62.5 MHz) |
 |---|---:|---:|---:|
@@ -348,13 +563,13 @@ everything.
 The image is tuned for this (§1); `systemd-analyze blame` on the board
 shows where the time goes.
 
-## 11. Limits
+## 8. Limits
 
 - One hart (`nproc` = 1); no SMP.
 - No network on the F2 yet (#72); QEMU only with `--net`.
 - No swap; no Sv48 (Sv39 maps up to 128 GiB physical, enough for the
   80 GiB here).
-- No full V: build vector code for Zve64d (§8).
+- No full V: build vector code for Zve64d (§5.5).
 - No Sstc/Svpbmt/Zicbo*: timers go through SBI; DMA coherence is moot
   (no DMA devices).
 - The RTC keeps time only if the host sets it; otherwise the clock
@@ -364,7 +579,7 @@ shows where the time goes.
 - The system clock of the F2 build is the core clock; a faster FPGA
   build (#53) changes `timebase-frequency` in `sigil-f2.dts`.
 
-## 12. Files and versions
+## 9. Files and versions
 
 | Path | What |
 |---|---|
@@ -377,3 +592,5 @@ shows where the time goes.
 | `sw/linux/init.c`, `boot_stub.S` | initramfs `/init` (`SIGIL_LINUX_BOOT_OK`) and the simulator boot stub |
 | `scripts/build_opensbi.sh`, `build_dtbs.sh`, `build_linux_kernel.sh`, `build_debian_rootfs.sh` | builds |
 | `scripts/qemu_sigil_boot.sh`, `qemu_sigil_check.py` | QEMU boot and acceptance run |
+| `fpga/scripts/sigil-linux` | download, unpack, boot and save on an F2 (§4.1) |
+| `fpga/scripts/f2_playground_setup.sh` | one-time F2 instance setup (SDK, `sigil_host`, AFI, `sigil-run`, `sigil-linux`) |
