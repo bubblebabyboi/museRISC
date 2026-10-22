@@ -289,7 +289,7 @@ build/sim/soc_rtl_tb [max_cycles] --load 0x80000000=build/myprog.bin \
 UART output goes to stdout as it arrives. The harness prints its own
 status lines to stderr. On an Apple-silicon laptop, the simulator runs
 about 0.5 million SoC cycles per second, so a 15M-cycle program
-(`ed25519_verify`) takes about 30 s.
+(`ed25519_verify`) takes about 25 s.
 
 ### fpga_top_tb (FPGA top)
 
@@ -303,11 +303,11 @@ the real DDR timing and clock.
 
 ### Regression targets
 
-| Target | What it runs | Wall time (M-series Mac, `-j4`) |
+| Target | What it runs | Wall time (M-series Mac) |
 |---|---|---|
-| `make -C sim examples` | every example on `soc_rtl_tb`, random memory latency, 60M-cycle limit each; fails on any FAIL, trap or timeout | ~33 s |
-| `make -C sim fpgatop-examples` | every example on `fpga_top_tb` (DDR-like AXI timing) | ~41 s |
-| `make core-test` | includes `examples` and `fpgatop-example-hello` / `-timer_irq` | (whole suite) |
+| `make -C sim examples` | every example on `soc_rtl_tb`, random memory latency, 60M-cycle limit each; fails on any FAIL, trap or timeout | ~28 s sequential |
+| `make -C sim fpgatop-examples` | every example on `fpga_top_tb` (DDR-like AXI timing) | ~22 s with `-j4` |
+| `make core-test` | includes `examples` and `fpgatop-example-hello` / `-timer_irq` | adds ~30 s to a ~34 min suite |
 
 Logs are written to `build/examples/<name>.log`. Add a new example by
 creating `sw/examples/<name>/{<name>.c,Makefile}` and adding the name
