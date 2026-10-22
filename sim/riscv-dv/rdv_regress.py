@@ -370,8 +370,8 @@ def main():
     ap.add_argument("--gen-timeout", type=int, default=1800)
     ap.add_argument("--gen-mem-gb", type=float, default=None,
                     help="memory budget (GB) shared by concurrent pygen runs, each "
-                    "reserving its test's gen_mem_gb (default %d%% of MemAvailable "
-                    "at start; 0 = no limit)" % round(GEN_MEM_FRACTION * 100))
+                    "reserving its test's gen_mem_gb (default %d%%%% of MemAvailable "
+                    "at start; 0 = no limit)" % round(GEN_MEM_FRACTION * 100))  # argparse %-formats help
     ap.add_argument("--sim-timeout", type=int, default=900)
     ap.add_argument("--keep", action="store_true",
                     help="keep Spike logs and DUT traces of passing runs")
