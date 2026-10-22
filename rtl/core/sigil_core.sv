@@ -2323,6 +2323,35 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
     end
   end
 
+  // The rows the WB instruction wrote, captured as it enters WB
+  // (with this edge's VRF write merged in). The shadow itself can
+  // change before the instruction retires: a younger vector load
+  // in MEM stalls retirement while it writes the VRF, possibly the
+  // same registers.
+  function automatic logic [63:0] tr_merge(input logic [63:0] old_w,
+                                           input logic [63:0] wd,
+                                           input logic [7:0] be);
+    logic [63:0] w;
+    w = old_w;
+    for (int b = 0; b < 8; b++) if (be[b]) w[b*8 +: 8] = wd[b*8 +: 8];
+    return w;
+  endfunction
+  logic [31:0] tr_w_rows_next;
+  assign tr_w_rows_next = tr_m_vregs_q | tr_vls_row;
+  logic [63:0] tr_w_vsnap_q [256];
+  initial for (int i = 0; i < 256; i++) tr_w_vsnap_q[i] = 64'd0;
+  always @(posedge clk_i) begin
+    if (tr_adv && (tr_w_rows_next != 32'd0)) begin
+      for (int i = 0; i < 256; i++) begin
+        if (tr_w_rows_next[i / 8]) begin
+          tr_w_vsnap_q[i] <= (vrf_we && (vrf_wa == 8'(i)))
+                             ? tr_merge(tr_vrf_q[i], vrf_wd, vrf_wbe)
+                             : tr_vrf_q[i];
+        end
+      end
+    end
+  end
+
   always @(posedge clk_i) begin
     if ((tr_fd != 0) && chk_live_q) begin
       if (memwb_valid_q && !memwb_exc_q && !mem_stall && !freeze) begin
@@ -2348,7 +2377,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
           if (tr_w_vregs_q[r]) begin
             $fwrite(tr_fd, " v%0d=", r);
             for (int w = 7; w >= 0; w--) begin
-              $fwrite(tr_fd, "%h", tr_vrf_q[8'(r * 8 + w)]);
+              $fwrite(tr_fd, "%h", tr_w_vsnap_q[8'(r * 8 + w)]);
             end
           end
         end
