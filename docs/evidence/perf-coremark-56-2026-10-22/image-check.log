@@ -1,13 +1,17 @@
-# Images rebuilt from a clean export of c4b76f405ede80bd97038ff1873896ad53b67c88 (branch head) with a fresh fetch_coremark.sh, compared with the measured images
-# date_utc: 2026-10-22T09:46:24Z  riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# Images rebuilt from a clean export of 45260527dfc4273c9cb1b589fe2e403f58fe75df (sw/ at the final code) with a fresh fetch_coremark.sh, compared with the measured images
+# date_utc: 2026-10-22T10:55:35Z  riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
 $ make -C sw/bench/coremark OUT=... BENCH_ITERATIONS=20 RISCV_PREFIX=riscv64-unknown-elf- SIGIL_MARCH=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh
 coremark: fetched eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146 into /home/ubuntu/wt/56-perf-coremark/build/imgcheck/tp/coremark (sha256 verified)
 scalar 20 iterations: rebuilt c56fb68ce74d117ddfe2d674db8177525beaac7d67cd95a57f577f6260034d78 measured c56fb68ce74d117ddfe2d674db8177525beaac7d67cd95a57f577f6260034d78 IDENTICAL
 $ make -C sw/bench/coremark OUT=... BENCH_ITERATIONS=20 RISCV_PREFIX=riscv64-unknown-elf- 
+coremark: /home/ubuntu/wt/56-perf-coremark/build/imgcheck/tp/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
 sdk 20 iterations: rebuilt 400c9a3ccba55f2a78235ef263ba4fe911f1b6df2e907e15fa656019af93ef27 measured 400c9a3ccba55f2a78235ef263ba4fe911f1b6df2e907e15fa656019af93ef27 IDENTICAL
 $ make -C sw/bench/coremark OUT=... BENCH_ITERATIONS=20 RISCV_PREFIX=riscv64-unknown-elf- SIGIL_MARCH=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh COREMARK_RUN=validation
+coremark: /home/ubuntu/wt/56-perf-coremark/build/imgcheck/tp/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
 validation 20 iterations: rebuilt d0bf2ae1cf5c4d9bee776318f47d348ca4888fdb53ffd2930c84e383e7323ada measured d0bf2ae1cf5c4d9bee776318f47d348ca4888fdb53ffd2930c84e383e7323ada IDENTICAL
 $ make -C sw/bench/coremark OUT=... BENCH_ITERATIONS=1000 RISCV_PREFIX=riscv64-unknown-elf- SIGIL_MARCH=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh
+coremark: /home/ubuntu/wt/56-perf-coremark/build/imgcheck/tp/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
 scalar 1000 iterations: rebuilt 7c50d3fccc16ad26684dbc370b4be4138135328d92d1a3dc7149e9c0666400dc measured 7c50d3fccc16ad26684dbc370b4be4138135328d92d1a3dc7149e9c0666400dc IDENTICAL
 $ make -C sw/bench/coremark OUT=... BENCH_ITERATIONS=1000 RISCV_PREFIX=riscv64-unknown-elf- SIGIL_MARCH=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh COREMARK_RUN=validation
+coremark: /home/ubuntu/wt/56-perf-coremark/build/imgcheck/tp/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
 validation 1000 iterations: rebuilt fbb0d2f1ac92ac4c6c73663569494cfef841d35592b9be01bd2c9c6781922477 measured fbb0d2f1ac92ac4c6c73663569494cfef841d35592b9be01bd2c9c6781922477 IDENTICAL

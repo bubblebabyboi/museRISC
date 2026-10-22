@@ -1,5 +1,5 @@
 # fetch_coremark.sh from a clean destination, then upstream md5 list and sha256 of the files used
-# date_utc: 2026-10-22T09:41:20Z  branch commit: 320cf57ed828aab9e7c9c3082dcd4942a0fe6da3
+# date_utc: 2026-10-22T10:55:22Z  branch commit: 45260527dfc4273c9cb1b589fe2e403f58fe75df
 $ bash sw/bench/coremark/fetch_coremark.sh build/cm-fetch-check/coremark
 coremark: fetched eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146 into /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark (sha256 verified)
 exit 0
@@ -23,6 +23,7 @@ dad92861212f8f012e75974e23ea97f7a275a375e0d3bc1d3b216423ba6b6306  coremark.md5
 9577b9c846f61fd69a0d8ac965998c6450c7d8969f71f0bb4a931b91aebad28a  LICENSE.md
 $ bash sw/bench/coremark/fetch_coremark.sh build/cm-fetch-check/coremark   (re-run: verify only)
 coremark: /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark verified (eembc/coremark b56889a7bd9d5624fbeff2a73ba69878e6a9c146)
+exit 0; tree written: no
 $ echo "/* x */" >> core_main.c; bash fetch_coremark.sh ...   (modified tree is refused)
 coremark: /home/ubuntu/wt/56-perf-coremark/build/cm-fetch-check/coremark exists but does not match the pinned sources;
 coremark: remove it and re-run sw/bench/coremark/fetch_coremark.sh
