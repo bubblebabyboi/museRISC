@@ -35,8 +35,9 @@ report_utilization -file $out/impl_util.rpt
 report_utilization -hierarchical -hierarchical_depth 4 -file $out/impl_util_hier.rpt
 report_timing_summary -max_paths 20 -file $out/impl_timing.rpt
 report_timing -max_paths 30 -nworst 1 -unique_pins -sort_by group -file $out/impl_top_paths.rpt
-report_design_analysis -logic_level_distribution -file $out/impl_logic_levels.rpt
 report_drc -file $out/impl_drc.rpt
 write_checkpoint -force $out/post_route.dcp
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 puts "F0_RESULT defines=$defines period=$period wns=$wns fmax_est=[format %.1f [expr {1000.0 / ($period - $wns)}]]MHz"
+# All failing endpoints, grouped (#53); also writes impl_logic_levels.rpt.
+source fpga/f0/f0_timing_reports.tcl
