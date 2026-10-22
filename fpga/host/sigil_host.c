@@ -998,7 +998,7 @@ run_again:
       const uint32_t st = rd(R_STATUS);
       if (st & ST_MEM_ERR) {
         static bool reported;
-        if (!reported) {
+        if (!reported && v4) {
           print_err_capture();
           reported = true;
         }
