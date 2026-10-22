@@ -319,3 +319,59 @@ die").
   containers sky-crypto-w34 / sky-crypto-w34p, started 17:05:39Z /
   17:05:41Z; results in ~/sb/build/{results,logs,reports}/sky130hd/
   sigil_hier_sigil_crypto_top/{w34,w34p}.
+
+== CPU block for the non-Caravel die: s116 / s125 (sigil-sky130)
+  Runs cpu-s116 (3400 x 3420) and cpu-s125 (3400 x 3680) of the plan
+  above, 16 threads each, snapshot 2db5230aa893.
+  Stage wall times (s116 / s125): floorplan 54 / 54 s, macro placement
+  82 / 81 s, PDN 19 / 20 s, global placement 7.2 / 7.3 min, resize
+  1.6 / 1.6 min, detailed placement 2.5 / 2.5 min, CTS 10.4 / 9.2 min
+  (+ 5.9 / 5.6 min LEC netlist dump), global-route stage 13.1 / 14.1
+  min.
+  CTS: repair_timing ends with setup WNS +0.001 ns (s125; the worst
+  endpoints are the dbg_st_wdata_o outputs against the 12 ns output
+  budget), no hold violations.
+  Global route: 0 overflowed gcells on both, after 13 (s116) / 17
+  (s125) congestion iterations.
+                 s116 (11.63 mm^2)        s125 (12.51 mm^2)
+    usage        46.48 %                  44.99 %
+      met1/2/3/4 52.3 / 58.3 / 27.2 / 37.3   49.2 / 56.2 / 28.2 / 37.2 %
+    wirelength   27.49 m                  28.81 m
+    routed nets  236,060                  235,363
+    instances    359,589 (7 macros)       371,306
+    std cells    2.382 mm^2, 45.8 % of core with macros (27.6 % std
+                 cells only) / 2.375 mm^2, 42.5 % (24.9 %)
+    antenna      7,245 -> 55 nets         7,860 -> 11 nets
+                 (21,928 diodes,          (22,063 diodes,
+                  6,983 jumpers)           7,361 jumpers)
+    setup WNS    -0.108 ns, TNS -0.254    +0.002 ns
+    hold WNS     +0.253 ns                +0.256 ns
+  (timing with global-route parasitics, TT; the remaining antenna
+  nets go to the post-detailed-route repair, MAX_REPAIR_ANTENNAS_ITER_DRT
+  = 5.)
+  Detailed routing started 17:29Z on both.
+
+  Corner STA (flow/designs/sky130hd/sigil_hier/corner_sta.tcl): the
+  ORFS sky130hd platform has only the TT std-cell liberty, so the ss
+  and ff libraries come from the sky130A PDK build in the
+  fossi-foundation/ciel-releases release
+  sky130-ff08c23db8359afce3f134c454e7930586d0641c (sky130_fd_sc_hd
+  tarball): sky130_fd_sc_hd__ss_100C_1v60.lib (sha256 9b24f0db...),
+  sky130_fd_sc_hd__ff_n40C_1v95.lib (fb61d91c...); its
+  tt_025C_1v80.lib differs from the platform's only in formatting and
+  attribute order and gives the same slacks (below). The OpenRAM
+  macros have only a TT_1p8V_25C liberty and keep TT timing in all
+  corners; the routed blocks are timed with the OpenRCX SPEF of the
+  finish stage (typical RC, the platform's only extraction rules).
+  Check on s125 after CTS (placement parasitics):
+    corner                    setup WNS / TNS (ns)      hold WNS
+    tt (platform lib)         -0.004 / -0.004 (1 ep)    +0.248
+    tt (PDK lib)              -0.004 / -0.004 (1 ep)    +0.248
+    ff_n40C_1v95              +9.866                    +0.104
+    ss_100C_1v60              -25.588 / -164,979        +0.611
+                              (12,772 endpoints; 12,611 max-slew
+                              violations against the ss library)
+  max-capacitance: 78 violations in TT, all on OpenRAM dout pins
+  (liberty limit 0.028 pF, up to 0.038 pF; D$ data 33, I$ data 29,
+  D$ tag 15, vector register file 1); the macros' loads sit outside
+  the 40 um halo, so each dout net has >= 40 um of wire.
