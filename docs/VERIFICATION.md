@@ -53,8 +53,9 @@ only taken from the make command line (`sim/Makefile` has its own
 `TESTS` list of directed programs); extra driver options go in
 `RDV_ARGS`, e.g. `RDV_ARGS="--instr-cnt 1000 --keep"`. Keep `JOBS` at 16
 or below on the shared machine. Generation dominates the run time:
-pygen needs about 3 minutes for a 10,000-instruction program on a busy
-c7i.8xlarge; the simulations take seconds.
+pygen took 3 to 11 minutes (median 5) per 5,000- to 10,000-instruction
+program on the busy c7i.8xlarge, Spike and the core a few seconds; the
+full list (20 tests x 3 seeds) takes about 25 minutes with 14 jobs.
 
 Useful driver options: `--instr-cnt N` (override every test's
 `+instr_cnt`, for quick runs), `--out DIR` (default
@@ -306,8 +307,16 @@ Excluded (18), with the reason recorded in the test list:
 | `riscv_zbb_zbt_test` | Zbt is not ratified; Sigil does not implement it |
 | `riscv_load_store_shared_mem_test`, `riscv_single_hart_test` | multi-hart target; Sigil is single-hart |
 
-### Findings
+### Results and findings
 
+Evidence: [`evidence/riscv-dv-8-2026-10-22/`](evidence/riscv-dv-8-2026-10-22/), indexed in [`evidence/README.md`](evidence/README.md) ("#8: riscv-dv random regression vs Spike").
+
+- All supported tests, seeds 1-3, full instruction counts: 60/60 PASS,
+  680,586 records compared (instructions plus 582 traps: 441
+  breakpoints, 84 illegal instructions, 3 misaligned accesses, 54
+  ECALLs), boot modes M/S/U mixed.
+- No divergence attributable to a Sigil bug was found. The work went
+  into the generator (patches A-AD) and the comparison rules.
 - LR/SC of different widths (`lr.w` then `sc.d` to the same address):
   Sigil's SC fails (its reservation covers exactly the LR's 4 bytes),
   Spike's succeeds. Both are allowed: the SC may only succeed if the
@@ -315,18 +324,19 @@ Excluded (18), with the reason recorded in the test list:
   set's extent is implementation-defined. pygen picks the LR and SC
   widths independently (so does the SV generator); patch R pairs them
   so the regression only checks architecturally defined outcomes. Seen
-  once in a 300-instruction smoke run of `riscv_amo_test` seed 3 before
-  the patch.
-- Regression results and anything they find are recorded in
-  `docs/evidence/riscv-dv-*` (index in
-  [`evidence/README.md`](evidence/README.md)).
+  in a 300-instruction smoke run of `riscv_amo_test` seed 3 before the
+  patch
+  ([compare report](evidence/riscv-dv-8-2026-10-22/lrsc-width-mismatch-compare.txt)).
 
 ### Limits (what this regression does not check yet)
 
-- No address translation, no PMP programming, no interrupts, no
-  sub-program calls, no random CSR accesses, and no V/Zk/Zicond/H in
-  the generated programs (pygen limits above; the last three are
-  covered by the two directed programs only).
+- No address translation, no PMP programming, no interrupts, no trap
+  delegation (every trap is handled in M-mode), no sub-program calls,
+  no random CSR accesses, and no V/Zk/Zicond/H in the generated
+  programs (pygen limits above; V and Zk/Zicond are covered by the two
+  directed programs only).
+- `riscv_unaligned_load_store_test` checks one misaligned trap per run
+  (riscv-dv ends the test there on a core that traps).
 - The DUT trace does not log load addresses or implicit CSR updates
   other than `fflags`; a wrong implicit update shows up only when
   software reads the CSR.

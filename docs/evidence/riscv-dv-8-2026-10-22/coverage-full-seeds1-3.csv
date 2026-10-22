@@ -1,0 +1,62 @@
+test,seed,status,boot,records,traps,trap_causes,priv_mix,fp_writes,csr_writes,stores
+riscv_arithmetic_basic_test,1,PASS,M,12209,1,11:1,3:12208,0,9
+riscv_arithmetic_basic_test,2,PASS,M,12301,1,11:1,3:12300,0,9
+riscv_arithmetic_basic_test,3,PASS,M,12159,1,11:1,3:12158,0,9
+riscv_rand_instr_test,1,PASS,S,14440,1,9:1,1:14317 3:122,0,12
+riscv_rand_instr_test,2,PASS,S,12524,1,9:1,1:12401 3:122,0,12
+riscv_rand_instr_test,3,PASS,S,14452,1,9:1,1:14326 3:125,0,12
+riscv_jump_stress_test,1,PASS,M,5281,1,11:1,3:5280,0,9
+riscv_jump_stress_test,2,PASS,S,5485,1,9:1,1:5362 3:122,0,12
+riscv_jump_stress_test,3,PASS,M,5366,1,11:1,3:5365,0,9
+riscv_loop_test,1,PASS,S,31507,1,9:1,1:31381 3:125,0,12
+riscv_loop_test,2,PASS,U,20577,1,8:1,0:20462 3:114,0,10
+riscv_loop_test,3,PASS,S,21279,1,9:1,1:21153 3:125,0,12
+riscv_no_fence_test,1,PASS,S,9388,1,9:1,1:9262 3:125,0,12
+riscv_no_fence_test,2,PASS,M,9737,1,11:1,3:9736,0,9
+riscv_no_fence_test,3,PASS,S,9541,1,9:1,1:9418 3:122,0,12
+riscv_illegal_instr_test,1,PASS,U,11470,29,2:28 8:1,0:8947 3:2494,0,122
+riscv_illegal_instr_test,2,PASS,S,11830,32,2:31 9:1,1:8945 3:2853,0,136
+riscv_illegal_instr_test,3,PASS,M,10979,26,2:25 11:1,3:10953,0,109
+riscv_ebreak_test,1,PASS,S,19255,153,3:152 9:1,1:5225 3:13877,0,620
+riscv_ebreak_test,2,PASS,S,19107,147,3:146 9:1,1:5620 3:13340,0,596
+riscv_ebreak_test,3,PASS,M,18695,144,3:143 11:1,3:18551,0,581
+riscv_unaligned_load_store_test,1,PASS,M,236,2,6:1 11:1,3:234,0,10
+riscv_unaligned_load_store_test,2,PASS,U,234,2,6:1 11:1,0:62 3:170,0,11
+riscv_unaligned_load_store_test,3,PASS,U,248,2,4:1 11:1,0:71 3:175,0,11
+riscv_mmu_stress_test,1,PASS,M,15881,1,11:1,3:15880,0,9
+riscv_mmu_stress_test,2,PASS,M,15456,1,11:1,3:15455,0,9
+riscv_mmu_stress_test,3,PASS,S,15184,1,9:1,1:15061 3:122,0,12
+riscv_machine_mode_rand_test,1,PASS,M,9266,1,11:1,3:9265,0,9
+riscv_machine_mode_rand_test,2,PASS,M,9079,1,11:1,3:9078,0,9
+riscv_machine_mode_rand_test,3,PASS,M,8857,1,11:1,3:8856,0,9
+riscv_privileged_mode_rand_test,1,PASS,U,8926,1,8:1,0:8808 3:117,0,10
+riscv_privileged_mode_rand_test,2,PASS,S,9529,1,9:1,1:9403 3:125,0,12
+riscv_privileged_mode_rand_test,3,PASS,U,8590,1,8:1,0:8472 3:117,0,10
+riscv_u_mode_rand_test,1,PASS,U,8798,1,8:1,0:8681 3:116,0,10
+riscv_u_mode_rand_test,2,PASS,U,9043,1,8:1,0:8929 3:113,0,10
+riscv_u_mode_rand_test,3,PASS,U,8671,1,8:1,0:8553 3:117,0,10
+riscv_non_compressed_instr_test,1,PASS,S,8569,1,9:1,1:8443 3:125,0,12
+riscv_non_compressed_instr_test,2,PASS,M,8989,1,11:1,3:8988,0,9
+riscv_non_compressed_instr_test,3,PASS,U,8350,1,8:1,0:8235 3:114,0,10
+riscv_amo_test,1,PASS,U,4163,1,8:1,0:4045 3:117,0,10
+riscv_amo_test,2,PASS,U,4369,1,8:1,0:4251 3:117,0,10
+riscv_amo_test,3,PASS,S,4503,1,9:1,1:4377 3:125,0,12
+riscv_floating_point_arithmetic_test,1,PASS,M,10354,1,11:1,3:10353,3455,1127
+riscv_floating_point_arithmetic_test,2,PASS,M,10386,1,11:1,3:10385,3477,1105
+riscv_floating_point_arithmetic_test,3,PASS,M,10353,1,11:1,3:10352,3451,1082
+riscv_floating_point_rand_test,1,PASS,U,16207,1,8:1,0:16088 3:118,3995,1232
+riscv_floating_point_rand_test,2,PASS,U,12628,1,8:1,0:12509 3:118,3237,1168
+riscv_floating_point_rand_test,3,PASS,U,12639,1,8:1,0:12523 3:115,3254,1007
+riscv_floating_point_mmu_stress_test,1,PASS,U,16752,1,8:1,0:16633 3:118,3090,898
+riscv_floating_point_mmu_stress_test,2,PASS,U,16629,1,8:1,0:16510 3:118,2957,828
+riscv_floating_point_mmu_stress_test,3,PASS,U,16390,1,8:1,0:16271 3:118,2936,907
+riscv_b_ext_test,1,PASS,S,9461,1,9:1,1:9338 3:122,0,12
+riscv_b_ext_test,2,PASS,U,9560,1,8:1,0:9445 3:114,0,10
+riscv_b_ext_test,3,PASS,S,9782,1,9:1,1:9659 3:122,0,12
+sigil_bitmanip_crypto_test,1,PASS,M(directed),24921,0,,3:24921,0,0
+sigil_bitmanip_crypto_test,2,PASS,M(directed),24921,0,,3:24921,0,0
+sigil_bitmanip_crypto_test,3,PASS,M(directed),24921,0,,3:24921,0,0
+sigil_vector_test,1,PASS,M(directed),53,0,,3:53,1,36
+sigil_vector_test,2,PASS,M(directed),53,0,,3:53,1,36
+sigil_vector_test,3,PASS,M(directed),53,0,,3:53,1,36
+# total records 680586, traps 582, causes 2:84 3:441 4:1 6:2 8:17 9:17 11:20
