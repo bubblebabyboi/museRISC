@@ -12,7 +12,9 @@
 // load page fault on a valid mapping (or, with other tables, maps
 // VA_D to the wrong page). Four code layouts put the load 0..3 words
 // before the page end; every pass flushes the TLB first. The load
-// must return MAGIC every time.
+// must return MAGIC every time. ptw_preempt_control.S builds the
+// same test with the load first in the 16-word block (no overlap of
+// the two walks): it passes, so the tables and checks are right.
 // t0 = phase; exit store 0 = pass, 3 = wrong value seen, 4 = trap.
     .option norvc
     .text
@@ -159,6 +161,14 @@ s_fail:
     .balign 4096
     .skip 0xFC0
 entry\v:
+#ifdef PTW_PREEMPT_CONTROL
+    // Control: the load is the first of the 16 words, so its data
+    // walk is done before IF reaches page B (no overlap).
+    ld s5, 0(s6)
+    .rept 15
+    nop
+    .endr
+#else
     .rept 15 - \v
     nop
     .endr
@@ -166,6 +176,7 @@ entry\v:
     .rept \v
     nop
     .endr
+#endif
     // page B
     beq s5, s7, 1f
     j s_fail
