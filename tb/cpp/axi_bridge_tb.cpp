@@ -16,7 +16,10 @@
 //   - no request accepted while quiesce_i holds an idle bridge,
 //     and idle_o low while a transaction is in progress;
 //   - AR/AW address = AXI_BASE + window offset, ARPROT[2] = inst;
-//   - err_o stays low;
+//   - out-of-window requests (about 4%, above and below the window):
+//     no AXI transaction, zero read beats, writes dropped, err_o set
+//     and the first one captured (address, write, out-of-window bit,
+//     count); err_clr_i pulses clear it; err_o low otherwise;
 //   - the AXI rules in the slave model.
 //
 // Usage: axi_bridge_tb [--txns N] [--quiesce PCT] [axi options]
@@ -81,6 +84,7 @@ int main(int argc, char** argv) {
   dut->rst_ni = 0;
   dut->quiesce_i = 0;
   dut->req_valid_i = 0;
+  dut->err_clr_i = 0;
   AxiDrive(AxiS{}, dut.get(), kDw);
   for (int i = 0; i < 4; ++i) {
     dut->clk_i = uint8_t(i & 1);
@@ -105,6 +109,11 @@ int main(int argc, char** argv) {
   uint64_t cyc = 0;
   const uint64_t max_cyc = txns * 400 + 100000;
   bool ar_seen = false, aw_seen = false;
+  bool oob = false;                 // current transaction is out of the window
+  bool err_exp = false;             // err_o expected (an OOB since the last clear)
+  uint64_t err_addr_exp = 0, err_n = 0, n_oob = 0, n_clr = 0;
+  bool err_wr_exp = false;
+  bool clr_pending = false;
 
   while (done < txns && cyc < max_cyc) {
     // Quiesce pulses (only change between transactions or anytime:
@@ -120,6 +129,12 @@ int main(int argc, char** argv) {
       nbeats = (kind == RDL || kind == WRL) ? 8 : 1;
       addr = (kind == RDL || kind == WRL) ? (rnd(kWindow) & ~uint64_t(63))
                                           : (rnd(kWindow) & ~uint64_t(7));
+      oob = rnd(100) < 4;
+      if (oob) {
+        // Just above the window, far above it, or below MEM_BASE.
+        const uint64_t r = rnd(3);
+        addr += r == 0 ? kWindow : r == 1 ? (uint64_t(1) << 40) : uint64_t(0) - 2 * kWindow;
+      }
       inst = (kind == RD1 || kind == RDL) && rnd(2);
       active = true;
       req_done = false;
@@ -142,6 +157,7 @@ int main(int argc, char** argv) {
     dut->quiesce_i = quiesce;
     dut->req_valid_i = offering;
     dut->req_addr_i = kMemBase + baddr;
+    dut->err_clr_i = clr_pending;
     dut->req_write_i = (kind == WR1 || kind == WRL);
     dut->req_len_i = uint8_t(nbeats - 1);
     dut->req_wdata_i = wdata;
@@ -164,7 +180,8 @@ int main(int argc, char** argv) {
     // Checks on this cycle's outputs.
     if (quiesce && idle && dut->req_ready_o) Fail(cyc, "req_ready while quiesced and idle");
     if (active && (beat > 0 || req_done) && idle) Fail(cyc, "idle_o during a transaction");
-    if (dut->err_o) Fail(cyc, "err_o set");
+    if (bool(dut->err_o) != err_exp) Fail(cyc, err_exp ? "err_o not set after an OOB request" : "err_o set");
+    if (oob && active && (m.arvalid || m.awvalid || m.wvalid)) Fail(cyc, "AXI traffic for an out-of-window request");
     if (m.arvalid && s.arready) {
       const uint64_t want = kAxiBase + (addr & ~uint64_t(nbeats > 1 ? kDw - 1 : 7));
       if (!active || ar_seen || m.araddr != want) {
@@ -186,7 +203,9 @@ int main(int argc, char** argv) {
       } else if (kind == RD1 || kind == RDL) {
         const uint64_t a = (kind == RDL ? addr + 8 * uint64_t(rsp_beats) : addr) & ~uint64_t(7);
         uint64_t want = 0;
-        for (int k = 0; k < 8; ++k) want |= uint64_t(ref[a + k]) << (8 * k);
+        if (!oob) {
+          for (int k = 0; k < 8; ++k) want |= uint64_t(ref[a + k]) << (8 * k);
+        }
         if (rdata != want) {
           std::snprintf(msg, sizeof msg,
                         "read beat %d at +0x%llx: got 0x%016llx want 0x%016llx",
@@ -202,6 +221,12 @@ int main(int argc, char** argv) {
     dut->clk_i = 1;
     dut->eval();
     axi.Edge(m);
+    if (clr_pending) {
+      clr_pending = false;
+      err_exp = false;
+      err_n = 0;
+      n_clr++;
+    }
 
     // Advance the master.
     if (rsp && active && req_done) {
@@ -210,12 +235,37 @@ int main(int argc, char** argv) {
       if ((is_rd && rsp_beats == nbeats) || !is_rd) {
         active = false;
         done++;
+        if (oob) {
+          n_oob++;
+          // The capture is visible now (one cycle after the request).
+          dut->clk_i = 0;
+          dut->eval();
+          const uint32_t info = dut->err_info_o;
+          if (dut->err_addr_o != err_addr_exp || !((info >> 31) & 1) || !((info >> 29) & 1) ||
+              (((info >> 30) & 1) != (err_wr_exp ? 1u : 0u)) || dut->err_count_o != err_n) {
+            std::snprintf(msg, sizeof msg, "error capture addr 0x%llx info 0x%08x count %u, want 0x%llx",
+                          (unsigned long long)dut->err_addr_o, info, unsigned(dut->err_count_o),
+                          (unsigned long long)err_addr_exp);
+            Fail(cyc, msg);
+          }
+          if (rnd(3) == 0) clr_pending = true;
+          oob = false;
+        }
         idle_gap = int(rnd(4));
         (kind == RD1 ? n_rd1 : kind == RDL ? n_rdl : kind == WR1 ? n_wr1 : n_wrl)++;
       }
     }
+    if (fire && oob && beat == 0) {
+      // The bridge records the error at the request's first beat.
+      if (!err_exp) {
+        err_addr_exp = kMemBase + addr;
+        err_wr_exp = (kind == WR1 || kind == WRL);
+      }
+      err_exp = true;
+      err_n++;
+    }
     if (fire) {
-      if (kind == WR1 || kind == WRL) {
+      if ((kind == WR1 || kind == WRL) && !oob) {
         for (int k = 0; k < 8; ++k) {
           if ((be >> k) & 1) ref[(baddr & ~uint64_t(7)) + k] = uint8_t(wdata >> (8 * k));
         }
@@ -239,11 +289,13 @@ int main(int argc, char** argv) {
   }
   if (g_fail) return 1;
   std::printf("AXI BRIDGE TB PASS [%d-bit AXI, %s]: %llu txns (%llu rd1, %llu rd-line, "
-              "%llu wr1, %llu wr-line, %llu quiesce pulses) in %llu cycles; %s\n",
+              "%llu wr1, %llu wr-line, %llu quiesce pulses, %llu out-of-window, %llu error clears) "
+              "in %llu cycles; %s\n",
               kDw * 8, cfg.Describe().c_str(), (unsigned long long)done,
               (unsigned long long)n_rd1, (unsigned long long)n_rdl,
               (unsigned long long)n_wr1, (unsigned long long)n_wrl,
-              (unsigned long long)n_q, (unsigned long long)cyc,
+              (unsigned long long)n_q, (unsigned long long)n_oob, (unsigned long long)n_clr,
+              (unsigned long long)cyc,
               axi.Stats().c_str());
   return 0;
 }
