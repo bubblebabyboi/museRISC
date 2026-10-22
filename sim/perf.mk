@@ -50,7 +50,7 @@ PERF_TB_FILES := $(sort $(foreach m,$(MEM),$(foreach c,$(CONFIG),$(call perf_tb,
 
 # FPGA top harness on the srammacro families (the default build and
 # fpga_top_tb_w512 have their own rules above).
-$(BUILD)/fpga_top_tb_%: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) \
+$(BUILD)/fpga_top_tb_%: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(CPU_INC) \
                         $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_$* --top-module sigil_fpga_top \
 	  $(SRAM_DEF_$*) $(SRAM_GEO_$*) $(SRAM_MOD_$*) \
