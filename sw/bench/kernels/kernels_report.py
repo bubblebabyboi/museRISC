@@ -122,6 +122,22 @@ def main():
                     f"| {fmt(r.get('RVV-e8_speedup'), 2)}x | {fmt(r['RVV-e8_vls_pct'], 1)} "
                     f"| {fmt(r['RVV-e8_vec_pct'], 1)} | {fmt(r.get('RVV-e8_vls_cyc_per_access'), 2)} |")
         md.append("")
+    # Where the cycles go, one row per region (the harness's own table
+    # has one column per region and run, too wide for 28 regions).
+    for v, m, c in keys:
+        regs = sorted((rid, r) for (vv, mm, cc, rid), r in runs.items() if (vv, mm, cc) == (v, m, c))
+        cats = sorted({k for _, r in regs for k, x in r["counters"].items()
+                       if k.startswith("stk_") and k != "stk_sum" and x})
+        if not regs:
+            continue
+        md += [f"## Where the cycles go: {v} / {c} / {m} (% of region cycles)", "",
+               "| Region | " + " | ".join(k[4:] for k in cats) + " |",
+               "|---|" + "---:|" * len(cats)]
+        for rid, r in regs:
+            cyc = r["counters"]["cycles"]
+            md.append(f"| {rid} {r['label']} | " + " | ".join(
+                f"{100.0 * r['counters'].get(k, 0) / cyc:.1f}" for k in cats) + " |")
+        md.append("")
     # GCC auto-vectorization: the autovec image's C against the scalar
     # image's C (and the RVV intrinsics, from the scalar image).
     for m, c in sorted({(m, c) for _, m, c in keys}):
