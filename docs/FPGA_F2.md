@@ -416,6 +416,189 @@ region/budget), make the AFI/AGFI public, load it on an `f2.6xlarge`
 and run the F5 sequence with `sigil_host`; nothing here has run on F2
 hardware yet. Raise `--recipe-b` to B5 once #53 closes 100 MHz.
 
+## Linux platform: 64 GiB DDR4 + 16 GiB HBM, devices, console (#65 #66 #67 #62 #63)
+
+The platform the Linux epic (#73) builds against; the memory map and
+devices are the contract in [`LINUX_PLATFORM.md`](LINUX_PLATFORM.md).
+
+### Memory (#65, #66)
+
+| SoC physical address | AXI / PCIS (BAR4) offset | Backing |
+|---|---|---|
+| `0x0_8000_0000` – `0x10_7FFF_FFFF` | `0x00_0000_0000` – `0x0F_FFFF_FFFF` | DDR4 64 GiB (`sh_ddr`, SLR2) |
+| `0x10_8000_0000` – `0x14_7FFF_FFFF` | `0x10_0000_0000` – `0x13_FFFF_FFFF` | HBM 16 GiB (two stacks, SLR0) |
+| other RAM space (PA ≥ `0x14_8000_0000`) | — | error response, no AXI transaction |
+
+- `sigil_mbus_axi4` maps the window `[MEM_BASE, MEM_BASE + MEM_SIZE)` to
+  `AXI_BASE + (PA − MEM_BASE)` (no aliasing; the old `MEM_MASK` is gone).
+  The F2 CL sets `RAM_SIZE` = 80 GiB, so AXI = PA − `0x8000_0000` for both
+  memories and the SmartConnect's DDRA / DDRB segments (0 / `0x10_0000_0000`)
+  route them. Simulation builds keep a 128 MiB window by default.
+  A request outside the window gets a local response (read data zero,
+  write dropped) and is recorded as an error.
+- `sigil_soc_top` gained `RAM_CACHE_SIZE` (the core's cacheable window from
+  `0x8000_0000`, `sigil_cpu` `C0_SIZE`, default 2 GiB as before);
+  `sigil_fpga_top` passes the RAM window, so all 80 GiB are cached (the
+  previous default would have made everything above 2 GiB of DDR4 and all
+  of HBM uncached single-beat I/O).
+- HBM (`fpga/cl_sigil/design/cl_sigil_hbm.sv`): SmartConnect DDRB → AXI
+  register slices in SLR2, SLR1, SLR0 → HDK `cl_axi_sc_1x1` (AXI4 512 b
+  `clk_main_a0` → AXI3 256 b `clk_hbm_axi`) → AXI3 register slice → HDK
+  `cl_mem_hbm_wrapper` (the `cl_hbm` IP: 16 GiB, both stacks, switch on =
+  global addressing, so AXI port 0 reaches all 32 pseudo channels; ECC off;
+  the IP's "Customer Address Map" option stays **disabled**, AWS ERRATA:
+  address aliasing in 16 GB mode). `clk_hbm_axi` = AWS_CLK_GEN HBM group,
+  recipe **H2 = 450 MHz** (as `cl_mem_perf`); the Shell HBM monitor APB
+  ports are connected. STATUS bit 7 = both stacks initialized.
+- PCIS also crosses SLR1 → SLR2 through two register slices (PCIS enters the
+  CL in SLR1); the SmartConnect, DDR4 controller, SoC and its clock
+  converter stay in SLR2 so the SoC → DDR4 path never leaves SLR2.
+
+### #62 root cause and fix: DDR4 ECC on never-written memory
+
+The Shell DDR4 controller has ECC, and "uncorrectable ECC errors are
+signaled with RRESP" (AWS Shell Interface Specification). After an AFI
+load the DIMM holds garbage with mismatching check bits, so the first L1
+refill of any line the host never wrote (on the first AFI: the stack below
+`0x8010_0000`, written-before-read by the program, hence correct results)
+returned SLVERR and set the sticky `mem_err`. XSIM's fast memory model has no
+ECC, which is why it never showed up there.
+
+- First-error capture in the bridge, readable over OCL (`ERR_ADDR`,
+  `ERR_INFO` = valid, write, out-of-window, ID mismatch, xRESP, request
+  length, response ID; `ERR_COUNT`), cleared by `CTRL` bit 3; `sigil_host`
+  prints it decoded.
+- Fix: the CL memory engine (`rtl/fpga/sigil_axi_memeng.sv`, core clock,
+  full-width 4 KiB INCR bursts, up to 8 in flight, muxed with the SoC bridge
+  while the SoC is held) fills DDR4 with zeros; `sigil_host` does it once
+  per AFI load (`--scrub auto`, recorded in OCL `HOST_FLAGS`, which only a CL
+  reset clears). The same engine writes / checks address patterns for the
+  full-range memory test (`sigil_host --memtest all`).
+- Note for the OS side: the engine and PCIS are not coherent with the L1
+  D$ (write-back, no Zicbom). Data the SoC wrote is in DDR4/HBM only once
+  the line is evicted or `FENCE.I` (cleans every dirty D$ line) ran, so
+  power-off / reboot paths that must preserve memory (the pmem disk) need a
+  `FENCE.I` before the finisher write.
+
+### #63 root cause and fix: 16550 without a TX FIFO
+
+`sw/linux/sigil.dts` describes the UART as `ns16550a` (16-byte TX FIFO), but
+`sigil_uart16550` had a single holding register. Linux's 8250 driver writes
+up to 16 bytes per THRE without re-reading LSR — in `serial8250_tx_chars`
+and, once a tty has the console open, in the printk console path
+(`serial8250_console_fifo_write`) — so every byte written while the THR was
+full was dropped. That is exactly what the #55 log shows: clean until init
+opens `/dev/console`, then `Freengunse krne iag` for "Freeing unused kernel
+image" (the drop rate depends on how fast the CPU issues the 16 stores
+relative to the 160-cycle serial frame). Not the CL FIFO (no overflow) and
+not the host.
+
+- `sigil_uart16550` now has a 16-byte TX FIFO (LSR.THRE = FIFO empty,
+  LSR.TEMT = FIFO empty and shifter idle, THRE interrupt when the FIFO runs
+  empty, FCR bit 2 clears it), as a real 16550A.
+- The virtual UART takes each byte as it enters the shifter and
+  back-pressures it (`uart_tx_stall_i`) while the CL's 1 KiB TX FIFO is
+  full, so a slow host can no longer lose bytes either (`CTRL.tx_drop` = 1
+  restores drop-and-flag behaviour; `sigil_host` sets it when it leaves a
+  SoC running).
+- Host drain: `UART_TX_DATA3` pops up to three bytes per OCL read; no
+  200 µs sleep while data flows.
+
+### Platform devices (#67)
+
+- Test finisher at `0x0010_0000` (`sigil_test_finisher`, QEMU `virt` /
+  `sifive,test1` semantics): `0x5555` power off, `0x7777` reboot,
+  `(code << 16) | 0x3333` fail; other values ignored, reads 0. The FPGA top
+  latches the event (OCL `FIN_STATUS` / `FIN_VALUE`, cleared at the next
+  release); `sigil_host` ends the run: power off → exit 0, fail → exit 1
+  with the code printed, reboot → reload the images and release again
+  (`--on-reboot rerun`, default) or exit 5.
+- RTC at `0x0010_1000` (`sigil_rtc_goldfish`, `google,goldfish-rtc`
+  registers incl. alarm; interrupt = **PLIC source 11**, as QEMU `virt`).
+  Time = a nanosecond time base kept by the FPGA top outside the SoC reset
+  domain (advances `RTC_INC` ns per core cycle, Q8.24, default from the
+  build clock) + a guest-written offset. `sigil_host` sets the time base to
+  the host's wall clock before every release (`--rtc-ns` to override).
+- Device tree for the OS side: `test@100000 { compatible = "sifive,test1",
+  "sifive,test0", "syscon"; reg = <0x0 0x100000 0x0 0x1000>; }` with
+  `syscon-poweroff` (offset 0, value `0x5555`) and `syscon-reboot` (value
+  `0x7777`); `rtc@101000 { compatible = "google,goldfish-rtc"; reg = <0x0
+  0x101000 0x0 0x1000>; interrupt-parent = <&plic>; interrupts = <11>; }`
+  (the Linux goldfish driver requires the interrupt).
+
+### OCL register map, version 4 (`VERSION` = `0x0004_0001`)
+
+Registers `0x000`–`0x04C` as in F3, with these additions/changes:
+
+| Offset | Name | Access | Meaning |
+|---|---|---|---|
+| 0x008 | CTRL | RW | bit 0 `soc_reset_req`, 1 `cache_en`, 2 `tx_drop` (drop instead of back-pressure when the TX FIFO is full), 3 `err_clr` (write 1: clear `mem_err` and the capture) |
+| 0x00C | STATUS | RO | bits 0–6 as F3, 7 HBM ready, 8 memory engine busy, 9 engine done, 10 engine failed, 11 finisher event |
+| 0x038 | HOST_FLAGS | RW | host bookkeeping, cleared only by a CL reset (`sigil_host`: bit 0 DDR4 scrubbed, bit 1 HBM scrubbed) |
+| 0x050 | UART_TX_DATA3 | RO, pops | bits 25:24 = n (0–3) bytes popped, bytes in 7:0, 15:8, 23:16; bit 31 = n ≠ 0 |
+| 0x054 | RAM_SIZE_MB | RO | SoC RAM window (81920 = 80 GiB) |
+| 0x058 | CAPS | RO | bit 0 HBM present |
+| 0x060 / 0x064 | ERR_ADDR_LO / HI | RO | SoC address of the first memory error since clear |
+| 0x068 | ERR_INFO | RO | 31 valid, 30 write, 29 out of window, 28 ID mismatch, 27:26 xRESP, 23:16 request length, 15:0 response ID |
+| 0x06C | ERR_COUNT | RO | memory errors since clear |
+| 0x070 / 0x074 | FIN_STATUS / FIN_VALUE | RO | bit 0 finisher written since release / the value |
+| 0x080 / 0x084 | RTC_LO / RTC_HI | RW | read: time base (LO snapshots HI); write LO then HI (HI commits) |
+| 0x088 | RTC_INC | RW | ns per core cycle, Q8.24 (`0x1000_0000` = 16 ns, 62.5 MHz) |
+| 0x0A0 | MEM_CTRL | W / R | write bit 0 start, bits 5:4 mode (0 fill seed, 1 write address pattern, 2 check fill, 3 check pattern; only while the SoC is held); read bit 0 busy, 1 done, 2 failed, 5:4 mode |
+| 0x0A4–0x0B8 | MEM_BASE / SIZE / SEED (LO, HI) | RW | AXI range (4 KiB multiples) and seed; pattern word at AXI address A = A ⊕ seed |
+| 0x0BC | MEM_MISM | RO | mismatching 64-bit words |
+| 0x0C0 / 0x0C4 | MEM_FADDR_LO / HI | RO | AXI address of the first mismatch |
+| 0x0C8 / 0x0CC | MEM_CYC_LO / HI | RO | core cycles the last run took |
+| 0x0D0 | MEM_RERR | RO | AXI error responses in the last run |
+
+### Host runtime (`sigil_host`, `fpga/host/`)
+
+```sh
+sudo fpga/host/sigil_host --bin prog.bin                   # baremetal (scrubs DDR4 once per AFI load)
+sudo fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil.dtb \
+     --load 0xC80000000=rootfs.ext4 --console               # interactive shell, Ctrl-] detaches
+sudo fpga/host/sigil_host --load 0xC80000000=rootfs.ext4 ... \
+     --save 0xC80000000=rootfs.ext4:16G                       # after power-off: pull the pmem disk back
+sudo fpga/host/sigil_host --memtest all                      # full-range DDR4 + HBM test (engine)
+```
+
+- Images anywhere in the 80 GiB window (`--load 0xADDR=FILE`, 64-byte
+  aligned; HBM at `0x10_8000_0000`); `--save 0xADDR=FILE:SIZE` after the run.
+  Bulk copies go through the mmap'd write-combining BAR4 with AVX2
+  non-temporal stores / streaming loads on `--threads N` threads (default 8);
+  the rate is printed.
+- `--console`: raw terminal, keystrokes to the UART RX FIFO, Ctrl-] detaches
+  (exit 4; the SoC keeps running with the UART in drop mode). `--stdin`
+  forwards a pipe.
+- Ends on the finisher, an exit/fail marker (off with `--no-markers` and in
+  console mode), `--tohost`, or `--timeout` (0 = none). Waits for DDR4 and HBM
+  ready, prints the measured clock, traps and the decoded error capture.
+- `--ignore-mem-err` still exists but is no longer needed (#62).
+- Exit status: 0 pass, 1 fail, 2 timeout, 3 setup error, 4 detached,
+  5 reboot requested (`--on-reboot exit`).
+
+### Verification
+
+- Verilator: `make -C sim fpgatop-f2-quick` (in `core-test`): `fpga_top_tb_f2`
+  = `sigil_fpga_top` with the F2 window (`RAM_SIZE` 80 GiB, 512-bit AXI) over
+  a sparse AXI model of DDR4 at AXI 0 and HBM at AXI 64 GiB: memory engine
+  across 4 GiB and across the DDR4/HBM boundary (fill, pattern, check, an
+  injected mismatch); `sw/fpga-tests/f2_platform_test.c` (RTC, lines at the
+  window edges of both memories incl. DDR4 end / HBM start, 16-byte UART
+  bursts drained at 3 %/cycle so the back-pressure path runs — every byte
+  checked —, finisher power off / fail code 42 / reboot, out-of-window read
+  with the error capture checked); sochash on the 80 GiB window.
+  `axibridge` adds out-of-window requests and error clears at 64/128/512
+  bits; `fpgaocl-quick` checks the v4 registers, drives the engine over OCL
+  and drains the UART through `UART_TX_DATA3`.
+- XSIM (HDK testbench; the HBM IP needs VCS/Questa, so XSIM uses a
+  behavioural memory for the HBM stack below the SLR slices,
+  `SIGIL_HBM_BFM`): `test_sigil_regs` (PCIS at both windows),
+  `test_sigil_platform` (engine over OCL across 4 GiB and the DDR4/HBM
+  boundary, `f2_platform_test` from the boot ROM through the real CL,
+  finisher, error capture, PCIS read-back of the core's DDR4/HBM lines),
+  `test_sigil_hash`, `test_sigil_host_cosim`.
+
 ## Flash Sigil on your own F2
 
 The whole Sigil SoC — in-house RV64GCV core (vector unit, L1 caches),
