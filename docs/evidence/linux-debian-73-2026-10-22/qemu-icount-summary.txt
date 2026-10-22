@@ -1,0 +1,18 @@
+[    19.5 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 41.67 s)
+[    20.0 s] login prompt
+[    22.0 s] logged in as sigil
+[    27.1 s] PASS: systemd-analyze (icount)
+[    28.8 s] PASS: gcc hello (icount)
+[    29.3 s] PASS: python3 start (icount)
+[    32.6 s] powered off
+
+Summary (QEMU, not FPGA timings):
+      19.5 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 41.67 s)
+      20.0 s  login prompt
+      22.0 s  logged in as sigil
+      27.1 s  PASS: systemd-analyze (icount)
+      28.8 s  PASS: gcc hello (icount)
+      29.3 s  PASS: python3 start (icount)
+      32.6 s  powered off
+3/3 checks passed
+QEMU SIGIL DEBIAN CHECK PASS

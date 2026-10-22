@@ -1,0 +1,66 @@
+[    17.6 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 9.33 s)
+[    20.4 s] login prompt
+[    22.1 s] logged in as sigil
+[    22.3 s] PASS: kernel 6.12 + Debian 13
+[    22.5 s] PASS: cpu isa has zve64d
+[    22.8 s] PASS: systemd running, no failed units
+[    23.0 s] PASS: root on /dev/pmem0 (ext4, rw)
+[    23.2 s] PASS: nodes 0-1 online
+[    23.3 s] PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+[    24.6 s] PASS: gcc hello.c && ./a.out
+[    24.9 s] PASS: gcc 14 / binutils / glibc versions
+[    37.8 s] PASS: make examples
+[    41.4 s] PASS: malloc test
+[    49.6 s] PASS: numa_hbm (libnuma onnode 0 and 1)
+[    55.5 s] PASS: default malloc lands in node 0
+[    61.6 s] PASS: numactl --membind=1 lands in node 1
+[    67.7 s] PASS: numactl --interleave=0,1 splits
+[    68.0 s] PASS: RVV Zve64d user program
+[    68.3 s] PASS: gcc auto-vectorized Zve64d program
+[    69.3 s] PASS: sudo
+[    69.9 s] PASS: python3
+[    72.2 s] PASS: GNU tools present
+[    76.2 s] PASS: systemd-analyze
+[    76.6 s] PASS: write file on pmem disk
+[    76.6 s] reboot requested
+[    92.6 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 11.49 s)
+[    95.0 s] login prompt
+[    96.8 s] logged in as root
+[    97.0 s] PASS: file survived reboot
+[    97.2 s] poweroff requested
+[    99.6 s] PASS: poweroff
+
+Summary (QEMU, not FPGA timings):
+      17.6 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 9.33 s)
+      20.4 s  login prompt
+      22.1 s  logged in as sigil
+      22.3 s  PASS: kernel 6.12 + Debian 13
+      22.5 s  PASS: cpu isa has zve64d
+      22.8 s  PASS: systemd running, no failed units
+      23.0 s  PASS: root on /dev/pmem0 (ext4, rw)
+      23.2 s  PASS: nodes 0-1 online
+      23.3 s  PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+      24.6 s  PASS: gcc hello.c && ./a.out
+      24.9 s  PASS: gcc 14 / binutils / glibc versions
+      37.8 s  PASS: make examples
+      41.4 s  PASS: malloc test
+      49.6 s  PASS: numa_hbm (libnuma onnode 0 and 1)
+      55.5 s  PASS: default malloc lands in node 0
+      61.6 s  PASS: numactl --membind=1 lands in node 1
+      67.7 s  PASS: numactl --interleave=0,1 splits
+      68.0 s  PASS: RVV Zve64d user program
+      68.3 s  PASS: gcc auto-vectorized Zve64d program
+      69.3 s  PASS: sudo
+      69.9 s  PASS: python3
+      72.2 s  PASS: GNU tools present
+      76.2 s  PASS: systemd-analyze
+      76.6 s  PASS: write file on pmem disk
+      76.6 s  reboot requested
+      92.6 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 11.49 s)
+      95.0 s  login prompt
+      96.8 s  logged in as root
+      97.0 s  PASS: file survived reboot
+      97.2 s  poweroff requested
+      99.6 s  PASS: poweroff
+23/23 checks passed
+QEMU SIGIL DEBIAN CHECK PASS

@@ -1,11 +1,45 @@
-# Linux/OpenSBI platform for the in-house core (#21)
+# Linux on Sigil (#21, #68, #69, #70)
 
-This is a Verilator platform around `sigil_core`; it is not
-SoC integration. `soc_tb` models a boot ROM, CLINT, PLIC,
-16550 UART and 128 MiB RAM, using the addresses in
-`sigil.dts`.
+Everything that runs on the SoC: OpenSBI, the Linux 6.12 kernel
+configuration, the device trees, the Debian root file system and the
+boot-gate initramfs. The user guide is [`docs/LINUX.md`](../../docs/LINUX.md);
+the hardware contract is [`docs/LINUX_PLATFORM.md`](../../docs/LINUX_PLATFORM.md).
 
-Build and reproduce the recorded boot from the repo root:
+| Path | What |
+|---|---|
+| `kernel/sigil.config` | readable kernel config fragment (on top of riscv `defconfig`) |
+| `kernel/sigil_defconfig` | the full defconfig the build uses (`--regen-defconfig` recreates it) |
+| `dts/sigil.dtsi` | the one device-tree source: hart + ISA, CLINT, PLIC, UART, finisher, RTC, crypto |
+| `dts/sigil-f2.dts` | AWS F2: 48 GiB DDR4 node 0 + 16 GiB pmem disk + 16 GiB HBM node 1, 62.5 MHz |
+| `dts/sigil-qemu.dts` | QEMU virt reference of the F2 map (10 MHz timebase, virtio slots) |
+| `dts/sigil-sim.dts` | Verilator: 128 MiB, embedded initramfs; `sigil.dts` is its historic name |
+| `debian/overlay/` | files the Debian image adds (fstab, issue/motd, systemd tuning, boot marker) |
+| `debian/examples/` | `~/examples` in the image (gcc, malloc, NUMA/HBM, RVV) |
+| `init.c` | initramfs `/init`: prints `SIGIL_LINUX_BOOT_OK` (boot gate, F2 smoke) |
+| `kvm_smoke.c` | alternate `/init`: one KVM guest entry/exit (`SIGIL_KVM_OK`) |
+| `boot_stub.S`, `s_hello.S` | simulator boot ROM stub; OpenSBI-only smoke payload |
+
+Build (Ubuntu 24.04; package list in `docs/LINUX.md` §2):
+
+```bash
+bash scripts/build_opensbi.sh            # build/linux/fw_jump.bin + sigil-{f2,qemu,sim}.dtb, sigil.dtb
+bash scripts/build_linux_kernel.sh       # build/linux/Image, Image-initramfs, modules
+sudo bash scripts/build_debian_rootfs.sh # build/debian/sigil-debian-13-riscv64.ext4(.zst)
+bash scripts/qemu_sigil_boot.sh          # boot it in QEMU (Ctrl-A X quits)
+```
+
+Boot layout (all platforms): boot ROM at `0x1000` sets `a0` = 0, `a1` =
+`0x8300_0000` and jumps to OpenSBI `fw_jump` at `0x8000_0000`; OpenSBI
+(built with `FW_JUMP_ADDR=0x80200000 FW_JUMP_FDT_ADDR=0x83000000`) starts
+the kernel `Image` at `0x8020_0000` with the DTB at `0x8300_0000`; an
+optional initrd goes to `0x8400_0000`. On F2 and QEMU the root file
+system is `/dev/pmem0`, the 16 GiB DDR4 window at `0xC_8000_0000`.
+
+## Verilator boot gate
+
+`soc_tb` models a boot ROM, CLINT, PLIC, 16550 UART and 128 MiB RAM
+(the addresses of `dts/sigil-sim.dts`). The gate boots the kernel with
+the embedded initramfs:
 
 ```bash
 make -C sim soc
@@ -15,52 +49,53 @@ build/sim/soc_tb 4000000000 \
   --load 0x1000=build/linux/boot_stub.bin \
   --load 0x80000000=build/linux/fw_jump.bin \
   --load 0x83000000=build/linux/sigil.dtb \
-  --load 0x80200000=build/linux/Image \
+  --load 0x80200000=build/linux/Image-initramfs \
   --uart-log build/linux/linux-boot-uart.log \
   --exit-string SIGIL_LINUX_BOOT_OK
 ```
 
-Since the L1-cache stage `soc_tb` simulates `sigil_cpu` (core
-+ L1 I$/D$) behind a memory-bus model: only DRAM is cacheable,
-the boot ROM/CLINT/PLIC/UART are uncached I/O. Bus timing options
-`--mem-lat A:B`, `--mem-gap N`, `--mem-ready PCT`, `--mem-seed S`
-randomize latency/backpressure, and `--no-cache` disables the
-caches. The blocking caches roughly triple the boot's cycle
-count at bus latency 1 (hence the larger cycle budget above);
-`soc_tb` is built without coverage instrumentation.
+The first recorded gate (#21, `docs/evidence/core-stage6-linux-boot-2026-10-14.log`)
+used Linux 6.6 with riscv `defconfig` (508,905,040 cycles in `soc_tb`).
+The 6.12 `sigil_defconfig` kernel drops the debug instrumentation and
+the drivers for hardware Sigil does not have: on the all-RTL SoC model
+`soc_rtl_tb` (boot ROM in RTL, so no `boot_stub.bin`) it reaches
+`SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
+(`docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log`):
 
-The OpenSBI-only smoke gate substitutes `s_hello.bin` for the
-kernel `Image` and `--exit-string HELLO`. Kernel output takes
-a long time to appear because the current simulator runs at
-hundreds of thousands of guest cycles per second.
+```bash
+build/sim/soc_rtl_tb 6000000000 \
+  --load 0x80000000=build/linux/fw_jump.bin \
+  --load 0x80200000=build/linux/Image-initramfs \
+  --load 0x83000000=build/linux/sigil.dtb \
+  --uart-log build/linux/linux-boot-uart.log \
+  --exit-string SIGIL_LINUX_BOOT_OK
+```
 
-The checked-in DT kernel command line is part of the gate:
-`console=ttyS0,115200 earlycon=sbi cryptomgr.notests
-initcall_debug loglevel=8 rw`. The kernel build embeds the
-static `/init` from `init.c`; it mounts proc, prints uname
-and `/proc/version`, then `SIGIL_LINUX_BOOT_OK`. This is a
-single-hart embedded-initramfs boot, not a distro or shell.
-Evidence and the precise claim boundary are in
-`docs/evidence/README.md`.
+Since the L1-cache stage `soc_tb` simulates `sigil_cpu` (core + L1
+I$/D$) behind a memory-bus model: only DRAM is cacheable, the boot
+ROM/CLINT/PLIC/UART are uncached I/O. Bus timing options `--mem-lat A:B`,
+`--mem-gap N`, `--mem-ready PCT`, `--mem-seed S` randomize
+latency/backpressure, and `--no-cache` disables the caches.
 
-PLIC completion and Linux 6.6.0: the PLIC (RTL and the `soc_tb`
-model) follows the spec and ignores a completion for a source that
-is not enabled for the completing context. Linux 6.6.0's
-`plic_irq_eoi` writes the completion without checking that, so an
-interrupt disabled between its claim and its EOI would stay
-claimed and never fire again. Mainline Linux later restored a guard
-in `plic_irq_eoi` that briefly re-enables a disabled source around
-the completion write.
-For anything beyond the boot gate, use Linux 6.6.20 or later on the
-6.6.y stable branch (the guard is absent in 6.6.10 and 6.6.15 and
-present from 6.6.20), or treat it as a known risk.
+The OpenSBI-only smoke gate substitutes `s_hello.bin` for the kernel
+`Image` and `--exit-string HELLO`.
+
+The kernel command line is part of each DT (`chosen/bootargs`). Sim:
+`console=ttyS0,115200 earlycon=sbi cryptomgr.notests initcall_debug
+loglevel=8 rw no4lvl`; F2/QEMU: `console=ttyS0,115200 earlycon=sbi
+root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl`.
+
+PLIC completion: the PLIC (RTL and the `soc_tb` model) follows the spec
+and ignores a completion for a source that is not enabled for the
+completing context. Linux 6.6.0's `plic_irq_eoi` wrote the completion
+without checking that; the guard that briefly re-enables a disabled
+source around the completion is present in 6.6.20+ and in 6.12.
 
 ## KVM smoke (#22)
 
-The DT advertises `rv64imafdcbh`, so the same kernel build
-initializes RISC-V KVM. To build the alternate image whose
-`/init` creates a one-vCPU VM and runs a four-instruction
-guest to an MMIO exit:
+The DT advertises H and the kernel has KVM built in. To build the
+alternate image whose `/init` creates a one-vCPU VM and runs a
+four-instruction guest to an MMIO exit:
 
 ```bash
 SIGIL_INIT_SRC=sw/linux/kvm_smoke.c \
@@ -75,7 +110,6 @@ build/sim/soc_tb 1500000000 \
   --exit-string SIGIL_KVM_OK
 ```
 
-The recorded run reaches `SOC TB PASS` at 502,972,620
-cycles (roughly half an hour of wall time). It proves the
-KVM ioctl path plus one guest entry/exit; it is not a
-guest-OS boot.
+The recorded run (Linux 6.6) reaches `SOC TB PASS` at 502,972,620
+cycles. It proves the KVM ioctl path plus one guest entry/exit; it is
+not a guest-OS boot.

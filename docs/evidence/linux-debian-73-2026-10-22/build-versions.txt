@@ -1,0 +1,16 @@
+host: ip-172-31-66-228 Ubuntu 24.04.1 LTS 6.8.0-1021-aws, 32 vCPU
+riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+mmdebstrap 1.4.3
+Version: DTC 1.7.0
+mke2fs 1.47.0 (5-Feb-2023)
+*** Zstandard CLI (64-bit) v1.5.5, by Yann Collet ***
+pexpect 4.9.0
+linux-6.12.114.tar.xz sha256 7a8589912bd7a8adb07fed074283652cf482a35facef8954554654f0154b4af3 (kernel.org sha256sums.asc)
+opensbi v1.9 commit cbf9f6734dd85a982c63e3cb5db7ffe09da839ca
+SIGIL_IMAGE=sigil-debian-13-riscv64
+DEBIAN_SNAPSHOT=20261020T000000Z
+DEBIAN_MIRROR=http://snapshot.debian.org/archive/debian/20261020T000000Z
+KERNEL=6.12.114-sigil
+BUILT=2026-10-22T07:23:29Z
+raw image sha256 c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632  sigil-debian-13-riscv64.ext4
