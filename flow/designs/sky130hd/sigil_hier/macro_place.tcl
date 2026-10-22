@@ -1,11 +1,10 @@
 # MACRO_PLACEMENT_TCL of sigil_soc_top (hierarchical sky130hd flow):
-# fixed positions of the two hard blocks (floorplan in config.mk).
-# Instances are found by master name, so the flattened instance
-# names do not matter.
-set sigil_pos {
-  sigil_cpu        {140 10}
-  sigil_crypto_top {140 2730}
-}
+# fixed positions of the two hard blocks (SIGIL_CPU_XY and
+# SIGIL_CRYPTO_XY, floorplan in config.mk). Instances are found by
+# master name, so the flattened instance names do not matter.
+set sigil_pos [dict create \
+  sigil_cpu        $::env(SIGIL_CPU_XY) \
+  sigil_crypto_top $::env(SIGIL_CRYPTO_XY)]
 set sigil_block [ord::get_db_block]
 set sigil_dbu [$sigil_block getDbUnitsPerMicron]
 set sigil_seen {}
