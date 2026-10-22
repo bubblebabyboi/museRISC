@@ -117,7 +117,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // MMU data lookup port (FPGA_TIMING, #53; see g_dl)
   logic [63:0] dl_va, dl_satp;
   logic [1:0]  dl_priv;
-  logic        dl_write, dl_exec, dl_virt, dl_sum, dl_mxr, dl_ld, dl_vld;
+  logic        dl_write, dl_exec, dl_virt, dl_sum, dl_mxr, dl_mem, dl_ld, dl_vld;
   logic        mem_stall;     // MEM waiting (translation or port): hold all regs
   logic        mem_port_done; // MEM's data-port access completes this cycle
   logic        fpu_req, fpu_done;
@@ -1983,7 +1983,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // A port that served MEM always holds MEM (mem_stall), so the EX
   // capture is never lost.
   if (FPGA_TIMING) begin : g_dl
-    logic        dl_mem, dl_hlv;
+    logic        dl_hlv;
     logic [63:0] agu;
     assign agu = ex_rs1 + idex_imm_q;
     assign dl_mem = (data_access && !mmu_d_ok && !mmu_d_fault) ||
@@ -2019,6 +2019,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
     assign dl_satp = 64'd0;
     assign dl_sum = 1'b0;
     assign dl_mxr = 1'b0;
+    assign dl_mem = 1'b0;
     assign dl_ld = 1'b0;
     assign dl_vld = 1'b0;
   end
@@ -2063,6 +2064,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .dl_satp_i        (dl_satp),
       .dl_sum_i         (dl_sum),
       .dl_mxr_i         (dl_mxr),
+      .dl_mem_i         (dl_mem),
       .dl_ld_i          (dl_ld),
       .dl_vld_i         (dl_vld),
       .walk_req_o       (walk_req),

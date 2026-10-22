@@ -19,7 +19,7 @@ mods=("$@")
 # Ports only this branch has, read only with FPGA_TIMING: internal wires
 # (undriven, unused) for the proof.
 declare -A extra_ports=([sigil_csr]="wr_intent_i"
-  [sigil_mmu]="dl_va_i dl_write_i dl_exec_i dl_priv_i dl_virt_i dl_satp_i dl_sum_i dl_mxr_i dl_ld_i dl_vld_i")
+  [sigil_mmu]="dl_va_i dl_write_i dl_exec_i dl_priv_i dl_virt_i dl_satp_i dl_sum_i dl_mxr_i dl_mem_i dl_ld_i dl_vld_i")
 rc=0
 # sigil_core: the core's own logic. Its submodule instances are black
 # boxes that equiv_make pairs (inputs proven equal, outputs merged):
