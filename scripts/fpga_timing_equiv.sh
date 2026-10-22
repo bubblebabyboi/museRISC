@@ -21,9 +21,10 @@ SV2V=${SV2V:-sv2v}
 YOSYS=${YOSYS:-yosys}
 REF=${REF:-origin/main}
 # Newer Yosys (0.69) stops equiv_simple / equiv_induct at a cell with no
-# SAT model (the sigil_core proof's black boxes) unless told to ignore
-# it; 0.33 only warns. Either way the paired black box's outputs are
-# free signals shared by both sides.
+# SAT model (the black boxes: sigil_core's submodules, the caches'
+# sigil_sram_sp arrays) unless told to ignore it; 0.33 only warns.
+# Either way the paired black box's outputs are free signals shared by
+# both sides.
 IGN=""
 if "$YOSYS" -h equiv_induct 2>/dev/null | grep -e -ignore-unknown-cells > /dev/null; then
   IGN=" -ignore-unknown-cells"
@@ -119,7 +120,7 @@ for mod in "${mods[@]}"; do
     for p in $(extra_ports "$mod"); do echo "delete -port gate/w:$p"; done
     echo "hierarchy -check; proc; opt -purge; async2sync"
     echo "equiv_make gold gate equiv; hierarchy -top equiv"
-    echo "equiv_struct; equiv_simple; equiv_induct; equiv_status -assert"
+    echo "equiv_struct; equiv_simple$IGN; equiv_induct$IGN; equiv_status -assert"
   } > "$d/eq.ys"
   t0=$(date +%s)
   if "$YOSYS" -q -l "$d/eq.log" "$d/eq.ys" > /dev/null 2>&1; then r=EQUIVALENT; else r=FAILED; rc=1; fi
