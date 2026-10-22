@@ -3,8 +3,8 @@
 # SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
 # IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
 # SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
-# Start of session at: Thu Oct 22 06:33:13 2026
-# Process ID         : 103346
+# Start of session at: Thu Oct 22 07:09:57 2026
+# Process ID         : 259226
 # Current directory  : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_regs_sv_fast
 # Command line       : xsim -log test_sigil_regs.log -mode tcl -source {xsim.dir/tb/xsim_script.tcl}
 # Log file           : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_regs_sv_fast/test_sigil_regs.log
@@ -13,13 +13,13 @@
 # Platform           : Ubuntu
 # Operating System   : Ubuntu 24.04.1 LTS
 # Processor Detail   : Intel(R) Xeon(R) Gold 6455B
-# CPU Frequency      : 3783.584 MHz
+# CPU Frequency      : 3899.805 MHz
 # CPU Physical cores : 16
 # CPU Logical cores  : 32
 # Host memory        : 265990 MB
 # Swap memory        : 10737 MB
 # Total Virtual      : 276728 MB
-# Available Virtual  : 256188 MB
+# Available Virtual  : 265384 MB
 #-----------------------------------------------------------
 source xsim.dir/tb/xsim_script.tcl
 # xsim {tb} -autoloadwcfg -tclbatch {/home/ubuntu/plat-sim/fpga/cl_sigil/verif/scripts/waves.tcl}
@@ -37,7 +37,7 @@ __INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
 [   16424.000 ns] check CTRL reset value = 0x00000003 ok
 [   16564.000 ns] check STATUS (in reset, DDR + HBM ready) = 0x000000c1 ok
 [   16704.000 ns] check RAM_SIZE_MB (DDR4 + HBM) = 0x00014000 ok
-[   16844.000 ns] check CAPS (HBM present) = 0x00000001 ok
+[   16844.000 ns] check CAPS (HBM present, recipe H0) = 0x00000011 ok
 [   16984.000 ns] check BOOT_PC_LO reset = 0x00001000 ok
 [   17144.000 ns] check BOOT_PC_HI reset = 0x00000000 ok
 [   17464.000 ns] check SCRATCH = 0xa5c30f96 ok
@@ -60,7 +60,7 @@ __INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
 [   44484.000 ns] : Checking protocol checker error status...
 *** TEST PASSED ***
 $finish called at time : 44484 ns : File "/home/ubuntu/plat-sim/fpga/cl_sigil/verif/tests/sigil_test_utils.svh" Line 278
-run: Time (s): cpu = 00:00:00.01 ; elapsed = 00:00:08 . Memory (MB): peak = 1450.082 ; gain = 8.004 ; free physical = 214591 ; free virtual = 243823
+run: Time (s): cpu = 00:00:00.01 ; elapsed = 00:00:08 . Memory (MB): peak = 1450.082 ; gain = 8.004 ; free physical = 221481 ; free virtual = 251257
 ## quit
-INFO: xsimkernel Simulation Memory Usage: 339168 KB (Peak: 380048 KB), Simulation CPU Usage: 8950 ms
-INFO: [Common 17-206] Exiting xsim at Thu Oct 22 06:33:23 2026...
+INFO: xsimkernel Simulation Memory Usage: 339168 KB (Peak: 380048 KB), Simulation CPU Usage: 8840 ms
+INFO: [Common 17-206] Exiting xsim at Thu Oct 22 07:10:07 2026...

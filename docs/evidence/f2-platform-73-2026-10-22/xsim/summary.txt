@@ -4,3 +4,6 @@ test_sigil_host_cosim: *** TEST PASSED *** wall=309s
 real	10m51.852s
 test_sigil_platform: *** TEST PASSED *** wall=1240s
 real	20m42.920s
+test_sigil_regs: *** TEST PASSED *** wall=34s
+test_sigil_host_cosim: *** TEST PASSED *** wall=311s
+real	5m47.984s
