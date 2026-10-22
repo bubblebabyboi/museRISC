@@ -20,8 +20,8 @@ export VERILOG_FILES = \
 export SYNTH_MEMORY_MAX_BITS = 8192
 export SDC_FILE = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_crypto_top/constraint.sdc
 
-export DIE_AREA  ?= 0 0 1400 700
-export CORE_AREA ?= 5 5 1395 695
+export DIE_AREA  ?= 0 0 2590 850
+export CORE_AREA ?= 5 5 2585 845
 export MAX_ROUTING_LAYER = met4
 export PLACE_DENSITY_LB_ADDON ?= 0.05
 export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/sigil_crypto_top/io.tcl
