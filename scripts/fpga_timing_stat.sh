@@ -43,11 +43,13 @@ side_run() { # side(ref|head) root cfg top
   # Yosys rejects the unpacked arrays sv2v lists in sensitivity lists.
   perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$o.v"
   for l in "${macros[@]}"; do libs="$libs $root/flow/designs/$l"; done
-  yosys -q -l "$o.elab.log" -p "${libs:+read_verilog -sv -lib$libs; }read_verilog $o.v; hierarchy -check -top $top $chparam; proc; flatten; opt_clean -purge; memory_collect; write_json $o.raw.json" > /dev/null
+  yosys -q -l "$o.elab.log" -p "${libs:+read_verilog -sv -lib$libs; }read_verilog $o.v; hierarchy -check -top $top $chparam; proc; flatten; opt_clean -purge; memory_collect; write_json $o.raw.json" \
+    > /dev/null 2>&1 || { echo "yosys failed, see $o.elab.log" >&2; return 1; }
   python3 scripts/netlist_canon.py "$o.raw.json" "$o.canon.json" --labels "$o.labels.tsv" 2> "$o.canon.log"
   [ "$var" != none ] || return 0
   s="synth -flatten -top $top"; [ "$var" = coarse ] && s="$s -run :fine"
-  yosys -q -l "$o.$var.log" -p "read_json $o.canon.json; hierarchy -check -top $top; $s; tee -q -o $o.$var.stat stat -width" > /dev/null
+  yosys -q -l "$o.$var.log" -p "read_json $o.canon.json; hierarchy -check -top $top; $s; tee -q -o $o.$var.stat stat -width" \
+    > /dev/null 2>&1 || { echo "yosys failed, see $o.$var.log" >&2; return 1; }
 }
 
 for cfg in "${cfgs[@]}"; do
