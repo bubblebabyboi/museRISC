@@ -88,8 +88,9 @@ run viota viota_directed.bin 4000000
 # viota.m cases with hand-computed results: LMUL 1-8, vl 0/VLMAX, mu/ma,
 # vs2 = v0, back-to-back producers/consumers, illegal encodings.
 run viotacases viota_cases_directed.bin 1000000
-# viota.m with vstart != 0 must trap.
+# viota.m with vstart != 0 and with vs2 inside the vd group must trap.
 run viotavstart viota_vstart_directed.bin 4000000
+run viotaoverlap viota_overlap_directed.bin 4000000
 # Reductions, vcpop/vfirst, vmsbf/sif/sof, viota, vcompress trap on
 # vstart != 0; one right behind a load/store that consumes vstart
 # does not.

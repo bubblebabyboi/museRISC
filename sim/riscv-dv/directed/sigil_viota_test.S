@@ -25,8 +25,9 @@
 # file, the vstart read and the traps with Spike as well.
 #
 # Two optional modes, for the must-trap / reserved cases (assemble with
-# -D...; testlist entry sigil_viota_vstart_test; Sigil traps the vstart
-# case since the commit after 4958c3f, not yet the overlap):
+# -D...; testlist entries sigil_viota_vstart_test and
+# sigil_viota_overlap_test; Sigil traps both since the commit after
+# 4958c3f):
 #   VIOTA_VSTART=1   half the iterations run viota.m with vstart != 0,
 #                    which RVV 1.0 (sec. 15.8) requires to raise an
 #                    illegal-instruction exception (Spike does);

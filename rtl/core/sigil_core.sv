@@ -788,14 +788,24 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign vec_frs1 = ((csr_vtype[5:3] == 3'd2) &&
                      (ex_frs1[63:32] != 32'hffff_ffff))
                     ? 64'hffff_ffff_7fc0_0000 : ex_frs1;
+  // Register-number bits inside a group of 2^log2n registers
+  // (none for a single register or a fractional group).
+  function automatic logic [4:0] grp_mask(input logic signed [3:0] log2n);
+    grp_mask = (log2n == 4'sd1) ? 5'b00001 :
+               (log2n == 4'sd2) ? 5'b00011 :
+               (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
+  endfunction
   function automatic logic align_bad(
       input logic [4:0] regno, input logic signed [3:0] log2n);
-    logic [4:0] mask;
-    mask = (log2n == 4'sd1) ? 5'b00001 :
-           (log2n == 4'sd2) ? 5'b00011 :
-           (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
-    align_bad = |(regno & mask);
+    align_bad = |(regno & grp_mask(log2n));
   endfunction
+  // viota.m: vs2 inside the vd group breaks the overlap rule
+  // (RVV 1.0 sec. 15.8 / 5.2: reserved); trapped, as Spike does.
+  // vd is LMUL-aligned here (else illegal anyway), so vs2 is in
+  // the group iff it equals vd above the in-group bits.
+  logic ex_iota_overlap;
+  assign ex_iota_overlap = (idex_ctrl_q.bext_op == VOP_IOTA) &&
+      (((idex_instr_q[24:20] ^ idex_rd_q) & ~grp_mask(ex_lmul_log2)) == 5'd0);
   // Instructions that raise illegal-instruction when vstart != 0
   // (RVV 1.0): reductions (sec. 14), vcpop.m, vfirst.m, vmsbf.m,
   // vmsif.m, vmsof.m (15.2-15.6), viota.m (15.8), vcompress.vm
@@ -958,6 +968,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
        (!idex_ctrl_q.vset && vec_align_bad) ||
        (!idex_ctrl_q.vset && ex_vec_bad) ||
        (!idex_ctrl_q.vset && ex_fp_bad) ||
+       (!idex_ctrl_q.vset && ex_iota_overlap) ||
        (!idex_ctrl_q.vset && ex_vstart0_op && (csr_vstart != 64'd0)) ||
        ((idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) && ex_vls_bad));
   assign vset_avl = (idex_ctrl_q.fpu_aux == 2'd1)

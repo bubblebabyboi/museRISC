@@ -297,6 +297,17 @@
   asm_defs: [VIOTA_VSTART=1]
   march: rv64gcv_zcb
 
+- test: sigil_viota_overlap_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_viota_test with VIOTA_OVERLAP: half the iterations use a vs2
+    inside the vd group, an encoding RVV 1.0 reserves (sec. 15.8, 5.2);
+    Spike and Sigil raise an illegal-instruction exception for it.
+    Failed before the core's overlap check (RTL up to 4958c3f).
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_OVERLAP=1]
+  march: rv64gcv_zcb
+
 - test: sigil_priv_test
   source: Sigil directed (sim/riscv-dv/directed)
   description: >
