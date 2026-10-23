@@ -24,7 +24,8 @@
 # 5,000: trap-heavy tests need a budget far above their length.
 #
 # asm_defs (optional, directed entries): extra preprocessor defines for
-# the program, e.g. [PMP_WHOLE64], passed as -D<name> next to RDV_SEED.
+# the program, e.g. [PMP_WHOLE64] or [NAME=1], each passed as -D<item>
+# after -DRDV_SEED.
 #
 # gen_mem_gb (optional): the test's pygen peak memory in GiB, rounded up.
 # The driver starts a generation only while the estimates of the running
@@ -257,6 +258,32 @@
     instructions, masked and unmasked; the whole vector state is reloaded
     (and so compared) every iteration.
   asm: directed/sigil_vector_test.S
+  march: rv64gcv_zcb
+
+- test: sigil_viota_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    viota.m, self-checking, 96 iterations: random legal vtype (SEW 8-64,
+    LMUL mf8-m8, ta/tu, ma/mu), AVL 0/1/2/VLMAX-1/VLMAX/above/random, masked
+    and unmasked, any LMUL-aligned vd group (v0 when unmasked) with vs2 any
+    register outside it (incl. v0 under v0.t), random/all-ones/sparse/dense
+    masks; every element of the vd group and every other register checked
+    in scalar code (and so compared). One iteration in 16 each: vd not
+    aligned, v0.t with vd = v0, vill set (must trap, change nothing).
+  asm: directed/sigil_viota_test.S
+  march: rv64gcv_zcb
+
+- test: sigil_viota_sweep_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    viota.m, self-checking, the same program with VIOTA_SWEEP: a sweep of
+    all 1408 combinations of the 22 legal vtypes, tu/ta, mu/ma, unmasked/
+    v0.t and 8 AVL classes (0, 1, 2, VLMAX-1, VLMAX, all ones, VLMAX+1,
+    random), vs2 an odd register (not LMUL-aligned) in 6 of 8 iterations,
+    v0 in 1 of 8. Each run is one chunk of 88 combinations, (seed's
+    RDV_SEED mod 16); legal encodings only.
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_SWEEP=1]
   march: rv64gcv_zcb
 
 - test: sigil_priv_test

@@ -276,7 +276,7 @@ def run_one(entry, seed, a):
 
     # 1. Generate (pygen) and assemble. A directed entry ('asm:', like
     #    riscv-dv's --asm_test) skips generation; it is assembled with
-    #    -DRDV_SEED=<gen_seed>, which seeds its PRNG.
+    #    -DRDV_SEED=<gen_seed>, which seeds its PRNG, plus its 'asm_defs'.
     asm_defs = []
     if "asm" in entry:
         shutil.copyfile(os.path.join(HERE, entry["asm"]), p["asm"])
