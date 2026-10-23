@@ -6,6 +6,7 @@
 //   sigil_host [options] --bin firmware.bin          (baremetal at 0x8000_0000)
 //   sigil_host [options] --load 0xADDR=FILE ...      (any layout)
 //   sigil_host [options] --memtest all               (memory engine only)
+//   sigil_host [-S N] --info                         (AFI, core clock, memory)
 //
 // Memory map (docs/LINUX_PLATFORM.md): SoC PA 0x8000_0000 + x = DDR4
 // (x < 64 GiB) and 0x10_8000_0000 + y = HBM (y < 16 GiB); the PCIS
@@ -13,6 +14,8 @@
 // the AFI implements is read from OCL RAM_SIZE_MB.
 //
 // Flow: (load AFI) -> AWS_CLK_GEN clock recipe / reset release ->
+// report the core clock (OCL CLK_KHZ, or --recipe-b), which is also the
+// mtime rate a Linux DTB's timebase-frequency must match ->
 // hold the SoC in reset (OCL CTRL) -> wait for DDR4 (and HBM) ->
 // scrub DDR4 once per AFI load with the CL memory engine (DDR4 has ECC:
 // never-written lines read back as SLVERR, issue #62) -> optional
@@ -95,6 +98,11 @@ enum {
 #define MAX_LOADS 64
 #define MAX_SAVES 16
 #define MAX_MARKERS 16
+// Core clock = AWS_CLK_GEN clk_extra_b1, in kHz per group-B recipe B0..B5
+// (aws-fpga v2.3.5 hdk/docs/Clock_Recipes_User_Guide.md; the same table as
+// fpga/cl_sigil/build/scripts/synth_cl_sigil.tcl, which builds the
+// recipe's value into OCL CLK_KHZ).
+static const uint32_t RECIPE_B_KHZ[6] = {125000, 62500, 225000, 62500, 75000, 100000};
 
 #ifdef SV_TEST
 // HDK XSIM co-simulation build (fpga/host/cosim/): the SDK calls are
@@ -116,6 +124,8 @@ static pci_bar_handle_t ocl = PCI_BAR_HANDLE_INIT;
 static pci_bar_handle_t pcis = PCI_BAR_HANDLE_INIT;
 static uint8_t *pcis_map;          // mmap'd BAR4 (write combining), NULL = burst API
 static uint64_t ram_size;          // SoC RAM window (bytes)
+static uint32_t core_khz;          // core clock = mtime rate (0: unknown)
+static bool keep_timebase;         // --keep-timebase: load the DTB as it is
 static int verbose = 1;
 static int nthreads = 8;
 
@@ -316,20 +326,25 @@ static void check_range(const char *what, uint64_t addr, uint64_t len) {
 
 struct load { uint64_t addr; const char *path; bool dtb; };
 
-// Device tree: fill /chosen/rng-seed (if the DTB has one) with fresh
-// random bytes, so every boot gets its own kernel RNG seed. In-place:
-// the property keeps its size. Returns the number of bytes written.
+// Device tree edits, in place (every property keeps its size).
 static uint32_t be32(const uint8_t *p) {
   return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
 }
-static size_t fdt_fill_rng_seed(uint8_t *fdt, size_t len) {
-  if (len < 40 || be32(fdt) != 0xd00dfeedu) return 0;
+// Calls fn for every property of the flattened tree with the names of the
+// nodes above it: names[1] is the root (""), names[2] a node below it, ...
+// up to depth FDT_MAX_DEPTH. fn returns true to stop the walk.
+#define FDT_MAX_DEPTH 8
+typedef bool (*fdt_prop_fn)(const char *const *names, int depth, const char *pname,
+                            uint8_t *val, uint32_t plen, void *ctx);
+static void fdt_walk(uint8_t *fdt, size_t len, fdt_prop_fn fn, void *ctx) {
+  if (len < 40 || be32(fdt) != 0xd00dfeedu) return;
   const uint32_t off_struct = be32(fdt + 8), off_strings = be32(fdt + 12);
   const uint32_t size_struct = be32(fdt + 36);
-  if ((size_t)off_struct + size_struct > len || off_strings >= len) return 0;
+  if ((size_t)off_struct + size_struct > len || off_strings >= len) return;
+  const char *names[FDT_MAX_DEPTH + 1] = {0};
   size_t p = off_struct;
   const size_t end = (size_t)off_struct + size_struct;
-  int depth = 0, chosen_depth = -1;
+  int depth = 0;
   while (p + 4 <= end) {
     const uint32_t tok = be32(fdt + p);
     p += 4;
@@ -337,35 +352,98 @@ static size_t fdt_fill_rng_seed(uint8_t *fdt, size_t len) {
       const char *name = (const char *)fdt + p;
       const size_t n = strnlen(name, end - p);
       depth++;
-      if (depth == 2 && chosen_depth < 0 && !strcmp(name, "chosen")) chosen_depth = depth;
+      if (depth <= FDT_MAX_DEPTH) names[depth] = name;
       p += (n + 4) & ~(size_t)3;
     } else if (tok == 2) {  // FDT_END_NODE
-      if (depth == chosen_depth) chosen_depth = -1;
       depth--;
     } else if (tok == 3) {  // FDT_PROP
-      if (p + 8 > end) return 0;
+      if (p + 8 > end) return;
       const uint32_t plen = be32(fdt + p), nameoff = be32(fdt + p + 4);
       p += 8;
-      if (p + plen > end) return 0;
-      const char *pname = (const char *)fdt + off_strings + nameoff;
-      if (depth == chosen_depth && off_strings + nameoff < len && !strcmp(pname, "rng-seed")) {
-        size_t got = 0;
-#ifndef SV_TEST
-        while (got < plen) {
-          ssize_t r = getrandom(fdt + p + got, plen - got, 0);
-          if (r <= 0) break;
-          got += (size_t)r;
-        }
-#endif
-        return got;
-      }
+      if (p + plen > end) return;
+      if (depth >= 1 && depth <= FDT_MAX_DEPTH && off_strings + nameoff < len &&
+          fn(names, depth, (const char *)fdt + off_strings + nameoff, fdt + p, plen, ctx))
+        return;
       p += (plen + 3) & ~(size_t)3;
-    } else if (tok == 4) {  // FDT_NOP
-    } else {
-      break;  // FDT_END or garbage
+    } else if (tok != 4) {  // not FDT_NOP: FDT_END or garbage
+      return;
     }
   }
-  return 0;
+}
+
+// Fill /chosen/rng-seed (if the DTB has one) with fresh random bytes, so
+// every boot gets its own kernel RNG seed.
+static bool fdt_rng_seed_prop(const char *const *names, int depth, const char *pname,
+                              uint8_t *val, uint32_t plen, void *ctx) {
+  if (depth != 2 || strcmp(names[2], "chosen") || strcmp(pname, "rng-seed")) return false;
+#ifndef SV_TEST
+  size_t *got = ctx;
+  while (*got < plen) {
+    ssize_t r = getrandom(val + *got, plen - *got, 0);
+    if (r <= 0) break;
+    *got += (size_t)r;
+  }
+#else
+  (void)val;
+  (void)plen;
+  (void)ctx;
+#endif
+  return true;
+}
+// Returns the number of bytes written.
+static size_t fdt_fill_rng_seed(uint8_t *fdt, size_t len) {
+  size_t got = 0;
+  fdt_walk(fdt, len, fdt_rng_seed_prop, &got);
+  return got;
+}
+
+// /cpus/timebase-frequency (and any copy in a /cpus/cpu@N node) is the
+// rate of mtime, which on the Sigil CL ticks once per core clock. The
+// first value found is reported; with fix, every copy that differs from
+// want is rewritten to want.
+struct fdt_timebase {
+  uint32_t want, found, n_found, n_fixed;
+  bool fix;
+};
+static bool fdt_timebase_prop(const char *const *names, int depth, const char *pname,
+                              uint8_t *val, uint32_t plen, void *ctx) {
+  struct fdt_timebase *t = ctx;
+  if (plen != 4 || strcmp(pname, "timebase-frequency") || depth < 2 || depth > 3 ||
+      strcmp(names[2], "cpus") || (depth == 3 && strncmp(names[3], "cpu@", 4)))
+    return false;
+  const uint32_t v = be32(val);
+  if (t->n_found++ == 0) t->found = v;
+  if (t->fix && v != t->want) {
+    for (int b = 0; b < 4; b++) val[b] = (uint8_t)(t->want >> (24 - 8 * b));
+    t->n_fixed++;
+  }
+  return false;
+}
+// The DTB for each F2 core clock (sw/linux/dts, scripts/build_dtbs.sh).
+static const char *dtb_for_khz(uint32_t khz) {
+  return khz == 62500 ? "sigil-f2.dtb" : khz == 100000 ? "sigil-f2-100.dtb" : NULL;
+}
+// Check the DTB's timebase against the core clock; unless --keep-timebase,
+// load it with the core clock instead when they differ.
+static void fdt_check_timebase(const char *path, uint8_t *fdt, size_t len) {
+  if (!core_khz) return;
+  const uint32_t hz = core_khz * 1000u;
+  struct fdt_timebase t = {.want = hz, .fix = !keep_timebase};
+  fdt_walk(fdt, len, fdt_timebase_prop, &t);
+  const char *right = dtb_for_khz(core_khz);
+  if (!t.n_found) {
+    info("WARNING: %s has no /cpus/timebase-frequency (the core clock is %u Hz)", path, hz);
+  } else if (t.found == hz && !t.n_fixed) {
+    info("%s: timebase-frequency %u Hz = the core clock", path, t.found);
+  } else if (t.n_fixed) {
+    info("WARNING: %s: timebase-frequency %u Hz, but the core clock is %u Hz: loaded with %u Hz "
+         "(%s%s%s--keep-timebase loads it unchanged)", path, t.found, hz, hz,
+         right ? "the DTB for this clock is " : "", right ? right : "", right ? "; " : "");
+  } else {
+    info("WARNING: %s: timebase-frequency %u Hz, but the core clock is %u Hz (--keep-timebase): "
+         "Linux time will run %.3fx real time", path, t.found, hz,
+         t.found ? (double)hz / t.found : 0.0);
+  }
 }
 struct save { uint64_t addr; uint64_t size; const char *path; };
 
@@ -414,6 +492,7 @@ static void load_image(const struct load *l, bool verify_all) {
   if (l->dtb && !mapped) {
     const size_t k = fdt_fill_rng_seed(buf, n);
     if (k) info("%s: /chosen/rng-seed filled with %zu fresh random bytes", l->path, k);
+    fdt_check_timebase(l->path, buf, n);
   }
   check_range(l->path, l->addr, n64);
   const uint64_t off = l->addr - RAM_BASE;
@@ -573,15 +652,22 @@ static void print_err_capture(void) {
 static void usage(const char *p) {
   fprintf(stderr,
 "usage: %s [options] (--linux --fw F --image F --dtb F | --bin F | --load 0xADDR=F ... |\n"
-"                     --memtest WHAT)\n"
+"                     --memtest WHAT | --info)\n"
 "  -S N               FPGA slot (default 0)\n"
 "  --afi agfi-...     load this AFI first (else it must already be loaded)\n"
+"  --info             print the loaded AFI and its CL (core clock, memory) as\n"
+"                     key=value lines on stdout and exit; the SoC is not touched\n"
 "  --recipe-b N       program AWS_CLK_GEN group B recipe N (0..5; 1 = 62.5 MHz,\n"
 "                     5 = 100 MHz) instead of keeping the AFI's build recipe\n"
+"                     (CLK_KHZ); the RTC increment follows\n"
 "  --linux            OpenSBI fw_jump (--fw) at 0x80000000, Linux --image at\n"
 "                     0x80200000, --dtb at --dtb-addr (0x83000000) [--initrd F\n"
 "                     at --initrd-addr (0x84000000)]; a /chosen/rng-seed in the\n"
-"                     DTB is filled with fresh random bytes\n"
+"                     DTB is filled with fresh random bytes, and a\n"
+"                     /cpus/timebase-frequency other than the core clock is\n"
+"                     replaced by it (sigil-f2.dtb: 62.5 MHz AFIs,\n"
+"                     sigil-f2-100.dtb: 100 MHz AFIs)\n"
+"  --keep-timebase    load the --dtb timebase-frequency unchanged\n"
 "  --bin F            baremetal image at 0x80000000 (boot ROM jumps there)\n"
 "  --load 0xADDR=F    image at SoC address ADDR (repeatable; DDR4 0x80000000..\n"
 "                     0x107FFFFFFF, HBM 0x1080000000..0x147FFFFFFF)\n"
@@ -628,6 +714,7 @@ int main(int argc, char **argv) {
   bool linux_mode = false, cache_en = true, use_stdin = false, verify_all = false;
   bool keep_running = false, ignore_mem_err = false, console = false, no_markers = false;
   bool scrub_hbm = false, use_mmap = true, have_rtc = false, have_mailbox = false;
+  bool info_only = false;
   int scrub_mode = 0;  // 0 auto, 1 always, 2 never
   bool reboot_rerun = true;
   uint64_t boot_pc = 0x1000, tohost = 0, dtb_addr = 0x83000000ull, initrd_addr = 0x84000000ull;
@@ -646,7 +733,13 @@ int main(int argc, char **argv) {
 #define NEXT() do { if (!v) usage(argv[0]); i++; } while (0)
     if (!strcmp(a, "-S")) { NEXT(); slot = atoi(v); }
     else if (!strcmp(a, "--afi")) { NEXT(); afi = v; }
-    else if (!strcmp(a, "--recipe-b")) { NEXT(); recipe_b = atoi(v); }
+    else if (!strcmp(a, "--recipe-b")) {
+      NEXT();
+      recipe_b = atoi(v);
+      if (recipe_b < 0 || recipe_b > 5) usage(argv[0]);
+    }
+    else if (!strcmp(a, "--info")) info_only = true;
+    else if (!strcmp(a, "--keep-timebase")) keep_timebase = true;
     else if (!strcmp(a, "--linux")) linux_mode = true;
     else if (!strcmp(a, "--fw")) { NEXT(); fw = v; }
     else if (!strcmp(a, "--image")) { NEXT(); image = v; }
@@ -710,7 +803,7 @@ int main(int argc, char **argv) {
     loads[nloads++] = (struct load){dtb_addr, dtb, true};
     if (initrd) loads[nloads++] = (struct load){initrd_addr, initrd, false};
   }
-  if (nloads == 0 && !memtest_what) usage(argv[0]);
+  if (nloads == 0 && !memtest_what && !info_only) usage(argv[0]);
   if (nexit == 0) {
     static const char *dflt[] = {"LINUX_BOOT_OK", "SIGIL TEST PASS", "SOC CRYPTO PASS", "SOC HASH PASS",
                                  "FPGA SMOKE PASS", "HELLO FROM S-MODE", "F2 PLATFORM PASS",
@@ -732,13 +825,12 @@ int main(int argc, char **argv) {
     if (fpga_mgmt_load_local_image_sync(slot, (char *)afi, 120, 1000, &img) != 0)
       die(3, "AFI load failed");
   }
-  {
-    struct fpga_mgmt_image_info img;
-    memset(&img, 0, sizeof img);
-    if (fpga_mgmt_describe_local_image(slot, &img, 0) != 0) die(3, "describe slot %d failed", slot);
-    if (img.status != FPGA_STATUS_LOADED) die(3, "slot %d: no AFI loaded (status %d)", slot, img.status);
-    info("slot %d: AFI %s, shell 0x%08x", slot, img.ids.afi_id, img.sh_version);
-  }
+  struct fpga_mgmt_image_info loaded;
+  memset(&loaded, 0, sizeof loaded);
+  if (fpga_mgmt_describe_local_image(slot, &loaded, 0) != 0) die(3, "describe slot %d failed", slot);
+  if (loaded.status != FPGA_STATUS_LOADED)
+    die(3, "slot %d: no AFI loaded (status %d)", slot, loaded.status);
+  info("slot %d: AFI %s, shell 0x%08x", slot, loaded.ids.afi_id, loaded.sh_version);
   // Release the CL resets with the build's clock recipes first (the OCL
   // registers sit behind them), then optionally reprogram group B.
   if (aws_clkgen_deassert_resets(slot) != 0) die(3, "aws_clkgen_deassert_resets failed");
@@ -771,10 +863,39 @@ int main(int argc, char **argv) {
   ram_size = v4 ? (uint64_t)rd(R_RAM_SIZE_MB) << 20 : 0x08000000ull;
   const uint32_t caps = v4 ? rd(R_CAPS) : 0;
   const bool has_hbm = caps & 1u;
-  info("Sigil CL version 0x%08x, build clock recipe %.3f MHz, RAM window %" PRIu64 " MiB at "
-       "0x80000000%s", version, khz / 1000.0, ram_size >> 20,
-       has_hbm ? " (DDR4 64 GiB + HBM 16 GiB)" : "");
+  info("Sigil CL version 0x%08x, RAM window %" PRIu64 " MiB at 0x80000000%s", version,
+       ram_size >> 20, has_hbm ? " (DDR4 64 GiB + HBM 16 GiB)" : "");
   if (has_hbm && (caps >> 4) & 0xF) info("HBM AXI clock: AWS_CLK_GEN recipe H%u", ((caps >> 4) & 0xF) - 1);
+  // The core clock is also the mtime rate, so the Linux DTB's
+  // timebase-frequency must equal it (checked when --dtb is loaded).
+  core_khz = recipe_b >= 0 ? RECIPE_B_KHZ[recipe_b] : khz <= 1000000 ? khz : 0;
+  const char *dtb_name = dtb_for_khz(core_khz);
+  if (recipe_b >= 0)
+    info("core clock %.3f MHz (--recipe-b B%d; the AFI's build recipe is %.3f MHz)",
+         core_khz / 1000.0, recipe_b, khz / 1000.0);
+  else
+    info("core clock %.3f MHz (the AFI's build recipe, OCL CLK_KHZ)", core_khz / 1000.0);
+  if (core_khz && (linux_mode || info_only))
+    info("Linux timebase-frequency must be %u Hz%s%s", core_khz * 1000u,
+         dtb_name ? ": boot with " : "", dtb_name ? dtb_name : "");
+  if (info_only) {
+    printf("slot=%d\nafi=%s\nshell=0x%08x\ncl_version=0x%08x\ncore_clk_khz=%u\nbuild_clk_khz=%u\n"
+           "ram_mb=%" PRIu64 "\nhbm=%d\n", slot, loaded.ids.afi_id, loaded.sh_version, version,
+           core_khz, khz, ram_size >> 20, has_hbm ? 1 : 0);
+    if (has_hbm && (caps >> 4) & 0xF) printf("hbm_recipe=H%u\n", ((caps >> 4) & 0xF) - 1);
+    if (dtb_name) printf("dtb=%s\n", dtb_name);
+    fflush(stdout);
+    fpga_pci_detach(ocl);
+    fpga_pci_detach(pcis);
+    return 0;
+  }
+  if (v4 && recipe_b >= 0) {
+    // The RTC adds RTC_INC ns per core cycle (Q8.24); its reset value is
+    // for the build recipe.
+    const uint32_t inc = (uint32_t)((1000000ull << 24) / core_khz);
+    wr(R_RTC_INC, inc);
+    info("RTC increment 0x%08x (%.3f ns per core cycle)", inc, inc / 16777216.0);
+  }
 #ifndef SV_TEST
   if (use_mmap) {
     void *p = NULL;
@@ -1066,7 +1187,7 @@ run_again:
           why, t1 - t0, c1 - c0, reboots ? "" : "");
   if (reboots) fprintf(stderr, "[sigil_host] reboots: %d\n", reboots);
   fprintf(stderr, "[sigil_host] measured core clock: %.3f MHz (cycle counter / wall time; "
-          "build recipe %.3f MHz)\n", mhz, khz / 1000.0);
+          "expected %.3f MHz)\n", mhz, core_khz / 1000.0);
   fprintf(stderr, "[sigil_host] traps: %u, last cause 0x%08x%08x pc 0x%08x%08x, STATUS 0x%08x\n",
           rd(R_TRAP_COUNT), rd(R_TRAP_CAUSE_HI), rd(R_TRAP_CAUSE_LO), rd(R_TRAP_PC_HI),
           rd(R_TRAP_PC_LO), rd(R_STATUS));
