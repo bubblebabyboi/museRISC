@@ -1,0 +1,12 @@
+instance: i-07522c9e3abec4345 (sigil-f2-100mhz) f2.6xlarge us-east-1a, FPGA Developer AMI ami-069f868732bb588dc, launched 06:07:59 UTC
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-05cbbdc9f2ee7b87b  loaded            0        ok               0       0x10212415
+6.8.0-1021-aws
+sigil_host + sigil-linux from 53-100mhz-afi @ 866efb6
+9ad0120fecffa897aee72b1c5c975efbd810c6874148146e74e7560b51bcd2e0  /home/ubuntu/sigil/fpga/host/sigil_host
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+0213f645984e386a3799d9be2b9c9bf4de357b2dedbd4a1593b6c3d55f3f7790  Image
+06925c9ad6c074b1ebec945377fc821049e18cded5656b4f075baaaae0426eac  sigil-f2-100.dtb
+c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632  sigil-debian-13-riscv64.ext4
+f19dffdff745a929b59d477a3bb453d87f204a101f8aa91907d98ad808e61779  /mnt/nvme/os73/sigil-disk-saved.ext4
+d83a2e6990315b1df0e979937eee2f67b60ca06cd538f2a4d12e7d2d0158b100  /mnt/nvme/os73/sigil-disk-saved2.ext4

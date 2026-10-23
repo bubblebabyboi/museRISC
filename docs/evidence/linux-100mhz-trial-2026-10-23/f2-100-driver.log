@@ -1,0 +1,12 @@
++ cd /mnt/nvme/os73
+++ date +%s
++ STAMP=1792735953
++ echo 1792735953
++ H='sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw /mnt/nvme/os73/fw_jump.bin --image /mnt/nvme/os73/Image --dtb /mnt/nvme/os73/sigil-f2-100.dtb --console --on-reboot exit'
++ python3 /home/ubuntu/os73/qemu_sigil_check.py --label F2-100 --scale 40 --no-reboot --stamp 1792735953 --release 'SoC released' --log /mnt/nvme/os73/f2-100-run1.log --cmd 'sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw /mnt/nvme/os73/fw_jump.bin --image /mnt/nvme/os73/Image --dtb /mnt/nvme/os73/sigil-f2-100.dtb --console --on-reboot exit --load 0xC80000000=/mnt/nvme/os73/sigil-debian-13-riscv64.ext4 --save 0xC80000000=/mnt/nvme/os73/sigil-disk-saved.ext4:8G'
++ python3 /home/ubuntu/os73/qemu_sigil_check.py --label F2-100 --scale 40 --persist-check 1792735953 --release 'SoC released' --log /mnt/nvme/os73/f2-100-run2.log --cmd 'sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw /mnt/nvme/os73/fw_jump.bin --image /mnt/nvme/os73/Image --dtb /mnt/nvme/os73/sigil-f2-100.dtb --console --on-reboot exit --load 0xC80000000=/mnt/nvme/os73/sigil-disk-saved.ext4 --save 0xC80000000=/mnt/nvme/os73/sigil-disk-saved2.ext4:8G'
++ sudo sha256sum /mnt/nvme/os73/sigil-disk-saved.ext4 /mnt/nvme/os73/sigil-disk-saved2.ext4
++ date -u
+Fri Oct 23 06:39:36 UTC 2026
++ echo TRIAL_DONE
+TRIAL_DONE

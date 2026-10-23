@@ -1,0 +1,63 @@
+Debian 13 on the F2 at 100 MHz: TRIAL on a candidate AFI (#53/#73, 2026-10-23)
+==============================================================================
+TRIAL, not release evidence: the final 100 MHz AFI is rebuilt later with three
+more core fixes (viota.m, .vf NaN-boxing, PMP partial access).
+
+AFI      afi-090769c4f8c375270 / agfi-05cbbdc9f2ee7b87b (private), core 100 MHz
+         (recipe B5), HBM H0, built from 53-100mhz-afi @ cf63ab8 (#53 timing
+         pipeline + MMU walker fix). sigil_host --info: core_clk_khz=100000;
+         measured core clock 100.000 MHz on both runs.
+Host     sigil_host from 53-100mhz-afi @ 866efb6 (f2-100-instance-info.txt),
+         f2.6xlarge i-07522c9e3abec4345 (us-east-1a), disk on the NVMe store.
+OS       unchanged published artifacts (sigil-fpga-build:~/os-artifacts,
+         sha256 in f2-100-instance-info.txt) + sigil-f2-100.dtb
+         (timebase-frequency 100000000, sha256 06925c9a...; sigil_host:
+         "timebase-frequency 100000000 Hz = the core clock").
+Check    scripts/qemu_sigil_check.py --label F2-100 --scale 40 --no-reboot
+         --release 'SoC released' (+ timebase checks), then --persist-check;
+         driver f2-100-driver.sh, its log f2-100-driver.log.
+
+Result: run 1 24/24 PASS, run 2 (persistence) 2/2 PASS, no oops/BUG/WARNING.
+
+                                   62.5 MHz (agfi-0c8aa56f..., 2026-10-22)   100 MHz (this trial)   ratio
+release -> SIGIL_LINUX_BOOT_OK     337.7 s                                    229.8 s                1.47x
+release -> login prompt            347.9 s (5 min 48 s)                       237.5 s (3 min 58 s)   1.46x
+ (run 2, from the saved disk)      343.2 s                                    234.0 s                1.47x
+kernel uptime at the boot marker   208.5 s                                    138.1 s                1.51x
+before the kernel clock starts     ~129 s                                     ~92 s                  1.40x
+systemd-analyze kernel+userspace   10.6 s + 3 min 25.5 s                      7.3 s + 2 min 16.1 s   1.5x
+time (gcc hello.c && ./a.out)      22.9 s                                     15.4 s                 1.49x
+make of the 6 examples             6 min 23 s                                 4 min 24 s             1.45x
+time python3 -c ...                9.9 s                                      6.9 s                  1.43x
+numa_hbm dependent load DDR4/HBM   1791 / 1878 ns                             1369 / 1425 ns
+whole run 1 (boot+checks+off)      1853.9 s                                   1283.3 s               1.44x
+(The clock ratio is 1.6; memory latency in ns does not scale with the core
+clock, so a ~1.45-1.5x speed-up is what a memory-bound in-order core gives.)
+
+Timebase (validates sigil-f2-100.dtb on this AFI):
+- `sleep 10` took 10.21 s of host wall time (exec overhead included).
+- guest `date` vs host clock: offset -0.353 s after login, -0.357 s at the
+  end, i.e. guest 997.5 s vs host 997.5 s (drift 4 ms over 1000 s, 4 ppm).
+- kernel timestamps and systemd-analyze agree with wall time.
+
+Checks: login; uname 6.12.114-sigil riscv64 + Debian 13; isa with zve64d;
+systemd running, no failed units; / on /dev/pmem0 ext4 rw; nodes 0-1 online;
+numactl --hardware 2 nodes (48305 MB with cpu 0, 16110 MB without cpus);
+free -h 62 GiB; gcc hello; gcc 14/binutils 2.44/glibc 2.41; make examples;
+malloc_test 512 MALLOC OK; numa_hbm NUMA OK; memwhere node 0;
+numactl --membind=1 memwhere -> node 1: 1024 MiB; interleave 512+512;
+rvv_vadd RVV OK (VLEN 512); autovec; sudo; python3; git/gdb/strace/vim/file/
+man; systemd-analyze; sleep 10; clock drift; stamp file; poweroff -> finisher
+power off, host saved 8 GiB; run 2: stamp file present after save + reload.
+
+Harness note (attempt0-relative-paths/): the first try of the detached driver
+passed relative --load/--fw paths; this sigil_host (866efb6) reported
+"ERROR: cannot open sigil-debian-13-riscv64.ext4: No such file or directory"
+right after the DDR4 scrub although the file was in the working directory
+(the same relative invocation worked with the 73-oops-fix sigil_host on
+2026-10-22). With absolute paths everything worked. Worth a look on the
+platform side.
+
+F2 time: i-07522c9e3abec4345 06:07:59-06:45 UTC = 0.62 h. The first attempt
+(i-0285371bffa2b1270, 01:27 UTC) was cut off by the network outage and ended
+by its cost guard (shutdown -h +120, ~2.0 h, mostly idle).

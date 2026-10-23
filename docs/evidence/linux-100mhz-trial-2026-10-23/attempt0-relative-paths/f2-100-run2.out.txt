@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "/home/ubuntu/os73/qemu_sigil_check.py", line 272, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/ubuntu/os73/qemu_sigil_check.py", line 124, in main
+    r.login("root", 900)
+  File "/home/ubuntu/os73/qemu_sigil_check.py", line 56, in login
+    self.expect([self.release], 1800)
+  File "/home/ubuntu/os73/qemu_sigil_check.py", line 52, in expect
+    return self.p.expect(pats, timeout=timeout * self.scale)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/pexpect/spawnbase.py", line 354, in expect
+    return self.expect_list(compiled_pattern_list,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/pexpect/spawnbase.py", line 383, in expect_list
+    return exp.expect_loop(timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/pexpect/expect.py", line 179, in expect_loop
+    return self.eof(e)
+           ^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/pexpect/expect.py", line 122, in eof
+    raise exc
+pexpect.exceptions.EOF: End Of File (EOF). Exception style platform.
+<pexpect.pty_spawn.spawn object at 0x71609d90af30>
+command: /usr/bin/bash
+args: [b'/usr/bin/bash', b'-c', b'sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2-100.dtb --console --on-reboot exit --load 0xC80000000=sigil-disk-saved.ext4 --save 0xC80000000=sigil-disk-saved2.ext4:8G']
+buffer (last 100 chars): ''
+before (last 100 chars): 'ATUS 0x000002c1)\r\n[sigil_host] ERROR: cannot open sigil-disk-saved.ext4: No such file or directory\r\n'
+after: <class 'pexpect.exceptions.EOF'>
+match: None
+match_index: None
+exitstatus: None
+flag_eof: True
+pid: 2447
+child_fd: 6
+closed: False
+timeout: 60
+delimiter: <class 'pexpect.exceptions.EOF'>
+logfile: None
+logfile_read: <_io.TextIOWrapper name='/mnt/nvme/os73/f2-100-run2.log' mode='w' encoding='UTF-8'>
+logfile_send: None
+maxread: 2000
+ignorecase: False
+searchwindowsize: None
+delaybeforesend: 0.05
+delayafterclose: 0.1
+delayafterterminate: 0.1
+searcher: searcher_re:
+    0: re.compile('SoC released')

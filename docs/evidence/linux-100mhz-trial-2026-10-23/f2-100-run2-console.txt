@@ -397,3 +397,126 @@ M  OK  ] Started dbus.service - D-Bus System Message Bus.
          Starting sigil-boot-ok.service - S…t-complete marker on the console...
 [**    ] (1 of 2) Job systemd-logind.service…art running (1min 24s / 15min 58s)
 M*     ] (1 of 2) Job systemd-logind.service…art running (1min 24s / 15min 58s)
+M**    ] (2 of 2) Job sigil-boot-ok.service/start running (1min 25s / no limit)
+
+SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 134.46 s)
+M  OK  ] Finished sigil-boot-ok.service - S…oot-complete marker on the console.
+  OK  ] Started serial-getty@ttyS0.service - Serial Getty on ttyS0.
+[  OK  ] Reached target getty.target - Login Prompts.
+[  OK  ] Started systemd-logind.service - User Login Management.
+[  OK  ] Reached target multi-user.target - Multi-User System.
+]104]104
+Sigil RV64 SoC - Debian GNU/Linux 13 sigil ttyS0
+Log in as sigil (password sigil, sudo) or root (password sigil).
+
+sigil login: root
+Password: 
+Linux sigil 6.12.114-sigil #1 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+
+  Sigil RV64 SoC on AWS F2 (VU47P)
+  CPU     1 hart, rv64imafdch_zicntr_zicond_zicsr_zifencei_zca_zcb_zcd_zba_zbb_zbc_zbkb_zbkc_zbkx_zbs_zknd_zkne_zknh_zve32f_zve32x_zve64d_zve64f_zve64x, sv39, timebase 100.0 MHz
+  Memory  node 0 (DDR4) 47.2 GiB  node 1 (HBM)  15.7 GiB 
+          default allocations use node 0; HBM: numactl --membind=1 <cmd>
+  Disk    /dev/pmem0 16.0 GiB (root, ext4); poweroff before saving it back
+
+Debian GNU/Linux on the Sigil RV64 SoC. Guide: docs/LINUX.md in the
+Sigil repository. Examples: ~/examples (make && make run).
+The programs included with Debian are free software; see
+/usr/share/doc/*/copyright. Debian comes with ABSOLUTELY NO WARRANTY.
+root@sigil:~# export PS1='SIGILPS> '; stty cols 160 rows 50
+SIGILPS> cat /home/sigil/persist.txt
+sigil-persist-1792735953
+SIGILPS> systemd-analyze; journalctl --list-boots --no-pager | tail -3
+Startup finished in 7.323s (kernel) + 2min 12.689s (userspace) = 2min 20.012s 
+multi-user.target reached after 2min 12.633s in userspace.
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+ -1 9f9412191a56415baea7f9faa8658b1e Fri 2026-10-23 06:15:36 UTC Fri 2026-10-23 06:33:58 UTC
+  0 313d62206e504b5eb15c4fc0d45b9489 Fri 2026-10-23 06:37:23 UTC Fri 2026-10-23 06:38:32 UTC
+SIGILPS> poweroff
+SIGILPS> 
+         Stopping session-c1.scope - Session c1 of User root...
+[  OK  ] Removed slice system-getty.slice - Slice /system/getty.
+[  OK  ] Stopped target multi-user.target - Multi-User System.
+[  OK  ] Stopped target getty.target - Login Prompts.
+[  OK  ] Stopped target timers.target - Timer Units.
+[  OK  ] Stopped systemd-tmpfiles-clean.tim…y Cleanup of Temporary Directories.
+         Stopping serial-getty@ttyS0.service - Serial Getty on ttyS0...
+         Stopping systemd-random-seed.service - Load/Save OS Random Seed...
+[  OK  ] Stopped systemd-udev-load-credenti…- Load udev Rules from Credentials.
+[  OK  ] Stopped serial-getty@ttyS0.service - Serial Getty on ttyS0.
+]104[  OK  ] Stopped session-c1.scope - Session c1 of User root.
+[  OK  ] Removed slice system-serial\x2dget…slice - Slice /system/serial-getty.
+         Stopping systemd-user-sessions.service - Permit User Sessions...
+         Stopping user-runtime-dir@0.servic…er Runtime Directory /run/user/0...
+[  OK  ] Stopped systemd-random-seed.service - Load/Save OS Random Seed.
+[   ***] (2 of 2) Job systemd-user-sessions.…rvice/stop running (12s / 3min 8s)
+M  *** ] (1 of 2) Job user-runtime-dir@0.service/stop running (12s / 3min 8s)
+M ***  ] (1 of 2) Job user-runtime-dir@0.service/stop running (13s / 3min 8s)
+M***   ] (1 of 2) Job user-runtime-dir@0.service/stop running (13s / 3min 8s)
+M  OK  ] Stopped systemd-user-sessions.service - Permit User Sessions.
+  OK  ] Unmounted run-user-0.mount - /run/user/0.
+[  OK  ] Stopped user-runtime-dir@0.service…User Runtime Directory /run/user/0.
+[  OK  ] Removed slice user-0.slice - User Slice of UID 0.
+[  OK  ] Stopped target remote-fs.target - Remote File Systems.
+         Stopping dbus.service - D-Bus System Message Bus...
+         Stopping systemd-logind.service - User Login Management...
+[  OK  ] Stopped dbus.service - D-Bus System Message Bus.
+[  OK  ] Stopped systemd-logind.service - User Login Management.
+[  OK  ] Stopped target basic.target - Basic System.
+[  OK  ] Stopped target paths.target - Path Units.
+[  OK  ] Stopped systemd-ask-password-conso…equests to Console Directory Watch.
+[  OK  ] Stopped systemd-ask-password-wall.…d Requests to Wall Directory Watch.
+[  OK  ] Stopped target slices.target - Slice Units.
+[  OK  ] Removed slice user.slice - User and Session Slice.
+[  OK  ] Stopped target sockets.target - Socket Units.
+[  OK  ] Closed dbus.socket - D-Bus System Message Bus Socket.
+[  OK  ] Closed systemd-hostnamed.socket - Hostname Service Socket.
+[  OK  ] Stopped target sysinit.target - System Initialization.
+[  OK  ] Unset automount proc-sys-fs-binfmt…ormats File System Automount Point.
+[  OK  ] Stopped systemd-sysctl.service - Apply Kernel Variables.
+[  OK  ] Stopped systemd-modules-load.service - Load Kernel Modules.
+[  OK  ] Stopped systemd-tmpfiles-setup.ser…reate System Files and Directories.
+[  OK  ] Stopped target local-fs.target - Local File Systems.
+[  OK  ] Stopped target local-fs-pre.target…Preparation for Local File Systems.
+         Unmounting run-lock.mount - Legacy Locks Directory /run/lock...
+         Unmounting tmp.mount - Temporary Directory /tmp...
+[  OK  ] Stopped systemd-remount-fs.service…mount Root and Kernel File Systems.
+[  OK  ] Stopped systemd-tmpfiles-setup-dev…Create Static Device Nodes in /dev.
+[  OK  ] Stopped systemd-tmpfiles-setup-dev…ic Device Nodes in /dev gracefully.
+[**    ] (2 of 2) Job run-lock.mount/stop running (19s / 15min 16s)
+M*     ] (2 of 2) Job run-lock.mount/stop running (20s / 15min 16s)
+M  OK  ] Unmounted run-lock.mount - Legacy Locks Directory /run/lock.
+  OK  ] Unmounted tmp.mount - Temporary Directory /tmp.
+[  OK  ] Stopped target swap.target - Swaps.
+[  OK  ] Reached target shutdown.target - System Shutdown.
+[  OK  ] Reached target umount.target - Unmount All Filesystems.
+[  OK  ] Reached target final.target - Late Shutdown Services.
+[  OK  ] Finished systemd-poweroff.service - System Power Off.
+[  OK  ] Reached target poweroff.target - System Power Off.
+[  186.570856] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  186.680165] systemd-shutdown[1]: Sending SIGTERM to remaining processes...
+[  187.001370] systemd-journald[59]: Received SIGTERM from PID 1 (systemd-shutdow).
+[  187.268526] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  187.547915] systemd-shutdown[1]: Unmounting file systems.
+[  187.649943] (sd-umount)[182]: Unmounting '/run/credentials/systemd-journald.service'.
+[  187.720771] (sd-remount)[183]: Remounting '/' read-only with options 'errors=remount-ro'.
+[  187.786243] EXT4-fs (pmem0): re-mounted c85885cf-db40-4762-a107-7c9f48b5cbff ro.
+[  187.964409] systemd-shutdown[1]: All filesystems unmounted.
+[  187.965281] systemd-shutdown[1]: Deactivating swaps.
+[  187.967449] systemd-shutdown[1]: All swaps deactivated.
+[  187.968297] systemd-shutdown[1]: Detaching loop devices.
+[  188.214367] systemd-shutdown[1]: All loop devices detached.
+[  188.215228] systemd-shutdown[1]: Stopping MD devices.
+[  188.222276] systemd-shutdown[1]: All MD devices stopped.
+[  188.223128] systemd-shutdown[1]: Detaching DM devices.
+[  188.229810] systemd-shutdown[1]: All DM devices detached.
+[  188.230679] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  188.261437] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  188.303301] systemd-shutdown[1]: Powering off.
+[  188.305021] kvm: exiting hardware virtualization
+[  188.305509] reboot: Power down
+
+[sigil_host] result: PASS (finisher: power off) after 279.902 s, 27990209499 core cycles
+[sigil_host] measured core clock: 100.000 MHz (cycle counter / wall time; expected 100.000 MHz)
+[sigil_host] traps: 245345, last cause 0x0000000000000009 pc 0xffffffff8000a50c, STATUS 0x00000ad0
+[sigil_host] saved 0xc80000000+0x200000000 (PCIS 0xc00000000) to /mnt/nvme/os73/sigil-disk-saved2.ext4: PCIS read 12.905 s = 0.67 GB/s, file write 7.017 s
