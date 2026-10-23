@@ -511,3 +511,160 @@ NUMA OK (2 nodes)
 SIGILPS> ./memwhere 1024
 1024 MiB malloc'd and touched: node 0: 1024 MiB
 SIGILPS> numactl --membind=1 ./memwhere 1024
+1024 MiB malloc'd and touched: node 1: 1024 MiB
+SIGILPS> numactl --interleave=0,1 ./memwhere 1024
+
+Broadcast message from root@ip-172-31-16-42 (Fri 2026-10-23 06:29:14 UTC):
+
+The system will power off at Fri 2026-10-23 08:09:14 UTC!
+
+1024 MiB malloc'd and touched: node 0: 512 MiB node 1: 512 MiB
+SIGILPS> grep -E 'MemTotal|MemUsed' /sys/devices/system/node/node1/meminfo
+Node 1 MemTotal:       16497612 kB
+Node 1 MemUsed:           88992 kB
+SIGILPS> ./rvv_vadd
+hwprobe: zve32x 1 zve64x 1 zve64d 1 full-v 0
+VLEN = 512 bits
+daxpy 10007 elements: 0 mismatches; int64 sum 333982984552 (scalar 333982984552)
+RVV OK
+SIGILPS> ./autovec && echo "vector insns: $(objdump -d autovec | grep -cE '\sv(le64|se64|fmacc|fmadd|fadd)\.')"
+autovec sum 58705920 (expect 58705920)
+vector insns: 7
+SIGILPS> sudo -k; sudo id
+[sudo] password for sigil: 
+uid=0(root) gid=0(root) groups=0(root)
+SIGILPS> time python3 -c 'import platform, sys; print(platform.machine(), sys.version.split()[0])'
+riscv64 3.13.5
+
+real	0m6.854s
+user	0m5.595s
+sys	0m1.173s
+SIGILPS> git --version; gdb --version | head -1; strace -V | head -1; vim --version | head -1; file /bin/bash; man -w printf
+git version 2.47.3
+GNU gdb (Debian 16.3-1) 16.3
+strace -- version 6.13
+VIM - Vi IMproved 9.1 (2024 Jan 02, compiled May 23 2025 00:48:59)
+/bin/bash: ELF 64-bit LSB pie executable, UCB RISC-V, RVC, double-float ABI, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-riscv64-lp64d.so.1, BuildID[sha1]=6f5f4e9261a9ede16b7f310d130dc455950ea4da, for GNU/Linux 4.15.0, stripped
+/usr/share/man/man1/printf.1.gz
+SIGILPS> systemd-analyze; systemd-analyze blame --no-pager | head -15
+Startup finished in 7.317s (kernel) + 2min 16.133s (userspace) = 2min 23.451s 
+multi-user.target reached after 2min 16.088s in userspace.
+1min 27.456s dev-pmem0.device
+     36.688s systemd-journald.service
+     32.087s systemd-logind.service
+     31.034s systemd-udev-trigger.service
+     18.885s systemd-tmpfiles-setup-dev-early.service
+     18.472s systemd-user-sessions.service
+     17.872s systemd-remount-fs.service
+     17.433s dbus.service
+     16.301s systemd-modules-load.service
+     16.269s systemd-udevd.service
+     16.030s systemd-udev-load-credentials.service
+     15.142s systemd-machine-id-commit.service
+     13.122s run-lock.mount
+     12.953s systemd-random-seed.service
+     12.946s sys-kernel-debug.mount
+SIGILPS> ndctl list -N 2>/dev/null; ls /dev/rtc0 && cat /sys/class/rtc/rtc0/name; date -u
+[
+  {
+    "dev":"namespace0.0",
+    "mode":"raw",
+    "size":17179869184,
+    "sector_size":512,
+    "blockdev":"pmem0"
+  }
+]
+/dev/rtc0
+goldfish_rtc 101000.rtc
+Fri Oct 23 06:33:17 UTC 2026
+SIGILPS> sleep 10
+SIGILPS> date -u +%s.%N
+1792737208.009197430
+SIGILPS> echo sigil-persist-1792735953 > ~/persist.txt && sync && cat ~/persist.txt
+sigil-persist-1792735953
+SIGILPS> sudo poweroff
+         Stopping session-c1.scope - Session c1 of User sigil...
+[  OK  ] Removed slice system-getty.slice - Slice /system/getty.
+[  OK  ] Stopped target multi-user.target - Multi-User System.
+[  OK  ] Stopped target getty.target - Login Prompts.
+[  OK  ] Stopped target timers.target - Timer Units.
+[  OK  ] Stopped systemd-tmpfiles-clean.tim…y Cleanup of Temporary Directories.
+         Stopping serial-getty@ttyS0.service - Serial Getty on ttyS0...
+[  OK  ] Stopped systemd-machine-id-commit.… Save Transient machine-id to Disk.
+         Stopping systemd-random-seed.service - Load/Save OS Random Seed...
+[  OK  ] Stopped systemd-udev-load-credenti…- Load udev Rules from Credentials.
+[  OK  ] Stopped serial-getty@ttyS0.service - Serial Getty on ttyS0.
+]104[  OK  ] Stopped session-c1.scope - Session c1 of User sigil.
+[  OK  ] Removed slice system-serial\x2dget…slice - Slice /system/serial-getty.
+         Stopping systemd-user-sessions.service - Permit User Sessions...
+         Stopping user-runtime-dir@1000.ser…Runtime Directory /run/user/1000...
+[  OK  ] Stopped systemd-random-seed.service - Load/Save OS Random Seed.
+[    **] (2 of 2) Job systemd-user-sessions.…rvice/stop running (13s / 3min 9s)
+M     *] (2 of 2) Job systemd-user-sessions.…rvice/stop running (14s / 3min 9s)
+M    **] (1 of 2) Job user-runtime-dir@1000.…rvice/stop running (14s / 3min 9s)
+M  OK  ] Stopped systemd-user-sessions.service - Permit User Sessions.
+  OK  ] Unmounted run-user-1000.mount - /run/user/1000.
+[  OK  ] Stopped user-runtime-dir@1000.serv…r Runtime Directory /run/user/1000.
+[  OK  ] Removed slice user-1000.slice - User Slice of UID 1000.
+[  OK  ] Stopped target remote-fs.target - Remote File Systems.
+         Stopping dbus.service - D-Bus System Message Bus...
+         Stopping systemd-logind.service - User Login Management...
+[  OK  ] Stopped dbus.service - D-Bus System Message Bus.
+[  OK  ] Stopped systemd-logind.service - User Login Management.
+[  OK  ] Stopped target basic.target - Basic System.
+[  OK  ] Stopped target paths.target - Path Units.
+[  OK  ] Stopped systemd-ask-password-conso…equests to Console Directory Watch.
+[  OK  ] Stopped systemd-ask-password-wall.…d Requests to Wall Directory Watch.
+[  OK  ] Stopped target slices.target - Slice Units.
+[  OK  ] Removed slice user.slice - User and Session Slice.
+[  OK  ] Stopped target sockets.target - Socket Units.
+[  OK  ] Closed dbus.socket - D-Bus System Message Bus Socket.
+[  OK  ] Closed systemd-hostnamed.socket - Hostname Service Socket.
+[  OK  ] Stopped target sysinit.target - System Initialization.
+[  OK  ] Unset automount proc-sys-fs-binfmt…ormats File System Automount Point.
+[  OK  ] Stopped systemd-sysctl.service - Apply Kernel Variables.
+[  OK  ] Stopped systemd-modules-load.service - Load Kernel Modules.
+[  OK  ] Stopped systemd-tmpfiles-setup.ser…reate System Files and Directories.
+[  OK  ] Stopped target local-fs.target - Local File Systems.
+[  OK  ] Stopped target local-fs-pre.target…Preparation for Local File Systems.
+         Unmounting run-lock.mount - Legacy Locks Directory /run/lock...
+         Unmounting tmp.mount - Temporary Directory /tmp...
+[  OK  ] Stopped systemd-remount-fs.service…mount Root and Kernel File Systems.
+[  OK  ] Stopped systemd-tmpfiles-setup-dev…Create Static Device Nodes in /dev.
+[  OK  ] Stopped systemd-tmpfiles-setup-dev…ic Device Nodes in /dev gracefully.
+[   ***] (1 of 2) Job tmp.mount/stop running (21s / 15min 17s)
+M  OK  ] Unmounted run-lock.mount - Legacy Locks Directory /run/lock.
+  OK  ] Unmounted tmp.mount - Temporary Directory /tmp.
+[  OK  ] Stopped target swap.target - Swaps.
+[  OK  ] Reached target shutdown.target - System Shutdown.
+[  OK  ] Reached target umount.target - Unmount All Filesystems.
+[  OK  ] Reached target final.target - Late Shutdown Services.
+[  OK  ] Finished systemd-poweroff.service - System Power Off.
+[  OK  ] Reached target poweroff.target - System Power Off.
+[ 1189.699726] systemd-shutdown[1]: Syncing filesystems and block devices.
+[ 1189.806803] systemd-shutdown[1]: Sending SIGTERM to remaining processes...
+[ 1190.116344] systemd-journald[59]: Received SIGTERM from PID 1 (systemd-shutdow).
+[ 1190.405046] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[ 1190.694321] systemd-shutdown[1]: Unmounting file systems.
+[ 1190.804741] (sd-umount)[308]: Unmounting '/run/credentials/systemd-journald.service'.
+[ 1190.875383] (sd-remount)[309]: Remounting '/' read-only with options 'errors=remount-ro'.
+[ 1191.061329] EXT4-fs (pmem0): re-mounted c85885cf-db40-4762-a107-7c9f48b5cbff ro.
+[ 1191.360869] systemd-shutdown[1]: All filesystems unmounted.
+[ 1191.361736] systemd-shutdown[1]: Deactivating swaps.
+[ 1191.363906] systemd-shutdown[1]: All swaps deactivated.
+[ 1191.364754] systemd-shutdown[1]: Detaching loop devices.
+[ 1191.610866] systemd-shutdown[1]: All loop devices detached.
+[ 1191.611735] systemd-shutdown[1]: Stopping MD devices.
+[ 1191.618965] systemd-shutdown[1]: All MD devices stopped.
+[ 1191.619807] systemd-shutdown[1]: Detaching DM devices.
+[ 1191.625937] systemd-shutdown[1]: All DM devices detached.
+[ 1191.626810] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[ 1191.669439] systemd-shutdown[1]: Syncing filesystems and block devices.
+[ 1191.702035] systemd-shutdown[1]: Powering off.
+[ 1191.703775] kvm: exiting hardware virtualization
+[ 1191.704256] reboot: Power down
+
+[sigil_host] result: PASS (finisher: power off) after 1283.301 s, 128330145200 core cycles
+[sigil_host] measured core clock: 100.000 MHz (cycle counter / wall time; expected 100.000 MHz)
+[sigil_host] traps: 2099983, last cause 0x0000000000000009 pc 0xffffffff8000a50c, STATUS 0x00000ad0
+[sigil_host] saved 0xc80000000+0x200000000 (PCIS 0xc00000000) to /mnt/nvme/os73/sigil-disk-saved.ext4: PCIS read 13.405 s = 0.64 GB/s, file write 5.977 s

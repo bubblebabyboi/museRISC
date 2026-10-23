@@ -1,0 +1,2 @@
+[     4.0 s] SoC released (host: SoC released)
+[   230.1 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 134.46 s)
