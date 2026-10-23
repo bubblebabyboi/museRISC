@@ -3448,3 +3448,12 @@ A-AE, Verilator 5.048 (CI replays: 5.020), GCC 16.1.0, Python 3.12.3.
   [`gates/`](riscv-dv-8-2026-10-22/critic/gates/). The first run, on
   `c98428b`, stopped core-test at `vec_trap_directed` test 11 (fixed in
   `37aa1d7`).
+- **Full ACT** (`65a48ae`, 2026-10-23, sigil-verify, Verilator 5.048,
+  core_tb default config, the 2,578-ELF set of main's gates, fingerprint
+  `839ba8be…`): 2,577/2,578, only the `PMPSm_cfg_A_tor_zero-00` PA0
+  waiver fails. Main `9da0006` rerun on the same ELFs and machine gives
+  the same result with every ELF's verdict and cycle count equal, and
+  the waiver's core_tb bus trace is byte-identical on both:
+  [`act-full.log`](riscv-dv-8-2026-10-22/act-full.log),
+  [`act-full-8-riscv-dv-65a48ae.csv`](riscv-dv-8-2026-10-22/act-full-8-riscv-dv-65a48ae.csv),
+  [`act-full-main-9da0006.csv`](riscv-dv-8-2026-10-22/act-full-main-9da0006.csv).

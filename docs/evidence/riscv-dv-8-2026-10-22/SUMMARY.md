@@ -130,10 +130,19 @@ documentation and evidence), logs in [`critic/gates/`](critic/gates/):
 | `make test` | sigil-verify | rc=0, ALL PHASE-0 KATs PASS ([`test.log`](critic/gates/test.log)) |
 | `make core-test` | sigil-verify, VJOBS=4, 2,609 s | rc=0, 297 "TB PASS" lines (main's 293 plus `pmp_partial_directed` in four memory configurations), 0 FAIL ([`core-test.log`](critic/gates/core-test.log)) |
 | `make riscv-tests` | sigil-verify | rc=0, 123/123 PASS ([`riscv-tests.log`](critic/gates/riscv-tests.log)) |
+| Full ACT, 2,578 ELFs (`sim/run_act_core_par.sh`, core_tb default config, Verilator 5.048) | sigil-verify, 12 jobs, 285 s, at `65a48ae` | 2,577/2,578 PASS; only `PMPSm_cfg_A_tor_zero-00` fails, the known PA0 platform waiver (as on main). Main `9da0006` rerun on the same ELFs and machine: same 2,577/2,578, and every ELF has the same verdict and cycle count on both ([`act-full.log`](act-full.log), [`act-full-8-riscv-dv-65a48ae.csv`](act-full-8-riscv-dv-65a48ae.csv), [`act-full-main-9da0006.csv`](act-full-main-9da0006.csv)) |
 
 The first gate run, on `c98428b`, stopped `make core-test` at
 `vec_trap_directed` test 11 (root cause 7):
 [`core-test-c98428b-vec-trap-11.txt`](critic/gates/core-test-c98428b-vec-trap-11.txt).
-ACT was not rerun (not installed on sigil-verify); the PMP fix only
-changes accesses that an entry matches in part, which would have failed
-ACT against Sail before ([`pmp-partial-match.txt`](critic/pmp-partial-match.txt)).
+Full ACT ran afterwards on `65a48ae` (2026-10-23, the same 2,578-ELF set
+as main's gates, fingerprint `839ba8be…`): 2,577/2,578, the same result
+as main. No verdict or cycle count moved, so no ACT test appears to
+reach the changed paths: ACT neither confirms nor contradicts the three
+fixes; the
+riscv-dv programs and the directed core tests are what cover them
+([`pmp-partial-match.txt`](critic/pmp-partial-match.txt)). The one
+failure has the same core_tb output and byte-identical per-cycle bus
+trace on both RTLs; it uses only 4-byte probes, which the PMP fix does
+not change, and fails because Sail access-faults PA 0 (no memory there)
+while core_tb has RAM there ([`act-full.log`](act-full.log)).
