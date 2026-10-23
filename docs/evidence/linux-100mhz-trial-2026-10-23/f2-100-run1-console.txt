@@ -494,3 +494,20 @@ ldd (Debian GLIBC 2.41-12+deb13u4) 2.41
 SIGILPS> make
 cc -O2 -Wall    hello.c   -o hello
 cc -O2 -Wall    malloc_test.c   -o malloc_test
+cc -O2 -Wall    numa_hbm.c  -lnuma -o numa_hbm
+cc -O2 -Wall    memwhere.c  -lnuma -o memwhere
+cc -O2 -Wall -march=rv64gc_zve64d    rvv_vadd.c   -o rvv_vadd
+cc -O2 -Wall -O3 -march=rv64gc_zve64d_zvl512b    autovec.c   -o autovec
+SIGILPS> ./malloc_test 512
+20000 blocks, 88.6 MiB allocated, written, verified, freed
+big block 512 MiB touched and verified
+MALLOC OK
+SIGILPS> ./numa_hbm 256
+node 0: 47.2 GiB total, 46.9 GiB free (DDR4, CPU node)
+node 1: 15.7 GiB total, 15.7 GiB free (HBM)
+node 0: 256 MiB, pages on node 0: all, write 12 MB/s, dependent load 1369 ns (0)
+node 1: 256 MiB, pages on node 1: all, write 11 MB/s, dependent load 1425 ns (0)
+NUMA OK (2 nodes)
+SIGILPS> ./memwhere 1024
+1024 MiB malloc'd and touched: node 0: 1024 MiB
+SIGILPS> numactl --membind=1 ./memwhere 1024

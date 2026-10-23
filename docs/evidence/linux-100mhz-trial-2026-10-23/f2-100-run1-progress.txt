@@ -11,3 +11,7 @@
 [   262.6 s] PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
 [   278.3 s] PASS: gcc hello.c && ./a.out
 [   279.7 s] PASS: gcc 14 / binutils / glibc versions
+[   543.6 s] PASS: make examples
+[   602.7 s] PASS: malloc test
+[   733.9 s] PASS: numa_hbm (libnuma onnode 0 and 1)
+[   843.1 s] PASS: default malloc lands in node 0
