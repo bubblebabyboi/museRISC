@@ -5,6 +5,7 @@
  *   dts/sigil-sim.dts   Verilator (this file: 128 MiB, initramfs)
  *   dts/sigil-f2.dts    AWS F2 (48 GiB DDR4 node 0, 16 GiB pmem disk,
  *                       16 GiB HBM node 1, 62.5 MHz timebase)
+ *   dts/sigil-f2-100.dts  the same with the 100 MHz timebase (#53)
  *   dts/sigil-qemu.dts  QEMU virt reference of the F2 map
  * Build all of them with scripts/build_dtbs.sh.
  */

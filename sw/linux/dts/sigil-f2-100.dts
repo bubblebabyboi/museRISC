@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+ * Sigil SoC on an AWS F2 FPGA with the 100 MHz core clock (#53: AWS_CLK_GEN
+ * group-B recipe B5, OCL CLK_KHZ = 100000). Same memory map, NUMA layout,
+ * pmem disk, devices and boot command line as sigil-f2.dts (62.5 MHz,
+ * recipe B1); only the timebase differs, because mtime ticks at the core
+ * clock. Use the DTB that matches the AFI's clock: sigil_host prints it
+ * ("core clock ... MHz") and, with --info, as core_clk_khz.
+ */
+/include/ "sigil-f2.dts"
+
+/ {
+	cpus {
+		timebase-frequency = <100000000>;
+	};
+};

@@ -4,7 +4,8 @@
  *   node 0  DDR4 system RAM   0x0_8000_0000 .. 0xC_7FFF_FFFF  (48 GiB)
  *   pmem    DDR4 disk         0xC_8000_0000 .. 0x10_7FFF_FFFF (16 GiB) -> /dev/pmem0
  *   node 1  HBM system RAM    0x10_8000_0000 .. 0x14_7FFF_FFFF (16 GiB, no CPUs)
- * mtime ticks at the core clock: 62.5 MHz for the current recipe B1.
+ * mtime ticks at the core clock: 62.5 MHz for AFIs built with recipe B1.
+ * sigil-f2-100.dts is this board with the 100 MHz timebase (recipe B5, #53).
  */
 /include/ "sigil.dtsi"
 

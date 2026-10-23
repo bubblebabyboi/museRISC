@@ -11,6 +11,7 @@ the hardware contract is [`docs/LINUX_PLATFORM.md`](../../docs/LINUX_PLATFORM.md
 | `kernel/sigil_defconfig` | the full defconfig the build uses (`--regen-defconfig` recreates it) |
 | `dts/sigil.dtsi` | the one device-tree source: hart + ISA, CLINT, PLIC, UART, finisher, RTC, crypto |
 | `dts/sigil-f2.dts` | AWS F2: 48 GiB DDR4 node 0 + 16 GiB pmem disk + 16 GiB HBM node 1, 62.5 MHz |
+| `dts/sigil-f2-100.dts` | the same F2 board with the 100 MHz timebase, for AFIs whose core clock is 100 MHz (#53) |
 | `dts/sigil-qemu.dts` | QEMU virt reference of the F2 map (10 MHz timebase, virtio slots) |
 | `dts/sigil-sim.dts` | Verilator: 128 MiB, embedded initramfs; `sigil.dts` is its historic name |
 | `debian/overlay/` | files the Debian image adds (fstab, issue/motd, systemd tuning, boot marker) |
@@ -22,7 +23,7 @@ the hardware contract is [`docs/LINUX_PLATFORM.md`](../../docs/LINUX_PLATFORM.md
 Build (Ubuntu 24.04; package list in `docs/LINUX.md` §2):
 
 ```bash
-bash scripts/build_opensbi.sh            # build/linux/fw_jump.bin + sigil-{f2,qemu,sim}.dtb, sigil.dtb
+bash scripts/build_opensbi.sh            # build/linux/fw_jump.bin + sigil-{f2,f2-100,qemu,sim}.dtb, sigil.dtb
 bash scripts/build_linux_kernel.sh       # build/linux/Image, Image-initramfs, modules
 sudo bash scripts/build_debian_rootfs.sh # build/debian/sigil-debian-13-riscv64.ext4(.zst)
 bash scripts/qemu_sigil_boot.sh          # boot it in QEMU (Ctrl-A X quits)
