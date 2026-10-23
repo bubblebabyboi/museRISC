@@ -80,6 +80,9 @@ run hyp hyp_directed.bin
 run vecsw vec_directed.bin 4000000
 run fpvecsw fpvec_directed.bin 4000000
 run vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
+# viota.m (issue #8): vs2 is one mask register at any LMUL; random
+# vtype/AVL/policies/masks, plus the encodings that must trap.
+run viota viota_directed.bin 4000000
 run trap_pa_fetch trap_pa_fetch.bin 100000 --expect-trap 1
 run trap_pa_load trap_pa_load.bin 100000 --expect-trap 5
 # PMP: an entry matching part of an 8-byte access fails it (issue #8).
