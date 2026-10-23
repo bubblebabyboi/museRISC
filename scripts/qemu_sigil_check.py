@@ -30,7 +30,8 @@ PASSWORD = "sigil"
 
 
 class Run:
-    def __init__(self, cmd, log, timeout_scale):
+    def __init__(self, cmd, log, timeout_scale, release=None):
+        self.release = release
         self.t0 = time.monotonic()
         self.scale = timeout_scale
         self.p = pexpect.spawn(cmd[0], cmd[1:], encoding="utf-8",
@@ -51,6 +52,10 @@ class Run:
         return self.p.expect(pats, timeout=timeout * self.scale)
 
     def login(self, user, boot_timeout):
+        if self.release:            # host loads the images first (F2)
+            self.expect([self.release], 1800)
+            self.mark("SoC released (host: " + self.release + ")")
+            self.release = None
         self.expect([r"SIGIL_LINUX_BOOT_OK[^\r\n]*"], boot_timeout)
         self.mark("boot marker: " + self.p.after.strip())
         self.expect([r"sigil login: "], 600)
@@ -93,6 +98,9 @@ def main():
                     "(shell string, e.g. sigil_host --console ...)")
     ap.add_argument("--scale", type=float, help="timeout multiplier")
     ap.add_argument("--label", default="QEMU", help="platform name in the summary")
+    ap.add_argument("--release", help="regex the console command prints when the "
+                    "SoC starts (e.g. 'SoC released' for sigil_host); times are "
+                    "then also measured from it")
     ap.add_argument("--no-reboot", action="store_true",
                     help="skip the reboot round (poweroff after the checks)")
     ap.add_argument("--stamp", default=str(int(time.time())),
@@ -111,7 +119,7 @@ def main():
             cmd.append("--icount")
     scale = a.scale or (20 if a.icount else 1)
     with open(a.log, "w") as log:
-        r = Run(cmd, log, scale)
+        r = Run(cmd, log, scale, a.release)
         if a.persist_check:
             r.login("root", 900)
             r.sh("cat /home/sigil/persist.txt", check=f"^sigil-persist-{a.persist_check}$",
@@ -158,21 +166,36 @@ def poweroff(r):
     r.mark(("PASS" if ok else "FAIL") + ": poweroff")
 
 
+def guest_clock(r, tag):
+    """Guest wall clock (date) vs host wall clock, for the timebase check."""
+    h0 = time.time()
+    out, _ = r.sh("date -u +%s.%N", 300)
+    h1 = time.time()
+    try:
+        g = float(out.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return None
+    host = (h0 + h1) / 2
+    r.mark(f"clock {tag}: guest {g:.3f} host {host:.3f} offset {g - host:+.3f} s")
+    return g, host
+
+
 def checks(r, stamp, do_reboot):
+    clk0 = guest_clock(r, "after login")
     r.sh("uname -a; . /etc/os-release; echo \"$PRETTY_NAME\"; cat /etc/sigil-release",
          check=r"6\.12\.\d+-sigil .*riscv64[\s\S]*Debian GNU/Linux 13",
          name="kernel 6.12 + Debian 13")
-    r.sh("grep -m1 '^isa' /proc/cpuinfo; nproc; cat /proc/device-tree/model; echo",
+    r.sh("cat /proc/cpuinfo; nproc; cat /proc/device-tree/model; echo",
          check=r"zve64d", name="cpu isa has zve64d")
     r.sh("systemctl is-system-running --wait; systemctl --failed --no-legend",
          check=r"^running", name="systemd running, no failed units")
     r.sh("findmnt -n /; df -h /; ls -l /dev/pmem0; cat /sys/block/pmem0/size",
          check=r"/dev/pmem0\s+ext4\s+rw", name="root on /dev/pmem0 (ext4, rw)")
-    r.sh("free -m; cat /sys/devices/system/node/online", check=r"^0-1$",
+    r.sh("free -h; free -m; cat /sys/devices/system/node/online", check=r"^0-1$",
          name="nodes 0-1 online")
     r.sh("numactl --hardware", check=r"available: 2 nodes \(0-1\)[\s\S]*node 1 size: 16\d\d\d MB",
          name="numactl --hardware: 2 nodes, node 1 = 16 GiB")
-    r.sh("cd ~/examples && rm -f a.out && gcc hello.c && ./a.out",
+    r.sh("cd ~/examples && rm -f a.out && time (gcc hello.c && ./a.out)",
          check=r"^Hello from sigil on riscv64", name="gcc hello.c && ./a.out")
     r.sh("gcc --version | head -1; ld --version | head -1; ldd --version | head -1",
          check=r"gcc .*14\.", name="gcc 14 / binutils / glibc versions")
@@ -195,7 +218,7 @@ def checks(r, stamp, do_reboot):
     ok = "uid=0(root)" in r.p.before
     r.results.append(("sudo", ok))
     r.mark(("PASS" if ok else "FAIL") + ": sudo")
-    r.sh("python3 -c 'import platform, sys; print(platform.machine(), sys.version.split()[0])'",
+    r.sh("time python3 -c 'import platform, sys; print(platform.machine(), sys.version.split()[0])'",
          check=r"riscv64 3\.", name="python3")
     r.sh("git --version; gdb --version | head -1; strace -V | head -1; vim --version | head -1; "
          "file /bin/bash; man -w printf", check=r"ELF 64-bit LSB pie executable, UCB RISC-V",
@@ -203,6 +226,22 @@ def checks(r, stamp, do_reboot):
     r.sh("systemd-analyze; systemd-analyze blame --no-pager | head -15", check=r"Startup finished",
          name="systemd-analyze")
     r.sh("ndctl list -N 2>/dev/null; ls /dev/rtc0 && cat /sys/class/rtc/rtc0/name; date -u")
+    # Timebase: `sleep 10` must take 10 s of host wall time (plus exec
+    # overhead), and the guest clock must not drift against the host's.
+    h = time.time()
+    r.sh("sleep 10", 300)
+    dt = time.time() - h
+    ok = 9.9 <= dt <= 13.0
+    r.results.append((f"sleep 10 took {dt:.2f} s host wall time", ok))
+    r.mark(f"{'PASS' if ok else 'FAIL'}: sleep 10 = {dt:.2f} s of host wall time")
+    clk1 = guest_clock(r, "end")
+    if clk0 and clk1:
+        gd, hd = clk1[0] - clk0[0], clk1[1] - clk0[1]
+        drift = (gd - hd) / hd
+        ok = abs(drift) < 0.005
+        r.results.append((f"guest clock drift {drift * 100:+.3f} % over {hd:.0f} s", ok))
+        r.mark(f"{'PASS' if ok else 'FAIL'}: guest clock {gd:.1f} s vs host {hd:.1f} s "
+               f"(drift {drift * 100:+.3f} %)")
     r.sh(f"echo sigil-persist-{stamp} > ~/persist.txt && sync && cat ~/persist.txt",
          check=f"^sigil-persist-{stamp}$", name="write file on pmem disk")
     if not do_reboot:
