@@ -3603,3 +3603,28 @@ elements PMP-checked byte by byte (`9bdd552`). Issues: #76, #77, #78.
   co-simulations and the `sigil-linux` harness (`sw/`).
 - Caveat: static timing and simulation only. Nothing has run on hardware
   at 100 MHz yet.
+
+## Debian on the F2 at 100 MHz — trial on candidate AFI `agfi-05cbbdc9f2ee7b87b` (2026-10-23, branch `53-100mhz-debian-trial`)
+
+**Trial, not release evidence**: the final 100 MHz AFI is rebuilt with three
+more core fixes. Details and logs: [`linux-100mhz-trial-2026-10-23/`](linux-100mhz-trial-2026-10-23/)
+([`SUMMARY.txt`](linux-100mhz-trial-2026-10-23/SUMMARY.txt), console logs of
+both runs, `sigil_host --info`, instance and artifact sha256s).
+
+- Candidate AFI `afi-090769c4f8c375270` / `agfi-05cbbdc9f2ee7b87b` (private,
+  `53-100mhz-afi` @ `cf63ab8`, recipe B5): `sigil_host --info` reports
+  `core_clk_khz=100000`, measured core clock 100.000 MHz. Unchanged OS
+  artifacts plus `sigil-f2-100.dtb` (timebase 100 MHz, sha256 `06925c9a…`).
+- **Run 1: 24/24 PASS** (the 22 Debian checks plus two timebase checks),
+  **run 2 (save + reload persistence): 2/2 PASS**, no oops.
+- **Login prompt 237.5 s after release (3 min 58 s) vs 347.9 s at 62.5 MHz:
+  1.46× faster** (clock ×1.6; memory latency in ns does not scale).
+  `gcc hello.c` 15.4 s (22.9 s), `python3 -c` 6.9 s (9.9 s), `make` of the
+  examples 4 min 24 s (6 min 23 s), `systemd-analyze` 7.3 s + 2 min 16 s.
+- **Timebase validated**: `sleep 10` = 10.21 s host wall time; guest `date`
+  vs host clock −0.353 s after login and −0.357 s 997.5 s later (4 ppm).
+- Harness note: the first attempt with relative `--load` paths failed in
+  this `sigil_host` (`cannot open … No such file or directory`); absolute
+  paths work. F2: 0.62 h (`i-07522c9e3abec4345`, terminated); the earlier
+  attempt `i-0285371bffa2b1270` was cut off by the network outage and ended
+  by its cost guard (~2.0 h).

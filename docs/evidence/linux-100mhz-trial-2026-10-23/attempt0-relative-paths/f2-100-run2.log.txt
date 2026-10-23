@@ -1,0 +1,7 @@
+[sigil_host] slot 0: AFI agfi-05cbbdc9f2ee7b87b, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] core clock 100.000 MHz (the AFI's build recipe, OCL CLK_KHZ)
+[sigil_host] Linux timebase-frequency must be 100000000 Hz: boot with sigil-f2-100.dtb
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] ERROR: cannot open sigil-disk-saved.ext4: No such file or directory

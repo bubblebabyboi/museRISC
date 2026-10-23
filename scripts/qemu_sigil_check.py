@@ -166,7 +166,22 @@ def poweroff(r):
     r.mark(("PASS" if ok else "FAIL") + ": poweroff")
 
 
+def guest_clock(r, tag):
+    """Guest wall clock (date) vs host wall clock, for the timebase check."""
+    h0 = time.time()
+    out, _ = r.sh("date -u +%s.%N", 300)
+    h1 = time.time()
+    try:
+        g = float(out.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return None
+    host = (h0 + h1) / 2
+    r.mark(f"clock {tag}: guest {g:.3f} host {host:.3f} offset {g - host:+.3f} s")
+    return g, host
+
+
 def checks(r, stamp, do_reboot):
+    clk0 = guest_clock(r, "after login")
     r.sh("uname -a; . /etc/os-release; echo \"$PRETTY_NAME\"; cat /etc/sigil-release",
          check=r"6\.12\.\d+-sigil .*riscv64[\s\S]*Debian GNU/Linux 13",
          name="kernel 6.12 + Debian 13")
@@ -211,6 +226,22 @@ def checks(r, stamp, do_reboot):
     r.sh("systemd-analyze; systemd-analyze blame --no-pager | head -15", check=r"Startup finished",
          name="systemd-analyze")
     r.sh("ndctl list -N 2>/dev/null; ls /dev/rtc0 && cat /sys/class/rtc/rtc0/name; date -u")
+    # Timebase: `sleep 10` must take 10 s of host wall time (plus exec
+    # overhead), and the guest clock must not drift against the host's.
+    h = time.time()
+    r.sh("sleep 10", 300)
+    dt = time.time() - h
+    ok = 9.9 <= dt <= 13.0
+    r.results.append((f"sleep 10 took {dt:.2f} s host wall time", ok))
+    r.mark(f"{'PASS' if ok else 'FAIL'}: sleep 10 = {dt:.2f} s of host wall time")
+    clk1 = guest_clock(r, "end")
+    if clk0 and clk1:
+        gd, hd = clk1[0] - clk0[0], clk1[1] - clk0[1]
+        drift = (gd - hd) / hd
+        ok = abs(drift) < 0.005
+        r.results.append((f"guest clock drift {drift * 100:+.3f} % over {hd:.0f} s", ok))
+        r.mark(f"{'PASS' if ok else 'FAIL'}: guest clock {gd:.1f} s vs host {hd:.1f} s "
+               f"(drift {drift * 100:+.3f} %)")
     r.sh(f"echo sigil-persist-{stamp} > ~/persist.txt && sync && cat ~/persist.txt",
          check=f"^sigil-persist-{stamp}$", name="write file on pmem disk")
     if not do_reboot:

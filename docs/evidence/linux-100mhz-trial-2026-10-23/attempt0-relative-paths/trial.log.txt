@@ -1,0 +1,39 @@
++ date -u
+Fri Oct 23 06:11:18 UTC 2026
++ '[' -f /mnt/nvme/os73/ARTIFACTS_READY ']'
++ cd /mnt/nvme/os73
++ sha256sum -c --ignore-missing SHA256SUMS
+Image: OK
+fw_jump.bin: OK
+sigil-debian-13-riscv64.ext4.zst: OK
++ sha256sum sigil-f2-100.dtb
+06925c9ad6c074b1ebec945377fc821049e18cded5656b4f075baaaae0426eac  sigil-f2-100.dtb
++ zstd -d -q -f sigil-debian-13-riscv64.ext4.zst -o sigil-debian-13-riscv64.ext4
++ sha256sum sigil-debian-13-riscv64.ext4
+c2d0cd4cf3e543a04e8194283acc7d8c1eec97046189ca8f9d4c1dd9bfe08632  sigil-debian-13-riscv64.ext4
++ grep -q HOSTBUILD_DONE /home/ubuntu/host_build.log
++ source /home/ubuntu/aws-fpga/sdk_setup.sh
++ sudo fpga-load-local-image -S 0 -I agfi-05cbbdc9f2ee7b87b -H
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-05cbbdc9f2ee7b87b  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
++ sudo fpga-describe-local-image -S 0 -H
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-05cbbdc9f2ee7b87b  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
++ sudo /home/ubuntu/sigil/fpga/host/sigil_host --info
+++ date +%s
++ STAMP=1792735905
++ echo 1792735905
++ H='sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2-100.dtb --console --on-reboot exit'
++ python3 /home/ubuntu/os73/qemu_sigil_check.py --label F2-100 --scale 40 --no-reboot --stamp 1792735905 --release 'SoC released' --log /mnt/nvme/os73/f2-100-run1.log --cmd 'sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2-100.dtb --console --on-reboot exit --load 0xC80000000=sigil-debian-13-riscv64.ext4 --save 0xC80000000=sigil-disk-saved.ext4:8G'
++ python3 /home/ubuntu/os73/qemu_sigil_check.py --label F2-100 --scale 40 --persist-check 1792735905 --release 'SoC released' --log /mnt/nvme/os73/f2-100-run2.log --cmd 'sudo /home/ubuntu/sigil/fpga/host/sigil_host --linux --fw fw_jump.bin --image Image --dtb sigil-f2-100.dtb --console --on-reboot exit --load 0xC80000000=sigil-disk-saved.ext4 --save 0xC80000000=sigil-disk-saved2.ext4:8G'
++ sudo sha256sum sigil-disk-saved.ext4 sigil-disk-saved2.ext4
+sha256sum: sigil-disk-saved.ext4: No such file or directory
+sha256sum: sigil-disk-saved2.ext4: No such file or directory
++ date -u
+Fri Oct 23 06:11:59 UTC 2026
++ echo TRIAL_DONE
+TRIAL_DONE

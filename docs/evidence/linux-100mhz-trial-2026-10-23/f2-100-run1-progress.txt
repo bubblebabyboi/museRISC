@@ -1,0 +1,66 @@
+[     3.8 s] SoC released (host: SoC released)
+[   233.6 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel u
+[   241.3 s] login prompt
+[   256.9 s] logged in as sigil
+[   257.4 s] clock after login: guest 1792736210.468 host 1792736210.821 offset -0.353 s
+[   257.8 s] PASS: kernel 6.12 + Debian 13
+[   258.3 s] PASS: cpu isa has zve64d
+[   260.6 s] PASS: systemd running, no failed units
+[   261.7 s] PASS: root on /dev/pmem0 (ext4, rw)
+[   262.4 s] PASS: nodes 0-1 online
+[   262.6 s] PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+[   278.3 s] PASS: gcc hello.c && ./a.out
+[   279.7 s] PASS: gcc 14 / binutils / glibc versions
+[   543.6 s] PASS: make examples
+[   602.7 s] PASS: malloc test
+[   733.9 s] PASS: numa_hbm (libnuma onnode 0 and 1)
+[   843.1 s] PASS: default malloc lands in node 0
+[   960.0 s] PASS: numactl --membind=1 lands in node 1
+[  1082.3 s] PASS: numactl --interleave=0,1 splits
+[  1082.8 s] PASS: RVV Zve64d user program
+[  1083.8 s] PASS: gcc auto-vectorized Zve64d program
+[  1093.4 s] PASS: sudo
+[  1100.4 s] PASS: python3
+[  1131.2 s] PASS: GNU tools present
+[  1243.1 s] PASS: systemd-analyze
+[  1254.7 s] PASS: sleep 10 = 10.21 s of host wall time
+[  1254.9 s] clock end: guest 1792737208.009 host 1792737208.367 offset -0.357 s
+[  1254.9 s] PASS: guest clock 997.5 s vs host 997.5 s (drift -0.000 %)
+[  1255.3 s] PASS: write file on pmem disk
+[  1255.4 s] poweroff requested
+[  1307.3 s] PASS: poweroff
+
+Summary (F2-100):
+       3.8 s  SoC released (host: SoC released)
+     233.6 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel u
+     241.3 s  login prompt
+     256.9 s  logged in as sigil
+     257.4 s  clock after login: guest 1792736210.468 host 1792736210.821 offset -0.353 s
+     257.8 s  PASS: kernel 6.12 + Debian 13
+     258.3 s  PASS: cpu isa has zve64d
+     260.6 s  PASS: systemd running, no failed units
+     261.7 s  PASS: root on /dev/pmem0 (ext4, rw)
+     262.4 s  PASS: nodes 0-1 online
+     262.6 s  PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+     278.3 s  PASS: gcc hello.c && ./a.out
+     279.7 s  PASS: gcc 14 / binutils / glibc versions
+     543.6 s  PASS: make examples
+     602.7 s  PASS: malloc test
+     733.9 s  PASS: numa_hbm (libnuma onnode 0 and 1)
+     843.1 s  PASS: default malloc lands in node 0
+     960.0 s  PASS: numactl --membind=1 lands in node 1
+    1082.3 s  PASS: numactl --interleave=0,1 splits
+    1082.8 s  PASS: RVV Zve64d user program
+    1083.8 s  PASS: gcc auto-vectorized Zve64d program
+    1093.4 s  PASS: sudo
+    1100.4 s  PASS: python3
+    1131.2 s  PASS: GNU tools present
+    1243.1 s  PASS: systemd-analyze
+    1254.7 s  PASS: sleep 10 = 10.21 s of host wall time
+    1254.9 s  clock end: guest 1792737208.009 host 1792737208.367 offset -0.357 s
+    1254.9 s  PASS: guest clock 997.5 s vs host 997.5 s (drift -0.000 %)
+    1255.3 s  PASS: write file on pmem disk
+    1255.4 s  poweroff requested
+    1307.3 s  PASS: poweroff
+24/24 checks passed
+F2-100 SIGIL DEBIAN CHECK PASS

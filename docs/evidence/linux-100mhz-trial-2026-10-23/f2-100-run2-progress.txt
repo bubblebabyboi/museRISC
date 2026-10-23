@@ -1,0 +1,18 @@
+[     4.0 s] SoC released (host: SoC released)
+[   230.1 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 134.46 s)
+[   238.0 s] login prompt
+[   253.2 s] logged in as root
+[   253.7 s] PASS: file survived power-off, save and reload
+[   256.9 s] poweroff requested
+[   304.6 s] PASS: poweroff
+
+Summary (F2-100):
+       4.0 s  SoC released (host: SoC released)
+     230.1 s  boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel uptime 134.46 s)
+     238.0 s  login prompt
+     253.2 s  logged in as root
+     253.7 s  PASS: file survived power-off, save and reload
+     256.9 s  poweroff requested
+     304.6 s  PASS: poweroff
+2/2 checks passed
+F2-100 SIGIL DEBIAN CHECK PASS
