@@ -1,0 +1,145 @@
+# Full ACT (riscv-arch-test, 2,578 ELFs) on 8-riscv-dv vs main, in-house core, core_tb default config
+# Issue #8, 2026-10-23 UTC. sigil-verify (32 vCPU c7i.8xlarge, Ubuntu 24.04), Verilator 5.048 2026-04-26 rev v5.048 (deps/).
+# Branch: origin/8-riscv-dv 65a48aeb07e3f2052e8233ed142577db66d30fb1 (rtl/, tb/, sim/ identical to 37aa1d7, the last code change).
+# Main:   9da0006e9034b58f18e2cd133580fbb0d839dc3a (the sigil-linux-f2-2026-10-22 release; rtl/ identical to 31a15689).
+# core_tb: make -C sim ../build/sim/core_tb in each detached worktree (default config, the ACT config of every prior gate).
+# Runner: sim/run_act_core_par.sh <core_tb> <out.csv> <elfs> 12 (per-ELF verdict = core_tb exit status, 5M-cycle budget);
+#   the branch first, then main, one after the other on the same machine (12 jobs at a time).
+# ELFs: the 2,578-ELF sigil-core generation used by the recent gates (riscv-arch-test 6af53584adc8b944fdc34c361988674870146d91,
+#   expectations from Sail; 34 Sail generation failures excluded as in w0-stack-gates-2026-10-20.log), copied unchanged from
+#   sigil-fpga-build:~/oops/fixgates/act-elfs/elfs (the set of linux-oops-fix-73-2026-10-22/act_summary.txt).
+#   Fingerprint (sha256 of the sorted per-ELF sha256 list, same recipe): 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f (2578 ELFs)
+#   = the fingerprint recorded for the 31a15689 run, so both runs here and that one used the same bytes.
+
+== 8-riscv-dv 65a48ae
+host ip-172-31-65-164 32 vCPU; Verilator 5.048 2026-04-26 rev v5.048
+start 2026-10-23T01:09:51Z head 65a48aeb07e3f2052e8233ed142577db66d30fb1 core_tb fe6fcb247072768176767e55d4ee1e75 elfs 2578 elfs-fingerprint 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f jobs 12
+act rc=1 285s end 2026-10-23T01:14:36Z
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 285s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+
+== main 9da0006
+host ip-172-31-65-164 32 vCPU; Verilator 5.048 2026-04-26 rev v5.048
+start 2026-10-23T01:14:36Z head 9da0006e9034b58f18e2cd133580fbb0d839dc3a core_tb 5cfc66400f73eeff2d81d851f9a4ba85 elfs 2578 elfs-fingerprint 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f jobs 12
+act rc=1 279s end 2026-10-23T01:19:15Z
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 279s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+
+== Per-ELF comparison (join on test name; columns: verdict, cycles)
+rows joined: 2578 (branch rows 2578, main rows 2578)
+verdict differs: 0
+cycle count differs: 0
+total cycles: branch 372965025, main 372965025
+So every ELF has the same verdict and the same cycle count on both RTLs, consistent with none of the
+2,578 tests reaching a path the branch changed (8-byte access split by an NA4/TOR boundary, PTE access
+split the same way, viota.m with an LMUL-misaligned vs2, a .vf scalar that is not NaN-boxed at SEW=32).
+ACT therefore neither confirms nor contradicts those fixes; riscv-dv vs Spike and the directed core
+tests (pmp_partial_directed, vec_directed 25, fpvec_directed 11) cover them.
+
+== Per suite (branch; directory under elfs/): pass/total
+priv/ExceptionsSv          2/2
+priv/ExceptionsSvSm        4/4
+priv/ExceptionsSvZaamo     2/2
+priv/ExceptionsSvZaamoSm   3/3
+priv/ExceptionsSvZalrsc    2/2
+priv/ExceptionsSvZalrscSm  3/3
+priv/PMPF                  1/1
+priv/PMPS                  11/11
+priv/PMPSm                 39/40
+priv/PMPU                  11/11
+priv/PMPZaamo              1/1
+priv/PMPZalrsc             1/1
+priv/Sv                    28/28
+priv/SvPMP                 4/4
+priv/SvSm                  6/6
+priv/Svadu                 2/2
+priv/SvaduPMP              2/2
+priv/Svbare                2/2
+priv/SvbareSm              1/1
+priv/Svnapot               4/4
+rv64i/D                    116/116
+rv64i/F                    84/84
+rv64i/I                    51/51
+rv64i/M                    13/13
+rv64i/Vf32                 100/100
+rv64i/Vf64                 62/62
+rv64i/Vls16                248/248
+rv64i/Vls32                283/283
+rv64i/Vls64                310/310
+rv64i/Vls8                 210/210
+rv64i/Vx16                 218/218
+rv64i/Vx32                 220/220
+rv64i/Vx64                 168/168
+rv64i/Vx8                  215/215
+rv64i/Zaamo                18/18
+rv64i/Zalrsc               4/4
+rv64i/Zba                  8/8
+rv64i/Zbb                  24/24
+rv64i/Zbc                  3/3
+rv64i/Zbkb                 14/14
+rv64i/Zbkc                 2/2
+rv64i/Zbkx                 2/2
+rv64i/Zbs                  8/8
+rv64i/Zca                  32/32
+rv64i/Zcb                  12/12
+rv64i/Zcd                  4/4
+rv64i/Zicond               2/2
+rv64i/Zknd                 5/5
+rv64i/Zkne                 4/4
+rv64i/Zknh                 8/8
+
+== The one failure, PMPSm_cfg_A_tor_zero-00 (unchanged; the known PA0 platform waiver)
+Same verdict and cycle count on both RTLs (FAIL, 18,024 cycles; the 31a15689 run and perf-56-gates also
+recorded 18,024). Rerun alone on both core_tb builds:
+  rdv: CORE TB FAIL act-elfs/elfs/priv/PMPSm/PMPSm_cfg_A_tor_zero-00.elf test 1 (htif, 18024 cycles)
+  main: CORE TB FAIL act-elfs/elfs/priv/PMPSm/PMPSm_cfg_A_tor_zero-00.elf test 1 (htif, 18024 cycles)
+  core_tb --trace (per-cycle fetch/bus/response/store log, 18025 lines): byte-identical between branch and main
+Why the PMP fix cannot touch it: the test (tests/priv/PMPSm/PMPSm_cfg_A_tor_zero-00.S, cp_cfg_A_tor0) sets
+entry 0 = L|TOR|XWR over [0, TEST_FOR_EXECUTION) and probes sw, lw and jalr at the top, top-4 and PA 0, all
+in M-mode with satp bare: 4-byte data accesses and fetches. The fix only changes 8-byte data accesses
+(mem_size_code == 3) and PTE accesses; fetches stay one word.
+Why it fails (against Sail): the expected trap signature built into the ELF by the Sail run has three
+records, final_trap_sig_offset 0x90 (objdump of this ELF):
+   800130d0 0df0dec0 f50f117a 90000000 00000000  .......z........
+   800130e0 5de2478b 6c1fa9d3 73060003 00000000  ].G.l...s.......
+   800130f0 07000000 00000000 70010080 00000000  ........p.......
+   80013100 00000000 00000000 00000000 00000000  ................
+   80013110 00000000 00000000 73060003 00000000  ........s.......
+   80013120 05000000 00000000 10020080 00000000  ................
+   80013130 00000000 00000000 00000000 00000000  ................
+   80013140 00000000 00000000 73060003 00000000  ........s.......
+   80013150 01000000 00000000 00000000 00000000  ................
+  i.e. cause 7 (store access fault) at 0x80000170 = PMPSm_cp_cfg_A_tor0_region0_3_sw_zero,
+       cause 5 (load access fault)  at 0x80000210 = PMPSm_cp_cfg_A_tor0_region0_6_lw_zero,
+       cause 1 (instruction access fault) at PA 0 (jalr_zero target).
+Sail has no memory at PA 0, so all three PA-0 probes fault there although PMP entry 0 allows them. In
+core_tb, PA 0 is RAM (cacheable [0, 0x1000_0000) for the directed tests), so the sw writes 0x8067 there,
+the lw reads it back, and the jalr executes it (ret): no trap. Every per-probe register check passes
+(x14 = 0x8067 on both: Sail's faulting lw leaves the earlier 0x8067, the core loads the 0x8067 its sw
+wrote); only the trap-signature length check (check_trap_sig_offset) fails, expected 0x90 vs 0. Commit trace
+(+sigil_trace, branch core_tb) at the failing compare:
+  I 4975 3 00000000800009d8 00000013
+  I 4977 3 00000000800009dc 00000013
+  I 4980 3 00000000800009e0 00043203 x4=0000000000000090
+  I 4982 3 00000000800009e4 00620c63
+  I 4983 3 00000000800009e8 2f8033ef x7=00000000800009ec
+  I 4998 3 0000000080003ce0 0000d497 x9=0000000080010ce0
+  (x4 = expected trap-signature bytes 0x90, loaded from 0x800130d8; x6 = trap-signature bytes the core wrote, 0
+   (Mtrap_sig pointer minus trap_sigptr, sub at 0x800009a0); beq x4, x6 at 0x800009e4 not taken, so jal x7 to failedtest_trap_x7_x9)
+The core_tb bus trace shows the jalr_zero fetch at PA 0 (cycle 3068) returning 0x00008067 (ret) and no trap.
+This is the PA0 platform waiver recorded since act-core-impriv-2026-10-13 (docs/evidence/README.md).
+
+== RTL/TB difference covered (git diff --stat 9da0006 65a48ae)
+   rtl/core/sigil_core.sv | 224 ++++++++++++++++++++++++++++++++++++++++++++++++-
+   rtl/core/sigil_csr.sv  | 177 +++++++++++++++++++++++++++++++++++---
+   sim/Makefile           |  20 ++++-
+   tb/cpp/core_tb.cpp     |  34 ++++++--
+   4 files changed, 428 insertions(+), 27 deletions(-)
+  (sigil_csr.sv: PMP fix 3ae351d plus the sim-only trace read mux under ifndef SYNTHESIS; sigil_core.sv: 63a50a5,
+   PMP width wiring, sim-only commit trace; core_tb.cpp: --drain and +sigil_trace, off by default)

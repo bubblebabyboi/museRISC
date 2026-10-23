@@ -1,0 +1,30 @@
+# Linux RTL boot on 8-riscv-dv 1eac727 (issue #8), sigil-fpga-build, script linux_boot_fb.sh (as ../synth-equiv/tools/linux_boot.sh with the release artifacts in ~/os-artifacts, same sha256 as before).
+# Reference: main 9da0006 and f239397 reach SIGIL_LINUX_BOOT_OK at 261,247,447 cycles, UART sha256 a14fee2d..., 890 lines (../synth-equiv/linux-boot-*.txt).
+host ip-172-31-66-228 (sigil-fpga-build) 2026-10-23T08:31:29Z tree /home/ubuntu/dv8boot sha 1eac72779c89ab1cf5d0615e0899292f2e4ba2b3 Verilator 5.048 2026-04-26 rev v5.048
+build 14s
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  /home/ubuntu/os-artifacts/fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  /home/ubuntu/os-artifacts/Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  /home/ubuntu/os-artifacts/sigil-sim.dtb
+boot rc=0 1171s
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 19:31.00 (user 1170.83 s), max RSS 151516 KiB, exit status 0
+uart sha256 a14fee2df1bf7f13ff56167b5c660d2fdf4df4eaa9c1fa6a567ed081c1f3d061 lines 890
+bad lines: 0
+DONE
+--- soc_rtl_tb md5 7bf672212f3a4a6cbb688eec81fdcdcd
+--- git status --short (untracked: none expected)
+--- linux_boot.log: first 4 and last 8 lines
+loaded 277840 bytes at 0x80000000 from /home/ubuntu/os-artifacts/fw_jump.bin
+loaded 15470592 bytes at 0x80200000 from /home/ubuntu/os-artifacts/Image-initramfs
+loaded 6187 bytes at 0x83000000 from /home/ubuntu/os-artifacts/sigil-sim.dtb
+
+...
+[   20.536515]     HOME=/
+[   20.539066]     TERM=linux
+sigil init: userspace alive
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+/proc/version: Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #2 SMP Thu Oct 22 07:20:18 UTC 2026
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 19:31.00 (user 1170.83 s), max RSS 151516 KiB, exit status 0

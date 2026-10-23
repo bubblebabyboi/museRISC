@@ -1,0 +1,60 @@
+make: Entering directory '/home/ubuntu/wt/56-perf-sha256chain/sim'
+python3 /home/ubuntu/wt/56-perf-sha256chain/scripts/perf_run.py --root /home/ubuntu/wt/56-perf-sha256chain \
+  --out /home/ubuntu/scratch-sha256chain/final --benches "sha256chain sha256chain_bulk" --jobs 4 --repeat 2 \
+   --riscv-prefix riscv64-unknown-elf- \
+  --soc-args "--mem-lat 1:1 --mem-gap 0 --mem-ready 100" --axi-args "--axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100" \
+  --run soc:default=/home/ubuntu/wt/56-perf-sha256chain/build/sim/soc_rtl_tb --run axi:default=/home/ubuntu/wt/56-perf-sha256chain/build/sim/fpga_top_tb
+perf: build sha256chain [sdk] (1024 iterations)
+perf: build sha256chain_bulk [sdk] (64 iterations)
+perf: 8 runs, 4 at a time
+perf: sha256chain[sdk] region 0 soc/default rep 0: cycles=10156268 instret=3714106 (141.28 s) PASS
+perf: sha256chain[sdk] region 1 soc/default rep 0: cycles=6915325 instret=2731068 (141.28 s) PASS
+perf: sha256chain[sdk] region 2 soc/default rep 0: cycles=4753403 instret=219780 (141.28 s) PASS
+perf: sha256chain[sdk] region 3 soc/default rep 0: cycles=585822 instret=162844 (141.28 s) PASS
+perf: sha256chain[sdk] region 4 soc/default rep 0: cycles=2860176 instret=1029153 (141.28 s) PASS
+perf: sha256chain[sdk] region 5 soc/default rep 0: cycles=2531505 instret=1011752 (141.28 s) PASS
+perf: sha256chain[sdk] region 6 soc/default rep 0: cycles=1403005 instret=555048 (141.28 s) PASS
+perf: sha256chain[sdk] region 0 soc/default rep 1: cycles=10156268 instret=3714106 (141.29 s) PASS
+perf: sha256chain[sdk] region 1 soc/default rep 1: cycles=6915325 instret=2731068 (141.29 s) PASS
+perf: sha256chain[sdk] region 2 soc/default rep 1: cycles=4753403 instret=219780 (141.29 s) PASS
+perf: sha256chain[sdk] region 3 soc/default rep 1: cycles=585822 instret=162844 (141.29 s) PASS
+perf: sha256chain[sdk] region 4 soc/default rep 1: cycles=2860176 instret=1029153 (141.29 s) PASS
+perf: sha256chain[sdk] region 5 soc/default rep 1: cycles=2531505 instret=1011752 (141.29 s) PASS
+perf: sha256chain[sdk] region 6 soc/default rep 1: cycles=1403005 instret=555048 (141.29 s) PASS
+perf: sha256chain[sdk] region 0 axi/default rep 0: cycles=10156468 instret=3714106 (120.4 s) PASS
+perf: sha256chain[sdk] region 1 axi/default rep 0: cycles=6915525 instret=2731068 (120.4 s) PASS
+perf: sha256chain[sdk] region 2 axi/default rep 0: cycles=4754072 instret=219780 (120.4 s) PASS
+perf: sha256chain[sdk] region 3 axi/default rep 0: cycles=585847 instret=162844 (120.4 s) PASS
+perf: sha256chain[sdk] region 4 axi/default rep 0: cycles=2860326 instret=1029153 (120.4 s) PASS
+perf: sha256chain[sdk] region 5 axi/default rep 0: cycles=2531644 instret=1011743 (120.4 s) PASS
+perf: sha256chain[sdk] region 6 axi/default rep 0: cycles=1403055 instret=555048 (120.4 s) PASS
+perf: sha256chain[sdk] region 0 axi/default rep 1: cycles=10156468 instret=3714106 (120.55 s) PASS
+perf: sha256chain[sdk] region 1 axi/default rep 1: cycles=6915525 instret=2731068 (120.55 s) PASS
+perf: sha256chain[sdk] region 2 axi/default rep 1: cycles=4754072 instret=219780 (120.55 s) PASS
+perf: sha256chain[sdk] region 3 axi/default rep 1: cycles=585847 instret=162844 (120.55 s) PASS
+perf: sha256chain[sdk] region 4 axi/default rep 1: cycles=2860326 instret=1029153 (120.55 s) PASS
+perf: sha256chain[sdk] region 5 axi/default rep 1: cycles=2531644 instret=1011743 (120.55 s) PASS
+perf: sha256chain[sdk] region 6 axi/default rep 1: cycles=1403055 instret=555048 (120.55 s) PASS
+perf: sha256chain_bulk[sdk] region 0 soc/default rep 0: cycles=10114258 instret=3701941 (113.03 s) PASS
+perf: sha256chain_bulk[sdk] region 1 soc/default rep 0: cycles=6903194 instret=2735418 (113.03 s) PASS
+perf: sha256chain_bulk[sdk] region 2 soc/default rep 0: cycles=4996705 instret=224331 (113.03 s) PASS
+perf: sha256chain_bulk[sdk] region 3 soc/default rep 0: cycles=274480 instret=66472 (113.03 s) PASS
+perf: sha256chain_bulk[sdk] region 4 soc/default rep 0: cycles=273326 instret=66055 (113.03 s) PASS
+perf: sha256chain_bulk[sdk] region 0 soc/default rep 1: cycles=10114258 instret=3701941 (118.78 s) PASS
+perf: sha256chain_bulk[sdk] region 1 soc/default rep 1: cycles=6903194 instret=2735418 (118.78 s) PASS
+perf: sha256chain_bulk[sdk] region 2 soc/default rep 1: cycles=4996705 instret=224331 (118.78 s) PASS
+perf: sha256chain_bulk[sdk] region 3 soc/default rep 1: cycles=274480 instret=66472 (118.78 s) PASS
+perf: sha256chain_bulk[sdk] region 4 soc/default rep 1: cycles=273326 instret=66055 (118.78 s) PASS
+perf: sha256chain_bulk[sdk] region 0 axi/default rep 0: cycles=10145679 instret=3701941 (96.45 s) PASS
+perf: sha256chain_bulk[sdk] region 1 axi/default rep 0: cycles=6931283 instret=2735418 (96.45 s) PASS
+perf: sha256chain_bulk[sdk] region 2 axi/default rep 0: cycles=5049593 instret=224331 (96.45 s) PASS
+perf: sha256chain_bulk[sdk] region 3 axi/default rep 0: cycles=297276 instret=66472 (96.45 s) PASS
+perf: sha256chain_bulk[sdk] region 4 axi/default rep 0: cycles=295850 instret=66055 (96.45 s) PASS
+perf: sha256chain_bulk[sdk] region 0 axi/default rep 1: cycles=10145679 instret=3701941 (96.51 s) PASS
+perf: sha256chain_bulk[sdk] region 1 axi/default rep 1: cycles=6931283 instret=2735418 (96.51 s) PASS
+perf: sha256chain_bulk[sdk] region 2 axi/default rep 1: cycles=5049593 instret=224331 (96.51 s) PASS
+perf: sha256chain_bulk[sdk] region 3 axi/default rep 1: cycles=297276 instret=66472 (96.51 s) PASS
+perf: sha256chain_bulk[sdk] region 4 axi/default rep 1: cycles=295850 instret=66055 (96.51 s) PASS
+perf: determinism over 2 repeats: PASS (identical counts)
+perf: 48 runs valid, 0 failed; /home/ubuntu/scratch-sha256chain/final/results.json, /home/ubuntu/scratch-sha256chain/final/report.md
+make: Leaving directory '/home/ubuntu/wt/56-perf-sha256chain/sim'

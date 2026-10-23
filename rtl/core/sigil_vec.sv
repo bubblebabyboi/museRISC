@@ -745,7 +745,9 @@ module sigil_vec
           3'd2, 3'd3: begin  // int -> float
             fp_op = FPU_I2F;
             fp_dbl = (dw_q == 3'd3);
-            fp_a = a;
+            // vfwcvt.f.x.v at SEW=16: the FPU's W form reads a
+            // 32-bit integer, so the int16 element is sign-extended.
+            fp_a = ((aw_q == 3'd1) && imm_q[0]) ? a_s : a;
             fp_aux = {(aw_q == 3'd3), (imm_q[2:0] == 3'd2)};
           end
           default: begin  // float -> float (narrow/widen)
@@ -785,7 +787,29 @@ module sigil_vec
   assign fp_need = s2_v_q && (s2_kind_q == K_ELEM) && is_fp && src_act;
   assign fp_wait = fp_need && !fr_v_q;
   assign fp_ok = fr_v_q && fp_last;
-  assign fp_res = fr_q;
+  // vfncvt.(rtz.)x(u).f.w at SEW=16 (the only FCVT with a 16-bit
+  // destination that reaches the unit): the FPU converts the f32
+  // element to a 32-bit integer; outside the int16/uint16 range
+  // the element saturates and raises NV alone, as an f32 -> 16-bit
+  // integer conversion does (any NX of the 32-bit step dropped).
+  always_comb begin
+    logic [16:0] ih;  // bits 31:15 of the 32-bit integer
+    logic        cvt16, pos_ovf, neg_ovf;
+    ih = fr_q.result[31:15];
+    cvt16 = (op_q == VOP_FCVT) && (dw_q == 3'd1) &&
+            ((imm_q[2:1] == 2'b00) || (imm_q[2:1] == 2'b11));
+    // imm[0]: 1 = signed (x.f), 0 = unsigned (xu.f)
+    pos_ovf = imm_q[0] ? (!ih[16] && (ih[15:0] != 16'h0000))
+                       : (ih[16:1] != 16'h0000);
+    neg_ovf = imm_q[0] && ih[16] && (ih[15:0] != 16'hffff);
+    fp_res = fr_q;
+    if (cvt16 && (pos_ovf || neg_ovf)) begin
+      fp_res.result = neg_ovf ? 64'h0000_0000_0000_8000 :
+                      imm_q[0] ? 64'h0000_0000_0000_7fff
+                               : 64'h0000_0000_0000_ffff;
+      fp_res.flags = 5'b10000;
+    end
+  end
   assign fpu_req_o = fp_wait && !fp_est;
   assign fpu_op_o = fp_op;
   assign fpu_fmt_d_o = fp_dbl;

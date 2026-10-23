@@ -1,0 +1,8 @@
+/include/ "sigil-f2.dts"
+/ {
+	/delete-node/ memory@1080000000;
+	/delete-node/ distance-map;
+	/delete-node/ pmem@c80000000;
+	memory@80000000 { reg = <0x0 0x80000000 0x0 0x18000000>; };
+	pmem@98000000 { compatible = "pmem-region"; reg = <0x0 0x98000000 0x0 0x68000000>; };
+};

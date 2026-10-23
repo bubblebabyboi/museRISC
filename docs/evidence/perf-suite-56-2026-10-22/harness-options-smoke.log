@@ -1,0 +1,43 @@
+# Harness option smoke tests (not results). 2026-10-22T11:14:21Z, commit b3a0a1c, Verilator 5.048 2026-04-26 rev v5.048, riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+
+== 1: VARIANTS=scalar MAX_CYCLES=5000000 ITER=5 BENCHES="dhrystone coremark" MEM=soc, under make -s
+perf: build dhrystone [scalar] (5 iterations)
+perf: build coremark [scalar] (5 iterations)
+perf: 2 runs, 4 at a time
+perf: 2 runs valid, 0 failed; /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t1/results.json, /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t1/report.md
+make exit 0
+variants run: ['scalar'] | max_cycles per run: [5000000] | meta max_cycles_override: 5000000 | meta variants_selected: ['scalar'] | cc_commands per image: {'dhrystone-scalar': 1, 'coremark-scalar': 1}
+
+== 2: MAX_CYCLES=200000 (below CoreMark ITER=1): the run must fail
+perf: coremark[scalar] region 0 soc/default rep 0: cycles=None instret=None  FAIL: testbench exit status 2; expected line missing: 'COREMARK CHECK OK iterations=1'; region 0: 0 SIGIL_PERF records (want 1); region 0: no 'SIGIL PERF region=0' line
+perf: 0 runs valid, 1 failed; /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t2/results.json, /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t2/report.md
+make exit 2
+
+== 3: VARIANTS=nosuch: refused
+perf: no variant nosuch in the selected benches (have: scalar sdk)
+make exit 2
+
+== 4: VARIANTS=sdk over dhrystone + micro_units: micro_units skipped
+perf: micro_units: none of the variants sdk; skipped
+perf: 1 runs valid, 0 failed; /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t4/results.json, /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t4/report.md
+make exit 0
+
+== 5: per-variant regions/expect (sha256chain variants replaced in memory, ITER=40): all7 must pass, subset and badexp must fail
+perf: sha256chain[all7] region 0 soc/default rep 0: cycles=396956 instret=145138 PASS
+perf: sha256chain[all7] region 1 soc/default rep 0: cycles=270362 instret=106738 PASS
+perf: sha256chain[all7] region 2 soc/default rep 0: cycles=200695 instret=10545 PASS
+perf: sha256chain[all7] region 3 soc/default rep 0: cycles=22984 instret=6389 PASS
+perf: sha256chain[all7] region 4 soc/default rep 0: cycles=111876 instret=40233 PASS
+perf: sha256chain[all7] region 5 soc/default rep 0: cycles=99058 instret=39560 PASS
+perf: sha256chain[all7] region 6 soc/default rep 0: cycles=54925 instret=21720 PASS
+perf: sha256chain[subset] region 0 soc/default rep 0: cycles=396956 instret=145138 FAIL: SIGIL_PERF records for undeclared regions [1, 2, 3, 4, 6] (bench.json "regions")
+perf: sha256chain[subset] region 5 soc/default rep 0: cycles=99058 instret=39560 FAIL: SIGIL_PERF records for undeclared regions [1, 2, 3, 4, 6] (bench.json "regions")
+perf: sha256chain[badexp] region 0 soc/default rep 0: cycles=396956 instret=145138 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 1 soc/default rep 0: cycles=270362 instret=106738 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 2 soc/default rep 0: cycles=200695 instret=10545 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 3 soc/default rep 0: cycles=22984 instret=6389 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 4 soc/default rep 0: cycles=111876 instret=40233 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 5 soc/default rep 0: cycles=99058 instret=39560 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: sha256chain[badexp] region 6 soc/default rep 0: cycles=54925 instret=21720 FAIL: expected line missing: 'NO SUCH LINE 40'
+perf: 7 runs valid, 9 failed; /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t5/results.json, /home/ubuntu/wt/56-perf-harness/build/perf/opt-smoke2/t5/report.md
+exit 1

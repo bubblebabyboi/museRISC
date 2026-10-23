@@ -1,0 +1,8 @@
+# Cross-simulator check, sigil-verify, 2026-10-22T08:34:51Z: soc_rtl_tb built with Ubuntu 24.04 Verilator 5.020
+# (the CI version; .deb extracted locally) from a tree whose rtl/ is byte-identical to 534f846,
+# running the baseline images; SIGIL_PERF records compared with the Verilator 5.048 baseline (soc/default, rep 0).
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+build rc=0
+dhrystone [scalar] image sha256 b7173e4e26bda6dc: rc=0; SOC RTL TB PASS (exit string at 3406208 cycles); record vs 5.048: identical (91 fields)
+dhrystone [sdk] image sha256 d15a6c7161f7cfdf: rc=0; SOC RTL TB PASS (exit string at 3818153 cycles); record vs 5.048: identical (91 fields)
+DONE

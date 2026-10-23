@@ -1,0 +1,29 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb 40000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/default/bin/micro_imem-default/micro_imem.bin --exit-string 'SIGIL TEST PASS micro_imem' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/default/runs/micro_imem-default.axi-default.r0.perf
+loaded 37808 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/default/bin/micro_imem-default/micro_imem.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+SIGIL PERF region=1 cycles=29 instret=8
+MICRO region=1 empty ops=49152 cycles=29 instret=8 cycles/op=0.001
+SIGIL PERF region=2 cycles=101021 instret=49932
+MICRO region=2 ifoot_1k ops=49152 cycles=101021 instret=49932 cycles/op=2.055
+SIGIL PERF region=3 cycles=99677 instret=49548
+MICRO region=3 ifoot_2k ops=49152 cycles=99677 instret=49548 cycles/op=2.028
+SIGIL PERF region=4 cycles=99229 instret=49420
+MICRO region=4 ifoot_3k ops=49152 cycles=99229 instret=49420 cycles/op=2.019
+SIGIL PERF region=5 cycles=99005 instret=49356
+MICRO region=5 ifoot_4k ops=49152 cycles=99005 instret=49356 cycles/op=2.014
+SIGIL PERF region=6 cycles=103677 instret=49292
+MICRO region=6 ifoot_6k ops=49152 cycles=103677 instret=49292 cycles/op=2.109
+SIGIL PERF region=7 cycles=102557 instret=49260
+MICRO region=7 ifoot_8k ops=49152 cycles=102557 instret=49260 cycles/op=2.087
+SIGIL PERF region=8 cycles=172789 instret=49228
+MICRO region=8 ifoot_12k ops=49152 cycles=172789 instret=49228 cycles/op=3.515
+SIGIL PERF region=9 cycles=182417 instret=49212
+MICRO region=9 ifoot_16k ops=49152 cycles=182417 instret=49212 cycles/op=3.711
+SIGIL PERF region=10 cycles=191289 instret=49196
+MICRO region=10 ifoot_24k ops=49152 cycles=191289 instret=49196 cycles/op=3.892
+SIGIL PERF region=11 cycles=195653 instret=49188
+MICRO region=11 ifoot_32k ops=49152 cycles=195653 instret=49188 cycles/op=3.981
+MICRO CHECK OK micro_imem iterations=49152 regions=11
+SIGIL TEST PASS micro_imem
+FPGA TOP TB PASS run 0 (exit string at 1705976 cycles after reset release)
+AXI: 11505 AR (92040 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

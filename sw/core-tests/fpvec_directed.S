@@ -192,6 +192,38 @@ _start:
     li a2, 0x3f800000             // 1.0f
     bne a0, a2, fail
 
+    // 11: at SEW=32 an f register that is not a NaN-boxed single
+    // reads as the canonical NaN in every .vf form, including the
+    // moves, merge and slides that bypass the FPU (riscv-dv
+    // regression, issue #8: they took the low 32 bits).
+    li t0, 11
+    li a1, 4
+    vsetvli a0, a1, e32, m1, tu, mu
+    li a1, 0x123456783f800000     // upper half not all ones
+    fmv.d.x fa0, a1
+    li a2, 0x7fc00000             // canonical NaN
+    vfmv.v.f v8, fa0
+    vmv.x.s a0, v8
+    bne a0, a2, fail
+    vmv.v.i v9, 0
+    vfmv.s.f v9, fa0
+    vmv.x.s a0, v9
+    bne a0, a2, fail
+    vmv.v.i v0, 1                 // mask: element 0 active
+    vmv.v.i v10, 0
+    vfmerge.vfm v10, v10, fa0, v0
+    vmv.x.s a0, v10
+    bne a0, a2, fail
+    vfslide1up.vf v11, v10, fa0
+    vmv.x.s a0, v11
+    bne a0, a2, fail
+    li a1, 0xffffffff3f800000     // NaN-boxed 1.0f: used as is
+    fmv.d.x fa1, a1
+    vfmv.v.f v8, fa1
+    vmv.x.s a0, v8
+    li a2, 0x3f800000
+    bne a0, a2, fail
+
     j pass
 
 handler_m:

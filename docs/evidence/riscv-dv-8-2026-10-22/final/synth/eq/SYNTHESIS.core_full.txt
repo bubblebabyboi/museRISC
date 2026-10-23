@@ -1,0 +1,10 @@
+defines=[SYNTHESIS] gold=old gate=new stubs=gold tie=[]
+blackboxed children (merged): 12 of 12: sigil_alu sigil_bext sigil_csr sigil_decoder sigil_fpregfile sigil_fpu sigil_mmu sigil_muldiv_mc sigil_regfile sigil_rvc sigil_vec sigil_vregfile 
+Found 11035 $equiv cells in equiv:
+  Of those cells 11031 are proven and 4 are unproven.
+unproven: 4
+    1 bit(s), matched wire: gold wire ex_fp_bad | gate wire ex_fp_bad
+    1 bit(s), matched wire: gold wire vec_ex_stall | gate wire vec_ex_stall
+    1 bit(s), matched wire: gold wire vec_illegal | gate wire vec_illegal
+    1 bit(s), merged-child input: gold gold_core.v:1483 `.pmp_wide_b_i(mem_size_code == 2'b11),` | gate wire pmp_wide_data
+yosys rc=0 184s (Yosys 0.69+post, sv2v 0.0.13)

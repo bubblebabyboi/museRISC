@@ -1,0 +1,53 @@
+{
+  "name": "micro_dmem",
+  "description": "Microbenchmarks: pointer-chase latency over working sets 1 KiB..256 KiB (random and address order), load and store streams (cycles per load/store)",
+  "iterations": 4096,
+  "max_cycles": 40000000,
+  "expect": [
+    "MICRO CHECK OK micro_dmem iterations={iterations} regions=19"
+  ],
+  "units": "loads/stores per region (cycles/iter = cycles per load/store)",
+  "window_region": 1,
+  "regions": {
+    "1": "empty",
+    "2": "chase_rand_1k",
+    "3": "chase_rand_2k",
+    "4": "chase_rand_4k",
+    "5": "chase_rand_8k",
+    "6": "chase_rand_12k",
+    "7": "chase_rand_16k",
+    "8": "chase_rand_20k",
+    "9": "chase_rand_24k",
+    "10": "chase_rand_32k",
+    "11": "chase_rand_64k",
+    "12": "chase_rand_128k",
+    "13": "chase_rand_256k",
+    "14": "chase_seq_4k",
+    "15": "chase_seq_8k",
+    "16": "chase_seq_16k",
+    "17": "chase_seq_32k",
+    "18": "stream_ld",
+    "19": "stream_st"
+  },
+  "region_ops": {
+    "1": "region overhead: call + return of an empty kernel (cycles/iter is not per-op)",
+    "2": "dependent ld, random cyclic order over 1 KiB (one node per 64-byte line)",
+    "3": "dependent ld, random cyclic order over 2 KiB (one node per 64-byte line)",
+    "4": "dependent ld, random cyclic order over 4 KiB (one node per 64-byte line)",
+    "5": "dependent ld, random cyclic order over 8 KiB (one node per 64-byte line)",
+    "6": "dependent ld, random cyclic order over 12 KiB (one node per 64-byte line)",
+    "7": "dependent ld, random cyclic order over 16 KiB (one node per 64-byte line)",
+    "8": "dependent ld, random cyclic order over 20 KiB (one node per 64-byte line)",
+    "9": "dependent ld, random cyclic order over 24 KiB (one node per 64-byte line)",
+    "10": "dependent ld, random cyclic order over 32 KiB (one node per 64-byte line)",
+    "11": "dependent ld, random cyclic order over 64 KiB (one node per 64-byte line)",
+    "12": "dependent ld, random cyclic order over 128 KiB (one node per 64-byte line)",
+    "13": "dependent ld, random cyclic order over 256 KiB (one node per 64-byte line)",
+    "14": "dependent ld, address order over 4 KiB (one node per 64-byte line)",
+    "15": "dependent ld, address order over 8 KiB (one node per 64-byte line)",
+    "16": "dependent ld, address order over 16 KiB (one node per 64-byte line)",
+    "17": "dependent ld, address order over 32 KiB (one node per 64-byte line)",
+    "18": "ld, sequential over a 64 KiB buffer, every doubleword (8 per line), no consumer",
+    "19": "sd, sequential over a 64 KiB buffer whose lines are all dirty, every doubleword"
+  }
+}

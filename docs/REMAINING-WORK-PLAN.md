@@ -270,6 +270,15 @@ Depends on: W0. Can run parallel to W1–W4 and W6–W8.
    `Zalrsc-sc` case-level probe (directed LR/SC passes; the ACT
    harness case hangs — find which side is wrong). Sv48: only
    if a future config enables it; otherwise leave unclaimed.
+   Done on branch `20-isa-followups` (2026-10-22): level-2
+   mulAdd on the in-house FPU
+   (`docs/evidence/testfloat-l2-muladd-core-2026-10-22.csv`);
+   the Zalrsc-sc hang was the CVA6 testharness side — on the
+   in-house core every case matches Sail
+   (`docs/evidence/act-zalrsc-sc-probe-core-2026-10-22.csv`);
+   `roundToInt` (no Zfa) and Sv48 (Sv39 only) are recorded as
+   configuration statements in `docs/SPEC.md` and
+   `docs/COMPLIANCE.md`.
 4. Keep `docs/COMPLIANCE.md` honest: update rows only with the
    evidence file that proves them.
 

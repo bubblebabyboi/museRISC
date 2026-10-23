@@ -60,8 +60,9 @@ used Linux 6.6 with riscv `defconfig` (508,905,040 cycles in `soc_tb`).
 The 6.12 `sigil_defconfig` kernel drops the debug instrumentation and
 the drivers for hardware Sigil does not have: on the all-RTL SoC model
 `soc_rtl_tb` (boot ROM in RTL, so no `boot_stub.bin`) it reaches
-`SIGIL_LINUX_BOOT_OK` at **261,246,160 cycles**
-(`docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log`):
+`SIGIL_LINUX_BOOT_OK` at **261,247,447 cycles** with the #74 fix
+(`docs/evidence/linux-oops-fix-73-2026-10-22/linux_boot.log`; 261,246,160
+before it, `docs/evidence/linux-debian-73-2026-10-22/soc-rtl-linux-6.12-boot.log`):
 
 ```bash
 build/sim/soc_rtl_tb 6000000000 \

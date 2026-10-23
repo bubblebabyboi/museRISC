@@ -1,0 +1,29 @@
+host ip-172-31-65-164 2026-10-23T06:11:38Z tree /home/ubuntu/wt/synx-main sha 9da0006e9034b58f18e2cd133580fbb0d839dc3a Verilator 5.048 2026-04-26 rev v5.048
+build 16s
+d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  /home/ubuntu/wt/dvfix-os/fw_jump.bin
+2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  /home/ubuntu/wt/dvfix-os/Image-initramfs
+f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  /home/ubuntu/wt/dvfix-os/sigil-sim.dtb
+boot rc=0 1261s
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 21:01.52 (user 1261.27 s), max RSS 151616 KiB, exit status 0
+uart sha256 a14fee2df1bf7f13ff56167b5c660d2fdf4df4eaa9c1fa6a567ed081c1f3d061 lines 890
+bad lines: 0
+DONE
+--- verilator command (build.log)
+verilator --cc --exe --build -j 4 -Wall -Wno-DECLFILENAME --assert -O3 -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/socrtl --top-module sigil_soc_top \
+--- soc_rtl_tb md5 b86659c1d70c878e8a9bce3ca6c97317
+--- linux_boot.log: first 4 and last 8 lines
+loaded 277840 bytes at 0x80000000 from /home/ubuntu/wt/dvfix-os/fw_jump.bin
+loaded 15470592 bytes at 0x80200000 from /home/ubuntu/wt/dvfix-os/Image-initramfs
+loaded 6187 bytes at 0x83000000 from /home/ubuntu/wt/dvfix-os/sigil-sim.dtb
+
+...
+[   20.536515]     HOME=/
+[   20.539066]     TERM=linux
+sigil init: userspace alive
+uname: Linux 6.12.114-sigil #2 SMP Thu Oct 22 07:20:18 UTC 2026 riscv64
+/proc/version: Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #2 SMP Thu Oct 22 07:20:18 UTC 2026
+SIGIL_LINUX_BOOT_OK
+SOC RTL TB PASS (exit string at 261247447 cycles)
+wall 21:01.52 (user 1261.27 s), max RSS 151616 KiB, exit status 0

@@ -1,0 +1,23 @@
+$ /home/ubuntu/wt/56-perf-sha256chain/build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/scratch-sha256chain/final/bin/sha256chain-sdk/sha256chain.bin --exit-string 'SIGIL TEST PASS sha256chain' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-sha256chain/final/runs/sha256chain-sdk.soc-default.r1.perf
+loaded 27096 bytes at 0x80000000 from /home/ubuntu/scratch-sha256chain/final/bin/sha256chain-sdk/sha256chain.bin
+KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16 ("", "abc", 448-bit)
+KAT FIPS 180-4 SHA-256 OK: accelerator ("", "abc")
+KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator
+SIGIL PERF region=0 cycles=10156240 instret=3714094
+RESULT sha256 plain C: 1024 hash, 10156240 cycles, 3714094 instret, cycles/hash 9918.20, bytes/cycle 0.0032, hash/s at 62.5 MHz 6302, at 100 MHz 10082
+SIGIL PERF region=1 cycles=6915290 instret=2731057
+RESULT sha256 Zknh: 1024 hash, 6915290 cycles, 2731057 instret, cycles/hash 6753.21, bytes/cycle 0.0047, hash/s at 62.5 MHz 9255, at 100 MHz 14808
+SIGIL PERF region=2 cycles=4753356 instret=219768
+RESULT sha256 RVV x16: 1024 hash, 4753356 cycles, 219768 instret, cycles/hash 4641.95, bytes/cycle 0.0069, hash/s at 62.5 MHz 13464, at 100 MHz 21543
+SIGIL PERF region=3 cycles=585787 instret=162834
+RESULT sha256 accel sigil_sha256_block: 1024 hash, 585787 cycles, 162834 instret, cycles/hash 572.06, bytes/cycle 0.0559, hash/s at 62.5 MHz 109255, at 100 MHz 174808
+SIGIL PERF region=4 cycles=2860152 instret=1029142
+RESULT sha256 accel sigil_sha256: 1024 hash, 2860152 cycles, 1029142 instret, cycles/hash 2793.12, bytes/cycle 0.0115, hash/s at 62.5 MHz 22376, at 100 MHz 35802
+SIGIL PERF region=5 cycles=2531469 instret=1011741
+RESULT sha512 accel sigil_hash: 1024 hash, 2531469 cycles, 1011741 instret, cycles/hash 2472.14, bytes/cycle 0.0259, hash/s at 62.5 MHz 25282, at 100 MHz 40451
+SIGIL PERF region=6 cycles=1402979 instret=555037
+RESULT sha3-256 accel sigil_hash: 1024 hash, 1402979 cycles, 555037 instret, cycles/hash 1370.10, bytes/cycle 0.0234, hash/s at 62.5 MHz 45617, at 100 MHz 72988
+sha256 chain h_1024 = 014f68f1316b596d8f66923bacb9555f83e22c9887068760371c5b3f299e464b
+SHA256CHAIN CHECK OK hashes=1024
+SIGIL TEST PASS sha256chain
+SOC RTL TB PASS (exit string at 30265789 cycles)

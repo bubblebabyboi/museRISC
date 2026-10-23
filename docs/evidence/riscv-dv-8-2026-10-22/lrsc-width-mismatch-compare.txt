@@ -1,0 +1,18 @@
+# riscv_amo_test seed 3, --instr-cnt 300, generator at commit 80db014 (before patch R), core_tb built with Verilator 5.020, 2026-10-22.
+# lr.w then sc.d to the same address: Sigil's SC fails (reservation = the 4 LR bytes), Spike's succeeds.
+# Both are allowed (the reservation set must contain the SC's bytes; its extent is implementation-defined).
+# Patch R now pairs LR/SC widths; see docs/VERIFICATION.md Findings.
+elf build/riscv-dv/smoke5020/riscv_amo_test/3/riscv_amo_test.elf
+spike build/riscv-dv/smoke5020/riscv_amo_test/3/spike.log
+dut build/riscv-dv/smoke5020/riscv_amo_test/3/dut.trace
+ref records 425 (tohost reached: True), dut records 425 (tohost reached: True)
+first divergence at record 148 (spike log line 316, dut trace line 149)
+  ok   #144 pc=0x800001f8 insn=0x8c45 priv=3 (c.or    s0, s1)
+  ok   #145 pc=0x800001fa insn=0x90fa priv=3 (c.add   ra, t5)
+  ok   #146 pc=0x800001fc insn=0x80a6 priv=3 (c.mv    ra, s1)
+  ok   #147 pc=0x800001fe insn=0x1004a5af priv=3 (lr.w    a1, (s1))
+  REF  #148 pc=0x80000202 insn=0x1ce4ba2f priv=3 (sc.d.aq s4, a4, (s1))
+  DUT  #148 pc=0x80000202 insn=0x1ce4ba2f priv=3 (sc.d.aq	x20,x14,(x9))
+    x: dut {x20=0x1} ref {x20=0x0}
+    store: dut [] ref [0x80003080:8=0xfffffffffed8ede7]
+RESULT MISMATCH

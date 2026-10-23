@@ -1,0 +1,27 @@
+# Code-placement experiment, 2026-10-22T10:25:02Z, commit 7ea3e51, soc memory model, default config
+# make -C sw/bench/kernels OUT=build/kernels-shift2/scalar
+# make -C sw/bench/kernels OUT=build/kernels-shift2/shift2 KERNELS_C_EXTRA=-fpatchable-function-entry=1   (one 2-byte c.nop at every C kernel entry)
+# build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=<image> --exit-string "SIGIL TEST PASS kernels" --fail-string "SIGIL TEST FAIL" +sigil_perf=<v>.perf
+# image build/kernels-shift2/scalar/kernels.bin sha256 afc146321f9cc02848e93294f1ad7eabd7af46101476bda8065d907e5a2df78c
+# harness kernels-scalar image sha256   afc146321f9cc02848e93294f1ad7eabd7af46101476bda8065d907e5a2df78c -> identical
+# image build/kernels-shift2/shift2/kernels.bin sha256 13d5ddfc3d47aa21ca77c9fa4317bd74b3b232c95b62b6f56d452f6770d1c12d
+# scalar: PASS, 13 kernel checks + KERNELS CHECK OK; every record: cycles == mcycle delta, instret == minstret delta, slots sum to cycles
+# shift2: PASS, 13 kernel checks + KERNELS CHECK OK; every record: cycles == mcycle delta, instret == minstret delta, slots sum to cycles
+
+| Region | aligned cyc/call | aligned straddle % | shifted cyc/call | shifted straddle % | shifted / aligned |
+|---|---:|---:|---:|---:|---:|
+| 10 vadd_i32 C | 19,519.5 | 0.0 | 21,567.5 | 4.8 | 1.105 |
+| 20 vadd_i64 C | 9,842.5 | 0.0 | 10,866.5 | 4.7 | 1.104 |
+| 30 daxpy C | 14,987.8 | 10.3 | 12,937.8 | 0.1 | 0.863 |
+| 40 saxpy C | 32,903.5 | 15.6 | 25,733.5 | 0.0 | 0.782 |
+| 50 ddot C | 12,856.8 | 8.0 | 10,810.8 | 0.0 | 0.841 |
+| 60 idot_i32 C | 19,500.5 | 0.0 | 21,548.5 | 4.8 | 1.105 |
+| 70 memcpy C | 8,280.5 | 18.6 | 8,284.5 | 18.6 | 1.000 |
+| 80 memset C | 5,207.8 | 9.9 | 5,211.8 | 10.0 | 1.001 |
+| 90 dgemm C | 721,504.0 | 0.6 | 911,712.0 | 10.8 | 1.264 |
+| 100 sgemm C | 809,562.0 | 8.2 | 912,218.0 | 14.7 | 1.127 |
+| 110 fir_f32 C | 479,294.5 | 17.3 | 362,562.5 | 0.3 | 0.756 |
+| 120 mac_i8 C | 86,059.0 | 4.8 | 98,347.0 | 12.5 | 1.143 |
+| 130 mac_i16 C | 43,052.5 | 4.8 | 43,052.5 | 4.8 | 1.000 |
+
+RVV regions (not shifted): cycles identical in both images: True

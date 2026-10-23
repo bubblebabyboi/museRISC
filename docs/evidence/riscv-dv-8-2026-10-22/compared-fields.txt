@@ -1,0 +1,6 @@
+# Fields compared in the 40 runs of quick4 (20 tests x seeds 21-22, 2000 instructions, logs kept), generator as committed in 384d813 (patches A-AD), rdv_trace.py at 661c046, 2026-10-22T09:07:15Z
+records 155481 traps 152 x-writes 123122 f-writes 5263 stores 11039 vregs 98 fflags-updates 1590
+CSR writes compared: {'fflags': 1590, 'mscratch': 266, 'mepc': 150, 'mstatus': 38, 'pmpaddr0': 36, 'pmpcfg0': 36, 'misa': 36, 'mtvec': 36, 'mie': 36, 'stvec': 25, 'sie': 10, 'frm': 6}
+ref-only CSR entries (side effects, not compared): {'mstatus': 166, 'vstart': 70, 'mie': 10, 'vtype': 6, 'vl': 6}
+dut-only CSR entries: {'sstatus': 10}
+# The 10 DUT sstatus entries are compared against the mstatus value Spike logs for them (rule added in 661c046; all match: rdv_trace.py re-run on the S-mode runs, 2026-10-22).

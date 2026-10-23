@@ -1,0 +1,9 @@
+test,seed,gen_seed,status,first_divergence,ref_records,dut_records,dut_cycles,gen_s,spike_s,dut_s,gen_rss_mb
+sigil_priv_test,1,673766183,MISMATCH,"#109538 trap cause=0x5 epc=0x80000694 tval=0x80011050: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011050",114515,114407,353961,0,0.2,3.8
+sigil_priv_test,2,673766184,MISMATCH,"#71064 trap cause=0x5 epc=0x80000694 tval=0x80011020: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011020",112156,112102,345183,0,0.2,3.8
+sigil_priv_test,3,673766185,PASS,,112753,112753,347419,0,0.2,4.7,
+sigil_priv_test,4,673766186,PASS,,112628,112628,347830,0,0.2,3.8,
+sigil_priv_test,5,673766187,MISMATCH,"#43086 trap cause=0x5 epc=0x80000694 tval=0x80011020: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011020",112985,112931,348734,0,0.2,4.0
+sigil_priv_test,6,673766188,MISMATCH,"#46738 trap cause=0x5 epc=0x800006b8 tval=0x80010008: kind: dut pc=0x800006b8 insn=0x00893283 priv=3 (ld	x5,8(x18)) vs ref trap cause=0x5 epc=0x800006b8 tval=0x80010008",112599,112545,345971,0,0.2,3.8
+sigil_priv_test,7,673766189,MISMATCH,"#81158 trap cause=0x5 epc=0x80000694 tval=0x80011070: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011070",112203,112149,345370,0,0.2,3.9
+sigil_priv_test,8,673766190,PASS,,113333,113333,349077,0,0.2,3.8,

@@ -1,0 +1,9 @@
+[sigil_host] slot 0: AFI agfi-035116450e0a0d093, shell 0x10212415
+[sigil_host] Sigil CL version 0x00030001, build clock recipe 62.500 MHz
+[sigil_host] loaded bins/sha256chain-sdk.bin: 27096 bytes at 0x80000000 (DDR 0x0) in 0.000 s, head/tail verified
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 60 s
+
+[sigil_host] result: PASS (SIGIL TEST PASS sha256chain) after 0.485 s, 30293370 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x00000042
+start_utc 2026-10-22T11:26:47.316765206Z rc 0

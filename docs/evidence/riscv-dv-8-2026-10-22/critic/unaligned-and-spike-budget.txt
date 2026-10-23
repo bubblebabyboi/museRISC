@@ -1,0 +1,49 @@
+# Issue #8 completeness review: riscv_unaligned_load_store_test checked one trap per run
+# sigil-verify, 2026-10-22 UTC. Spike 2c300cd9 (1.1.1-dev), riscv-dv 0d71c2b6 (pygen),
+# Verilator 5.048, Python 3.12.3.
+
+## Before
+results-full-seeds4-6.csv (branch 661c046): riscv_unaligned_load_store_test 235, 241 and
+254 records per run. pygen (like SV riscv-dv) sends every exception other than ECALL,
+EBREAK and illegal instruction to test_done, and Sigil traps every misaligned access, so
+the run ends at its first misaligned load/store: one misaligned trap per run, and the
+10,000-instruction program mostly never executes.
+
+## Patch AE (sim/riscv-dv/patches/pygen-sigil.patch, a397c78)
+The exception dispatch sends LOAD_ADDRESS_MISALIGNED and STORE_AMO_ADDRESS_MISALIGNED to a
+new misaligned_handler, which (like the ebreak handler of patch AC) reads the parcel at
+mepc, steps over the 2- or 4-byte instruction, restores the GPRs and returns with mret.
+
+## Second problem: Spike's --instructions budget, 20:09Z
+scripts/riscv_dv_regress.sh --tests riscv_unaligned_load_store_test,... --seeds 1-8
+riscv_unaligned_load_store_test: SPIKE_FAIL 8/8 "reference did not write tohost within
+2000000 instructions". Seed 1: Spike exited 0 after 39,385 instructions and 400
+misaligned traps; the same ELF without --instructions runs to write_tohost (207,357
+instructions, 2,019 traps: 1,259 load-misaligned, 759 store-misaligned, 1 ECALL).
+
+Cause, riscv-isa-sim 2c300cd9:
+  riscv/sim.cc sim_t::idle(): with an instruction limit, each call subtracts INTERLEAVE
+    (5000) from the limit and runs step(INTERLEAVE); below 5000 it runs the rest and
+    calls htif_exit(0).
+  riscv/execute.cc processor_t::step(n): on a trap, take_trap(...); n = instret; ends
+    the step early.
+So every trap can cost up to 5,000 of the budget: 2,000,000 / 5,000 = 400 traps.
+
+Fix (a397c78): a test can set spike_max_instr in sim/riscv-dv/testlist.yaml
+(riscv_unaligned_load_store_test: 40,000,000); the default stays 2,000,000
+(--max-instr). The SPIKE_FAIL message now names the budget and the per-trap charge.
+
+## After, 20:15Z
+scripts/riscv_dv_regress.sh --tests riscv_unaligned_load_store_test,sigil_vector_test --seeds 1-8 --jobs 16
+summary: PASS 16 (16 runs, 229 s)
+seed status ref_records dut_records dut_cycles gen_s spike_s dut_s
+1 PASS 204456 204456 560694 187.9 0.4 16.5
+2 PASS 200716 200716 559251 186.9 0.4 5.4
+3 PASS 205267 205267 563402 185.6 0.4 5.5
+4 PASS 201088 201088 551336 187.9 0.4 6.0
+5 PASS 194456 194456 532762 185.9 0.4 5.2
+6 PASS 209306 209306 571667 187.9 0.4 7.5
+7 PASS 193066 193066 633576 189.1 0.4 6.3
+8 PASS 206795 206795 573997 187.6 0.4 6.3
+Traps in seed 1's reference trace: 2,019 (1,259 cause 4, 759 cause 6, 1 cause 11), each
+compared (cause, epc, tval = the misaligned address) with the core's.

@@ -1,0 +1,118 @@
+# Issue #8 completeness review: PMP checked only the first word of an 8-byte access (core bug)
+# sigil-verify (c7i.8xlarge, Ubuntu 24.04.5), 2026-10-22 UTC. Spike 2c300cd9 (+svadu), Verilator 5.048,
+# riscv64-unknown-elf GCC 16.1.0 (deps/). Found by the new random privileged program
+# sim/riscv-dv/directed/sigil_priv_test.S (a36305c, c98428b), which programs random PMP entries
+# (NA4, NAPOT, TOR) over its page tables and backing pages.
+
+## Symptom: the committed program (c98428b) on the RTL before the fix (core_tb built from adf4c97)
+# Thu Oct 22 23:48:50 UTC 2026 commit c98428b, program as committed; core_tb built from adf4c97 (RTL before 3ae351d), Verilator 5.048
+riscv-dv regression: 1 tests x 8 seeds = 8 runs, 4 parallel, pygen memory budget 41.7 GB, out /home/ubuntu/rdvcrit2/priv-oldrtl
+PASS        sigil_priv_test seed 3 
+MISMATCH    sigil_priv_test seed 2 #71064 trap cause=0x5 epc=0x80000694 tval=0x80011020: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011020
+MISMATCH    sigil_priv_test seed 1 #109538 trap cause=0x5 epc=0x80000694 tval=0x80011050: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011050
+PASS        sigil_priv_test seed 4 
+MISMATCH    sigil_priv_test seed 6 #46738 trap cause=0x5 epc=0x800006b8 tval=0x80010008: kind: dut pc=0x800006b8 insn=0x00893283 priv=3 (ld	x5,8(x18)) vs ref trap cause=0x5 epc=0x800006b8 tval=0x80010008
+PASS        sigil_priv_test seed 8 
+MISMATCH    sigil_priv_test seed 5 #43086 trap cause=0x5 epc=0x80000694 tval=0x80011020: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011020
+MISMATCH    sigil_priv_test seed 7 #81158 trap cause=0x5 epc=0x80000694 tval=0x80011070: kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011070
+summary: PASS 3, MISMATCH 5 (8 runs, 29 s) -> /home/ubuntu/rdvcrit2/priv-oldrtl/results.csv
+# end Thu Oct 22 23:49:19 UTC 2026
+
+Every first divergence is an M-mode `ld` of a page-table entry at the end
+of an iteration (m_iter_end) that Spike traps as a load access fault and
+the core executes. Seed 2, record 71064 (compare.txt):
+first divergence at record 71064 (spike log line 142522, dut trace line 71065)
+  ok   #71060 pc=0x800006a4 insn=0x005cccb3 priv=3 (xor     s9, s9, t0)
+  ok   #71061 pc=0x800006a8 insn=0x0921 priv=3 (c.addi  s2, 8)
+  ok   #71062 pc=0x800006aa insn=0x1bfd priv=3 (c.addi  s7, -1)
+  ok   #71063 pc=0x800006ac insn=0xfe0b94e3 priv=3 (bnez    s7, pc - 24)
+  REF  #71064 trap cause=0x5 epc=0x80000694 tval=0x80011020
+  DUT  #71064 pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18))
+    kind: dut pc=0x80000694 insn=0x00093283 priv=3 (ld	x5,0(x18)) vs ref trap cause=0x5 epc=0x80000694 tval=0x80011020
+RESULT MISMATCH
+PMP CSR writes of that iteration (spike.log, the last of each before line 142522):
+  core   0: 3 0x0000000080000414 (0x3b139073) c945_pmpaddr1 0x0000000020004042
+  core   0: 3 0x0000000080000514 (0x3b231073) c946_pmpaddr2 0x0000000020004409
+  core   0: 3 0x0000000080000556 (0x3a0b1073) c928_pmpcfg0 0x00000000000d0000
+  pmpcfg0 = 0x0d0000: entry 2 = TOR (A=01), R and X, L=0; entries 0, 1 off.
+  Entry 2 covers [pmpaddr1 << 2, pmpaddr2 << 2) = [0x80010108, 0x80011024).
+  `ld x5, 0(x18)` with x18 = 0x80011020 reads bytes 0x80011020-0x80011027:
+  entry 2 matches the first 4-byte word, not the second.
+
+## Rule (RISC-V privileged spec, "Priority and Matching Logic")
+"The lowest-numbered PMP entry that matches any byte of an access
+determines whether that access succeeds or fails. The matching PMP entry
+must match all bytes of an access, or the access fails, irrespective of
+the L, R, W, and X bits." So the access fails, in M-mode too. Spike
+implements exactly this (riscv/mmu.cc at 2c300cd9, pmp_lookup):
+    for (size_t i = 0; i < pmp_num; i++) {
+      // Check each 4-byte sector of the access
+      bool any_match = false;
+      bool all_match = true;
+      for (reg_t offset = 0; offset < len_aligned; offset += gran) {
+        bool match = proc->state.pmpaddr[start + i]->match4(addr_aligned + offset);
+        any_match |= match;
+        all_match &= match;
+      }
+  
+      if (any_match) {
+        // If the PMP matches only a strict subset of the access, fail it
+        if (!all_match)
+          return &always_fail_pmp;
+  
+        return proc->state.pmpaddr[start + i].get();
+      }
+    }
+
+## Cause (rtl/core/sigil_csr.sv at adf4c97)
+pmp_check() matched each entry against addr[55:2] only: the first 4-byte
+word of the access, whatever its size. With the 4-byte grain (G=0) an NA4
+entry or a TOR boundary can split an 8-byte access (scalar or FP load or
+store, AMO, LR/SC, 64-bit vector element, the walker's PTE read and A/D
+write-back). Such an access was allowed or denied by the entry that
+matches its first word (or by none, when only the second word matched),
+so in M-mode with L=0 it always succeeded. NAPOT regions are at least 8
+bytes and naturally aligned, so they never split an aligned access;
+accesses up to 4 bytes are aligned and stay in one word; fetches are
+checked per 4-byte word as before.
+
+## Fix (3ae351d)
+pmp_match() returns the match for the access's word and for the next word
+({addr[55:3], 1}; 8-byte accesses are 8-byte aligned, misaligned accesses
+trap). pmp_check() takes the access width (pmp_wide_*_i: the data port's
+access size is 8 bytes; the walker port always) and fails an access that
+the deciding entry matches only in part. For TOR the second word's match
+reuses the first word's magnitude compares plus two equality compares
+(a54 + 1 == pmpaddr[i-1], a54 + 1 == pmpaddr[i]). Behaviour changes only
+for accesses that some entry matches in part.
+
+## Directed check (sw/core-tests/pmp_partial_directed.S, in make core-test)
+M-mode, L=0: NA4 on either word of a dword (ld, sd, amoadd.d, fld fail; lw,
+sw of one word pass), TOR ending or starting inside the dword, an 8-byte
+NAPOT region (pass), and an NA4 entry above a covering NAPOT entry (the
+lower-numbered, partial entry decides: fail).
+# pmp_partial_directed.bin built at c98428b (riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0), 2026-10-22T23:49:43Z
+== core_tb from adf4c97 (before 3ae351d)
+$ core_tb pmp_partial_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 1
+CORE TB FAIL pmp_partial_directed.bin test 1 (187 cycles)
+$ core_tb pmp_partial_directed.bin --no-cache
+CORE TB FAIL pmp_partial_directed.bin test 1 (125 cycles)
+== core_tb from c98428b (with 3ae351d)
+$ core_tb pmp_partial_directed.bin --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 1
+CORE TB PASS pmp_partial_directed.bin (992 cycles)
+$ core_tb pmp_partial_directed.bin --no-cache
+CORE TB PASS pmp_partial_directed.bin (1649 cycles)
+
+## After the fix
+The same 8 seeds pass on the fixed RTL, and so do seeds 1-205 of the
+program and the whole list (full-regression.txt, sections 5 and 6, and
+../SUMMARY.md). make core-test passes with pmp_partial_directed in it
+(gates/core-test.log) once vec_trap_directed test 11 is corrected
+(gates/core-test-c98428b-vec-trap-11.txt, 37aa1d7).
+
+## ACT
+Not rerun (the ACT flow is not installed on sigil-verify). The change only
+alters accesses that a PMP entry matches in part; an ACT test making such
+an access would have failed against Sail on the earlier RTL, and ACT was
+2,577/2,578 there with only the PA0 platform waiver
+(PMPSm_cfg_A_tor_zero-00), so no passing ACT test makes one.

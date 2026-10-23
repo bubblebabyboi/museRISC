@@ -1,0 +1,57 @@
+# Measurement run: one seed of every test, pygen peak RSS per test (sigil-verify, 2026-10-22 UTC)
+# start Thu Oct 22 11:21:58 UTC 2026
+# commit 9e64bc3634d0f5eb1a0a5a9eb2b3e4d50ca1efbe
+# args --tests all --seeds 100000 --jobs 16
+# rc 0
+# end Thu Oct 22 11:32:43 UTC 2026
+# Command: scripts/riscv_dv_regress.sh --tests all --seeds 100000 --jobs 16 --out ~/riscv-dv-runs/amo-oom-fix/measure
+# (runner at 9e64bc3 had DEFAULT_GEN_MEM_GB 3.0; set to 2.5 from these numbers in d02176b)
+
+riscv-dv regression: 20 tests x 1 seeds = 20 runs, 16 parallel, pygen memory budget 44.0 GB, out /home/ubuntu/riscv-dv-runs/amo-oom-fix/measure
+PASS        riscv_ebreak_test seed 100000 
+PASS        riscv_jump_stress_test seed 100000 
+PASS        riscv_machine_mode_rand_test seed 100000 
+PASS        riscv_illegal_instr_test seed 100000 
+PASS        sigil_vector_test seed 100000 
+PASS        sigil_bitmanip_crypto_test seed 100000 
+PASS        riscv_unaligned_load_store_test seed 100000 
+PASS        riscv_no_fence_test seed 100000 
+PASS        riscv_non_compressed_instr_test seed 100000 
+PASS        riscv_u_mode_rand_test seed 100000 
+PASS        riscv_rand_instr_test seed 100000 
+PASS        riscv_privileged_mode_rand_test seed 100000 
+PASS        riscv_arithmetic_basic_test seed 100000 
+PASS        riscv_mmu_stress_test seed 100000 
+PASS        riscv_loop_test seed 100000 
+PASS        riscv_floating_point_arithmetic_test seed 100000 
+PASS        riscv_b_ext_test seed 100000 
+PASS        riscv_floating_point_rand_test seed 100000 
+PASS        riscv_floating_point_mmu_stress_test seed 100000 
+PASS        riscv_amo_test seed 100000 
+pygen peak RSS (GB): riscv_amo_test 7.8, riscv_mmu_stress_test 1.9, riscv_floating_point_mmu_stress_test 1.9, riscv_rand_instr_test 1.9, riscv_loop_test 1.8, riscv_floating_point_rand_test 1.7, riscv_no_fence_test 1.6, riscv_unaligned_load_store_test 1.5, riscv_privileged_mode_rand_test 1.5, riscv_machine_mode_rand_test 1.5, riscv_u_mode_rand_test 1.5, riscv_illegal_instr_test 1.5, riscv_b_ext_test 1.5, riscv_arithmetic_basic_test 1.4, riscv_non_compressed_instr_test 1.3, riscv_floating_point_arithmetic_test 1.2, riscv_ebreak_test 1.0, riscv_jump_stress_test 0.9
+summary: PASS 20 (20 runs, 645 s) -> /home/ubuntu/riscv-dv-runs/amo-oom-fix/measure/results.csv
+
+## test, status, gen_s, gen_rss_mb, ref_records
+riscv_arithmetic_basic_test PASS 294.1 1397 12057
+riscv_rand_instr_test PASS 286.2 1927 13304
+riscv_jump_stress_test PASS 156.1 938 5554
+riscv_loop_test PASS 333.8 1841 26642
+riscv_no_fence_test PASS 229.1 1648 9245
+riscv_illegal_instr_test PASS 201.4 1548 11186
+riscv_ebreak_test PASS 147.6 981 16539
+riscv_unaligned_load_store_test PASS 224.3 1579 249
+riscv_mmu_stress_test PASS 322.2 1989 15645
+riscv_machine_mode_rand_test PASS 199.4 1558 8796
+riscv_privileged_mode_rand_test PASS 291.5 1566 8796
+riscv_u_mode_rand_test PASS 257.6 1551 9014
+riscv_non_compressed_instr_test PASS 242.8 1352 8723
+riscv_amo_test PASS 488.5 7947 4553
+riscv_floating_point_arithmetic_test PASS 148.6 1260 10359
+riscv_floating_point_rand_test PASS 215.7 1729 13694
+riscv_floating_point_mmu_stress_test PASS 241.5 1962 16764
+riscv_b_ext_test PASS 181.9 1492 9710
+sigil_bitmanip_crypto_test PASS 0  24921
+sigil_vector_test PASS 0  53
+
+## Lowest MemAvailable sample (time, MemAvailable kB, python3 RSS sum kB, # >1 GiB)
+11:25:13 46866256 15159412 9

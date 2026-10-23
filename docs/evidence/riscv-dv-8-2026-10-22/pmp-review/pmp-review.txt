@@ -1,0 +1,107 @@
+# Issue #8: adversarial review of 3ae351d "Core (#8): PMP decides on all bytes of an 8-byte access"
+# 2026-10-23 UTC. Branch 8-dvfix-pmp (on 8-riscv-dv f239397). sigil-verify (c7i.8xlarge, Ubuntu 24.04):
+# Spike 2c300cd9 (+svadu), Verilator 5.048, riscv64-unknown-elf GCC (deps/). Sail 0.15
+# (third_party/sail, sw/act4-core/sail.json). sv2v + Yosys 0.69 (macOS) for the PMP forms.
+#
+# RTLs:  fixed   = f239397 (3ae351d + 37aa1d7; RTL as at 65a48ae, full ACT 2577/2578 there)
+#        pre-fix = f239397 with `git diff 3ae351d 3ae351d^ -- rtl` applied
+#        w64     = fixed + the whole-register EEW=64 change on branch 8-dvfix-pmp-w64 (section 4)
+
+## 1. What 3ae351d changes
+pmp_match returns {m1, m0}: the 4-byte word at the address and the word after it ({addr[55:3],1}).
+pmp_check(wide) lets the lowest-numbered entry matching either word decide and fails the access if
+that entry matches only one of them, in every mode and whatever L/R/W/X. Ports:
+  A fetch   wide = 0 (one 4-byte word per fetch; a 32-bit parcel straddling two words is fetched as
+            two words, the second with tval = pc+2)       -> function unchanged (proven, section 5)
+  B data    wide = mem_size_code == 3 (ld/sd/fld/fsd, c.ld/c.sd/c.fld, AMO*.d, LR.d/SC.d, HLV.D/HSV.D
+            via the decoder's rewritten funct3, vector elements of EEW 64 incl. indexed with SEW 64)
+  C walker  wide = 1 (PTE reads and A/D write-backs, also G-stage: one walk_addr port)
+Checked by reading: TOR m1 = (lo || prev == a54o) && hi && enc != a54o is a54o in [prev, enc) for
+a54o = a54 + 1 (wide accesses are 8-byte aligned: misaligned traps first, vls_misalign has priority
+over mem_pmp_fault in the MEM exception mux); NA4 m1 = (enc == a54o); NAPOT (>= 8 bytes, aligned)
+matches both words or neither. A lone SC.d is checked too: Spike 2c300cd9 check_load_reservation
+translates with the full size, so a partially matched lone SC.d faults (cause 7) on both.
+
+## 2. riscv-dv directed program sigil_pmp_test (sim/riscv-dv/directed/sigil_pmp_test.S)
+Every access kind in M, M+MPRV (MPP S, U), S, U against Spike's commit trace (rdv_regress.py, 12 jobs):
+  fixed,   seeds 1-12:  PASS 12 (272 s; ~800k records per run, ~8,000 traps)
+  fixed,   seeds 13-60: PASS 48 (926 s)
+  pre-fix, seeds 1-12:  MISMATCH 12 (239 s), all at the first sweep configuration (NA4 on D's upper
+           word): M-mode `ld x31,0(x6)` at D, Spike load access fault tval D, core no trap, e.g.
+           seed 1 #9983 trap cause=0x5 epc=0x80000fe0 tval=0x8000a210
+sigil_pmp_whole64_test (same program, -DPMP_WHOLE64: adds vl1re64.v/vl2re64.v):
+  fixed,   seeds 1-12:  MISMATCH 12 (253 s), all at the first M-mode vl1re64.v over D:
+           seed 1 #14913 trap cause=0x5 epc=0x80001424 tval=0x8000a210: core no trap (section 4)
+  w64,     seeds 1-12:  PASS 12; sigil_pmp_test seeds 1-12 on w64: PASS 12 (488 s for the 24)
+Other directed programs with the modified comparator (01995ef), fixed RTL, seeds 1-3: sigil_priv_test,
+sigil_vector_test, sigil_hint_test, sigil_bitmanip_crypto_test PASS 12 (35 s).
+
+make core-test on 8-dvfix-pmp (fixed RTL, pmp_modes_directed in the run list): rc=0, 301 TB PASS
+(main's 293 + pmp_partial and pmp_modes in four configurations each), 0 FAIL, 2,647 s (VJOBS=6).
+
+## 3. Core directed tests (core_tb; Spike and Sail with -DSPIKE_HTIF, linked at 0x80000000)
+                          Spike  Sail   fixed (4 cfgs*)   pre-fix           w64
+  pmp_modes_directed      PASS   PASS   PASS              FAIL test 1       PASS
+  pmp_whole64_directed    PASS   PASS   FAIL test 1       FAIL test 1       PASS
+  pmp_partial_directed    -      -      PASS              FAIL test 1       PASS
+  vec_trap_directed       -      -      PASS              PASS              FAIL test 132 as committed;
+                                                                            PASS with 132 = pbuf+16
+  (* --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 7; --no-cache; --mem-lat 3:20; default)
+pmp_modes_directed sections started on their own (scratch variants) on the pre-fix RTL: tests 6
+(AMO/LR/SC), 9 (vle64/vse64), 10 (vlse64, vluxei64), 11 (vle64ff), 12 (vlseg2e64), 13 (data walk),
+15 (fetch walk), 20 (locked NA4, M) each FAIL; 21 (locked fetch straddle) PASSES on both RTLs (fetch
+is unchanged). Sail negative control: pmp_whole64_directed expecting the core's tval (buf+20) in
+test 2 -> Sail "FAILURE: 2", i.e. Sail reports the element address buf+16.
+
+## 4. Residual deviation: whole-register loads with EEW=64 (pre-existing, not caused by 3ae351d)
+The VLS sequencer moves whole registers byte by byte (vls_eew_code = 0 for VLS_WHOLE), so
+mem_size_code is 0 and 3ae351d's wide check never applies to vl<n>re64.v, whose architectural
+elements are 8 bytes (evl = NFIELDS*VLEN/64, vstart counts them). Spike and Sail perform each
+element as one 8-byte access. pmp_whole64_directed:
+  1 M, NA4 over word 1 of element 1:      Spike/Sail fault tval buf+8 vstart 1; core no trap
+  2 U, TOR [0, buf+20):                    Spike/Sail tval buf+16 vstart 2;       core tval buf+20
+  3 vl1re8.v control:                      all tval buf+20 vstart 20
+  4 M, vl2re64.v, NA4 over element 9:      Spike/Sail fault; core no trap
+vec_trap_directed test 13 (same configuration as test 2) asserts the core's mtval pbuf+20.
+Candidate fix (branch 8-dvfix-pmp-w64): check the first byte of each element of an 8-byte-aligned
+vl<n>re64.v as the whole element:
+  pmp_wide_data = (mem_size_code == 2'b11) || (vls_is && vls_whole && vls_idx_eew == 3'd3 &&
+                  exmem_addr_q[2:0] == 3'd0 && mem_va[2:0] == 3'd0)
+(a misaligned base keeps per-byte checks; a misaligned element may be split). Faults then land on
+the element's first byte: tval = element address, vstart = byte >> 3. vec_trap_directed 132 is
+updated to pbuf+16. Gates on the candidate: make lint (5.048) clean; make core-test rc=0, 305 TB
+PASS, 0 FAIL (2,643 s, VJOBS=6); riscv-dv as in section 2. Not run: Verilator 5.020 lint, ACT,
+riscv-tests.
+
+## 5. Timing / area (one port, sv2v + Yosys 0.69; pmp_forms.sv, miter.v, run.sh)
+Forms: 0 main serial pmp_check, 1 3ae351d serial, 2 #53 FPGA_TIMING pmp_check_par (866efb6),
+3 proposed pmp_check_par with the 3ae351d rule. Proofs (SAT on a miter; wide only with addr[2]=0):
+  FORM 0 == FORM 2                       PROVEN (sanity: #53 parallel == main serial)
+  FORM 0 == FORM 1 with wide tied 0      PROVEN (fetch port A unchanged)
+  FORM 1 == FORM 3, wide an input        PROVEN (proposed #53 form == 3ae351d serial)
+  FORM 0 vs FORM 1, FORM 2 vs FORM 3     DIFFER (the miter sees the change)
+Synthesis (generic gates: cells, longest path in gates; UltraScale+: LUTs, carry cells, cells on the
+longest path):
+  FORM=0 WIDE=2 gates=7902 gate_depth=70 luts=1689 carry=304 lut_path_cells=24   main serial
+  FORM=1 WIDE=0 gates=7871 gate_depth=71 luts=1698 carry=304 lut_path_cells=24   fixed, port A
+  FORM=1 WIDE=2 gates=8069 gate_depth=86 luts=1912 carry=304 lut_path_cells=25   fixed, port B
+  FORM=1 WIDE=1 gates=8074 gate_depth=85 luts=1843 carry=304 lut_path_cells=27   fixed, port C
+  FORM=2 WIDE=2 gates=7841 gate_depth=65 luts=1676 carry=304 lut_path_cells=23   #53 parallel
+  FORM=3 WIDE=0 gates=7838 gate_depth=60 luts=1676 carry=304 lut_path_cells=23   proposed, port A
+  FORM=3 WIDE=2 gates=8093 gate_depth=70 luts=1971 carry=304 lut_path_cells=23   proposed, port B
+  FORM=3 WIDE=1 gates=8035 gate_depth=70 luts=1955 carry=304 lut_path_cells=23   proposed, port C
+Reading: the new compares are equalities against a54o, which shares bits 53:1 with the existing NA4
+compare (a54o differs from a54 only in bit 0), so area grows ~2% in gates (+170) per port, no new
+magnitude (carry) comparators. The serial chain gets deeper on ports B and C: 70 -> 85/86 gate
+levels (+~22%), 24 -> 25/27 cells on the UltraScale+ longest path. The parallel form keeps its
+depth (23 cells; 65 -> 70 gates) at +~290 LUTs per port. Port A is unchanged in both forms.
+
+## 6. Port to 53-100mhz-afi (866efb6; read only)
+rtl/core/sigil_csr.sv: ports 104-115 (add pmp_wide_b_i, pmp_wide_c_i); serial pmp_match 702-718 and
+pmp_check 721-744 (as 3ae351d); pmp_check_par 755-784 (needs the rule: FORM 3 in pmp_forms.sv);
+g_pmp_par 787-799 (port assigns 788-790 and the per-cycle $error compare against pmp_check
+794-796 both need the wide argument, else the compare fires on the first split access) and
+g_pmp_par_off 800-803. rtl/core/sigil_core.sv: the data-port size case at 1790 (mem_size_code) and
+the u_csr PMP connections 2002-2010 (.pmp_wide_b_i, .pmp_wide_c_i(1'b1)). Under FPGA_TIMING port B
+starts from the registered translation (g_dl, 2036) and wide from EX/MEM flops and vtype.
+Plus pmp_partial_directed, vec_trap_directed test 11 (37aa1d7) and, with section 4, test 13.

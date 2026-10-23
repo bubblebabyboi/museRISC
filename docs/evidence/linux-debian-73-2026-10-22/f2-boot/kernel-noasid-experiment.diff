@@ -1,0 +1,11 @@
+--- /tmp/context.c.orig	2026-10-22 11:08:54.504490201 +0000
++++ arch/riscv/mm/context.c	2026-10-22 11:08:54.505490200 +0000
+@@ -252,7 +252,7 @@
+ 	 * Use ASID allocator only if number of HW ASIDs are
+ 	 * at-least twice more than CPUs
+ 	 */
+-	if (num_asids > (2 * num_possible_cpus())) {
++	if (0 && num_asids > (2 * num_possible_cpus())) {	/* Sigil experiment: no ASIDs */
+ 		atomic_long_set(&current_version, BIT(SATP_ASID_BITS));
+ 
+ 		context_asid_map = bitmap_zalloc(num_asids, GFP_KERNEL);

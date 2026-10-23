@@ -24,7 +24,7 @@ ctl 0 write:run1.txt
 t0=$(date +%s.%N); $SL < /dev/null > "$T/out1" 2>&1; rc=$?; t1=$(date +%s.%N)
 cat "$T/out1"; echo "rc=$rc time=$(echo "$t1 - $t0" | bc)"
 ok "rc 0" '[ $rc = 0 ]'
-ok "AFI loaded" 'grep -q agfi-0a1fd54ef68bdc754 $T/fake/afi'
+ok "AFI loaded" 'grep -q agfi-0c8aa56fde1a48495 $T/fake/afi'
 ok "disk has run1" 'has $D run1.txt'
 ok "disk is 8 GiB" '[ $(stat -c %s $D) = 8589934592 ]'
 ok "release sidecar" '[ "$(cat $D.release)" = sigil-linux-f2-2026-10-22 ]'

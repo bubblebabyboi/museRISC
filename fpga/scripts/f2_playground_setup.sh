@@ -5,7 +5,7 @@
 # ~/bin/sigil-linux (Debian, docs/LINUX.md section 4). Rerun it to update
 # ~/sigil, sigil_host and the helpers.
 set -euo pipefail
-AGFI=agfi-0a1fd54ef68bdc754
+AGFI=agfi-0c8aa56fde1a48495
 cd ~
 [ -d aws-fpga ] || git clone -q -b v2.3.5 --depth 1 https://github.com/aws/aws-fpga.git aws-fpga
 # shellcheck disable=SC1091  # aws-fpga's setup script

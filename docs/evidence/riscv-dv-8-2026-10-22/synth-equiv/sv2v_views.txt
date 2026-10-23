@@ -1,0 +1,6 @@
+sv2v 0.0.13
+defines=[SYNTHESIS] modules=43 differing: sigil_core sigil_csr 
+defines=[SYNTHESIS SIGIL_SRAM_FAKERAM45] modules=43 differing: sigil_core sigil_csr 
+defines=[SYNTHESIS SIGIL_SRAM_SKY130] modules=43 differing: sigil_core sigil_csr 
+defines=[SYNTHESIS SIGIL_SRAM_OREG] modules=43 differing: sigil_core sigil_csr 
+defines=[SYNTHESIS SIGIL_VRF_OREG] modules=43 differing: sigil_core sigil_csr 

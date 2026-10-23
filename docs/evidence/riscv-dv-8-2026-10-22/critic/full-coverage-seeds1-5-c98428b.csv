@@ -1,0 +1,107 @@
+test,seed,status,boot,records,traps,trap_causes,priv_mix,fp_write_records,vec_write_records,csr_write_records
+riscv_arithmetic_basic_test,1,PASS,M,12209,1,11:1,3:12208,0,0,9
+riscv_arithmetic_basic_test,2,PASS,M,12301,1,11:1,3:12300,0,0,9
+riscv_arithmetic_basic_test,3,PASS,M,12159,1,11:1,3:12158,0,0,9
+riscv_arithmetic_basic_test,4,PASS,M,12156,1,11:1,3:12155,0,0,9
+riscv_arithmetic_basic_test,5,PASS,M,12066,1,11:1,3:12065,0,0,9
+riscv_rand_instr_test,1,PASS,S,14440,1,9:1,1:14317 3:122,0,0,12
+riscv_rand_instr_test,2,PASS,S,12524,1,9:1,1:12401 3:122,0,0,12
+riscv_rand_instr_test,3,PASS,S,14452,1,9:1,1:14326 3:125,0,0,12
+riscv_rand_instr_test,4,PASS,M,11992,1,11:1,3:11991,0,0,9
+riscv_rand_instr_test,5,PASS,S,13922,1,9:1,1:13799 3:122,0,0,12
+riscv_jump_stress_test,1,PASS,M,5281,1,11:1,3:5280,0,0,9
+riscv_jump_stress_test,2,PASS,S,5485,1,9:1,1:5362 3:122,0,0,12
+riscv_jump_stress_test,3,PASS,M,5366,1,11:1,3:5365,0,0,9
+riscv_jump_stress_test,4,PASS,U,5876,1,8:1,0:5758 3:117,0,0,10
+riscv_jump_stress_test,5,PASS,U,5323,1,8:1,0:5208 3:114,0,0,10
+riscv_loop_test,1,PASS,S,31507,1,9:1,1:31381 3:125,0,0,12
+riscv_loop_test,2,PASS,U,20577,1,8:1,0:20462 3:114,0,0,10
+riscv_loop_test,3,PASS,S,21279,1,9:1,1:21153 3:125,0,0,12
+riscv_loop_test,4,PASS,U,19861,1,8:1,0:19743 3:117,0,0,10
+riscv_loop_test,5,PASS,S,20152,1,9:1,1:20026 3:125,0,0,12
+riscv_no_fence_test,1,PASS,S,9413,1,9:1,1:9287 3:125,0,0,12
+riscv_no_fence_test,2,PASS,M,9737,1,11:1,3:9736,0,0,9
+riscv_no_fence_test,3,PASS,S,9541,1,9:1,1:9418 3:122,0,0,12
+riscv_no_fence_test,4,PASS,S,9921,1,9:1,1:9798 3:122,0,0,12
+riscv_no_fence_test,5,PASS,M,10085,1,11:1,3:10084,0,0,9
+riscv_illegal_instr_test,1,PASS,U,11470,29,2:28 8:1,0:8947 3:2494,0,0,122
+riscv_illegal_instr_test,2,PASS,S,11830,32,2:31 9:1,1:8945 3:2853,0,0,136
+riscv_illegal_instr_test,3,PASS,M,10979,26,2:25 11:1,3:10953,0,0,109
+riscv_illegal_instr_test,4,PASS,U,10996,27,2:26 8:1,0:8565 3:2404,0,0,114
+riscv_illegal_instr_test,5,PASS,S,10356,30,2:29 9:1,1:7649 3:2677,0,0,128
+riscv_ebreak_test,1,PASS,S,19255,153,3:152 9:1,1:5225 3:13877,0,0,620
+riscv_ebreak_test,2,PASS,S,19107,147,3:146 9:1,1:5620 3:13340,0,0,596
+riscv_ebreak_test,3,PASS,M,18695,144,3:143 11:1,3:18551,0,0,581
+riscv_ebreak_test,4,PASS,U,19234,153,3:152 8:1,0:5216 3:13865,0,0,618
+riscv_ebreak_test,5,PASS,U,15915,120,3:119 8:1,0:5268 3:10527,0,0,486
+riscv_unaligned_load_store_test,1,PASS,M,204456,2019,4:1259 6:759 11:1,3:202437,0,0,8081
+riscv_unaligned_load_store_test,2,PASS,U,200716,2040,4:1245 6:794 8:1,0:9423 3:189253,0,0,8166
+riscv_unaligned_load_store_test,3,PASS,U,205267,2028,4:1253 6:774 8:1,0:9048 3:194191,0,0,8118
+riscv_unaligned_load_store_test,4,PASS,M,201088,1985,4:1199 6:785 11:1,3:199103,0,0,7945
+riscv_unaligned_load_store_test,5,PASS,S,194456,1975,4:1177 6:797 9:1,1:9202 3:183279,0,0,7908
+riscv_mmu_stress_test,1,PASS,M,15881,1,11:1,3:15880,0,0,9
+riscv_mmu_stress_test,2,PASS,M,15456,1,11:1,3:15455,0,0,9
+riscv_mmu_stress_test,3,PASS,S,15184,1,9:1,1:15061 3:122,0,0,12
+riscv_mmu_stress_test,4,PASS,M,15789,1,11:1,3:15788,0,0,9
+riscv_mmu_stress_test,5,PASS,U,16051,1,8:1,0:15933 3:117,0,0,10
+riscv_machine_mode_rand_test,1,PASS,M,9267,1,11:1,3:9266,0,0,9
+riscv_machine_mode_rand_test,2,PASS,M,9079,1,11:1,3:9078,0,0,9
+riscv_machine_mode_rand_test,3,PASS,M,8857,1,11:1,3:8856,0,0,9
+riscv_machine_mode_rand_test,4,PASS,M,9132,1,11:1,3:9131,0,0,9
+riscv_machine_mode_rand_test,5,PASS,M,9094,1,11:1,3:9093,0,0,9
+riscv_privileged_mode_rand_test,1,PASS,U,8926,1,8:1,0:8808 3:117,0,0,10
+riscv_privileged_mode_rand_test,2,PASS,S,9529,1,9:1,1:9403 3:125,0,0,12
+riscv_privileged_mode_rand_test,3,PASS,U,8590,1,8:1,0:8472 3:117,0,0,10
+riscv_privileged_mode_rand_test,4,PASS,S,9271,1,9:1,1:9148 3:122,0,0,12
+riscv_privileged_mode_rand_test,5,PASS,M,8942,1,11:1,3:8941,0,0,9
+riscv_u_mode_rand_test,1,PASS,U,8798,1,8:1,0:8681 3:116,0,0,10
+riscv_u_mode_rand_test,2,PASS,U,9043,1,8:1,0:8929 3:113,0,0,10
+riscv_u_mode_rand_test,3,PASS,U,8671,1,8:1,0:8553 3:117,0,0,10
+riscv_u_mode_rand_test,4,PASS,U,8596,1,8:1,0:8478 3:117,0,0,10
+riscv_u_mode_rand_test,5,PASS,U,8570,1,8:1,0:8455 3:114,0,0,10
+riscv_non_compressed_instr_test,1,PASS,S,8569,1,9:1,1:8443 3:125,0,0,12
+riscv_non_compressed_instr_test,2,PASS,M,8989,1,11:1,3:8988,0,0,9
+riscv_non_compressed_instr_test,3,PASS,U,8350,1,8:1,0:8235 3:114,0,0,10
+riscv_non_compressed_instr_test,4,PASS,U,8334,1,8:1,0:8216 3:117,0,0,10
+riscv_non_compressed_instr_test,5,PASS,S,8525,1,9:1,1:8402 3:122,0,0,12
+riscv_amo_test,1,PASS,U,4163,1,8:1,0:4045 3:117,0,0,10
+riscv_amo_test,2,PASS,U,4369,1,8:1,0:4251 3:117,0,0,10
+riscv_amo_test,3,PASS,S,4503,1,9:1,1:4377 3:125,0,0,12
+riscv_amo_test,4,PASS,U,4331,1,8:1,0:4216 3:114,0,0,10
+riscv_amo_test,5,PASS,U,4472,1,8:1,0:4355 3:116,0,0,10
+riscv_floating_point_arithmetic_test,1,PASS,M,10354,1,11:1,3:10353,3455,0,1127
+riscv_floating_point_arithmetic_test,2,PASS,M,10386,1,11:1,3:10385,3477,0,1105
+riscv_floating_point_arithmetic_test,3,PASS,M,10353,1,11:1,3:10352,3451,0,1082
+riscv_floating_point_arithmetic_test,4,PASS,M,10356,1,11:1,3:10355,3346,0,1128
+riscv_floating_point_arithmetic_test,5,PASS,M,10373,1,11:1,3:10372,3361,0,1048
+riscv_floating_point_rand_test,1,PASS,U,16207,1,8:1,0:16088 3:118,3995,0,1232
+riscv_floating_point_rand_test,2,PASS,U,12628,1,8:1,0:12509 3:118,3237,0,1168
+riscv_floating_point_rand_test,3,PASS,U,12639,1,8:1,0:12523 3:115,3254,0,1007
+riscv_floating_point_rand_test,4,PASS,M,12596,1,11:1,3:12595,3308,0,1080
+riscv_floating_point_rand_test,5,PASS,S,13820,1,9:1,1:13693 3:126,3467,0,1170
+riscv_floating_point_mmu_stress_test,1,PASS,U,16752,1,8:1,0:16633 3:118,3090,0,898
+riscv_floating_point_mmu_stress_test,2,PASS,U,16629,1,8:1,0:16510 3:118,2957,0,828
+riscv_floating_point_mmu_stress_test,3,PASS,U,16390,1,8:1,0:16271 3:118,2936,0,907
+riscv_floating_point_mmu_stress_test,4,PASS,M,16750,1,11:1,3:16749,3130,0,917
+riscv_floating_point_mmu_stress_test,5,PASS,S,16749,1,9:1,1:16622 3:126,3058,0,868
+riscv_b_ext_test,1,PASS,S,9461,1,9:1,1:9338 3:122,0,0,12
+riscv_b_ext_test,2,PASS,U,9560,1,8:1,0:9445 3:114,0,0,10
+riscv_b_ext_test,3,PASS,S,9782,1,9:1,1:9659 3:122,0,0,12
+riscv_b_ext_test,4,PASS,U,9543,1,8:1,0:9425 3:117,0,0,10
+riscv_b_ext_test,5,PASS,S,9705,1,9:1,1:9582 3:122,0,0,12
+sigil_bitmanip_crypto_test,1,PASS,M(directed),24924,0,,3:24924,0,0,0
+sigil_bitmanip_crypto_test,2,PASS,M(directed),24924,0,,3:24924,0,0,0
+sigil_bitmanip_crypto_test,3,PASS,M(directed),24924,0,,3:24924,0,0,0
+sigil_bitmanip_crypto_test,4,PASS,M(directed),24924,0,,3:24924,0,0,0
+sigil_bitmanip_crypto_test,5,PASS,M(directed),24924,0,,3:24924,0,0,0
+sigil_vector_test,1,PASS,M(directed),82178,0,,3:82178,63,3825,4522
+sigil_vector_test,2,PASS,M(directed),81979,0,,3:81979,58,3490,4335
+sigil_vector_test,3,PASS,M(directed),82288,0,,3:82288,64,3889,4623
+sigil_vector_test,4,PASS,M(directed),82397,0,,3:82397,63,4118,4724
+sigil_vector_test,5,PASS,M(directed),82141,0,,3:82141,61,3919,4483
+sigil_priv_test,1,PASS,M(directed),114515,336,2:24 3:2 5:3 7:3 8:49 9:104 12:3 13:29 15:24 9223372036854775809:30 9223372036854775813:33 9223372036854775817:32,0:353 1:2689 3:111137,4,0,2075
+sigil_priv_test,2,PASS,M(directed),112156,346,2:32 3:4 5:5 7:2 8:56 9:98 12:8 13:33 15:23 9223372036854775809:28 9223372036854775813:22 9223372036854775817:35,0:396 1:2769 3:108645,2,0,2088
+sigil_priv_test,3,PASS,M(directed),112753,310,2:25 3:3 5:4 8:45 9:103 12:2 13:30 15:21 9223372036854775809:22 9223372036854775813:28 9223372036854775817:27,0:320 1:2564 3:109559,4,0,2024
+sigil_priv_test,4,PASS,M(directed),112628,325,2:28 3:1 5:1 7:2 8:53 9:99 12:5 13:34 15:23 9223372036854775809:25 9223372036854775813:26 9223372036854775817:28,0:387 1:2600 3:109316,2,0,2054
+sigil_priv_test,5,PASS,M(directed),112985,345,2:29 3:3 5:2 7:2 8:52 9:102 12:3 13:27 15:33 9223372036854775809:38 9223372036854775813:26 9223372036854775817:28,0:373 1:2787 3:109480,2,0,2104
+# runs 105 (PASS 105), records 3100449, traps 12645 (causes 2:277 3:725 4:6133 5:15 6:3909 7:9 8:287 9:533 11:31 12:21 13:153 15:124 9223372036854775809:143 9223372036854775813:135 9223372036854775817:150), FP-write records 49845, vector-write records 19241

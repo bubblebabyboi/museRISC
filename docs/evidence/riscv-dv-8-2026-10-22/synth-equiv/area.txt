@@ -1,0 +1,6 @@
+csr_main       36620 cells,  3058 flip-flops
+csr_br         37315 cells,  3058 flip-flops
+core_main      21620 cells,  2730 flip-flops
+core_neutral   21331 cells,  2730 flip-flops
+core_br        21449 cells,  2730 flip-flops
+(Yosys 0.69+post, sv2v 0.0.13)

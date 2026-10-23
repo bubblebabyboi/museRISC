@@ -330,7 +330,9 @@ The F2 build (`docs/FPGA_F2.md`) wraps the same SoC. Its RAM window is
 UART is a virtual UART, which the host reads and writes through the OCL
 register BAR. The core clock is interim: **62.5 MHz** (`AWS_CLK_GEN`
 recipe B1) until timing closes at 100 MHz. The public AFI is
-**`agfi-0a1fd54ef68bdc754`**.
+**`agfi-0c8aa56fde1a48495`** (it supersedes `agfi-0a1fd54ef68bdc754`,
+whose core has the MMU walker race,
+[#74](https://github.com/bubblebabyboi/sigil/issues/74)).
 
 The quickest start is the playground setup on a new `f2.6xlarge`
 (FPGA Developer AMI), which installs the SDK, a RISC-V GCC and
@@ -353,7 +355,7 @@ make -C fpga/host SDK_DIR=<aws-fpga>/sdk
 To run an SDK program:
 
 ```sh
-sudo fpga-load-local-image -S 0 -I agfi-0a1fd54ef68bdc754 -H     # if the slot does not have it (fpga-describe-local-image -S 0 -H)
+sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H     # if the slot does not have it (fpga-describe-local-image -S 0 -H)
 sudo fpga/host/sigil_host --bin build/myprog.bin --timeout 30
 ```
 
@@ -397,16 +399,20 @@ Other useful options:
 `--ignore-mem-err` is no longer needed with this AFI (#62 is fixed by
 the DDR4 zeroing); it only matters for the first public AFI,
 `agfi-035116450e0a0d093` (#55, 128 MiB, no HBM), which still works with
-the current `sigil_host`.
+the current `sigil_host`; its core also has the walker race (#74), so
+use it for bare-metal programs only.
 
 `sigil_host` recognises `SIGIL TEST PASS` (and the older `SOC CRYPTO
 PASS`, ... markers) by default, and its default fail marker `FAIL`
 matches `SIGIL TEST FAIL`; `--exit` / `--fail` override them.
 
-Status: on a real `f2.6xlarge` at a measured 62.5 MHz, the public AFI
+Status: on a real `f2.6xlarge` at a measured 62.5 MHz, the platform AFI
 `agfi-0a1fd54ef68bdc754` ran the firmware tests and all 7 SDK examples
 without `--ignore-mem-err`, and full-range memory tests of DDR4 and HBM
-(2026-10-22, [`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md));
+(2026-10-22, [`evidence/f2-platform-73-2026-10-22/`](evidence/f2-platform-73-2026-10-22/SUMMARY.md)).
+The current AFI `agfi-0c8aa56fde1a48495` is the same CL with the core's
+walker-race fix and atomic A/D update (#74); on it Debian passed 22/22 checks
+([`evidence/linux-debian-73-2026-10-22/f2-boot-fixed/`](evidence/linux-debian-73-2026-10-22/f2-boot-fixed/));
 the first AFI ran the 7 examples too
 ([`evidence/f2-sdk-examples-2026-10-22/`](evidence/f2-sdk-examples-2026-10-22/SUMMARY.md):
 `ed25519_verify`, the slowest at 15.9M cycles, took 0.255 s). At 62.5
@@ -458,8 +464,8 @@ timing, which says nothing about F2 latency; built with GCC 16.1 and
 with Ubuntu's GCC 13.2, which `sigil-run` uses;
 [`evidence/linux-user-docs-73-2026-10-22/`](evidence/linux-user-docs-73-2026-10-22/hbm_touch-gcc16.fpgatop-f2.log)). It needs the F2 map, so
 it does not run on `soc_rtl_tb` or `fpga_top_tb` (128 MiB). On the F2:
-`~/bin/sigil-run ~/sigil/sw/examples/hbm_touch/hbm_touch.c`; result:
-`<hbm_touch on F2: pending>`. The same kinds of accesses from the core
+`~/bin/sigil-run ~/sigil/sw/examples/hbm_touch/hbm_touch.c` (not yet
+run on the F2 itself). The same kinds of accesses from the core
 (`sw/fpga-tests/f2_memtest.c`, a sparse test over all of DDR4 and HBM)
 passed on the F2 with 0 errors.
 
@@ -641,6 +647,16 @@ Reading `instret` doesn't count the reading instruction itself. In
 exactly 2N + 2. Today's pipeline is in-order and single-issue with
 blocking caches. A cache hit costs 2 cycles, and a taken branch flushes
 2 slots, so a tight loop runs at about 4 cycles per instruction.
+
+For a benchmark, use `sigil_perf_begin()` / `sigil_perf_end()` instead.
+They read the same counters, print
+`SIGIL PERF region=0 cycles=<n> instret=<n>`, and also mark the region
+for the simulation-only event counters. The markers are writes to
+`mhpmevent31`, which the core ignores. In simulation those counters
+break every cycle of the region down by cause (fetch, branches, D$,
+multi-cycle units, ...). The performance harness (`make -C sim perf`,
+benchmarks in `sw/bench/`) runs and validates such programs; see
+[`docs/PERFORMANCE.md`](PERFORMANCE.md).
 
 ## 14. Limits and gotchas
 

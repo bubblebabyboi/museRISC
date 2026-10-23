@@ -1,0 +1,48 @@
+# Round 1 riscv-dv regression, riscv_amo_test GEN_FAILs (sigil-verify, 2026-10-22 UTC)
+# Runner commit b86bc8dd0cf07925ee970499a6dc7e2d455c82e5 (~/wt/rdv-round1)
+# Command: scripts/riscv_dv_regress.sh --tests all --seeds 100000-100009 --jobs 16
+
+## Kernel OOM kills (journalctl -k, saved as oom_kernel.log)
+Oct 22 10:38:24 kernel: Out of memory: Killed process 755159 (python3) total-vm:9106952kB, anon-rss:7629336kB, file-rss:3128kB, shmem-rss:0kB, UID:1000 pgtables:15420kB oom_score_adj:0
+Oct 22 10:39:09 kernel: Out of memory: Killed process 755631 (python3) total-vm:9813472kB, anon-rss:8322496kB, file-rss:2628kB, shmem-rss:0kB, UID:1000 pgtables:16800kB oom_score_adj:0
+Oct 22 10:39:53 kernel: Out of memory: Killed process 755985 (python3) total-vm:9730280kB, anon-rss:8296460kB, file-rss:6928kB, shmem-rss:0kB, UID:1000 pgtables:16632kB oom_score_adj:0
+Oct 22 10:40:39 kernel: Out of memory: Killed process 755503 (python3) total-vm:9850392kB, anon-rss:8364456kB, file-rss:2764kB, shmem-rss:0kB, UID:1000 pgtables:16880kB oom_score_adj:0
+
+## free -g (no swap)
+               total        used        free      shared  buff/cache   available
+Swap:              0           0           0
+
+## regress.log GEN_FAIL lines (truncated by the runner at 200 chars)
+GEN_FAIL    riscv_amo_test seed 100000 pygen rc=-9: $ /home/ubuntu/wt/rdv-round1/build/riscv-dv/venv/bin/python3 pygen/pygen_src/test/riscv_instr_base_test.py --target=sigil --gen_test=riscv_instr_base_test --num_of_tests=1 --start_idx=0 -
+GEN_FAIL    riscv_amo_test seed 100002 pygen rc=-9: $ /home/ubuntu/wt/rdv-round1/build/riscv-dv/venv/bin/python3 pygen/pygen_src/test/riscv_instr_base_test.py --target=sigil --gen_test=riscv_instr_base_test --num_of_tests=1 --start_idx=0 -
+GEN_FAIL    riscv_amo_test seed 100006 pygen rc=-9: $ /home/ubuntu/wt/rdv-round1/build/riscv-dv/venv/bin/python3 pygen/pygen_src/test/riscv_instr_base_test.py --target=sigil --gen_test=riscv_instr_base_test --num_of_tests=1 --start_idx=0 -
+GEN_FAIL    riscv_amo_test seed 100001 pygen rc=-9: $ /home/ubuntu/wt/rdv-round1/build/riscv-dv/venv/bin/python3 pygen/pygen_src/test/riscv_instr_base_test.py --target=sigil --gen_test=riscv_instr_base_test --num_of_tests=1 --start_idx=0 -
+summary: PASS 196, GEN_FAIL 4 (200 runs, 2980 s) -> /home/ubuntu/riscv-dv-runs/round1/run/results.csv
+
+## results.csv, riscv_amo_test rows: seed, gen_seed, status, gen_s
+100000 1400526329 GEN_FAIL 327.0
+100001 1400526330 GEN_FAIL 453.9
+100002 1400526331 GEN_FAIL 356.3
+100003 1400526332 PASS 527.3
+100004 1400526333 PASS 650.0
+100005 1400526334 PASS 589.5
+100006 1400526335 GEN_FAIL 379.4
+100007 1400526336 PASS 552.7
+100008 1400526337 PASS 543.4
+100009 1400526338 PASS 609.9
+
+## Killed seeds: gen.log line count, Traceback count, last line; files in the run directory
+100000: 388 lines, tracebacks run/riscv_amo_test/100000/gen.log:0 run/riscv_amo_test/100000/gen.out:0, files: gen.log gen.out
+  2026-10-22 10:38:10,904 riscv_instr_sequence.py 75 INFO Start generating 5000 instruction
+100001: 388 lines, tracebacks run/riscv_amo_test/100001/gen.log:0 run/riscv_amo_test/100001/gen.out:0, files: gen.log gen.out
+  2026-10-22 10:40:14,153 riscv_instr_sequence.py 75 INFO Start generating 5000 instruction
+100002: 388 lines, tracebacks run/riscv_amo_test/100002/gen.log:0 run/riscv_amo_test/100002/gen.out:0, files: gen.log gen.out
+  2026-10-22 10:39:05,307 riscv_instr_sequence.py 75 INFO Start generating 5000 instruction
+100006: 388 lines, tracebacks run/riscv_amo_test/100006/gen.log:0 run/riscv_amo_test/100006/gen.out:0, files: gen.log gen.out
+  2026-10-22 10:39:44,480 riscv_instr_sequence.py 75 INFO Start generating 5000 instruction
+
+## Round-1 rerun of the 4 killed seeds alone (--jobs 4): rerun_amo_oom.log
+100000: ref records 4553 (tohost reached: True), dut records 4553 (tohost reached: True) 4553 records match RESULT MATCH
+100001: ref records 4635 (tohost reached: True), dut records 4635 (tohost reached: True) 4635 records match RESULT MATCH
+100002: ref records 4215 (tohost reached: True), dut records 4215 (tohost reached: True) 4215 records match RESULT MATCH
+100006: ref records 4304 (tohost reached: True), dut records 4304 (tohost reached: True) 4304 records match RESULT MATCH

@@ -1,7 +1,7 @@
 /* hbm_touch: the F2's 16 GiB of HBM, and DDR4 beyond 128 MiB, from
  * bare-metal C.
  *
- * On the F2 build (public AFI agfi-0a1fd54ef68bdc754,
+ * On the F2 build (public AFI agfi-0c8aa56fde1a48495,
  * docs/LINUX_PLATFORM.md) the SoC's RAM is
  *   DDR4 64 GiB at 0x0_8000_0000 .. 0x10_7FFF_FFFF  (ECC; sigil_host
  *        zeroes all of it once per AFI load)

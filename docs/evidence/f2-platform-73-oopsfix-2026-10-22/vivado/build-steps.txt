@@ -10,7 +10,8 @@ sigil 31a15689bec847a51357d4dcacc361a4986b548a recipe_b=B1 recipe_hbm=H0 aws-fpg
 #      (place SSI_SpreadLogic_high, phys_opt/route AggressiveExplore)
 # Only difference: Vivado general.maxThreads 16 instead of the default 8
 # (a `vivado` wrapper on PATH sources `set_param general.maxThreads 16` and
-# then the HDK's build_all.tcl). Build tree in /dev/shm (see ../SUMMARY.md).
+# then the HDK's build_all.tcl). Build tree in /dev/shm (see the end of this file;
+# summary: docs/evidence/README.md, "#73 F2 AFI with the MMU walker-race fix").
 # Reports: rpt.tcl of build 3a (report_timing_summary -max_paths 5,
 # report_utilization of WRAPPER/CL) on cl_sigil.2026_10_22-143914.post_route.dcp.
 21:AWS FPGA: 2026-10-22 14:39:17 - Build starts
@@ -60,9 +61,12 @@ sigil 31a15689bec847a51357d4dcacc361a4986b548a recipe_b=B1 recipe_hbm=H0 aws-fpg
 #     --logs-storage-location Bucket=sigil-fpga-afi-891612553438,Key=logs/
 #   -> afi-059766f9a85c6d39a / agfi-0c8aa56fde1a48495, shell 0x10212415,
 #      PCI 0x1d0f:0xf054 (subsystem 0x5160:0x1d0f)
-# Public load permission NOT yet granted (still private): owner to run
+# Public load permission was NOT yet granted when this was written (the command
+# that grants it:)
 #   aws ec2 modify-fpga-image-attribute --region us-east-1 --fpga-image-id afi-059766f9a85c6d39a
 #     --operation-type add --user-groups all --attribute loadPermission
+# Checked 2026-10-22 (describe-fpga-image-attribute / describe-fpga-images):
+#   LoadPermissions [{"Group": "all"}], Public true, State available -> the AFI is public.
 # Attempt 1 (tag 2026_10_22-135457, same source) failed in opt_design ("Failed to
 # generate and synthesize debug IP xilinx.com:ip:ddr4_phy:2.2"): the instance's root
 # file system was filled to 0 bytes free by other jobs at 14:27:54 UTC (syslog "No

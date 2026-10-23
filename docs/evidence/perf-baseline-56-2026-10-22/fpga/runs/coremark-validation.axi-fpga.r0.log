@@ -1,0 +1,27 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb_vrforeg 200000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/fpga/bin/coremark-validation/coremark.bin --exit-string 'SIGIL TEST PASS coremark' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/fpga/runs/coremark-validation.axi-fpga.r0.perf
+loaded 13408 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/fpga/bin/coremark-validation/coremark.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+SIGIL PERF region=0 cycles=14366008 instret=5253766
+2K validation run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 14366008
+Total time (secs): 0.229856
+Iterations/Sec   : 87.010950
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 20
+Compiler version : GCC16.1.0
+Compiler flags   : -march=rv64gc_zba_zbb_zbc_zbs_zcb_zicond_zbkb_zbkx_zkne_zknd_zknh -mabi=lp64d -mcmodel=medany -mstrict-align -O2 -std=gnu11 -ffreestanding -fno-common -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-math-errno
+Memory location  : STACK
+seedcrc          : 0x18f2
+[0]crclist       : 0xe3c1
+[0]crcmatrix     : 0x0747
+[0]crcstate      : 0x8d84
+[0]crcfinal      : 0xad38
+Errors detected
+COREMARK validation run: iterations=20 cycles=14366008 instret=5253766 cycles/iteration=718300 CoreMark/MHz=1.392
+COREMARK NOTE timed region 0.229 s at 62500000 Hz < 10 s: core_main's 10 s ERROR and 'Errors detected' lines refer to that run rule only (not reportable as a CoreMark score)
+COREMARK CRC seedcrc=0x18f2 crclist=0xe3c1 crcmatrix=0x0747 crcstate=0x8d84 crcfinal=0xad38 (crcfinal matches the host reference)
+COREMARK CHECK OK iterations=20
+SIGIL TEST PASS coremark
+FPGA TOP TB PASS run 0 (exit string at 14620043 cycles after reset release)
+AXI: 266 AR (2128 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

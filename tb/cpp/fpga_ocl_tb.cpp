@@ -196,6 +196,7 @@ int main(int argc, char** argv) {
   }
   Axi4SlaveModel axi(cfg, kDw, 0, &ddr);
   Harness h(&axi, max_cycles);
+  h.ctx.commandArgs(argc, argv);  // plusargs, e.g. +sigil_perf=<file> (rtl/core/sigil_perf.svh)
   std::fprintf(stderr, "fpga_ocl_tb: 512-bit AXI, %s\n", cfg.Describe().c_str());
   for (int i = 0; i < 8; ++i) h.Tick();
 

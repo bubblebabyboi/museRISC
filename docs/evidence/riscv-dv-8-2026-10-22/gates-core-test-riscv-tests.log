@@ -1,0 +1,36 @@
+# Gates on branch 8-riscv-dv at 661c046 (RTL as at b4bb704), sigil-verify, Verilator 5.048 2026-04-26 rev v5.048, riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# started Thu Oct 22 09:06:24 UTC 2026, finished Thu Oct 22 09:56:55 UTC 2026
+make core-test VJOBS=8: CORE_TEST_RC=0, wall 50m8.668s
+core-test: 235 lines matching TB PASS, 0 TB FAIL/TIMEOUT
+make riscv-tests: RISCV_TESTS_RC=0, wall 0m21.905s
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+
+# Earlier run at 80db014 (plusarg read unconditional): riscv-tests 123/123; core-test stopped in fpgaocl-quick:
+%Error: unknown:0: %Error: Verilog called $test$plusargs or $value$plusargs without testbench C first calling Verilated::commandArgs(argc,argv).
+# fixed in b4bb704 (plusarg read only with +define+SIGIL_COMMIT_TRACE, set for core_tb).
+
+# TB PASS lines by kind (final run):
+      1   echo "CORE TB PASS: $(grep -c 'CORE TB PASS
+      1   tail -1 mdcomb.log | sed 's/^CORE TB PASS/CORE TB PASS
+      1   tail -1 vec_xinit.log | sed "s/^VEC TB PASS/VEC TB PASS
+      1 ALU TB PASS
+      9 AXI BRIDGE TB PASS
+      1 BEXT TB PASS
+    186 CORE TB PASS
+      1 CSR TB PASS
+      2 DCACHE TB PASS
+      1 DECODER TB PASS
+      1 FPGA OCL TB PASS
+      5 FPGA TOP TB PASS
+      2 FPU TB PASS
+      2 ICACHE TB PASS
+      1 MMU TB PASS
+      1 MULDIV TB PASS
+      1 MULDIV_MC (COMB=1) TB PASS
+      1 MULDIV_MC TB PASS
+      1 PLIC TB PASS
+      1 REGFILE TB PASS
+      1 RVC TB PASS
+      4 SOC RTL TB PASS
+      8 VEC TB PASS
+      2 done; echo "CORE TB PASS

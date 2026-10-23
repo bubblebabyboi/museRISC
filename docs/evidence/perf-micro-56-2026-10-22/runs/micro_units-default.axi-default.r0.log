@@ -1,0 +1,43 @@
+$ /home/ubuntu/wt/56-perf-micro/build/sim/fpga_top_tb 20000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/scratch-micro/perf-evidence/bin/micro_units-default/micro_units.bin --exit-string 'SIGIL TEST PASS micro_units' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/scratch-micro/perf-evidence/runs/micro_units-default.axi-default.r0.perf
+loaded 12632 bytes at 0x80000000 from /home/ubuntu/scratch-micro/perf-evidence/bin/micro_units-default/micro_units.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+SIGIL PERF region=1 cycles=25 instret=10
+MICRO region=1 empty ops=1024 cycles=25 instret=10 cycles/op=0.024
+SIGIL PERF region=2 cycles=4293 instret=1075
+MICRO region=2 mul_dep ops=1024 cycles=4293 instret=1075 cycles/op=4.192
+SIGIL PERF region=3 cycles=4235 instret=1076
+MICRO region=3 mul_indep ops=1024 cycles=4235 instret=1076 cycles/op=4.136
+SIGIL PERF region=4 cycles=37004 instret=1072
+MICRO region=4 div_dep ops=1024 cycles=37004 instret=1072 cycles/op=36.137
+SIGIL PERF region=5 cycles=37038 instret=1072
+MICRO region=5 div_indep ops=1024 cycles=37038 instret=1072 cycles/op=36.170
+SIGIL PERF region=6 cycles=4255 instret=1066
+MICRO region=6 div_short ops=1024 cycles=4255 instret=1066 cycles/op=4.155
+SIGIL PERF region=7 cycles=20605 instret=1069
+MICRO region=7 divw_dep ops=1024 cycles=20605 instret=1069 cycles/op=20.122
+SIGIL PERF region=8 cycles=36010 instret=1070
+MICRO region=8 rem_indep ops=1024 cycles=36010 instret=1070 cycles/op=35.166
+SIGIL PERF region=9 cycles=6386 instret=1069
+MICRO region=9 fadd_d_dep ops=1024 cycles=6386 instret=1069 cycles/op=6.236
+SIGIL PERF region=10 cycles=6307 instret=1066
+MICRO region=10 fadd_d_indep ops=1024 cycles=6307 instret=1066 cycles/op=6.159
+SIGIL PERF region=11 cycles=6278 instret=1069
+MICRO region=11 fmul_d_dep ops=1024 cycles=6278 instret=1069 cycles/op=6.131
+SIGIL PERF region=12 cycles=8384 instret=1074
+MICRO region=12 fmadd_d_dep ops=1024 cycles=8384 instret=1074 cycles/op=8.188
+SIGIL PERF region=13 cycles=33926 instret=1069
+MICRO region=13 fdiv_d_dep ops=1024 cycles=33926 instret=1069 cycles/op=33.131
+SIGIL PERF region=14 cycles=33955 instret=1068
+MICRO region=14 fdiv_d_indep ops=1024 cycles=33955 instret=1068 cycles/op=33.159
+SIGIL PERF region=15 cycles=33914 instret=1065
+MICRO region=15 fsqrt_d_dep ops=1024 cycles=33914 instret=1065 cycles/op=33.119
+SIGIL PERF region=16 cycles=33922 instret=1068
+MICRO region=16 fsqrt_d_indep ops=1024 cycles=33922 instret=1068 cycles/op=33.127
+SIGIL PERF region=17 cycles=18608 instret=1071
+MICRO region=17 fdiv_s_dep ops=1024 cycles=18608 instret=1071 cycles/op=18.172
+SIGIL PERF region=18 cycles=18596 instret=1067
+MICRO region=18 fsqrt_s_dep ops=1024 cycles=18596 instret=1067 cycles/op=18.160
+MICRO CHECK OK micro_units iterations=1024 regions=18
+SIGIL TEST PASS micro_units
+FPGA TOP TB PASS run 0 (exit string at 982918 cycles after reset release)
+AXI: 200 AR (1600 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

@@ -1,0 +1,45 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/fpga_top_tb_sky130 40000000 --axi-lat 24:24 --axi-gap 0 --axi-ready 100 --uart-pop 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_dmem-default/micro_dmem.bin --exit-string 'SIGIL TEST PASS micro_dmem' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/micro_dmem-default.axi-sky130.r0.perf
+loaded 7552 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_dmem-default/micro_dmem.bin
+fpga_top_tb: 64-bit AXI, axi lat 24:24 gap 0 ready aw/w/ar 100/100/100% seed 1, caches on
+SIGIL PERF region=1 cycles=77 instret=9
+MICRO region=1 empty ops=4096 cycles=77 instret=9 cycles/op=0.019
+SIGIL PERF region=2 cycles=21101 instret=4234
+MICRO region=2 chase_rand_1k ops=4096 cycles=21101 instret=4234 cycles/op=5.152
+SIGIL PERF region=3 cycles=21101 instret=4234
+MICRO region=3 chase_rand_2k ops=4096 cycles=21101 instret=4234 cycles/op=5.152
+SIGIL PERF region=4 cycles=21264 instret=4234
+MICRO region=4 chase_rand_4k ops=4096 cycles=21264 instret=4234 cycles/op=5.191
+SIGIL PERF region=5 cycles=172779 instret=4234
+MICRO region=5 chase_rand_8k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=6 cycles=172779 instret=4234
+MICRO region=6 chase_rand_12k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=7 cycles=172779 instret=4234
+MICRO region=7 chase_rand_16k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=8 cycles=172779 instret=4234
+MICRO region=8 chase_rand_20k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=9 cycles=172779 instret=4234
+MICRO region=9 chase_rand_24k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=10 cycles=172779 instret=4234
+MICRO region=10 chase_rand_32k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=11 cycles=172779 instret=4234
+MICRO region=11 chase_rand_64k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=12 cycles=172779 instret=4234
+MICRO region=12 chase_rand_128k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=13 cycles=172779 instret=4234
+MICRO region=13 chase_rand_256k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=14 cycles=21264 instret=4234
+MICRO region=14 chase_seq_4k ops=4096 cycles=21264 instret=4234 cycles/op=5.191
+SIGIL PERF region=15 cycles=172779 instret=4234
+MICRO region=15 chase_seq_8k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=16 cycles=172779 instret=4234
+MICRO region=16 chase_seq_16k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=17 cycles=172779 instret=4234
+MICRO region=17 chase_seq_32k ops=4096 cycles=172779 instret=4234 cycles/op=42.182
+SIGIL PERF region=18 cycles=41881 instret=4818
+MICRO region=18 stream_ld ops=4096 cycles=41881 instret=4818 cycles/op=10.225
+SIGIL PERF region=19 cycles=68499 instret=4815
+MICRO region=19 stream_st ops=4096 cycles=68499 instret=4815 cycles/op=16.723
+MICRO CHECK OK micro_dmem iterations=4096 regions=19
+SIGIL TEST PASS micro_dmem
+FPGA TOP TB PASS run 0 (exit string at 10436559 cycles after reset release)
+AXI: 111522 AR (892176 R beats), 15812 AW (126496 W beats, 15812 B); stall cycles AW 0 W 0 AR 0 R 0 B 0

@@ -1,0 +1,15 @@
+# Full ACT (riscv-arch-test, 2,578 ELFs) on 8-riscv-dv 1eac727, core_tb default config, sigil-verify, script act_final.sh. ELFs: ~/act8/act-elfs/elfs on sigil-verify, the set copied unchanged from sigil-fpga-build:~/oops/fixgates/act-elfs/elfs for the 65a48ae run (../../act-full.log); fingerprint checked below.
+host ip-172-31-65-164 32 vCPU; Verilator 5.048 2026-04-26 rev v5.048
+start 2026-10-23T08:18:12Z head 1eac72779c89ab1cf5d0615e0899292f2e4ba2b3 dirty=[0] core_tb f6ecd1f6608e0c5218c342421490b096 elfs 2578 elfs-fingerprint 839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f jobs 12
+act rc=1 301s end 2026-10-23T08:23:13Z
+ACT_DONE
+ACT (sigil-core): 2577/2578 PASS, 1 FAIL; rows=2578 unique=2578 elfs=2578; wall 301s
+FAIL: PMPSm_cfg_A_tor_zero-00,FAIL,18024
+Vx: 821/821
+Vls: 1051/1051
+Vf: 162/162
+== Per-ELF comparison (join on test name; verdict and cycles)
+rows: 1eac727 2578, main 9da0006 2578, 8-riscv-dv 65a48ae 2578; same test names: True
+vs main 9da0006 (~/act8/logs/main/act.csv, ../../act-full-main-9da0006.csv): verdict differs 0, cycles differ 0
+vs 8-riscv-dv 65a48ae (../../act-full-8-riscv-dv-65a48ae.csv): verdict differs 0, cycles differ 0
+total cycles: 1eac727 372965025, main 372965025, 65a48ae 372965025
