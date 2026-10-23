@@ -926,7 +926,7 @@ the Status column.
 | 12 | K1 + K2 | K | 0 | ≈ −0.5 to −0.8 | L | planned |
 | 13 | SHA-512 window | L | 0 | ≈ −0.3 to 0 | exposed layers | planned |
 | 14 | `closure` strategy + residual fixes | residual | 0 | ≥ +0.1 (`closure`) | none | planned |
-| 15 | full gates, evidence | | | | | round 1 at `116c4a4`: all pass but the cell-count check |
+| 15 | full gates, evidence | | | | | round 1 at `116c4a4`: all pass but the cell-count check; review round 2 at `08c607a`: all pass, F0 +0.799 |
 | 16 | redirect port (optional) | CPI | removes the cross-page redirect cost | stays ≥ +0.1 | | optional |
 
 ## CPI impact

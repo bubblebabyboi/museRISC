@@ -1,0 +1,185 @@
+#53 FPGA timing: review round 2 fixes (three FPGA_TIMING ISA divergences) and the review's directed tests
+2026-10-22 UTC. Branch 53-mem-stage-pipeline, base main eeaa332; plan docs/FPGA_TIMING_53.md (step 15, "Review
+round 2"). Round-1 gates: fpga-timing-53-gates-2026-10-22.log (116c4a4).
+
+Commits on 7b3b7d2 (all pushed):
+  535975a FPGA_TIMING: an EX data capture that matches the walk-fault record replays in MEM     (RTL)
+  3ad5408 FPGA_TIMING: fetch guest-fault flag only together with the fetch fault                 (RTL)
+  97f3dce sigil_mmu: fetch page register check allows a translation re-read without SFENCE      (sim check only)
+  020fcdc Directed tests from the #53 review                                                     (21 programs, wiring)
+  d8d5e92 FPGA_TIMING_53.md: review round 2 fixes                                                (docs)
+  08c607a mmu_tb: drive dl_mem_i, check the EX capture of a recorded walk fault                  (unit TB)
+RTL at 08c607a = RTL at d8d5e92 (08c607a changes tb/cpp/mmu_tb.cpp only); Vivado, ACT, riscv-dv and the
+equivalence proofs ran on d8d5e92, lint/make test/core-test/socrtl/riscv-tests on 08c607a.
+Every RTL change sits in the FPGA_TIMING generate branches (g_dreg, g_ireg) of sigil_mmu; sigil_core adds the
+dl_mem wire, tied 0 in g_dl_off and read only by g_dreg.
+
+Host: sigil-fpga-build2 (r7iz.8xlarge, 32 vCPU, 247 GB, Ubuntu 24.04.1 LTS, kernel 6.8.0-1021-aws); Mac
+(macOS 26.6.2) for Verilator 5.044 lint. Gate runs use detached worktrees of the pushed commits, dirty=0.
+Tools: Verilator 5.048 (deps/), 5.020 (Ubuntu 24.04 package, dpkg -x into ~/opt), 5.044 (Homebrew, Mac);
+riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0; Yosys 0.33 (git sha1 2584903a060) + sv2v v0.0.13;
+Vivado v2025.2 (64-bit); Spike 1.1.1-dev 2c300cd9; riscv-dv flow 84974af; riscv-arch-test 6af53584 + Sail 0.15.
+Builds: "off" = default core_tb (FPGA_TIMING=0); "on" = core_tb_fpga (SIGIL_FPGA_TIMING + SIGIL_VRF_OREG);
+"ft" = SIGIL_FPGA_TIMING only (make -C sim SRAM_DEF_ft=+define+SIGIL_FPGA_TIMING ../build/sim/core_tb_ft);
+"main" = origin/main d7fb9a2 core_tb, "main+vro" = d7fb9a2 core_tb_vrforeg, "main2" = origin/main 9da0006
+core_tb (main after the #74 walker-race fix); "7b3b7d2 on/ft" = the branch before these fixes.
+Bus settings per test: random latency --mem-lat 1:6 --mem-gap 2 --mem-ready 70 with --mem-seed 1 and 7, and
+--no-cache.
+
+== Findings and fixes (each reviewer test reproduced on 7b3b7d2, passes after the fix in on and ft)
+
+1. Walk-fault record taken by an EX capture (535975a). Reviews: hlv_wf_directed test 2, hlv_ctx_directed
+   test 7 (HSV, HLVX), mem53_wf_hlv_directed test 1.
+   A vle64ff whose element k > 0 walks and page-faults trims vl with no trap; the record {wf_va, page,...}
+   stays live while MEM presents that VA. The next instruction, an HLV/HSV/HLVX of the same VA (guest
+   translation valid), is in EX while a bubble with another VA is in MEM. g_dreg's dl_* lookup of EX's access
+   matched the record by VA only (port_result) and captured the satp-regime page fault into mt_q; main looks
+   the access up in MEM a cycle later, after the record dropped (MEM VA != wf_va), and loads/stores.
+   7b3b7d2 on/ft: hlv_wf test 2, hlv_ctx test 7, mem53_wf_hlv test 1 FAIL with random bus timing (both seeds;
+   no-cache passes: slower fetch, no EX/MEM overlap).
+   Fix: mt_valid_q <= dl_vld_i && (dl_mem_i || !dl_wf). A capture of EX's access that matches the record is
+   not valid, so MEM replays its own lookup (+1 cycle, only when EX's VA equals a live data walk-fault
+   record); MEM's own captures follow main's rule unchanged (the record applies while MEM presents its VA).
+   The simulation check (mt_q vs MEM's own lookup) used to exempt every capture that matched a record,
+   which hid this; it now exempts only MEM's own captures whose record dropped before use (e.g. at a fetch
+   walk start). Mutation: with the fix reverted (mt_valid_q <= dl_vld_i) the check fires on hlv_ctx,
+   hlv_wf and mem53_wf_hlv (random bus, both seeds; 60/66 kept runs pass, the other 6 stop on the check),
+   and the new mmu_tb check fails (mmu_tb.cpp:215).
+   Main keeps its own weakness (the record is not tagged with regime/access class): review B's probe
+   with the HLV directly behind the trim (mem53_wf_hlv_dense_probe, not kept) gives the same verdicts on
+   main d7fb9a2 (+vro), on the fixed branch off/on/ft and on 7b3b7d2: FAIL test 1 with random bus (seeds 1,
+   7), PASS no-cache. For a main issue (tag the record with access class and regime).
+
+2. Stale GPA in mtval2/htval after a fetch access fault (3ad5408). Review: mem53_ifault_gpa_directed.
+   g_ireg drove if_fault_guest_o/if_fault_gpa_o from ir_q (the previous fetch lookup) without fault gating;
+   sigil_core latches ifid_gpa_q <= mmu_if_fault_guest ? gpa : 0 on every fetch. A PMP fetch access fault
+   (cause 1) right after a lookup that was a guest-page fault wrote (2^41+8)>>2 to mtval2 (spec: 0).
+   7b3b7d2 on/ft: FAIL test 1 in all three bus settings. Fix: if_fault_guest_o = if_fault_o && ir_q.guest
+   (main's MMU raises the guest flag only with the fault).
+
+3. False alarm of the it_q simulation check (97f3dce, simulation only). Reviews: mem53_itlb_remap_directed,
+   vm_stale_fetch_directed. A code page remapped to an identical copy without SFENCE, then re-walked for a
+   store's D bit, puts the new translation in the TLB while it_q holds the old one for a cycle; either is
+   legal until SFENCE. 7b3b7d2 on/ft: "fetch page register differs from the I-port lookup" in all bus
+   settings. The check now skips cycles in which it_q was loaded before the last TLB change (ichg), until
+   it_q reloads.
+
+Unit TB (08c607a): mmu_tb's FPGA_TIMING build drives dl_mem_i (set while MEM's access is presented, clear
+for the capture before it, as the core). Found by the first gate attempt at d8d5e92: make -C sim mmu
+failed at mmu_tb.cpp:194 (every capture looked like EX's, so the record never applied). New DREG-only check
+(3 checks, MMU TB 77 checks [FPGA_TIMING]): with a data walk fault unconsumed, an EX capture of that VA is
+not valid and MEM's replay takes the record.
+
+== Review tests kept (020fcdc): run_directed.sh after the existing runs (earlier seeds unchanged), TESTS
+21 programs: vm_ctx, vm_fetch, vm_vec, vm_satp_fetch, hlv_ctx, hlv_wf (review A); mem53_wf_sum, mem53_wf_hlv,
+mem53_ifault_gpa, mem53_itlb_remap, mem53_ctx, mem53_walk_contend (review B); vm_ctx_switch (+ IRQ at 20000),
+fetch_page, hyp_ctx, hyp_fetch, vec_vm (+ IRQ at 150000), vm_walk_overlap (generated, gen_walk_race.py root0),
+csr_intent, vm_stale_fetch (review C); vm_irq at 152 timer offsets 300..5900 step 37.
+Matrix (22 run lines x 3 bus settings; PASS count / 3):
+  build             kept runs   notes
+  main d7fb9a2      66/66
+  main+vro d7fb9a2  66/66
+  main2 9da0006     66/66
+  off  (fix)        66/66       cycle counts identical to main d7fb9a2 in all 66 runs
+  on   (fix)        66/66
+  ft   (fix)        66/66
+  7b3b7d2 on        51/66       hlv_ctx 2, hlv_wf 2, mem53_wf_hlv 2, mem53_ifault_gpa 3 FAIL; itlb_remap 3,
+  7b3b7d2 ft        51/66         stale_fetch 3 stop on the it_q check (as listed above)
+  mutant (fix 1 reverted, on) 60/66: the 6 stop on the mt_q check
+vm_irq sweep (152 offsets x rand seed 1 / no-cache): main 304/304, main2 304/304, off 304/304 (cycles = main
+in all 304), on 304/304, ft 304/304.
+Cycle cost on vs main+vro (random bus seed 1): 0 to +140 per test (e.g. vm_ctx +85, vm_fetch +116,
+vm_ctx_switch +112, vec_vm +119, mem53_walk_contend +95), vm_walk_overlap +395 (+0.7%): page changes, walks
+and indexed elements, the plan's costed classes.
+
+Not kept (fail or hang on main, so not gates; for main issues):
+  vm_vec_misalign_directed (review A), vec_idx_misalign_fault_directed (review C): a vector element that is
+    both misaligned and on an unmapped page hangs main (TIMEOUT at 4M cycles). vm_vec_misalign: all three
+    bus settings on d7fb9a2, d7fb9a2+vro and 9da0006; vec_idx_misalign_fault: no-cache on d7fb9a2 and
+    9da0006, random bus on d7fb9a2+vro. Branch off behaves as main; on and ft pass both (the FPGA_TIMING
+    VLS path). A main bug.
+  walk_preempt_directed (A), vm_walk_race_directed (C, gen_walk_race.py root1): the walker preemption race,
+    fail on d7fb9a2 (+vro) and on the branch (off, on, ft), pass on 9da0006 (#74 fix). For after the
+    branch merges main.
+  instret_page_directed (C): two instret reads three instructions apart across a page boundary must differ
+    by 3. Main reads instret in EX and counts retirement at WB, so the delta depends on MEM/WB occupancy;
+    FPGA_TIMING's +1 page-change bubble before the second read gives 4 (test 5204, random bus; no-cache
+    passes). Main's own read timing, not changed by #53.
+
+== Gates (FPGA_TIMING off = default/ASIC configs, on = FPGA setting)
+| Gate | off | on |
+|---|---|---|
+| make lint, Verilator 5.048 / 5.020 (build2) | PASS: 29 runs each (make lint 21 + 8 extra FPGA configs), 0 warnings | (same runs) |
+| make lint, Verilator 5.044 (Mac, d8d5e92) | PASS: 29 runs, 0 warnings | (same runs) |
+| make test | PASS (ALL PHASE-0 KATs PASS) | PASS |
+| make core-test (make -C sim all) | PASS: 343 TB/EXAMPLE PASS lines, 0 failures, 3457 s | PASS: 343 lines, 0 failures, 5762 s |
+| srammacro families (fakeram45 sky130 oreg vrforeg fpga) | CORE TB 60 directed runs each, 0 FAIL; VEC, SOC RTL TB PASS | each family with FPGA_TIMING + VRF_OREG on top: CORE TB 60 runs, 0 FAIL; VEC, SOC RTL TB PASS |
+| make -C sim socrtl | PASS: crypto 27,689,496 / ed25519 28,615,074 cycles (= round 1) | PASS (= round 1) |
+| make riscv-tests | PASS 123/123 | PASS 123/123 |
+| ACT on the core (2,578 ELFs, d8d5e92) | 2577/2578, only PMPSm_cfg_A_tor_zero-00; Vx 821, Vls 1051, Vf 162 all pass | 2577/2578, the same single failure; Vx/Vls/Vf all pass |
+| riscv-dv vs Spike, seeds 1-5 x 20 tests (d8d5e92 + flow 84974af) | (main: 100/100 in round 1) | 100/100 PASS |
+| Formal equivalence vs main eeaa332, FPGA_TIMING=0 (d8d5e92) | EQUIVALENT: sigil_core default and SRAM_OREG, sigil_csr, sigil_mmu, sigil_dcache, sigil_icache | n/a |
+| Vivado F0, 10 ns (d8d5e92) | n/a | MET: WNS +0.799 ns, TNS 0, 0/92,010 failing, WHS +0.021 ns |
+
+off vs round 1 (116c4a4, itself line-identical to main eeaa332): every core-test TB/EXAMPLE PASS line that
+round 1 has is identical, cycle counts included (only wall seconds differ), apart from "MMU TB PASS (77
+checks) [FPGA_TIMING]" (74 before; 3 new checks) and the srammacro family counts (60 directed runs, 37
+before). The 23 new lines per directed configuration are the new tests. socrtl and riscv-tests lines identical.
+on vs round 1 (116c4a4, FPGA setting): the same holds, cycle counts included (examples: sha256_accel
+1,516,177, ed25519_verify 14,652,417, vector_dot 825,090; socrtl and riscv-tests lines identical), so fix 1's
++1 replay does not occur in any existing directed test, example or riscv-tests ELF.
+core-test also runs the whole directed list in core-xinit (2 seeds) and in the srammacro families.
+Logs: sigil-fpga-build2:~/wt/53-r3-{off,on}/build/gates53full/ (off 23:30:49Z-00:33:45Z, on 23:31:09Z-01:19:36Z).
+
+== ACT (riscv-arch-test 6af53584 + Sail 0.15; ELFs of round 1; sim/run_act_core_par.sh, 8 jobs; d8d5e92)
+  core_tb (off):     2577/2578 PASS, FAIL only PMPSm_cfg_A_tor_zero-00; Vx 821/821, Vls 1051/1051, Vf 162/162 (365 s)
+  core_tb_fpga (on): 2577/2578 PASS, FAIL only PMPSm_cfg_A_tor_zero-00; Vx 821/821, Vls 1051/1051, Vf 162/162 (1175 s)
+  Against round 1 (116c4a4): 0 verdict and 0 cycle differences in 2,578 ELFs, in both settings (the +1
+  replay of fix 1 does not occur in ACT).
+
+== riscv-dv vs Spike (d8d5e92 merged with 84974af, not committed; core_tb with SIGIL_FPGA_TIMING +
+SIGIL_VRF_OREG; scripts/riscv_dv_regress.sh --tests all --seeds 1-5 --jobs 14 --gen-mem-gb 90)
+  100/100 PASS, 1,120,384 records compared, 0 non-PASS (1548 s). The same 100 programs as round 1 (asm md5),
+  dut_cycles identical to round 1's branch run in all 100.
+
+== ASIC unchanged (SIGIL_FPGA_TIMING undefined), main eeaa332 vs d8d5e92
+REF=eeaa332 SV2V=~/opt/sv2v scripts/fpga_timing_equiv.sh (Yosys 0.33 equiv_make/struct/simple/induct,
+equiv_status -assert; the script now also drops the new dl_mem_i port for the proofs):
+  sigil_csr    EQUIVALENT, 3936 proven / 0 unproven (233 s)
+  sigil_mmu    EQUIVALENT, 5125 proven / 0 unproven (2885 s)
+  sigil_dcache EQUIVALENT, 2077 / 0 (20 s); sigil_icache EQUIVALENT, 769 / 0 (1 s)
+  sigil_core default:   EQUIVALENT, 12 paired submodules, 10535 proven / 0 unproven (120 s)
+  sigil_core SRAM_OREG: EQUIVALENT, 12 paired submodules, 10535 proven / 0 unproven (118 s)
+Yosys coarse stat (sv2v -DSYNTHESIS of sigil_mmu.sv alone, synth -flatten -run :fine; stat): main eeaa332
+19,255 cells, d8d5e92 19,255 cells, identical by cell type (the unused dl_mem_i input adds no cell).
+Simulation: off cycle-identical to main in every directed run, riscv-tests ELF and ACT ELF (above).
+
+== Vivado F0, 10 ns, d8d5e92 (FPGA_TIMING + VRF_OREG, iter strategy)
+F0_STRATEGY=iter vivado -mode batch -source fpga/f0/f0_ooc.tcl -tclargs build/f0-r3-iter-10ns 10 SIGIL_VRF_OREG SIGIL_FPGA_TIMING
+  WNS +0.799 ns (fmax est. 108.7 MHz), TNS 0.000, 0/92,010 failing endpoints, WHS +0.021 ns;
+  76,559 LUT, 33,288 FF, 9 BRAM tiles, 29 DSP; 21 min (23:23:57Z-23:44:58Z).
+  Worst path u_fabric/a_q_reg[28] -> u_keccak/state_out_reg[*]/CE, 14 levels (outside the core).
+  Worst post-route paths into the registers the fixes touch (report_timing on post_route.dcp):
+    u_mmu/g_dreg.mt_valid_q   +3.421 ns, 17 levels (from csr vl_q)
+    u_mmu/g_dreg.mt_q[*]      +0.932 ns, 23 levels (csr vl_q -> mt_q[pa][34]; also the worst core path)
+    ifid_gpa_q[*]             +1.516 ns, 22 levels
+  Round 1 (116c4a4): WNS +0.614 ns, worst path csr vl_q -> mt_q[pa], 28 levels; 77,121 LUT, 33,313 FF.
+  Reports: sigil-fpga-build2:~/wt/53-r3-f0/build/f0-r3-iter-10ns/ (impl_timing.rpt, impl_util.rpt,
+  impl_top_paths.rpt, mmu_paths.rpt).
+
+== Notes for the merge
+- origin/main moved to 9da0006 (0634f62: #73 Linux release with the MMU walker-race fix #74, Svadu A/D,
+  ptw_* directed tests). That touches sigil_mmu.sv and run_directed.sh/sim/Makefile TESTS, so the branch
+  needs a main merge (conflicts expected in sigil_mmu and in the directed list) and the FPGA_TIMING=0
+  equivalence must then be rerun against the new main. Not done here.
+- The kept tests pass on 9da0006 as they are (main2 above).
+
+== Reproduce (build2)
+builds:  make -C sim ../build/sim/core_tb ../build/sim/core_tb_fpga; make -C sim SRAM_DEF_ft=+define+SIGIL_FPGA_TIMING ../build/sim/core_tb_ft
+matrix:  ~/wt/fix53-runall.sh / fix53-runkept.sh OUT name=path/to/core_tb ... (22 kept lines x rand seeds 1, 7 + no-cache);
+         ~/wt/fix53-irqloop.sh OUT name=tb ... (vm_irq at 152 offsets); summaries ~/wt/fix53-m1, fix53-m2, fix53-irq
+gates:   ~/wt/g53/gates_run.sh <wt> off|on (logs <wt>/build/gates53full/; worktrees ~/wt/53-r3-off, 53-r3-on at 08c607a)
+ACT:     ~/wt/g53/act_r3.sh ~/wt/53-r3-eq 8;  riscv-dv: ~/wt/g53/rdv_run.sh ~/wt/rdv-r3 on 1-5 14
+equiv:   REF=eeaa332 SV2V=~/opt/sv2v scripts/fpga_timing_equiv.sh (in ~/wt/53-r3-eq);  stat: ~/wt/g53/mmustat.sh
+F0:      F0_STRATEGY=iter ~/wt/run_f0_53.sh ~/wt/53-r3-f0 f0-r3-iter-10ns 10 SIGIL_VRF_OREG SIGIL_FPGA_TIMING;
+         paths: vivado -mode batch -source ~/wt/g53/mmu_paths.tcl -tclargs build/f0-r3-iter-10ns

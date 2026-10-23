@@ -2015,6 +2015,29 @@ levels) — the next #53 step. Gates: core-test 234 PASS (incl. the new
 `vrforeg` srammacro family), riscv-tests 123/123, full ACT 2,577/2,578
 on `core_tb_vrforeg`, lint clean on Verilator 5.044/5.048/5.020.
 
+## #53 FPGA timing: review round 2 fixes and directed tests (2026-10-22)
+
+[`fpga-timing-53-review2-2026-10-22.log`](fpga-timing-53-review2-2026-10-22.log):
+three `FPGA_TIMING`-only divergences from `main`, found by directed
+review tests, fixed on `53-mem-stage-pipeline`. An EX data capture took
+a stale walk-fault record (spurious page fault on HLV/HSV/HLVX right
+after a trimmed `vle*ff` of the same VA; such a capture now replays in
+MEM, +1 cycle in that rare case). A fetch access fault wrote a stale GPA
+to `mtval2`/`htval`. The `it_q` simulation check fired on a legal stale
+translation. 21 review programs (`vm_irq` at 152 IRQ offsets) now run in
+`sim/run_directed.sh`. They pass on `main` (`d7fb9a2`, `9da0006`) and on
+the branch with `FPGA_TIMING` off, on and alone, and off is
+cycle-identical to `main`. Gates at `08c607a` (RTL of `d8d5e92`): lint
+on 5.048/5.020/5.044, `make test`, `make core-test`, `socrtl` and
+riscv-tests 123/123 pass in both settings, every existing line
+cycle-identical to round 1. ACT 2,577/2,578 in both settings, same
+verdicts and cycles as round 1; riscv-dv vs Spike 100/100 in the FPGA
+setting. Off formally equivalent to `main` `eeaa332` (`sigil_core`
+default and SRAM_OREG, `sigil_csr`, `sigil_mmu`, `sigil_dcache`,
+`sigil_icache`). Vivado F0 at 10 ns: WNS +0.799 ns. Not kept: two tests
+that hang `main` (a misaligned vector element on an unmapped page) and
+two that fail on `main` before the #74 walker fix.
+
 ## #53 FPGA timing: full gates in both settings, round 1 (2026-10-22)
 
 [`fpga-timing-53-gates-2026-10-22.log`](fpga-timing-53-gates-2026-10-22.log):
