@@ -1,0 +1,265 @@
+sigil_soc_top on sky130hd: whole-SoC hierarchical place and route, #11 (2026-10-22/23)
+======================================================================================
+
+STATUS: GDS generated / place-and-route complete -- not taped out.
+
+The whole Sigil SoC -- in-house RV64GCV core with the element-serial vector
+unit, FPU and 4 KiB L1 I$/D$ (7 OpenRAM macros), the crypto/hash engine
+(SHA-256/512, Keccak, EC field unit) and the SoC glue (reset synchronizer,
+fabric, CLINT, PLIC, UART, boot ROM, crypto bridge) -- placed and routed on
+sky130hd with OpenROAD-flow-scripts as a hierarchical design on a
+non-Caravel die. RTL unchanged (sky130 configuration SIGIL_SRAM_SKY130 +
+SIGIL_SOC_PARAMS_SKY130). No IO pad ring, no seal ring: SoC signals are
+die-edge pins.
+
+  branch   11-sky130-hier; top config flow/designs/sky130hd/sigil_hier/
+           (its floorplan defaults since commit 43f30cd = this run),
+           hard blocks sigil_hier/sigil_cpu/ and sigil_hier/sigil_crypto_top/,
+           signoff decks and helpers sigil_hier/signoff/
+  image    openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663
+           (created 2026-10-11; OpenROAD + OpenSTA + Yosys + KLayout 0.30.12)
+  host     AWS r7iz.8xlarge (32 vCPU, 247 GB), Ubuntu 24.04 ("sigil-sky130")
+  blocks   CPU s116d and crypto w34m; their runs, fix-ups and block-level
+           signoff: ../w7-sky130-hier-2026-10-22.log
+
+RESULT
+------
+  die              3715 x 4260 um = 15.826 mm^2
+                   (core (2,2)-(3712,4256) = 15.784 mm^2)
+  hard blocks      sigil_cpu        3400 x 3420 um (11.628 mm^2) at (305, 10)
+                   sigil_crypto_top 3400 x  780 um ( 2.652 mm^2) at (305, 3470)
+  std cells        530,003 cells, 3.724 mm^2 (fill excluded)
+   (by level)      top 25,763 / 0.097 mm^2, CPU 364,223 / 2.411 mm^2,
+                   crypto 140,017 / 1.217 mm^2
+   (by kind)       logic, flops, buffers 331,338 / 3.438 mm^2;
+                   tap 168,236 / 0.210 mm^2; antenna diodes 30,429 / 0.076 mm^2
+  SRAM macros      7 OpenRAM sky130_sram_1rw1r_* (3 x 64x256, 2 x 128x256,
+                   2 x 44x64), 2.914 mm^2
+  utilisation      std cells + macros 6.638 mm^2 = 42.1 % of the core
+                   (std cells alone 23.6 %); fill cells 1,312,650
+  flip-flops       36,824 (CPU 19,979, crypto 16,007, top 838)
+  routed wire      31.54 m: CPU 23.20 m and crypto 7.57 m (met1-met4),
+                   top 0.77 m (met1-met5)
+  SoC pins         464 signal pins (met3, left die edge) + VDD / VSS (met5)
+  OpenROAD DRC     0 (5_route_drc.rpt empty: top, CPU, crypto)
+  OpenROAD antenna 0 nets / 0 pins (top, CPU, crypto)
+  power grid       top 6_report: "All shapes on net VDD / VSS are connected"
+  equivalence      final netlist vs synthesis "Circuits are IDENTICAL"
+                   (top, CPU, crypto; kepler-formal in the flow)
+  GDS merge        "All LEF cells have matching GDS/OAS cells", "No orphan cells"
+  timing, 40 ns    TT met: SoC setup WNS +6.921 ns, hold +0.247 -> fmax 30.2 MHz
+  (25 MHz)         FF met: +16.842 / +0.118 -> 43.2 MHz
+                   SS NOT met: -23.757 ns -> 15.7 MHz (reported, not closed)
+  power (TT)       0.352 W vectorless (CPU 0.151, crypto 0.199, top 0.002)
+  KLayout DRC      24,976,229 markers in 38 rule classes, all but 8 inside the
+                   7 OpenRAM macros (bit cells / periphery vs logic rules); the
+                   8 (m2.1) vanish with the macro pin pads present -> drc/
+  LVS              crypto block: match (KLayout); full chip: running (below)
+
+FLOORPLAN AND PARTITION
+-----------------------
+  y=4260 +-----+--------------------------------------------+
+         |     |  sigil_crypto_top 3400 x 780 (pins: bottom) |
+    3470 |glue +--------------------------------------------+
+    3430 |col. |  40 um gap: top-level nets to the crypto pins
+         |x 2..+--------------------------------------------+
+         | 300 |                                            |
+         |     |  sigil_cpu 3400 x 3420                     |
+         |SoC  |  (pins: left edge; 7 OpenRAM macros inside)|
+         |pins |                                            |
+      10 |     +--------------------------------------------+
+       0 +-----+--------------------------------------------+
+        x=0   305                                        3715
+
+  - Blocks route met1-met4 and export their met4 VDD/VSS straps as pins;
+    the top-level met5 stripes (1.6 um, 27.2 um pitch) cross both blocks
+    and drop via4 onto them (pdn.tcl, -grid_over_boundary block grid). The
+    glue column has the platform grid (met1 rails, met4 / met5 stripes).
+  - Top-level synthesis reads port-only block stubs (stubs/; ORFS BLOCKS
+    fails on sigil_cpu's parameters under yosys-slang); every later stage
+    reads the block abstracts (sigil_cpu.lef, sigil_crypto_top.lef) and
+    their TT timing models.
+  - Why 15.8 mm^2 rather than ~14: the blocks alone are 14.28 mm^2 (the
+    CPU block needed 3400 x 3420 to route), and the glue column must be
+    ~300 um wide. Block x position swept with the final blocks:
+    x = 200 (die 3610 wide) 48,973 overflowed global-route gcells
+    (stopped); x = 255: 134 (still detail-routed to 0); x = 305: 0;
+    x = 405: 0.
+
+TOP-LEVEL RUNS (sigil-sky130, final blocks s116d / w34m, snapshot a27e98f)
+-------------------------------------------------------------------------
+  run  floorplan                 wall                GRT overflow  DRT (0 at)   antenna  TT setup / hold (ns)  OpenRCX slew / cap
+  t1   x=200, 3610 x 4260        stopped in GRT      48,973        -            -        -                     -
+  t5   x=255, 3665 x 4260        12.2 min            134           0 (it. 7)    0        +22.84                1 cap pin, slew -0.37
+  t2   x=305, 3715 x 4260        20 s + 8.6 min      0             0 (it. 10)   0        +23.63 / +0.25        10 slew pins (-0.07)
+  t3   x=405, 3815 x 4260        8.6 min             0             0 (it. 8)    0        +19.36                slew -0.04
+  t4   x=305 + GRT layer test    stopped             -             -            -        -                     -
+  t2e  t2 + post-route ECO       52 s + 86 s finish  -             0            0        +23.62 / +0.25        0 / 0  <- the GDS
+
+  t2e = t2's results copied (cp -a) + drt_eco_repair.tcl, one round:
+  repair_design and the 150 um maximum-wire-length re-repair of the two
+  nets still violating (net432: 1 buffer, net193: 6), incremental global
+  + detailed route 282 -> 81 -> 60 -> 5 -> 5 -> 0 violations, 0 antenna
+  nets, OpenRCX of the routed result: setup +23.622, hold +0.252, 0 slew /
+  cap / fanout -> done; then make finish (fill, GDS merge, LEC, report).
+  Logs: top_5_2_route_eco.log.gz, top_6_finish.rpt.gz.
+
+STATIC TIMING (OpenSTA, 40 ns, OpenRCX SPEF of each level)
+----------------------------------------------------------
+  corner_sta.tcl per level and corner; the top level reads the blocks'
+  per-corner timing models (write_timing_model of the routed blocks,
+  BLOCK_LIBS), so its paths include the block I/O arcs. Block "internal" =
+  register / macro endpoints in the block (the block-level checks of its
+  output ports against the 12 ns boundary budget are replaced, at SoC
+  level, by the real top-level paths). Every corner uses the platform's
+  only (typical) RC extraction rules; the OpenRAM macros only have a TT
+  model and keep TT timing in all corners. Full summaries: sta/.
+
+  corner        top setup / hold   CPU internal setup              crypto internal setup         CPU / crypto hold   SoC setup WNS / TNS (ep.)          SoC fmax
+  tt_025C_1v80  +23.622 / +0.252   +6.921                          +13.035                       +0.247 / +0.369     +6.921 / 0                          30.2 MHz
+  ss_100C_1v60  +10.226 / +0.620   -23.757 (12,546 ep, -170,622.5) -13.097 (768 ep, -4,440.8)     +0.609 / +0.864     -23.757 / -175,063.4 (13,314)       15.7 MHz
+  ff_n40C_1v95  +27.114 / +0.122   +16.842                         +21.866                       +0.118 / +0.185     +16.842 / 0                         43.2 MHz
+
+  max slew / cap violations (top, CPU, crypto): tt 0/0, 0/0, 0/0;
+  ss 540/86, 21,490/3,567, 3,623/658; ff 0/0, 0/0, 0/0.
+  fmax = 1 / (40 ns - SoC WNS). TT and FF meet 25 MHz with no hold
+  violation. SS is reported, not closed: the CPU block's internal paths
+  need ~64 ns there (TT worst path u_core.boot_q -> u_icache.r_addr_q[49]),
+  SHA-512 ~53 ns; the flow optimizes the TT library only. (Block hold WNS
+  is the whole block, output ports included.)
+
+POWER (OpenSTA report_power, vectorless default activity)
+---------------------------------------------------------
+  corner  CPU block               crypto block  top glue  SoC
+  tt      0.151 W (macros 0.034)  0.199 W       0.0022 W  0.352 W
+  ss      0.127 W                 0.155 W       0.0018 W  0.284 W
+  ff      0.170 W                 0.232 W       0.0026 W  0.405 W
+  The top level reports its own cells only (the block timing models carry
+  no power); the SoC figure is the sum of the three levels. OpenRAM macro
+  power is their TT model in every corner.
+
+KLAYOUT DRC
+-----------
+  Deck: signoff/sky130hd_sigil.lydrc = the image's ORFS sky130hd deck
+  (platforms/sky130hd/drc/sky130hd.lydrc) with FEOL switched on (stock:
+  BEOL + OFFGRID only; 381 rule categories in all) and tiled instead of
+  deep processing (200 um tiles, 5 um borders, 16 threads); the rules are
+  unchanged. Deep mode ran single-threaded for hours on single rules of
+  this layout (and tiling costs the same per mm^2 for 40-1000 um tiles);
+  what made the earlier block-level runs slow was the OpenRAM content:
+  a 300 x 300 um window of a VRF macro holds 3.8M li polygons (14x a
+  std-cell window) and li.3 alone did not finish there in 10 min.
+  So the merged GDS is checked in two parts that together cover it:
+
+  1. Merged final GDS (6_final.gds of t2e, blocks merged in) with the
+     OpenRAM macro cells left out (-rd exclude=sky130_sram_*): 1 h 42 min,
+     24 GB. 8 markers, 1 class:
+        8  m2.1  min. m2 width 0.14 um   (all in the CPU block)
+     They sit at 4 places where a router m2 jog of sigil_cpu lands on an
+     OpenRAM dff pin pad (2 x 1 marker edge pair each; die um ~(947.9,
+     2754.1) on the I$ data macro, (2793.8 / 2805.5 / 2863.9, 938.7) on
+     a VRF macro): the two router rectangles touch over 0.07 x 0.07 um,
+     and the macro's 0.33 x 0.26 um m2 pad covers that junction. With
+     the macro content included (same deck, flat, windows around the 4
+     sites) there is no m2.1 marker at those places; the remaining
+     markers in the windows are OpenRAM-internal or slivers made by the
+     window clipping. OpenROAD's DRT (macro LEF obstructions) reported 0.
+     drc/t2e_merged_drc_summary.txt (+ shapes at the sites),
+     drc/t2e-nosram_drc.lyrdb.gz.
+
+  2. The OpenRAM macros (platform sky130ram GDS, the cells merged into
+     sigil_cpu), each standalone, same deck, tiled 100 um: flat marker
+     counts per macro, x instances in the SoC (2 x 44x64, 3 x 64x256,
+     2 x 128x256):
+        44x64 610,998; 64x256 3,411,963; 128x256 6,759,168
+        -> 24,976,221 in the SoC, 37 classes; largest li.3 4,785,571,
+        difftap.2 2,963,628, licon.5 2,474,120, licon.11a 2,458,204,
+        m1.4 2,248,514, licon.15 1,367,629, poly.8 1,112,858 ... psdm.1 14
+        (full table: drc/openram_macros_drc_summary.txt)
+     The deck has no SRAM-core rules (no areaid.ce exemptions, no
+     bit-cell rule set), so the bit-cell arrays and OpenRAM periphery
+     cells are measured against logic rules; these macros are the
+     OpenRAM blocks shipped with ORFS, used unmodified. (Stock deep mode
+     on the 44x64 macro: 159,037 hierarchical markers, the same 37
+     classes; on the larger two it spent 2 h on one FEOL rule and was
+     stopped.)
+
+  Total for the merged GDS: 24,976,229 markers in 38 classes (the 37
+  OpenRAM classes + m2.1); outside the OpenRAM macros 8, none of which
+  remains with the macro shapes present. For comparison, the nangate45
+  GDS (2026-10-21) reported 179 KLayout markers with the FreePDK45 deck.
+  Not covered by KLayout: interactions between the routing next to a
+  macro and the macro's internal shapes other than at the 4 sites above
+  (checked by OpenROAD's DRT against the macros' LEF obstructions: 0).
+
+LVS
+---
+  (interim) KLayout LVS (signoff/sky130hd_sigil.lylvs): crypto block
+  w34m "Congratulations! Netlists match." (stock deck on the unmodified
+  GDS: 5 h 47 min; with -rd flatten + cdl_drop_empty.py: 12 min, match).
+  Full-chip hierarchical run (top + CPU + crypto, OpenRAM black boxes) and
+  the CPU block run: in progress.
+
+ARTIFACTS (sigil-sky130)
+------------------------
+  ~/sb/final/sigil_soc_top_sky130hd.gds.gz   stable path; gzip -9 of the final GDS
+      81,230,068 B   sha256 771e5e0160cd26b09368831b2dbe1f912f6e0ce6c12a0f807a4984336fc27f5b
+  ~/sb/build/results/sky130hd/sigil_hier/t2e/6_final.gds   (blocks merged in)
+      631,569,078 B  sha256 0417f714df2c26fc1fff3eeecae7ba64638e54557be4de7167e2a4bf568042ec
+  merged blocks: CPU s116d 6_final.gds 430,498,172 B sha256 d71ee9c6d44d8df6d76dce438cedc5ae90dff1497498b5910cdb42df1c9b6eed;
+                 crypto w34m 6_final.gds sha256 4ffbd783... (w7 log)
+  Top results (6_final.odb/.v/.sdc/.spef/.def), reports and logs:
+  ~/sb/build/{results,reports,logs}/sky130hd/sigil_hier/t2e/; STA
+  ~/sb/sta/{top-t2e,cpu-s116d,crypto-w34m-split}/; DRC ~/sb/drc/; LVS ~/sb/lvs/.
+
+  Here: top_6_finish.rpt.gz; top_5_route_drc.rpt and top_drt_antennas.log
+  (both empty = 0); top_5_2_route_eco.log.gz; top_synth_stat.txt; sta/
+  (per-corner summaries + power of the three levels); area.txt; drc/; lvs/;
+  host_scripts/ (the host wrappers that ran everything below).
+
+REPRODUCE
+---------
+  Host wrappers in host_scripts/ (sigil-sky130: ~/sigil = branch
+  checkout, ~/sb = work dir; run.sh runs make in the pinned image on a
+  git-archive snapshot of a commit, so later commits do not change a
+  run). Inside the image every step is plain ORFS make:
+    make DESIGN_CONFIG=designs/sky130hd/<cfg> NUM_CORES=<n> <vars> <target>
+
+  1. Blocks: CPU s116 -> s116d and crypto w34m, commands in
+     ../w7-sky130-hier-2026-10-22.log ("Reproduce" of each block); their
+     results (LEF, typ lib, GDS) are read from
+     results/sky130hd/sigil_hier_<block>/<variant>/; per-corner block
+     models: corner_sta.tcl MODEL=1 (~/sb/sta/cpu-s116d, crypto-w34m).
+  2. Top level t2 (snapshot a27e98f; its floorplan arguments are the
+     config defaults since 43f30cd), host_scripts/trun.sh:
+       FP='DIE_AREA="0 0 3715 4260" CORE_AREA="2 2 3713 4258" SIGIL_CPU_XY="305 10" SIGIL_CRYPTO_XY="305 3470"'
+       B="SIGIL_CPU_VARIANT=s116d SIGIL_CRYPTO_VARIANT=w34m"
+       make DESIGN_CONFIG=designs/sky130hd/sigil_hier/config.mk NUM_CORES=4 FLOW_VARIANT=t2 SIGIL_TOP_SYNTH=1 $B $FP synth
+       make DESIGN_CONFIG=designs/sky130hd/sigil_hier/config.mk NUM_CORES=8 FLOW_VARIANT=t2 $B $FP finish
+  3. ECO -> t2e (host_scripts/eco.sh t2e 12), after copying t2's
+     results/logs/reports/objects dirs to t2e with cp -a:
+       make ... NUM_CORES=12 FLOW_VARIANT=t2e $B $FP \
+         RUN_SCRIPT=/OpenROAD-flow-scripts/flow/designs/sky130hd/sigil_hier/drt_eco_repair.tcl \
+         RUN_LOG_NAME_STEM=5_2_route_eco SIGIL_ECO_SPEF=/OpenROAD-flow-scripts/flow/results/sky130hd/sigil_hier/t2e/6_final.spef \
+         SIGIL_NET_MAX_LEN=150 SIGIL_ECO_ROUNDS=3 run
+       make ... NUM_CORES=12 FLOW_VARIANT=t2e $B $FP finish
+  4. STA (host_scripts/tsta.sh t2e ~/sb/sta/top-t2e "orfs tt ss ff";
+     host_scripts/bsta.sh for the blocks): per corner
+       RES=<results dir> CORNER=<orfs|tt|ss|ff> OUT=<dir> PDKLIB=<dir with the
+       sky130_fd_sc_hd tt/ss/ff libs> [BLOCK_LIBS="<dir>/sigil_cpu_%c.lib <dir>/sigil_crypto_top_%c.lib"] \
+       openroad -exit -no_init flow/designs/sky130hd/sigil_hier/corner_sta.tcl
+  5. KLayout DRC (host_scripts/sdrc.sh):
+       klayout -b -rd in_gds=<t2e 6_final.gds> -rd report_file=drc.lyrdb \
+         -rd exclude='sky130_sram_*' -rd tile=200 -rd threads=16 -r signoff/sky130hd_sigil.lydrc
+       klayout -b -rd in_gds=platforms/sky130ram/<m>/<m>.gds -rd report_file=drc.lyrdb \
+         -rd tile=100 -rd threads=10 -r signoff/sky130hd_sigil.lydrc
+       python3 signoff/lyrdb_sum.py drc.lyrdb [--soc]
+  6. LVS (host_scripts/mkcdl.sh, then host_scripts/hlvs.sh):
+       write_cdl of each level (masters: platform sky130hd.cdl, the block
+       CDLs, OpenRAM pin-only stubs); cat; signoff/cdl_drop_empty.py;
+       klayout -b -rd in_gds=<6_final.gds> -rd cdl_file=concat_lvs.cdl -rd top_cell=<top> \
+         -rd report_file=lvs.lvsdb -rd target_netlist=extracted.cir -rd blank='sky130_sram_1rw1r_*' \
+         -rd flatten='sky130_fd_sc_hd__fill_*,sky130_fd_sc_hd__tapvpwrvgnd_*,sky130_fd_sc_hd__diode_*' \
+         -r signoff/sky130hd_sigil.lylvs   (threads(4) -> threads(8))
+  7. Area / pins: ODB=<6_final.odb> openroad -exit -no_init signoff/area.tcl (io.tcl);
+     GDS: gzip -9 -c 6_final.gds > ~/sb/final/sigil_soc_top_sky130hd.gds.gz; sha256sum.

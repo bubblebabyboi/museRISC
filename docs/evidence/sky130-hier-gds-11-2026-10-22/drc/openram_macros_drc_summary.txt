@@ -1,0 +1,51 @@
+# KLayout DRC of the OpenRAM macros, standalone (platform sky130ram GDS = the cells merged into sigil_cpu), signoff/sky130hd_sigil.lydrc (ORFS sky130hd deck, FEOL + BEOL + OFFGRID), tiled 100 um, flat marker counts
+# The deck has no SRAM-core rules (no areaid.ce exemptions), so the bit-cell arrays and OpenRAM periphery cells are checked against the logic rules.
+2026-10-23T08:46:07Z START drc-sky130_sram_1rw1r_44x64_8_tiled gds=/OpenROAD-flow-scripts/flow/platforms/sky130ram/sky130_sram_1rw1r_44x64_8
+2026-10-23T08:47:55Z END drc-sky130_sram_1rw1r_44x64_8_tiled rc=0 wall=108s markers=610998
+2026-10-23T08:40:53Z START drc-sky130_sram_1rw1r_64x256_8_tiled gds=/OpenROAD-flow-scripts/flow/platforms/sky130ram/sky130_sram_1rw1r_64x256
+2026-10-23T08:45:51Z END drc-sky130_sram_1rw1r_64x256_8_tiled rc=0 wall=298s markers=3411963
+2026-10-23T08:40:53Z START drc-sky130_sram_1rw1r_128x256_8_tiled gds=/OpenROAD-flow-scripts/flow/platforms/sky130ram/sky130_sram_1rw1r_128x2
+2026-10-23T08:48:51Z END drc-sky130_sram_1rw1r_128x256_8_tiled rc=0 wall=478s markers=6759168
+rule              44x64     64x256    128x256  SoC (2/3/2)  description
+li.3             116971     655391    1292728      4785571  li.3 : min. li spacing : 0.17um
+difftap.2         72324     404052     803412      2963628  difftap.2: min. gate inside areaid.sc width : 0.36um
+licon.5           60000     337496     670816      2474120  licon.5 : min. diff enclosure of licon : 0.04um
+licon.11a         59552     334388     667968      2458204  licon.11a : min. licon spacing to gate inside areaid.sc : 0.05um
+m1.4              55402     307942     606942      2248514  m1.4 : min. m1 enclosure of mcon : 0.03um
+licon.15          33488     187071     369720      1367629  licon.15 : min. npc enclosure of poly-licon : 0.1um
+poly.8            27054     151846     301606      1112858  poly.8 : min. poly extention gate (endcap) : 0.13um
+poly.10           23928     134168     267288       984936  poly.10 : poly must not overlap diff corner
+licon.8           21252     118560     235040       868264  licon.8 : min. poly enclosure of licon : 0.05um
+licon.4           18344     101408     202016       744944  licon.4 : min. licon must overlap li and (poly or tap or diff) 
+licon.11c         18216     101400     201240       743112  licon.11c : min. licon spacing to gate for specific cells: 0.04um
+licon.14          15268      85678     167442       622454  licon.14 : min. poly licon spacing to difftap : 0.19um
+poly.4            12144      67600     134160       495408  poly.4 : min. poly on field spacing to diff : 0.075um
+poly.5            12144      67600     134160       495408  poly.5 : min. poly on field spacing to tap : 0.055um
+licon.17          11964      67340     133644       493236  licon.17 : tap must not straddle poly
+li.1               6389      34783      68122       253371  li.1 : min. li width : 0.17um
+ct.4               6246      34062      67854       250386  ct.4 : mcon should covered by li
+poly.12            6072      33800      67080       247704  poly.12 : poly must not overlap tap
+difftap.4          6072      33800      67080       247704  difftap.4 : min. tap bound by diffusion : 0.29um
+difftap.1          6030      33934      66824       247510  difftap.1 : min. difftap width : 0.15um
+poly.2             5875      33670      66241       245242  poly.2 : min. poly spacing : 0.21um
+difftap.9          3718      19788      37180       141160  difftap.9 : min. n+diff spacing to nwell : 0.34um
+difftap.10         3038      16902      33542       123866  difftap.10 : min. n+tap enclosure by nwell : 0.18um
+licon.7            3036      16900      33540       123852  licon.7 : min. tap enclosure of licon by one of 2 opposite edges : 0.12um
+li.5               2946      16770      33282       122766  li.5 : min. li enclosure of licon of 2 opposite edges : 0.08um
+ncm.x.3            1807       9712      19118        70986  ncm.x.3 : ncm must not overlap n+diff
+m3.2                205       1979       3882        14111  m3.2 : min. m3 spacing : 0.3um
+m2.2                128       1026       2056         7446  m2.2 : min. m2 spacing : 0.14um
+m1.2                268        548       1044         4268  m1.2 : min. m1 spacing : 0.14um
+via2.1a             264        520       1032         4152  via2.1a : minimum/maximum width of via2 : 0.2um
+ct.2                198        390        774         3114  ct.2 : min. mcon spacing : 0.19um
+via.2               198        390        774         3114  via.2 : min. via spacing : 0.17um
+poly.7              184        520        520         2968  poly.7 : min. source/drain length : 0.25um
+licon.2             132        260        516         2076  licon.2 : min. licon spacing : 0.17um
+n/psdm.1             73        137        265         1087  n/psdm.1 : min. psdm spacing, should be mnually merge if less : 0.38um
+n/psdm.8             66        130        258         1038  n/psdm.8 : tap should be the same type of well/substrate underneath
+psdm.1                2          2          2           14  psdm.1 : min. psdm width : 0.38um
+total            610998    3411963    6759168     24976221  (37 rule classes)
+
+# cross-check: the 44x64 macro in the deck stock deep mode (hierarchical counts, one marker per cell, not per instance):
+2026-10-23T07:21:37Z END drc-sky130_sram_1rw1r_44x64_8 rc=0 wall=1609s markers=159037
+markers 159037 in 37 categories (381 categories in the report)

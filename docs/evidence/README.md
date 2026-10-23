@@ -2107,3 +2107,31 @@ flat run; config `flow/designs/sky130hd/sigil_hier/` (top) with
   1.26 mm² + halos, and ~0.3 mm² of logic), trim the crypto engine for
   sky130 (Keccak/SHA-512), a smaller SRAM option (DFFRAM, custom
   single-port OpenRAM), or a ~14 mm² non-Caravel die.
+
+## W7 / #11: whole-SoC sky130hd GDS, hierarchical, 15.8 mm² die (2026-10-22/23) — GDS generated / place-and-route complete — not taped out
+
+[`sky130-hier-gds-11-2026-10-22/`](sky130-hier-gds-11-2026-10-22/)
+(write-up in `summary.log`; block runs in
+[`w7-sky130-hier-2026-10-22.log`](w7-sky130-hier-2026-10-22.log)).
+Branch `11-sky130-hier`, ORFS image `openroad/orfs@sha256:63981d1a…`,
+host sigil-sky130 (r7iz.8xlarge). The whole `sigil_soc_top`, RTL unchanged,
+as hard blocks `sigil_cpu` (core, vector unit, FPU, L1s, 7 OpenRAM macros;
+3400 × 3420 µm) and `sigil_crypto_top` (3400 × 780 µm) plus a 300 µm glue
+column, through the full ORFS flow to a merged `6_final.gds` (owner decision
+2026-10-22: non-Caravel die):
+
+| | sky130hd, hierarchical |
+|---|---:|
+| Die / core | 3715 × 4260 µm = 15.83 mm² / 15.78 mm² |
+| Std cells / macros | 530,003 cells, 3.72 mm² / 7 OpenRAM, 2.91 mm² (42.1 % of the core) |
+| Route DRC (OpenROAD) | 0 (top, CPU, crypto) |
+| Antenna (OpenROAD) | 0 nets / 0 pins (top, CPU, crypto) |
+| Setup / hold at 40 ns, TT | met: SoC WNS +6.921 ns, hold +0.247 ns, fmax 30.2 MHz |
+| FF / SS | FF met (43.2 MHz); SS not met (−23.757 ns, 15.7 MHz), reported |
+| Power (TT, vectorless) | 0.352 W |
+| Equivalence (final vs synthesis) | identical at all three levels |
+| KLayout DRC (ORFS sky130hd deck with FEOL on, 381 rule categories) | 24,976,229 markers in 38 classes: 24,976,221 inside the 7 OpenRAM macros (37 classes; the deck has no SRAM-core rules), 8 `m2.1` outside them, at 4 router jogs onto OpenRAM pin pads, none left with the pad shapes present |
+| LVS (KLayout, hierarchical) | crypto block match; full chip in progress (see the write-up) |
+
+Final GDS (gzip) on sigil-sky130 at `~/sb/final/sigil_soc_top_sky130hd.gds.gz`,
+sha256 `771e5e01…`; the GDS itself `0417f714…` (full hashes in the write-up).

@@ -839,3 +839,27 @@ die").
     checked with the same generic rules (no SRAM-core exemptions in
     this deck), so violations inside the macros are expected and have
     to be separated from the routing before reading the count.
+
+== Top level with the final blocks and the GDS (sigil-sky130, 2026-10-23)
+  Full write-up, signoff and artifacts: sky130-hier-gds-11-2026-10-22/summary.log.
+  Blocks s116d (CPU) and w34m (crypto); top config at a27e98f (slew / cap
+  margins 30 %, 10 post-route antenna rounds), floorplan swept by the
+  block x position (= glue-column width + 5 um), die 3410 + x wide, 4260 tall:
+    t1  x=200 (3610 x 4260): GRT 48,973 overflowed gcells, stopped
+    t5  x=255 (3665 x 4260): GRT 134, DRT 0, antenna 0, TT +22.84 ns, 1 cap pin
+    t2  x=305 (3715 x 4260): GRT 0, DRT 0 (iteration 10), antenna 0, TT setup
+        +23.63 / hold +0.25, 10 max-slew pins (-0.07 ns) after OpenRCX; 8.6 min
+    t3  x=405 (3815 x 4260): GRT 0, DRT 0, antenna 0, TT +19.36
+    (t4: x=305 with a GRT layer-adjustment test, stopped)
+  t2e = t2 + drt_eco_repair.tcl (SIGIL_NET_MAX_LEN=150, 1 round, 52 s:
+    7 buffers on net432 / net193, DRT 282 -> 0, antenna 0; OpenRCX: setup
+    +23.622, hold +0.252, 0 slew / cap) + make finish (86 s): the GDS.
+  SoC result: die 3715 x 4260 = 15.83 mm^2, 530,003 std cells (3.724 mm^2) +
+    7 OpenRAM (2.914 mm^2) = 42.1 % of the core; OpenROAD DRC 0 / antenna 0 at
+    all levels; 40 ns met in TT (SoC WNS +6.921, fmax 30.2 MHz) and FF (43.2
+    MHz), not in SS (-23.757, 15.7 MHz); 0.352 W TT. KLayout DRC of the merged
+    GDS and LVS: see the write-up.
+  The block-level KLayout DRC of the CPU (container sky-cpu-s116d-drc, tiled
+    1 mm, ORFS deck in make drc, started 00:41Z) is superseded by the merged-GDS
+    check; it was still in the li rules after 8 h because of the OpenRAM
+    contents (see the write-up).

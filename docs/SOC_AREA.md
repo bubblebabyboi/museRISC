@@ -1,5 +1,12 @@
 # SoC area and timing estimate (synthesis, 2026-10-16)
 
+> **Update 2026-10-23 (#11): sky130 place-and-route complete.** The
+> whole SoC (unchanged RTL) is placed and routed on sky130hd as a
+> hierarchical design on a 3715 × 4260 µm (15.83 mm²) non-Caravel die:
+> GDS generated, not taped out. Measured areas and timing are in
+> "Whole-SoC GDS on sky130hd" below; the synthesis-era estimates further
+> down are kept for history.
+
 > **Update 2026-10-20 (W7.1 + W7.2 RTL prep, issue #11).** The
 > synthesis numbers below were measured before these changes and
 > have not been re-run yet:
@@ -511,6 +518,44 @@ about 1.4× the Caravel user area. It does not fit Caravel in this
 configuration. The crypto engine is a third of the SoC's std-cell
 area since W3 (Keccak f1600, SHA-512). See
 [`evidence/w7-sky130-hier-2026-10-22.log`](evidence/w7-sky130-hier-2026-10-22.log).
+
+### Whole-SoC GDS on sky130hd (2026-10-23)
+
+**GDS generated / place-and-route complete — not taped out.** Hard
+blocks `sigil_cpu` (s116d) and `sigil_crypto_top` (w34m) plus the top
+level (glue column), RTL unchanged, die 3715 × 4260 µm. Measured on the
+routed `6_final.odb` of each level:
+
+| | Cells | Area |
+|---|---:|---:|
+| Die (core) | | 15.826 mm² (15.784 mm²) |
+| `sigil_cpu` block, 3400 × 3420 µm | 364,223 std cells + 7 OpenRAM macros | 11.628 mm² (2.411 mm² std cells + 2.914 mm² macros) |
+| `sigil_crypto_top` block, 3400 × 780 µm | 140,017 std cells | 2.652 mm² (1.217 mm² std cells) |
+| Top level (glue column x 2–300 µm + 40 µm gap) | 25,763 std cells | 0.097 mm² std cells |
+| **SoC std cells** (fill excluded) | 530,003 | **3.724 mm²** (logic, flops, buffers 3.438; taps 0.210; antenna diodes 0.076) |
+| **SoC macros** | 7 | **2.914 mm²** |
+| Utilisation (std cells + macros / core) | | **42.1 %** (std cells alone 23.6 %) |
+| Flip-flops | 36,824 | |
+| Routed wire | | 31.5 m |
+
+This configuration synthesizes to 3.03 mm² of std cells (CPU block
+1.896, crypto 1.074, glue 0.060; per-block synthesis, 2026-10-22);
+placed and routed it is 3.72 mm², the difference being 0.21 mm² of tap
+cells, 0.08 mm² of antenna diodes and the timing / slew repair and
+clock buffers. The die size is set by routing, not cells: the CPU block
+global-routes cleanly only at ~46 % utilisation (cells + macros).
+
+| Corner (40 ns, OpenRCX) | SoC setup WNS | Hold WNS | fmax | Power (vectorless) |
+|---|---:|---:|---:|---:|
+| tt 25 °C 1.80 V | +6.921 ns | +0.247 ns | **30.2 MHz** | 0.352 W |
+| ss 100 °C 1.60 V | −23.757 ns (not closed) | +0.609 ns | 15.7 MHz | 0.284 W |
+| ff −40 °C 1.95 V | +16.842 ns | +0.118 ns | 43.2 MHz | 0.405 W |
+
+The limiting paths are inside the CPU block (TT worst
+`u_core.boot_q` → `u_icache.r_addr_q[49]`); the top level has ≥ 10 ns
+of slack in every corner. Signoff (OpenROAD DRC / antenna 0, KLayout
+DRC marker classes, LVS) and reproduction:
+[`evidence/sky130-hier-gds-11-2026-10-22/summary.log`](evidence/sky130-hier-gds-11-2026-10-22/summary.log).
 
 ## sky130 chip-size estimate (rough, 2026-10-16 configuration)
 
