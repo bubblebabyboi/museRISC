@@ -1,0 +1,60 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/soc_rtl_tb 200000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/suite/bin/kernels-scalar/kernels.bin --exit-string 'SIGIL TEST PASS kernels' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/suite/runs/kernels-scalar.soc-default.r1.perf
+loaded 18624 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/suite/bin/kernels-scalar/kernels.bin
+kernels: VLEN=512 bits, 4 calls per region
+SIGIL PERF region=10 cycles=78025 instret=32815
+SIGIL PERF region=11 cycles=43148 instret=361
+KERNEL vadd_i32 1024 elem per call: C 19506.3 cyc (IPC 0.421, 0.0525 elem/cyc) RVV 10787.0 cyc (IPC 0.008, 0.0949 elem/cyc) speedup RVV 1.81x
+KERNEL vadd_i32 CHECK OK elem=1024 iterations=4
+SIGIL PERF region=20 cycles=39317 instret=16429
+SIGIL PERF region=21 cycles=22268 instret=361
+KERNEL vadd_i64 512 elem per call: C 9829.3 cyc (IPC 0.418, 0.0521 elem/cyc) RVV 5567.0 cyc (IPC 0.016, 0.0920 elem/cyc) speedup RVV 1.77x
+KERNEL vadd_i64 CHECK OK elem=512 iterations=4
+SIGIL PERF region=30 cycles=59888 instret=14381
+SIGIL PERF region=31 cycles=36044 instret=329
+KERNEL daxpy 512 elem per call: C 14972.0 cyc (IPC 0.240, 0.0342 elem/cyc) RVV 9011.0 cyc (IPC 0.009, 0.0568 elem/cyc) speedup RVV 1.66x
+KERNEL daxpy CHECK OK elem=512 iterations=4
+SIGIL PERF region=40 cycles=131550 instret=28717
+SIGIL PERF region=41 cycles=70900 instret=329
+KERNEL saxpy 1024 elem per call: C 32887.5 cyc (IPC 0.218, 0.0311 elem/cyc) RVV 17725.0 cyc (IPC 0.005, 0.0578 elem/cyc) speedup RVV 1.86x
+KERNEL saxpy CHECK OK elem=1024 iterations=4
+SIGIL PERF region=50 cycles=51382 instret=12337
+SIGIL PERF region=51 cycles=31593 instret=321
+KERNEL ddot 512 elem per call: C 12845.5 cyc (IPC 0.240, 0.0399 elem/cyc) RVV 7898.3 cyc (IPC 0.010, 0.0648 elem/cyc) speedup RVV 1.63x
+KERNEL ddot CHECK OK elem=512 iterations=4
+SIGIL PERF region=60 cycles=77967 instret=28721
+SIGIL PERF region=61 cycles=51602 instret=577
+KERNEL idot_i32 1024 elem per call: C 19491.8 cyc (IPC 0.368, 0.0525 elem/cyc) RVV 12900.5 cyc (IPC 0.011, 0.0794 elem/cyc) speedup RVV 1.51x
+KERNEL idot_i32 CHECK OK elem=1024 iterations=4
+SIGIL PERF region=70 cycles=33067 instret=10344
+SIGIL PERF region=71 cycles=13172 instret=264
+SIGIL PERF region=72 cycles=99064 instret=260
+KERNEL memcpy 4096 byte per call: C 8266.8 cyc (IPC 0.313, 0.4955 byte/cyc) RVV 3293.0 cyc (IPC 0.020, 1.2439 byte/cyc) RVV-e8 24766.0 cyc (IPC 0.003, 0.1654 byte/cyc) speedup RVV 2.51x speedup RVV-e8 0.33x
+KERNEL memcpy CHECK OK byte=4096 iterations=4
+SIGIL PERF region=80 cycles=20763 instret=6254
+SIGIL PERF region=81 cycles=7006 instret=230
+SIGIL PERF region=82 cycles=51835 instret=204
+KERNEL memset 4096 byte per call: C 5190.8 cyc (IPC 0.301, 0.7891 byte/cyc) RVV 1751.5 cyc (IPC 0.033, 2.3386 byte/cyc) RVV-e8 12958.8 cyc (IPC 0.004, 0.3161 byte/cyc) speedup RVV 2.96x speedup RVV-e8 0.40x
+KERNEL memset CHECK OK byte=4096 iterations=4
+SIGIL PERF region=90 cycles=2885959 instret=828337
+SIGIL PERF region=91 cycles=1561826 instret=26681
+KERNEL dgemm 32768 mac per call: C 721489.8 cyc (IPC 0.287, 0.0454 mac/cyc) RVV 390456.5 cyc (IPC 0.017, 0.0839 mac/cyc) speedup RVV 1.85x
+KERNEL dgemm CHECK OK mac=32768 iterations=4
+SIGIL PERF region=100 cycles=3238174 instret=828337
+SIGIL PERF region=101 cycles=1563153 instret=26681
+KERNEL sgemm 32768 mac per call: C 809543.5 cyc (IPC 0.256, 0.0405 mac/cyc) RVV 390788.3 cyc (IPC 0.017, 0.0839 mac/cyc) speedup RVV 2.07x
+KERNEL sgemm CHECK OK mac=32768 iterations=4
+SIGIL PERF region=110 cycles=1917117 instret=426042
+SIGIL PERF region=111 cycles=747597 instret=3476
+KERNEL fir_f32 16384 mac per call: C 479279.3 cyc (IPC 0.222, 0.0342 mac/cyc) RVV 186899.3 cyc (IPC 0.005, 0.0877 mac/cyc) speedup RVV 2.56x
+KERNEL fir_f32 CHECK OK mac=16384 iterations=4
+SIGIL PERF region=120 cycles=344210 instret=114736
+SIGIL PERF region=121 cycles=199112 instret=698
+KERNEL mac_i8 4096 mac per call: C 86052.5 cyc (IPC 0.333, 0.0476 mac/cyc) RVV 49778.0 cyc (IPC 0.004, 0.0823 mac/cyc) speedup RVV 1.73x
+KERNEL mac_i8 CHECK OK mac=4096 iterations=4
+SIGIL PERF region=130 cycles=172186 instret=57392
+SIGIL PERF region=131 cycles=93063 instret=577
+KERNEL mac_i16 2048 mac per call: C 43046.5 cyc (IPC 0.333, 0.0476 mac/cyc) RVV 23265.8 cyc (IPC 0.006, 0.0880 mac/cyc) speedup RVV 1.85x
+KERNEL mac_i16 CHECK OK mac=2048 iterations=4
+KERNELS CHECK OK kernels=13 iterations=4
+SIGIL TEST PASS kernels
+SOC RTL TB PASS (exit string at 26832829 cycles)

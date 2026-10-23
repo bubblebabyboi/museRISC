@@ -20,6 +20,11 @@
 // reason is printed), 2 timeout/usage error.
 // With no --exit-string, success is a trap-free run to
 // max_cycles is NOT assumed: timeout (2) is returned.
+// The test finisher (0x0010_0000, QEMU virt semantics, issue #67)
+// also ends the run: power off 0x5555 -> 0 (PASS), (code << 16) |
+// 0x3333 -> 1, reboot 0x7777 -> 3 (not supported by this harness).
+// The parallel UART stream is never stalled (uart_tx_stall_i = 0) and
+// the RTC time base (rtc_ns_i) stays 0.
 #include "Vsigil_soc_top.h"
 #include "verilated.h"
 #include "mbus_model.h"
@@ -161,6 +166,8 @@ int main(int argc, char** argv) {
   dut->uart_rx_i = 1;
   dut->uart_rx_data_i = 0;
   dut->uart_rx_valid_i = 0;
+  dut->uart_tx_stall_i = 0;
+  dut->rtc_ns_i = 0;
   dut->ext_irq_i = 0;
   for (int i = 0; i < 4; ++i) {
     dut->clk_i = static_cast<uint8_t>(i & 1);
@@ -212,9 +219,20 @@ int main(int argc, char** argv) {
     req.inst = dut->mem_req_inst_o;
     const bool tx_valid = dut->uart_tx_valid_o != 0;
     const uint8_t tx_byte = dut->uart_tx_data_o;
+    const bool fin = dut->fin_valid_o != 0;
+    const uint32_t fin_val = dut->fin_data_o;
     dut->clk_i = 1;
     dut->eval();
     bus.Edge(req);
+    if (fin) {
+      std::fflush(stdout);
+      const uint32_t st = fin_val & 0xFFFFu;
+      std::fprintf(stderr, "\nSOC RTL TB %s (test finisher 0x%08x at %llu cycles)\n",
+                   st == 0x5555 ? "PASS" : st == 0x7777 ? "REBOOT" : "FAIL", fin_val,
+                   static_cast<unsigned long long>(cycle + 1));
+      dut->final();
+      return st == 0x5555 ? 0 : st == 0x7777 ? 3 : 1;
+    }
     if (tx_valid) {
       std::fputc(tx_byte, stdout);
       std::fflush(stdout);

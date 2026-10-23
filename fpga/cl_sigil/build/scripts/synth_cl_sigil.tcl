@@ -26,6 +26,12 @@ switch $clock_recipe_b {
   default { error "unknown clock_recipe_b $clock_recipe_b" }
 }
 print "Sigil core clock: clk_extra_b1, recipe $clock_recipe_b = ${core_khz} kHz"
+# HBM AXI clock (clk_hbm_axi) recipe number, reported in OCL CAPS so the
+# host reprograms the same recipe when it changes group B at run time.
+if {![regexp {^H([0-9])$} $clock_recipe_hbm -> hbm_recipe]} {
+  error "unknown clock_recipe_hbm $clock_recipe_hbm"
+}
+print "Sigil HBM AXI clock: clk_hbm_axi, recipe $clock_recipe_hbm"
 
 print "Reading Sigil SoC RTL from ${rtl_dir}"
 set fh [open ${rtl_dir}/sigil_soc_files.mk r]; set mk [read $fh]; close $fh
@@ -34,6 +40,7 @@ foreach tok [regexp -all -inline {[A-Za-z0-9_/]+\.sv} $mk] { lappend soc_files $
 lappend soc_files \
   ${rtl_dir}/fpga/sigil_fifo.sv \
   ${rtl_dir}/fpga/sigil_mbus_axi4.sv \
+  ${rtl_dir}/fpga/sigil_axi_memeng.sv \
   ${rtl_dir}/fpga/sigil_fpga_top.sv \
   ${rtl_dir}/fpga/sigil_ocl_regs.sv \
   ${rtl_dir}/fpga/sigil_fpga_ocl.sv \
@@ -66,8 +73,24 @@ read_ip [ list \
   ${HDK_IP_SRC_DIR}/cl_axi_clock_converter/cl_axi_clock_converter.xci \
   ${HDK_IP_SRC_DIR}/cl_axi_clock_converter_light/cl_axi_clock_converter_light.xci \
 ]
-add_files [ list ${HDK_BD_SRC_DIR}/cl_axi_sc_2x2/cl_axi_sc_2x2.bd ]
-read_verilog [ list ${HDK_BD_GEN_DIR}/cl_axi_sc_2x2/hdl/cl_axi_sc_2x2_wrapper.v ]
+read_ip [ list \
+  ${HDK_IP_SRC_DIR}/cl_hbm/cl_hbm.xci \
+  ${HDK_IP_SRC_DIR}/cl_axi3_256b_reg_slice/cl_axi3_256b_reg_slice.xci \
+]
+add_files [ list \
+  ${HDK_BD_SRC_DIR}/cl_axi_sc_1x1/cl_axi_sc_1x1.bd \
+  ${HDK_BD_SRC_DIR}/cl_axi_sc_2x2/cl_axi_sc_2x2.bd \
+]
+read_verilog [ list \
+  ${HDK_BD_GEN_DIR}/cl_axi_sc_1x1/hdl/cl_axi_sc_1x1_wrapper.v \
+  ${HDK_BD_GEN_DIR}/cl_axi_sc_2x2/hdl/cl_axi_sc_2x2_wrapper.v \
+]
+
+# HBM (issue #66): the HDK cl_mem_perf example's HBM wrapper (cl_hbm IP on
+# AWS_CLK_GEN's clk_hbm_axi), read from the pinned aws-fpga checkout.
+set hdk_mem_perf [file normalize ${HDK_SHELL_DESIGN_DIR}/../../../cl/examples/cl_mem_perf/design]
+print "Reading HBM wrapper from ${hdk_mem_perf}"
+read_verilog -sv [ list ${hdk_mem_perf}/cl_mem_hbm_wrapper.sv ]
 
 print "Reading user constraints"
 read_xdc [ list \
@@ -85,6 +108,7 @@ synth_design -mode out_of_context \
              -verilog_define XSDB_SLV_DIS \
              -verilog_define SYNTHESIS \
              -verilog_define SIGIL_CORE_CLK_KHZ=${core_khz} \
+             -verilog_define SIGIL_HBM_RECIPE=${hbm_recipe} \
              -include_dirs [list ${rtl_dir}/core ${src_post_enc_dir}] \
              -part ${DEVICE_TYPE} \
              -keep_equivalent_registers

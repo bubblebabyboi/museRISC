@@ -1,0 +1,41 @@
+$ /home/ubuntu/wt/56-perf-harness/build/sim/soc_rtl_tb_sky130 20000000 --mem-lat 1:1 --mem-gap 0 --mem-ready 100 --load 0x80000000=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_units-default/micro_units.bin --exit-string 'SIGIL TEST PASS micro_units' --fail-string 'SIGIL TEST FAIL' +sigil_perf=/home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/runs/micro_units-default.soc-sky130.r0.perf
+loaded 12632 bytes at 0x80000000 from /home/ubuntu/wt/56-perf-harness/build/perf/baseline-56/sky130/bin/micro_units-default/micro_units.bin
+SIGIL PERF region=1 cycles=71 instret=9
+MICRO region=1 empty ops=1024 cycles=71 instret=9 cycles/op=0.069
+SIGIL PERF region=2 cycles=4352 instret=1075
+MICRO region=2 mul_dep ops=1024 cycles=4352 instret=1075 cycles/op=4.250
+SIGIL PERF region=3 cycles=4307 instret=1075
+MICRO region=3 mul_indep ops=1024 cycles=4307 instret=1075 cycles/op=4.206
+SIGIL PERF region=4 cycles=37078 instret=1072
+MICRO region=4 div_dep ops=1024 cycles=37078 instret=1072 cycles/op=36.209
+SIGIL PERF region=5 cycles=37084 instret=1072
+MICRO region=5 div_indep ops=1024 cycles=37084 instret=1072 cycles/op=36.215
+SIGIL PERF region=6 cycles=4295 instret=1067
+MICRO region=6 div_short ops=1024 cycles=4295 instret=1067 cycles/op=4.194
+SIGIL PERF region=7 cycles=20670 instret=1068
+MICRO region=7 divw_dep ops=1024 cycles=20670 instret=1068 cycles/op=20.186
+SIGIL PERF region=8 cycles=36057 instret=1071
+MICRO region=8 rem_indep ops=1024 cycles=36057 instret=1071 cycles/op=35.212
+SIGIL PERF region=9 cycles=6454 instret=1070
+MICRO region=9 fadd_d_dep ops=1024 cycles=6454 instret=1070 cycles/op=6.303
+SIGIL PERF region=10 cycles=6379 instret=1067
+MICRO region=10 fadd_d_indep ops=1024 cycles=6379 instret=1067 cycles/op=6.229
+SIGIL PERF region=11 cycles=6351 instret=1068
+MICRO region=11 fmul_d_dep ops=1024 cycles=6351 instret=1068 cycles/op=6.202
+SIGIL PERF region=12 cycles=8448 instret=1073
+MICRO region=12 fmadd_d_dep ops=1024 cycles=8448 instret=1073 cycles/op=8.250
+SIGIL PERF region=13 cycles=34023 instret=1068
+MICRO region=13 fdiv_d_dep ops=1024 cycles=34023 instret=1068 cycles/op=33.226
+SIGIL PERF region=14 cycles=33997 instret=1067
+MICRO region=14 fdiv_d_indep ops=1024 cycles=33997 instret=1067 cycles/op=33.200
+SIGIL PERF region=15 cycles=33978 instret=1066
+MICRO region=15 fsqrt_d_dep ops=1024 cycles=33978 instret=1066 cycles/op=33.182
+SIGIL PERF region=16 cycles=33993 instret=1067
+MICRO region=16 fsqrt_d_indep ops=1024 cycles=33993 instret=1067 cycles/op=33.196
+SIGIL PERF region=17 cycles=18664 instret=1070
+MICRO region=17 fdiv_s_dep ops=1024 cycles=18664 instret=1070 cycles/op=18.227
+SIGIL PERF region=18 cycles=18644 instret=1066
+MICRO region=18 fsqrt_s_dep ops=1024 cycles=18644 instret=1066 cycles/op=18.207
+MICRO CHECK OK micro_units iterations=1024 regions=18
+SIGIL TEST PASS micro_units
+SOC RTL TB PASS (exit string at 1083852 cycles)

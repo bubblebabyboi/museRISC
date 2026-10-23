@@ -1,0 +1,35 @@
+sigil e6419301d3cfa720d6429225568fe0b4d8acc247 recipe_b=B1 recipe_hbm=H0 aws-fpga c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
+21:AWS FPGA: 2026-10-22 07:09:12 - Build starts
+34:#     set prefix "\nAWS FPGA: ([clock format [clock seconds] -format %T]): "
+231:AWS FPGA: (07:09:15): Generating clock contraints for CL source clocks
+394:AWS FPGA: (07:09:15): Checking for source code encryption
+414:AWS FPGA: (07:09:15): Encryption disabled.
+433:AWS FPGA: (07:09:15): Creating in-memory synthesis project
+440:AWS FPGA: (07:09:16): Reading common AWS components
+470:AWS FPGA: (07:09:16): Reading AWS Constraints
+492:AWS FPGA: (07:09:16): Sigil core clock: clk_extra_b1, recipe B1 = 62500 kHz
+499:AWS FPGA: (07:09:16): Sigil HBM AXI clock: clk_hbm_axi, recipe H0
+503:AWS FPGA: (07:09:16): Reading Sigil SoC RTL from /home/ubuntu/plat-b3a/rtl
+521:AWS FPGA: (07:09:16): Reading CL glue (src_post_encryption, not encrypted)
+529:AWS FPGA: (07:09:16): Reading CL IP blocks
+604:AWS FPGA: (07:09:20): Reading HBM wrapper from /home/ubuntu/src/project_data/aws-fpga/hdk/cl/examples/cl_mem_perf/design
+609:AWS FPGA: (07:09:20): Reading user constraints
+619:AWS FPGA: (07:09:20): Starting synthesizing customer design cl_sigil
+5605:AWS FPGA: (07:34:11): Writing post-synth design checkpoint
+5625:AWS FPGA: (07:34:27): Checking if MiG BRAM is initialized
+5644:AWS FPGA: (07:34:27): MiG BRAM is initialized. INIT_2C = 256'h8020C02030020120100344032300830CC0C0C2003003020C8080C00030000343
+5651:AWS FPGA: (07:34:30): Start linking customer design cl_sigil
+5833:AWS FPGA: (07:36:14): Writing post-link design checkpoint
+6051:AWS FPGA: (07:39:45): Start optimizing customer design cl_sigil
+6260:AWS FPGA: (07:41:56): Writing post-opt design checkpoint and report
+6292:AWS FPGA: (07:42:33): Start placing customer design cl_sigil
+6799:AWS FPGA: (07:58:58): Writing post-place design checkpoint and report
+6830:AWS FPGA: (07:59:25): Start physical-optimizing customer design cl_sigil
+6848:AWS FPGA: (07:59:31): Writing post-phy_opt design checkpoint and report
+6878:AWS FPGA: (07:59:46): Start routing customer design cl_sigil
+7274:AWS FPGA: (08:11:55): Writing post-route design checkpoint and report
+7281:AWS FPGA: (08:11:57): Checking the negative slack path of the existing design
+7284:AWS FPGA: (08:11:57): SUCCESS: Design has no negative slack path
+7318:AWS FPGA: (08:12:15): Finished building design checkpoints for customer design cl_sigil
+7325:AWS FPGA: 2026-10-22 08:12:22 - Build completes
+7328:AWS FPGA: Build Time = 1:03:09.708535. 

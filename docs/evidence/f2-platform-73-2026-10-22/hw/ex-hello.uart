@@ -1,0 +1,6 @@
+Hello from Sigil!
+misa = 0x80000000003411af: RV64ABCDFHIMSUV
+loop of 1000 iterations: 2002 instructions, 6006 cycles
+5000-cycle delay: mtime +5033, mcycle +5033, time CSR 32809
+total: 42965 cycles, 11738 instructions retired
+SIGIL TEST PASS hello

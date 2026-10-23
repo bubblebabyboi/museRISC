@@ -1,0 +1,67 @@
+#73 Linux release branch: re-check of the review fixes (2026-10-22)
+=====================================================================
+Branch 73-linux-release, commits f393d1a..54137c8. No F2 instance was used:
+the checks ran on the Mac (setup script, with stubs) and on sigil-fpga-build
+(Ubuntu 24.04.1, QEMU 8.2.2 = Ubuntu's qemu-system-misc and qemu-user-static
+1:8.2.2+ds-0ubuntu1.18), with the release assets staged in ~/release-73
+(the release is not published yet).
+
+1. fpga/scripts/f2_playground_setup.sh, rerun (Mac, fake HOME; sudo, apt-get,
+   git clone and the fpga-* tools stubbed; a local repo stands in for GitHub)
+------------------------------------------------------------------------------
+run 1: clone, build, ~/bin/sigil-run + sigil-linux, ~/hello/hello.c, AFI
+       not loaded -> fpga-load-local-image called once        SETUP_DONE rc=0
+edit ~/hello/hello.c; new upstream commit to fpga/scripts/sigil-linux
+run 2: "git -C sigil pull -q --ff-only"; ~/bin/sigil-linux has the new
+       commit; ~/hello/hello.c keeps the edit; AFI already loaded ->
+       fpga-describe-local-image only, no reload                SETUP_DONE rc=0
+shellcheck: clean.
+
+2. docs/LINUX.md section 6 as reviewed: packages through QEMU --net -> FAILS
+-----------------------------------------------------------------------------
+Release-only layout: sigil-linux's cache ~/.cache/sigil-linux/
+sigil-linux-f2-2026-10-22/ (fw_jump.bin, Image, sigil-f2.dtb, .ext4.zst,
+SHA256SUMS), sigil-qemu.dtb fetched with the doc's curl -fLo from a file://
+copy of the release asset (sha256 matches SHA256SUMS), disk unpacked with
+zstd -d --sparse as sigil-linux does, then
+  SIGIL_LINUX_DIR=$D bash ~/sigil/scripts/qemu_sigil_boot.sh --disk ~/sigil-disk.ext4 --net
+Boots to "sigil login:" in 13.3 s. After `sudo sigil-qemu-net`, apt update
+never completes:
+  virtio_net virtio0 eth0: NETDEV WATCHDOG: CPU: 0: transmit queue 0 timed out 5760 ms
+  /proc/interrupts:  13:  0  SiFive PLIC  8 Edge  virtio0     (no interrupt, ever)
+  ip -s link eth0:   RX 0 bytes 0 packets; TX 0 bytes 0 packets 7 errors
+Cause: QEMU 8.2.2 hw/riscv/virt.c (lines 1450-1462) wires virtio-mmio
+interrupts to the PLIC of socket 1 when the machine has two or more sockets
+("Try to use different IRQCHIP instance based device type"). Each NUMA node
+of qemu_sigil_boot.sh is a socket; socket 1's only hart is not in the DT and
+OpenSBI parks it, so hart 0 never sees a virtio interrupt. Not fixable in the
+DT without running Linux on that hart; the docs now use a chroot instead
+(below), and section 3 / section 8 say that --net passes no traffic.
+
+3. docs/LINUX.md section 6 as fixed: chroot through qemu-user-static -> PASS
+----------------------------------------------------------------------------
+The fenced block of the "More packages" bullet, extracted from LINUX.md at
+54137c8 and run as is with <packages> = sl and M = a private mount point:
+  sudo apt-get install -y qemu-user-static
+  M=/home/ubuntu/rel73-pkgtest/mnt; sudo mkdir -p $M
+  sudo mount -o loop ~/sigil-disk.ext4 $M
+  sudo mount --bind /dev $M/dev; sudo mount -t devpts devpts $M/dev/pts; sudo mount -t proc proc $M/proc
+  sudo cp -L /etc/resolv.conf $M/etc/resolv.conf
+  sudo chroot $M apt-get update
+  sudo chroot $M apt-get install -y sl
+  sudo umount $M/proc $M/dev/pts $M/dev $M
+apt update: Fetched 16.5 MB in 5s; install: libncurses6 6.5+20250216-2 and
+sl 5.02-1+b1, postinst and triggers (man-db, libc-bin) ran under qemu-user.
+Whole block 18 s. Nothing left mounted; the host's /dev/pts untouched.
+disk before: 917 MiB allocated, 8 GiB file; after: 1110 MiB allocated, 8 GiB.
+e2fsck -fn: clean (26721/524288 files, 335365/2097152 blocks).
+sigil-linux's ext4_bytes on the result: 8589934592 = file size (accepted).
+
+4. The changed disk boots and runs the new package (QEMU, no --net)
+-------------------------------------------------------------------
+SIGIL_LINUX_DIR=$D bash ~/sigil/scripts/qemu_sigil_boot.sh --disk <copy>
+  login prompt after 13.2 s; Linux sigil 6.12.114-sigil riscv64
+  PKG sl 5.02-1+b1 install ok installed
+  ldd /usr/games/sl: 0 libraries not found
+  /usr/games/sl: exit status 0
+  sudo poweroff -> "reboot: Power down", QEMU exit status 0

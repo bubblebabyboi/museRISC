@@ -1,0 +1,101 @@
+# Native x86-64 reference for crcfinal (sw/bench/coremark/core_portme.c table)
+# date_utc: 2026-10-22T09:41:05Z  host: ip-172-31-65-164 Linux 7.0.0-1014-aws x86_64
+# sources: third_party/coremark at b56889a7bd9d5624fbeff2a73ba69878e6a9c146 (fetch_coremark.sh, sha256-verified)
+# compiler: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+# build (once, both seed sets come from argv: SEED_ARG in the posix port):
+$ cd third_party/coremark && gcc -O2 -Iposix -I. -DFLAGS_STR="\"-O2\"" -DPERFORMANCE_RUN=1 -DITERATIONS=0 core_list_join.c core_main.c core_matrix.c core_state.c core_util.c posix/core_portme.c -o build/cm-host/cm_PERFORMANCE -lrt
+# run: cm_PERFORMANCE <seed1> <seed2> <seed3> <iterations> 7 1 2000  (as upstream Makefile run1.log / run2.log)
+
+iterations | performance 0,0,0x66: seedcrc crclist crcmatrix crcstate crcfinal | validation 0x3415,0x3415,0x66: seedcrc crclist crcmatrix crcstate crcfinal
+1 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xe714 | 0x18f2 0xe3c1 0x0747 0x8d84 0xe3c1 
+2 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x72be | 0x18f2 0xe3c1 0x0747 0x8d84 0xfe8c 
+3 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x2e87 | 0x18f2 0xe3c1 0x0747 0x8d84 0xbf76 
+5 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xf24c | 0x18f2 0xe3c1 0x0747 0x8d84 0x6751 
+10 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xfcaf | 0x18f2 0xe3c1 0x0747 0x8d84 0xc64e 
+15 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x2d47 | 0x18f2 0xe3c1 0x0747 0x8d84 0xbfcd 
+20 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x4983 | 0x18f2 0xe3c1 0x0747 0x8d84 0xad38 
+25 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xa69a | 0x18f2 0xe3c1 0x0747 0x8d84 0xca44 
+30 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xf8b3 | 0x18f2 0xe3c1 0x0747 0x8d84 0xcda7 
+40 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x65c5 | 0x18f2 0xe3c1 0x0747 0x8d84 0xf006 
+50 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x0158 | 0x18f2 0xe3c1 0x0747 0x8d84 0x6bf4 
+100 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x988c | 0x18f2 0xe3c1 0x0747 0x8d84 0x844d 
+200 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x382f | 0x18f2 0xe3c1 0x0747 0x8d84 0xeccd 
+500 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xa14c | 0x18f2 0xe3c1 0x0747 0x8d84 0x5e45 
+1000 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0xd340 | 0x18f2 0xe3c1 0x0747 0x8d84 0x26c2 
+2000 | 0xe9f5 0xe714 0x1fd7 0x8e3a 0x4983 | 0x18f2 0xe3c1 0x0747 0x8d84 0x0cac 
+
+$ cm_PERFORMANCE 0x0 0x0 0x66 20 7 1 2000
+2K performance run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 1
+Total time (secs): 0.001000
+Iterations/Sec   : 20000.000000
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 20
+Compiler version : GCC13.3.0
+Compiler flags   : -O2
+Memory location  : Please put data memory location here
+			(e.g. code in flash, data on heap etc)
+seedcrc          : 0xe9f5
+[0]crclist       : 0xe714
+[0]crcmatrix     : 0x1fd7
+[0]crcstate      : 0x8e3a
+[0]crcfinal      : 0x4983
+Errors detected
+
+$ cm_PERFORMANCE 0x0 0x0 0x66 1000 7 1 2000
+2K performance run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 52
+Total time (secs): 0.052000
+Iterations/Sec   : 19230.769231
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 1000
+Compiler version : GCC13.3.0
+Compiler flags   : -O2
+Memory location  : Please put data memory location here
+			(e.g. code in flash, data on heap etc)
+seedcrc          : 0xe9f5
+[0]crclist       : 0xe714
+[0]crcmatrix     : 0x1fd7
+[0]crcstate      : 0x8e3a
+[0]crcfinal      : 0xd340
+Errors detected
+
+$ cm_PERFORMANCE 0x3415 0x3415 0x66 20 7 1 2000
+2K validation run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 1
+Total time (secs): 0.001000
+Iterations/Sec   : 20000.000000
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 20
+Compiler version : GCC13.3.0
+Compiler flags   : -O2
+Memory location  : Please put data memory location here
+			(e.g. code in flash, data on heap etc)
+seedcrc          : 0x18f2
+[0]crclist       : 0xe3c1
+[0]crcmatrix     : 0x0747
+[0]crcstate      : 0x8d84
+[0]crcfinal      : 0xad38
+Errors detected
+
+$ cm_PERFORMANCE 0x3415 0x3415 0x66 1000 7 1 2000
+2K validation run parameters for coremark.
+CoreMark Size    : 666
+Total ticks      : 52
+Total time (secs): 0.052000
+Iterations/Sec   : 19230.769231
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 1000
+Compiler version : GCC13.3.0
+Compiler flags   : -O2
+Memory location  : Please put data memory location here
+			(e.g. code in flash, data on heap etc)
+seedcrc          : 0x18f2
+[0]crclist       : 0xe3c1
+[0]crcmatrix     : 0x0747
+[0]crcstate      : 0x8d84
+[0]crcfinal      : 0x26c2
+Errors detected

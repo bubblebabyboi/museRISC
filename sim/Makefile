@@ -29,6 +29,9 @@ VFLAGS_FAST := --cc --exe --build -j $(VJOBS) -Wall -Wno-DECLFILENAME --assert -
 PKG       := $(RTL)/sigil_pkg.sv
 # `included by sigil_fpu_pkg.sv and sigil_fpu.sv (dependency only)
 FPU_INC   := $(RTL)/sigil_fpu_ops.svh
+# Everything that elaborates sigil_cpu also `includes the simulation-only
+# performance counters (dependency only).
+CPU_INC   := $(FPU_INC) $(RTL)/sigil_perf.svh
 # Harness bus timing for the randomized-latency runs (core_tb).
 CORE_RAND_ARGS := --mem-lat 1:6 --mem-gap 2 --mem-ready 70
 
@@ -63,6 +66,11 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             trap_pa_fetch trap_pa_load \
             smc_fencei_directed amo_cache_directed mmio_bypass_directed \
             vm_sfence_cache_directed fp_hold_cache_directed ptw_drop_directed \
+            ptw_preempt_directed ptw_preempt_cached_directed ptw_preempt_twoload_directed \
+            ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed ptw_preempt_hyp_directed \
+            ptw_preempt_guest_directed ptw_gwidth_directed ptw_gwidth_load_directed \
+            ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
+            ptw_svadu_race_hyp_directed \
             vm_ctx_directed vm_fetch_directed vm_vec_directed vm_satp_fetch_directed \
             vm_irq_directed hlv_ctx_directed hlv_wf_directed \
             mem53_wf_sum_directed mem53_wf_hlv_directed mem53_ifault_gpa_directed \
@@ -72,9 +80,9 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
-        axibridge fpgatop-quick fpgatop fpgatop-rvtests fpgatop-hello \
-        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples
-all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgaocl-quick \
+        axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
+        fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples
+all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro axibridge fpgatop-quick fpgatop-f2-quick fpgatop-f2-examples fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
 ## ---- Stage gate: upstream riscv-tests (not part of `all`) -------------
@@ -204,6 +212,18 @@ $(BUILD)/fpu_tb: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
 
 fpu: $(BUILD)/fpu_tb
 	cd $(BUILD) && COV_FILE=cov_fpu.dat ./fpu_tb
+
+# Same TB without coverage instrumentation (about 2x faster): for
+# long TestFloat vector runs (scripts/testfloat_fpu_l2.sh).
+$(BUILD)/fpu_tb_fast: $(ROOT)/tb/cpp/fpu_tb.cpp $(FPU_INC) \
+                 $(RTL)/sigil_fpu_pkg.sv $(RTL)/sigil_fpu.sv \
+                 $(SF_HOST)/softfloat.a | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpu_fast --top-module sigil_fpu \
+	  -CFLAGS "-I$(abspath $(SOFTFLOAT))/source/include -I$(abspath $(SF_HOST))" \
+	  -LDFLAGS "$(abspath $(SF_HOST))/softfloat.a" \
+	  -o $(abspath $(BUILD)/fpu_tb_fast) $(RTL)/sigil_fpu_pkg.sv \
+	  $(RTL)/sigil_fpu.sv \
+	  $(abspath $(ROOT)/tb/cpp/fpu_tb.cpp)
 
 # Same TB on the FPU_DS_BITS=1 configuration (one div/sqrt step
 # per cycle: the shorter-critical-path alternative).
@@ -378,7 +398,7 @@ crypto: sha256 sha512 keccak ecfield cryptotop hashstream
 ## ---- Core harness + directed software ---------------------------------
 # core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
 # plus the default DRAM window at 0x8000_0000 (ELF tests).
-$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
@@ -387,7 +407,7 @@ $(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_R
 
 ## ---- SoC platform harness (Linux/OpenSBI boot, issue #21) --------------
 # Default cacheability: DRAM 0x8000_0000.. only; ROM/CLINT/PLIC/UART are I/O.
-$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/soc_tb: $(ROOT)/tb/cpp/soc_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/soc --top-module sigil_cpu \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/soc_tb) $(CPU_RTL) \
@@ -414,6 +434,8 @@ SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
              $(SOCDIR)/sigil_clint.sv $(SOCDIR)/sigil_plic.sv \
              $(SOCDIR)/sigil_uart16550.sv \
              $(SOCDIR)/sigil_bootrom.sv \
+             $(SOCDIR)/sigil_test_finisher.sv \
+             $(SOCDIR)/sigil_rtc_goldfish.sv \
              $(SOCDIR)/sigil_crypto_bridge.sv \
              $(SOCDIR)/sigil_soc_fabric.sv \
              $(SOCDIR)/sigil_soc_top.sv
@@ -421,7 +443,7 @@ SOC_RTL   := $(CPU_RTL) $(CRYPTO)/sha256_block.sv $(HASH_RTL) \
 SOCFW     := $(abspath $(ROOT)/build/soc-tests)
 
 # Long firmware runs: no coverage instrumentation (as soc_tb).
-$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/soc_rtl_tb: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl --top-module sigil_soc_top \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/soc_rtl_tb) $(SOC_RTL) \
@@ -479,21 +501,25 @@ sochash: $(BUILD)/soc_rtl_tb $(SOCFW)/hash_soc_test.bin
 # Independent per-example targets, so `make -j` runs them in parallel.
 # Logs: build/examples/<name>.log.
 EXAMPLES     := hello timer_irq sha256_accel hash_stream ed25519_verify vector_dot fp_math
+# Examples that need the F2 memory map (DDR4 64 GiB + HBM 16 GiB): built
+# by examples-bins, run on fpga_top_tb_f2 (fpgatop-f2-examples), not on
+# the 128 MiB window of soc_rtl_tb / fpga_top_tb.
+F2_EXAMPLES  := hbm_touch
 EXDIR        := $(abspath $(ROOT)/build/examples)
 EXAMPLE_MAX_CYCLES ?= 60000000
 EXAMPLES_ARGS ?= $(CORE_RAND_ARGS)
 
 # Always delegate to the example's Makefile (it knows its sources and
 # rebuilds only when something changed).
-.PHONY: $(addprefix example-bin-,$(EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
-        $(addprefix fpgatop-example-,$(EXAMPLES))
-$(addprefix example-bin-,$(EXAMPLES)): example-bin-%: | $(EXDIR)
+.PHONY: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)) $(addprefix example-,$(EXAMPLES)) \
+        $(addprefix fpgatop-example-,$(EXAMPLES)) $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+$(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES)): example-bin-%: | $(EXDIR)
 	@$(MAKE) --no-print-directory -s -C $(ROOT)/sw/examples/$* OUT=$(EXDIR)/$* \
 	  RISCV_PREFIX=$(RISCV_PREFIX) > $(EXDIR)/$*.build.log 2>&1 || \
 	  { cat $(EXDIR)/$*.build.log; exit 1; }
 $(EXDIR):
 	mkdir -p $@
-examples-bins: $(addprefix example-bin-,$(EXAMPLES))
+examples-bins: $(addprefix example-bin-,$(EXAMPLES) $(F2_EXAMPLES))
 
 $(addprefix example-,$(EXAMPLES)): example-%: example-bin-% $(BUILD)/soc_rtl_tb
 	@start=$$(date +%s); \
@@ -513,14 +539,14 @@ examples: $(addprefix example-,$(EXAMPLES))
 FPGADIR    := $(ROOT)/rtl/fpga
 BRIDGE_RTL := $(FPGADIR)/sigil_mbus_axi4.sv
 FPGA_RTL   := $(SOC_RTL) $(FPGADIR)/sigil_fifo.sv $(BRIDGE_RTL) \
-              $(FPGADIR)/sigil_fpga_top.sv
+              $(FPGADIR)/sigil_axi_memeng.sv $(FPGADIR)/sigil_fpga_top.sv
 AXI_TB_H   := $(ROOT)/tb/cpp/axi4_slave_model.h
 AXIB_WIDTHS := 64 128 512
 # Bridge unit TB at each AXI data width (window 64 KiB, AXI base
 # 0x4_0000: must match the constants in axi_bridge_tb.cpp).
 $(BUILD)/axi_bridge_tb_%: $(ROOT)/tb/cpp/axi_bridge_tb.cpp $(AXI_TB_H) $(BRIDGE_RTL) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/axib_$* --top-module sigil_mbus_axi4 \
-	  -GAXI_DATA_W=$* "-GMEM_MASK=64'hFFFF" "-GAXI_BASE=64'h40000" \
+	  -GAXI_DATA_W=$* "-GMEM_SIZE=64'h10000" "-GAXI_BASE=64'h40000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=$$(($*/8)) \
 	  -o $(abspath $@) $(BRIDGE_RTL) $(abspath $(ROOT)/tb/cpp/axi_bridge_tb.cpp)
 
@@ -535,13 +561,20 @@ axibridge: $(addprefix $(BUILD)/axi_bridge_tb_,$(AXIB_WIDTHS))
 
 # FPGA top harness: 64-bit AXI (default) and 512-bit (F2 Shell DDR4
 # width). Long firmware runs: no coverage instrumentation.
-$(BUILD)/fpga_top_tb: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/fpga_top_tb: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop --top-module sigil_fpga_top \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
-$(BUILD)/fpga_top_tb_w512: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/fpga_top_tb_w512: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_w512 --top-module sigil_fpga_top \
 	  -GAXI_DATA_W=512 -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 \
+	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
+# The F2 map (issues #65, #66): 512-bit AXI, 80 GiB RAM window (DDR4 64 GiB
+# at AXI 0 + HBM 16 GiB at AXI 0x10_0000_0000) over a sparse memory model.
+$(BUILD)/fpga_top_tb_f2: $(ROOT)/tb/cpp/fpga_top_tb.cpp $(AXI_TB_H) $(FPGA_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgatop_f2 --top-module sigil_fpga_top \
+	  -GAXI_DATA_W=512 "-GRAM_SIZE=64'h1400000000" \
+	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) -CFLAGS -DAXI_DW_BYTES=64 -CFLAGS -DSIGIL_F2_MAP \
 	  -o $(abspath $@) $(FPGA_RTL) $(abspath $(ROOT)/tb/cpp/fpga_top_tb.cpp)
 
 # FPGA smoke firmware: D$-thrashing memory test with partial
@@ -554,6 +587,18 @@ $(SOCFW)/fpga_smoke_test.bin: $(ROOT)/sw/fpga-tests/fpga_smoke_test.c \
 	  -T $(ROOT)/sw/soc-tests/link.ld \
 	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/fpga_smoke_test.elf
 	$(RISCV_OBJCOPY) -O binary $(SOCFW)/fpga_smoke_test.elf $@
+
+# F2 platform test firmware (issues #62-#67): RTC, window edges of DDR4
+# and HBM, Linux-style 16-byte UART bursts, finisher; and the F2 memory
+# test (sparse DDR4 + HBM test and load latency).
+$(SOCFW)/f2_%.bin: $(ROOT)/sw/fpga-tests/f2_%.c \
+		$(ROOT)/sw/soc-tests/crt.S $(ROOT)/sw/fpga-tests/link.ld
+	mkdir -p $(SOCFW)
+	$(RISCV_GCC) -march=rv64imafdc_zicsr_zifencei -mabi=lp64 -mcmodel=medany \
+	  -nostdlib -ffreestanding -fno-builtin -O1 \
+	  -T $(ROOT)/sw/fpga-tests/link.ld \
+	  $(ROOT)/sw/soc-tests/crt.S $< -o $(SOCFW)/f2_$*.elf
+	$(RISCV_OBJCOPY) -O binary $(SOCFW)/f2_$*.elf $@
 
 # DDR-like AXI timing for the FPGA-top runs (Shell DDR4 round trips
 # are tens of core cycles; seeded random backpressure on every
@@ -577,8 +622,36 @@ fpgatop-quick: $(BUILD)/fpga_top_tb $(BUILD)/fpga_top_tb_w512 $(FPGA_FW)
 	    --uart-in $(abspath $(ROOT)/sw/fpga-tests/fpga_smoke_uart_in.txt) \
 	    --exit-string "FPGA SMOKE PASS" || exit 1; \
 	done
-	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) \
+	cd $(BUILD) && ./fpga_top_tb 50000000 $(FPGA_AXI_ARGS) --engine-test \
 	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+
+# The F2 map (fpgatop-f2-quick is in `all`): memory engine across 4 GiB
+# and the DDR4/HBM boundary; f2_platform_test with the TX FIFO drained
+# slowly (back-pressure, every burst byte checked), then with an
+# out-of-window read (error capture), a fail code and a reboot through
+# the finisher (the pmem-window image kept across it); sochash on the 80 GiB window; f2_memtest with a 16 MiB
+# stride (mailbox) over all of DDR4 and HBM.
+F2_RTC_NS := 1761091200000000000
+F2_MAILBOX := 0x80080000
+fpgatop-f2-quick: $(BUILD)/fpga_top_tb_f2 $(SOCFW)/f2_platform_test.bin $(SOCFW)/hash_soc_test.bin \
+		$(SOCFW)/f2_memtest.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --engine-test --rtc-ns $(F2_RTC_NS) \
+	  --uart-pop 3 --check-bursts 64 --finisher \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x1 --expect-err 0x1480000000 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 20000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x100 --expect-fin 0x2a3333 \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	printf 'PMEMDISK' > $(SOCFW)/f2_pmem_marker.bin
+	cd $(BUILD) && ./fpga_top_tb_f2 40000000 $(FPGA_AXI_ARGS) --rtc-ns $(F2_RTC_NS) --finisher \
+	  --poke $(F2_MAILBOX)=0x202 --load 0xC80000000=$(SOCFW)/f2_pmem_marker.bin \
+	  --load 0x80000000=$(SOCFW)/f2_platform_test.bin --fail-string "F2 PLATFORM FAIL"
+	cd $(BUILD) && ./fpga_top_tb_f2 50000000 $(FPGA_AXI_ARGS) \
+	  --load 0x80000000=$(SOCFW)/hash_soc_test.bin --exit-string "SOC HASH PASS"
+	cd $(BUILD) && ./fpga_top_tb_f2 200000000 $(FPGA_AXI_ARGS) --finisher --poke $(F2_MAILBOX)=0x0618 \
+	  --load 0x80000000=$(SOCFW)/f2_memtest.bin --fail-string "F2 MEMTEST FAIL"
 # SDK examples through the FPGA top (64-bit AXI, DDR-like latency):
 # the same binaries and pass/fail strings as `examples`.
 FPGATOP_EXAMPLES ?= $(EXAMPLES)
@@ -594,6 +667,19 @@ $(addprefix fpgatop-example-,$(EXAMPLES)): fpgatop-example-%: example-bin-% $(BU
 	fi
 fpgatop-examples: $(addprefix fpgatop-example-,$(FPGATOP_EXAMPLES))
 	@echo "ALL $(words $(FPGATOP_EXAMPLES)) EXAMPLES PASS on fpga_top_tb"
+# F2-map examples (in `all`): fpga_top_tb_f2, same pass/fail strings.
+$(addprefix fpgatop-f2-example-,$(F2_EXAMPLES)): fpgatop-f2-example-%: example-bin-% $(BUILD)/fpga_top_tb_f2
+	@start=$$(date +%s); \
+	if $(BUILD)/fpga_top_tb_f2 $(EXAMPLE_MAX_CYCLES) $(FPGA_AXI_ARGS) \
+	    --load 0x80000000=$(EXDIR)/$*/$*.bin \
+	    --exit-string "SIGIL TEST PASS $*" --fail-string "SIGIL TEST FAIL" \
+	    > $(EXDIR)/$*.fpgatop-f2.log 2>&1; then \
+	  echo "FPGATOP-F2 EXAMPLE PASS $* ($$(grep -o 'at [0-9]* cycles' $(EXDIR)/$*.fpgatop-f2.log), $$(( $$(date +%s) - start )) s)"; \
+	else \
+	  tail -30 $(EXDIR)/$*.fpgatop-f2.log; echo "FPGATOP-F2 EXAMPLE FAIL $* (log: $(EXDIR)/$*.fpgatop-f2.log)"; exit 1; \
+	fi
+fpgatop-f2-examples: $(addprefix fpgatop-f2-example-,$(F2_EXAMPLES))
+	@echo "ALL $(words $(F2_EXAMPLES)) F2-MAP EXAMPLES PASS on fpga_top_tb_f2"
 
 fpgatop: fpgatop-quick fpgatop-examples
 	cd $(BUILD) && for fw in $(SOC_CRYPTO_FW); do \
@@ -625,7 +711,7 @@ fpgatop-hello: $(BUILD)/fpga_top_tb $(ROOT)/build/linux/s_hello.bin
 
 ## ---- AWS F2 CL core-clock half via its OCL registers (issue #54) ------
 FPGA_OCL_RTL := $(FPGA_RTL) $(FPGADIR)/sigil_ocl_regs.sv $(FPGADIR)/sigil_fpga_ocl.sv
-$(BUILD)/fpga_ocl_tb: $(ROOT)/tb/cpp/fpga_ocl_tb.cpp $(AXI_TB_H) $(FPGA_OCL_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/fpga_ocl_tb: $(ROOT)/tb/cpp/fpga_ocl_tb.cpp $(AXI_TB_H) $(FPGA_OCL_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/fpgaocl --top-module sigil_fpga_ocl \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $@) $(FPGA_OCL_RTL) $(abspath $(ROOT)/tb/cpp/fpga_ocl_tb.cpp)
@@ -669,7 +755,7 @@ MDCOMB_RUNS := rv64i_directed.bin rv64m_directed.bin md_directed.bin md_kill_dir
   counter_time_directed.bin hyp_directed.bin vec_directed.bin \
   fpvec_directed.bin "vec_trap_directed.bin --irq-timer-after 2000" \
   "trap_pa_fetch.bin 100000 --expect-trap 1" "trap_pa_load.bin 100000 --expect-trap 5"
-$(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/core_tb_mdcomb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_mdcomb --top-module sigil_cpu \
 	  +define+SIGIL_MULDIV_COMB \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
@@ -693,7 +779,7 @@ core-mdcomb: $(BUILD)/core_tb_mdcomb $(addprefix $(BUILD)/,$(addsuffix .bin,$(TE
 # seeds. Every simulation check must stay quiet until reset, and the
 # core and the test programs must not depend on initial register
 # contents (e.g. a test using sp without setting it).
-$(BUILD)/core_tb_xinit: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/core_tb_xinit: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_xinit --top-module sigil_cpu \
 	  --x-initial unique \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
@@ -754,7 +840,7 @@ $(BUILD)/vec_tb_%: $(ROOT)/tb/cpp/vec_tb.cpp $(PKG) $(RTL)/sigil_cache_pkg.sv $(
 	  $(ROOT)/tb/sv/sigil_vec_harness.sv \
 	  $(abspath $(ROOT)/tb/cpp/vec_tb.cpp)
 
-$(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) \
+$(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) \
                   $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_$* --top-module sigil_cpu \
 	  $(SRAM_DEF_$*) $(SRAM_GEO_$*) $(SRAM_MOD_$*) \
@@ -763,7 +849,7 @@ $(BUILD)/core_tb_%: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU
 	  -o $(abspath $@) $(CPU_RTL) \
 	  $(abspath $(ROOT)/tb/cpp/core_tb.cpp)
 
-$(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(FPU_INC) \
+$(BUILD)/soc_rtl_tb_%: $(ROOT)/tb/cpp/soc_rtl_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(SOC_RTL) $(CPU_INC) \
                      $$(SRAM_MOD_$$*) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS_FAST) $(OBJ)/socrtl_$* --top-module sigil_soc_top \
 	  $(SRAM_DEF_$*) $(SRAM_GEO_$*) $(SRAM_MOD_$*) \
@@ -812,7 +898,7 @@ srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/cor
 	done
 
 ## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
-$(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(FPU_INC) | $(BUILD) $(OBJ)
+$(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
 	$(VERILATOR) $(VFLAGS) $(OBJ)/core_ds1 --top-module sigil_cpu \
 	  +define+SIGIL_FPU_DS_BITS=1 \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
@@ -841,3 +927,6 @@ coverage:
 
 clean:
 	rm -rf $(BUILD)
+
+## ---- Performance harness: make -C sim perf (sim/perf.mk) --------------
+include $(ROOT)/sim/perf.mk

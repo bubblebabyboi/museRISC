@@ -1,0 +1,30 @@
+{
+  "name": "sha256chain",
+  "description": "SHA-256 hash chain h_{i+1} = SHA-256(h_i) (#10): plain C, Zknh, RVV multi-buffer x16, accelerator (SHA-256 engine; SHA-512 and SHA3-256 chains on the streaming engine)",
+  "iterations": 1024,
+  "max_cycles": 200000000,
+  "expect": [
+    "KAT FIPS 180-4 SHA-256 OK: C, Zknh, RVV x16",
+    "KAT FIPS 180-4 SHA-256 OK: accelerator",
+    "KAT FIPS 180-4 SHA-512 / FIPS 202 SHA3-256 OK: accelerator",
+    "SHA256CHAIN CHECK OK hashes={iterations}"
+  ],
+  "units": "hashes per region (RVV x16: the hashes are split over 16 independent chains)",
+  "metrics": ["bytes_per_cycle"],
+  "bytes_per_iteration": 32,
+  "regions": {
+    "0": "sha256 plain C",
+    "1": {"label": "sha256 Zknh", "baseline": 0},
+    "2": {"label": "sha256 RVV x16 (multi-buffer)", "baseline": 0},
+    "3": {"label": "sha256 accel sigil_sha256_block", "baseline": 0},
+    "4": {"label": "sha256 accel sigil_sha256", "baseline": 0},
+    "5": {"label": "sha512 accel sigil_hash", "bytes_per_iteration": 64},
+    "6": "sha3-256 accel sigil_hash"
+  },
+  "variants": {
+    "sdk": {
+      "description": "SDK default -march (rv64gcv + B, Zbc, Zcb, Zicond, Zbk*, Zkn*): every implementation is in the one image",
+      "make": {}
+    }
+  }
+}

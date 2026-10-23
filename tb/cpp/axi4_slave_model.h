@@ -12,7 +12,10 @@
 //   aw/w/ar_ready     probability (1..100) that AWREADY / WREADY /
 //                     ARREADY is high in a given cycle
 // Any data width from 8 to 64 bytes; memory is a byte array at
-// [base, base+size) of the AXI address space (outside it: DECERR).
+// [base, base+size) of the AXI address space (outside it: DECERR), or
+// a SparseMem: 4 KiB pages allocated on first write over any number of
+// [base, base+size) regions (the F2 map: DDR4 64 GiB at AXI 0 and HBM
+// 16 GiB at AXI 0x10_0000_0000; never-written bytes read as zero).
 // Writes complete when both the AW and all its W beats are in, in
 // AW order; W beats may arrive before their AW. Responses (R, B)
 // come back in request order.
@@ -37,10 +40,51 @@
 #include <cstring>
 #include <deque>
 #include <functional>
+#include <map>
+#include <memory>
 #include <random>
+#include <unordered_map>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+// Sparse byte-addressed memory over a set of AXI regions.
+class SparseMem {
+ public:
+  void AddRegion(uint64_t base, uint64_t size) { regions_[base] = size; }
+  bool Mapped(uint64_t a) const {
+    auto it = regions_.upper_bound(a);
+    if (it == regions_.begin()) return false;
+    --it;
+    return a - it->first < it->second;
+  }
+  uint8_t Read(uint64_t a) const {
+    auto it = pages_.find(a >> 12);
+    return it == pages_.end() ? 0 : it->second[a & 0xFFF];
+  }
+  void Write(uint64_t a, uint8_t v) {
+    auto& p = pages_[a >> 12];
+    if (!p) p.reset(new uint8_t[4096]());
+    p[a & 0xFFF] = v;
+  }
+  void WriteBlock(uint64_t a, const uint8_t* d, size_t n) {
+    for (size_t i = 0; i < n; ++i) Write(a + i, d[i]);
+  }
+  uint64_t Read64(uint64_t a) const {
+    uint64_t v = 0;
+    for (int i = 0; i < 8; ++i) v |= uint64_t(Read(a + i)) << (8 * i);
+    return v;
+  }
+  void Write64(uint64_t a, uint64_t v) {
+    for (int i = 0; i < 8; ++i) Write(a + i, uint8_t(v >> (8 * i)));
+  }
+  void Clear() { pages_.clear(); }
+  size_t Pages() const { return pages_.size(); }
+
+ private:
+  std::map<uint64_t, uint64_t> regions_;
+  std::unordered_map<uint64_t, std::unique_ptr<uint8_t[]>> pages_;
+};
 
 struct AxiConfig {
   int lat_min = 1;
@@ -122,6 +166,12 @@ class Axi4SlaveModel {
     lb_ = 0;
     while ((1 << lb_) < dw_) lb_++;
   }
+  Axi4SlaveModel(const AxiConfig& cfg, int dw_bytes, SparseMem* sparse)
+      : cfg_(cfg), dw_(dw_bytes), base_(0), mem_(nullptr), sparse_(sparse),
+        rng_(cfg.seed) {
+    lb_ = 0;
+    while ((1 << lb_) < dw_) lb_++;
+  }
   void SetWriteObserver(WriteObserver f) { obs_ = std::move(f); }
 
   AxiS Outputs() {
@@ -188,7 +238,7 @@ class Axi4SlaveModel {
         const uint64_t blk = a & ~uint64_t(dw_ - 1);
         b.resp = InMem(blk) ? 0 : 3;
         for (int k = 0; k < dw_; ++k) {
-          b.data[k] = InMem(blk + k) ? (*mem_)[blk + k - base_] : 0;
+          b.data[k] = InMem(blk + k) ? MemRead(blk + k) : 0;
         }
         b.ready_at = at;
         at = 0;  // later beats: set when the previous one retires
@@ -266,7 +316,15 @@ class Axi4SlaveModel {
     std::exit(4);
   }
   bool InMem(uint64_t a) const {
+    if (sparse_) return sparse_->Mapped(a);
     return a >= base_ && a - base_ < mem_->size();
+  }
+  uint8_t MemRead(uint64_t a) const {
+    return sparse_ ? sparse_->Read(a) : (*mem_)[a - base_];
+  }
+  void MemWrite(uint64_t a, uint8_t v) {
+    if (sparse_) sparse_->Write(a, v);
+    else (*mem_)[a - base_] = v;
   }
   static uint64_t BeatAddr(uint64_t addr, uint8_t size, int i) {
     const uint64_t n = uint64_t(1) << size;
@@ -346,7 +404,7 @@ class Axi4SlaveModel {
           Fail(b);
         }
         if (InMem(blk + k)) {
-          (*mem_)[blk + k - base_] = w.data[k];
+          MemWrite(blk + k, w.data[k]);
         } else {
           aw.err = true;
         }
@@ -374,6 +432,7 @@ class Axi4SlaveModel {
   int dw_, lb_;
   uint64_t base_;
   std::vector<uint8_t>* mem_;
+  SparseMem* sparse_ = nullptr;
   std::mt19937_64 rng_;
   WriteObserver obs_;
   std::deque<RBeat> rq_;

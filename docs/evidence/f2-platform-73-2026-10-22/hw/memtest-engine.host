@@ -1,0 +1,16 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] memtest ddr: AXI 0x0 + 64 GiB (SoC PA 0x80000000), address patterns, two seeds
+[sigil_host]   engine write-pattern AXI 0x0000000000+0x1000000000: 17.18 s (4.00 GB/s, 1073741858 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine check-pattern AXI 0x0000000000+0x1000000000: 17.18 s (4.00 GB/s, 1073741851 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine write-pattern AXI 0x0000000000+0x1000000000: 17.18 s (4.00 GB/s, 1073741886 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine check-pattern AXI 0x0000000000+0x1000000000: 17.18 s (4.00 GB/s, 1073741851 core cycles), mismatches 0, error responses 0
+[sigil_host] memtest ddr: PASS, 0 errors, 68.7 s (4.00 GB/s over 4 passes)
+[sigil_host] memtest hbm: AXI 0x1000000000 + 16 GiB (SoC PA 0x1080000000), address patterns, two seeds
+[sigil_host]   engine write-pattern AXI 0x1000000000+0x400000000: 4.30 s (4.00 GB/s, 268435517 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine check-pattern AXI 0x1000000000+0x400000000: 4.30 s (4.00 GB/s, 268435489 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine write-pattern AXI 0x1000000000+0x400000000: 4.30 s (4.00 GB/s, 268435517 core cycles), mismatches 0, error responses 0
+[sigil_host]   engine check-pattern AXI 0x1000000000+0x400000000: 4.30 s (4.00 GB/s, 268435489 core cycles), mismatches 0, error responses 0
+[sigil_host] memtest hbm: PASS, 0 errors, 17.2 s (4.00 GB/s over 4 passes)

@@ -1,0 +1,7 @@
+SHA-512: 9 lengths ok
+SHA3-256: 7 lengths ok
+SHA3-256("abc") = 3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532
+piecewise streaming ok
+SHAKE256 300-byte output ok
+1000 bytes: SHA-512 6223 cycles (6.22 cycles/byte), SHA3-256 5274 cycles (5.27 cycles/byte)
+SIGIL TEST PASS hash_stream

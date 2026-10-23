@@ -1,0 +1,79 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Thu Oct 22 08:15:18 2026
+| Host         : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command      : report_utilization -hierarchical -hierarchical_depth 3 -cells [get_cells WRAPPER/CL] -file /home/ubuntu/plat-b3a/rpt/post_route_util_hier.rpt
+| Design       : top
+| Device       : xcvu47p-fsvh2892-2-e
+| Speed File   : -2
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++---------------------------------------+------------------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+|                Instance               |                              Module                              |  PR Attribute  | Total PPLOCs | Total LUTs | Logic LUTs | LUTRAMs | SRLs |   FFs  | RAMB36 | RAMB18 | URAM | DSP Blocks |
++---------------------------------------+------------------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+| CL                                    |                                                         cl_sigil |                |            - |     131694 |     125167 |    5752 |  775 | 116956 |     75 |      3 |    0 |         32 |
+|   CL                                  |                                                         cl_sigil | Reconfigurable |         3883 |     131694 |     125167 |    5752 |  775 | 116956 |     75 |      3 |    0 |         32 |
+|     (CL)                              |                                                         cl_sigil | Reconfigurable |            - |       2238 |       2238 |       0 |    0 |      2 |      0 |      0 |    0 |          0 |
+|     AWS_CLK_GEN                       |                                                      aws_clk_gen | Reconfigurable |            - |       5633 |       5633 |       0 |    0 |   7714 |      0 |      0 |    0 |          0 |
+|       SLICE_AXIL_REG                  |                                      cl_axi_register_slice_light | Reconfigurable |            - |         14 |         14 |       0 |    0 |    100 |      0 |      0 |    0 |          0 |
+|       AWS_CLK_REGS_I                  |                                                     aws_clk_regs | Reconfigurable |            - |         82 |         82 |       0 |    0 |    205 |      0 |      0 |    0 |          0 |
+|       AXIL_CLK_CNV_I                  |                          cl_axi_clock_converter_light__xdcDup__1 | Reconfigurable |            - |         47 |         47 |       0 |    0 |    378 |      0 |      0 |    0 |          0 |
+|       AXIL_XBAR_I                     |                                                 cl_clk_axil_xbar | Reconfigurable |            - |        189 |        189 |       0 |    0 |     57 |      0 |      0 |    0 |          0 |
+|       CLK_GRP_A_EN_I.CLK_MMCM_A_I     |                                                       clk_mmcm_a | Reconfigurable |            - |       1314 |       1314 |       0 |    0 |   1611 |      0 |      0 |    0 |          0 |
+|       CLK_GRP_B_EN_I.CLK_MMCM_B_I     |                                                       clk_mmcm_b | Reconfigurable |            - |       1312 |       1312 |       0 |    0 |   1644 |      0 |      0 |    0 |          0 |
+|       CLK_GRP_C_EN_I.CLK_MMCM_C_I     |                                                       clk_mmcm_c | Reconfigurable |            - |       1305 |       1305 |       0 |    0 |   1623 |      0 |      0 |    0 |          0 |
+|       CLK_HBM_EN_I.CLK_MMCM_HBM_I     |                                                     clk_mmcm_hbm | Reconfigurable |            - |       1310 |       1310 |       0 |    0 |   1637 |      0 |      0 |    0 |          0 |
+|       SLICE_AXIL_A                    |                           cl_axi_register_slice_light__xdcDup__1 | Reconfigurable |            - |         15 |         15 |       0 |    0 |    112 |      0 |      0 |    0 |          0 |
+|       SLICE_AXIL_B                    |                           cl_axi_register_slice_light__xdcDup__2 | Reconfigurable |            - |         15 |         15 |       0 |    0 |    112 |      0 |      0 |    0 |          0 |
+|       SLICE_AXIL_C                    |                           cl_axi_register_slice_light__xdcDup__3 | Reconfigurable |            - |         14 |         14 |       0 |    0 |    112 |      0 |      0 |    0 |          0 |
+|       SLICE_AXIL_HBM                  |                           cl_axi_register_slice_light__xdcDup__4 | Reconfigurable |            - |         15 |         15 |       0 |    0 |    112 |      0 |      0 |    0 |          0 |
+|     DDR_CDC                           |                                cl_axi_clock_converter__xdcDup__1 | Reconfigurable |            - |        940 |        196 |     744 |    0 |   2984 |      0 |      0 |    0 |          0 |
+|       inst                            |  axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0 | Reconfigurable |            - |        940 |        196 |     744 |    0 |   2984 |      0 |      0 |    0 |          0 |
+|     DDR_XBAR                          |                                            cl_axi_sc_2x2_wrapper | Reconfigurable |            - |      10180 |       8281 |    1776 |  123 |  19998 |     36 |      2 |    0 |          0 |
+|       cl_axi_sc_2x2_i                 |                                                    cl_axi_sc_2x2 | Reconfigurable |            - |      10180 |       8281 |    1776 |  123 |  19998 |     36 |      2 |    0 |          0 |
+|     G_HBM.HBM                         |                                                     cl_sigil_hbm | Reconfigurable |            - |       3199 |       2486 |     698 |   15 |   4777 |      4 |      0 |    0 |          0 |
+|       AXI3_REG_SLC_HBM                |                                           cl_axi3_256b_reg_slice | Reconfigurable |            - |        333 |        333 |       0 |    0 |   1276 |      0 |      0 |    0 |          0 |
+|       AXI_CONVERTER_AXI4_AXI3         |                                            cl_axi_sc_1x1_wrapper | Reconfigurable |            - |       1866 |       1153 |     698 |   15 |   2580 |      0 |      0 |    0 |          0 |
+|       HBM_WRAPPER_I                   |                                               cl_mem_hbm_wrapper | Reconfigurable |            - |       1002 |       1002 |       0 |    0 |    921 |      4 |      0 |    0 |          0 |
+|     HBM_SLC0                          |                                    axi_register_slice__xdcDup__1 | Reconfigurable |            - |        607 |        607 |       0 |    0 |   2399 |      0 |      0 |    0 |          0 |
+|       inst                            | axi_register_slice_v2_1_36_axi_register_slice__parameterized1__7 | Reconfigurable |            - |        607 |        607 |       0 |    0 |   2399 |      0 |      0 |    0 |          0 |
+|     HBM_SLC1                          |                                    axi_register_slice__xdcDup__2 | Reconfigurable |            - |        607 |        607 |       0 |    0 |   2405 |      0 |      0 |    0 |          0 |
+|       inst                            | axi_register_slice_v2_1_36_axi_register_slice__parameterized1__6 | Reconfigurable |            - |        607 |        607 |       0 |    0 |   2405 |      0 |      0 |    0 |          0 |
+|     HBM_SLC2                          |                                    axi_register_slice__xdcDup__3 | Reconfigurable |            - |        608 |        608 |       0 |    0 |   2407 |      0 |      0 |    0 |          0 |
+|       inst                            | axi_register_slice_v2_1_36_axi_register_slice__parameterized1__5 | Reconfigurable |            - |        608 |        608 |       0 |    0 |   2407 |      0 |      0 |    0 |          0 |
+|     OCL_CDC                           |                          cl_axi_clock_converter_light__xdcDup__2 | Reconfigurable |            - |         45 |         45 |       0 |    0 |    229 |      0 |      0 |    0 |          0 |
+|       inst                            |                  axi_clock_converter_v2_1_35_axi_clock_converter | Reconfigurable |            - |         45 |         45 |       0 |    0 |    229 |      0 |      0 |    0 |          0 |
+|     PCIS_SLC                          |                                    axi_register_slice__xdcDup__4 | Reconfigurable |            - |        669 |        669 |       0 |    0 |   2647 |      0 |      0 |    0 |          0 |
+|       inst                            | axi_register_slice_v2_1_36_axi_register_slice__parameterized1__8 | Reconfigurable |            - |        669 |        669 |       0 |    0 |   2647 |      0 |      0 |    0 |          0 |
+|     PCIS_SLC2                         |                                               axi_register_slice | Reconfigurable |            - |        670 |        670 |       0 |    0 |   2656 |      0 |      0 |    0 |          0 |
+|       inst                            |    axi_register_slice_v2_1_36_axi_register_slice__parameterized1 | Reconfigurable |            - |        670 |        670 |       0 |    0 |   2656 |      0 |      0 |    0 |          0 |
+|     PIPE_DDR_STAT0                    |                                         lib_pipe__parameterized0 | Reconfigurable |            - |          1 |          1 |       0 |    0 |    336 |      0 |      0 |    0 |          0 |
+|     PIPE_DDR_STAT_ACK0                |                                         lib_pipe__parameterized1 | Reconfigurable |            - |          0 |          0 |       0 |    0 |    272 |      0 |      0 |    0 |          0 |
+|     SH_DDR                            |                                                           sh_ddr | Reconfigurable |            - |      23632 |      21135 |    1860 |  637 |  31513 |     26 |      1 |    0 |          3 |
+|       (SH_DDR)                        |                                                           sh_ddr | Reconfigurable |            - |         20 |         20 |       0 |    0 |    460 |      0 |      0 |    0 |          0 |
+|       CCF_DDR_STAT_ACK                |                                         flop_ccf__parameterized2 | Reconfigurable |            - |         24 |         24 |       0 |    0 |    117 |      0 |      0 |    0 |          0 |
+|       CCF_DDR_STAT_REQ                |                                         flop_ccf__parameterized1 | Reconfigurable |            - |        364 |        364 |       0 |    0 |    147 |      0 |      0 |    0 |          0 |
+|       ddr_stat.AXIL_CCF               |                                     cl_axi_clock_converter_light | Reconfigurable |            - |         41 |         41 |       0 |    0 |    365 |      0 |      0 |    0 |          0 |
+|       ddr_stat.CCF_XSDB_REQ           |                                                         flop_ccf | Reconfigurable |            - |         22 |         22 |       0 |    0 |    102 |      0 |      0 |    0 |          0 |
+|       ddr_stat.SAVE_RST_FROM_DDR_SYNC |                                             sync__parameterized0 | Reconfigurable |            - |          2 |          2 |       0 |    0 |     68 |      0 |      0 |    0 |          0 |
+|       ddr_stat.STAT_AXL               |                                                      mgt_acc_axl | Reconfigurable |            - |        128 |        128 |       0 |    0 |    172 |      0 |      0 |    0 |          0 |
+|       genblk1.IS_DDR_PRESENT.AXI_CCF  |                                           cl_axi_clock_converter | Reconfigurable |            - |        892 |        196 |     696 |    0 |   2824 |      0 |      0 |    0 |          0 |
+|       genblk1.IS_DDR_PRESENT.DDR4_0   |                                                          cl_ddr4 | Reconfigurable |            - |      22123 |      20322 |    1164 |  637 |  27188 |     26 |      1 |    0 |          3 |
+|     SIGIL                             |                                                   sigil_fpga_ocl | Reconfigurable |            - |      82676 |      82002 |     674 |    0 |  36577 |      9 |      0 |    0 |         29 |
+|       u_regs                          |                                                   sigil_ocl_regs | Reconfigurable |            - |        453 |        453 |       0 |    0 |    627 |      0 |      0 |    0 |          0 |
+|       u_top                           |                                                   sigil_fpga_top | Reconfigurable |            - |      82225 |      81551 |     674 |    0 |  35950 |      9 |      0 |    0 |         29 |
++---------------------------------------+------------------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

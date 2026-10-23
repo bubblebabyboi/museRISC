@@ -1,0 +1,33 @@
+Thu Oct 22 08:39:32 UTC 2026
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-035116450e0a0d093  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+Model name:                           AMD EPYC 7R13 Processor
+6.8.0-1021-aws
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-0a1fd54ef68bdc754  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-0a1fd54ef68bdc754  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+f9b77ac9c8b5a4abf77892dada7e3f423a60e7f489e82ac9e7c3bfc74530e14b  fw/crypto_soc_test.bin
+cc494f66fe31e075a324b61b52eea5a0ee8ca70542b363738c2185b657bf6fa4  fw/ed25519_soc_test.bin
+6761df857ad806c9275db2d04be260e03c8c8d4c2931bf7abd84229e9bbc861f  fw/f2_memtest.bin
+df5611ef7e0a1c6af4e580ca9db54a4eb9647786ee579dcab38ce2e93030d0c2  fw/f2_platform_test.bin
+3200f93a68693dc770d6040f24bc2333d15335690d08550b32753a5cb69c27f0  fw/fpga_smoke_test.bin
+266545400aa0a1fe7f8d5c02e4aa1614db2795361dc4970f338f639ef994386b  fw/fpga_smoke_uart_in.txt
+b7ce72ad2833cf073a98fd3559ff07b3bc3696b81f027137f575e6515dece7af  fw/hash_soc_test.bin
+0db112ac5de199b9e341bd6f493a6128ebcbbfdd1ce62fb8886d8dfaf4ad8440  examples/ed25519_verify.bin
+6ea3217b15e77a20c921ab6a78e8bdf55a2c96d760199d5f969079b610500ae0  examples/fp_math.bin
+9c22f0dd0df607d8c7601ff669a909f8bbb14fa45a7f5be85986615ef498a6c6  examples/hash_stream.bin
+5281ad166d0d54b6fe2ff1eb67343944adeba1de5ee921f24a14aa09947ff883  examples/hello.bin
+7f17fc2600367b6ee8177f596d00a625cc6337d3f8d106415115549565f97152  examples/sha256_accel.bin
+ea3689c087b486d29fb1d798a8e2ec7c05dd4bcff29a6036527c1702a03c9032  examples/timer_irq.bin
+8cda1477f04980927fa25800446053e4d166af125a782297b31d0dd6be39c076  examples/vector_dot.bin
+4a98e0787a11d019c91931708ceba8815a454d76098d381c81f15f9611eb05a7  linux/Image
+7ae803a1439111e2a24674b4f7b36a94a5d0a714a309443657ac88668a7866dd  linux/fw_jump.bin
+679fdfe0e82c0604a2044e837a168358e5f927b1620d5e49e09d69719d7787d3  linux/muserisc.dtb
+8b7fa6816d9dd3ece0ef6fb6801a3f2990cb2d508d4f4e8730178f5ae8fad19b  linux/s_hello.bin

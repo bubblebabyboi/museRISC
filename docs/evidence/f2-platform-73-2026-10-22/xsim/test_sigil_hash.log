@@ -1,0 +1,51 @@
+#-----------------------------------------------------------
+# xsim v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Thu Oct 22 06:33:47 2026
+# Process ID         : 104182
+# Current directory  : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_hash_sv_fast
+# Command line       : xsim -log test_sigil_hash.log -mode tcl -source {xsim.dir/tb/xsim_script.tcl}
+# Log file           : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_hash_sv_fast/test_sigil_hash.log
+# Journal file       : /home/ubuntu/plat-sim/fpga/cl_sigil/verif/sim/xsim/test_sigil_hash_sv_fast/xsim.jou
+# Running On         : ip-172-31-66-228
+# Platform           : Ubuntu
+# Operating System   : Ubuntu 24.04.1 LTS
+# Processor Detail   : Intel(R) Xeon(R) Gold 6455B
+# CPU Frequency      : 3898.700 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 32
+# Host memory        : 265990 MB
+# Swap memory        : 10737 MB
+# Total Virtual      : 276728 MB
+# Available Virtual  : 255913 MB
+#-----------------------------------------------------------
+source xsim.dir/tb/xsim_script.tcl
+# xsim {tb} -autoloadwcfg -tclbatch {/home/ubuntu/plat-sim/fpga/cl_sigil/verif/scripts/waves.tcl}
+Time resolution is 1 ps
+source /home/ubuntu/plat-sim/fpga/cl_sigil/verif/scripts/waves.tcl
+## run -all
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+__INFO__: Writing SDA interface at Base addr = 0x58000
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+[   15844.000 ns] sigil: clocks programmed (B1, 62.5 MHz), resets released, STATUS 0x000000c1
+[   15984.000 ns] check STATUS.soc_in_reset before release = 0x00000001 ok
+[   15984.000 ns] sigil: ../../../fw/hash_soc_test.bin first bytes 37 11 00 00 1b 01 11 80
+[   27864.000 ns] sigil: loaded 2104 bytes from ../../../fw/hash_soc_test.bin at DDR 0x0 (PCIS)
+[   28684.000 ns] sigil: SoC released, waiting for "SOC HASH PASS"
+[  530904.000 ns] sigil: progress 31344 core cycles since release, 0 UART bytes; STATUS 0xc0 TX_STATUS 0x0 traps 0 (last cause 0x0 pc 0x0)
+[ 1031144.000 ns] sigil: progress 62608 core cycles since release, 0 UART bytes; STATUS 0xc0 TX_STATUS 0x0 traps 0 (last cause 0x0 pc 0x0)
+[ 1531184.000 ns] sigil: progress 93861 core cycles since release, 0 UART bytes; STATUS 0xc0 TX_STATUS 0x0 traps 0 (last cause 0x0 pc 0x0)
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+[ 1706524.000 ns] SIGIL PASS "SOC HASH PASS" after 104865 core cycles, 1677.8 us simulated, measured 62.500 MHz
+[ 1707624.000 ns] : Detected   0 errors
+[ 1707624.000 ns] : Checking protocol checker error status...
+*** TEST PASSED ***
+$finish called at time : 1707624 ns : File "/home/ubuntu/plat-sim/fpga/cl_sigil/verif/tests/sigil_test_utils.svh" Line 278
+run: Time (s): cpu = 00:00:00.4 ; elapsed = 00:04:39 . Memory (MB): peak = 1450.082 ; gain = 8.004 ; free physical = 224889 ; free virtual = 253536
+## quit
+INFO: xsimkernel Simulation Memory Usage: 339172 KB (Peak: 380052 KB), Simulation CPU Usage: 279610 ms
+INFO: [Common 17-206] Exiting xsim at Thu Oct 22 06:38:28 2026...

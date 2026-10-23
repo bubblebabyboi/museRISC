@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+ * Sigil SoC on an AWS F2 FPGA (docs/LINUX_PLATFORM.md):
+ *   node 0  DDR4 system RAM   0x0_8000_0000 .. 0xC_7FFF_FFFF  (48 GiB)
+ *   pmem    DDR4 disk         0xC_8000_0000 .. 0x10_7FFF_FFFF (16 GiB) -> /dev/pmem0
+ *   node 1  HBM system RAM    0x10_8000_0000 .. 0x14_7FFF_FFFF (16 GiB, no CPUs)
+ * mtime ticks at the core clock: 62.5 MHz for the current recipe B1.
+ */
+/include/ "sigil.dtsi"
+
+/ {
+	model = "Sigil RV64 SoC on AWS F2 (VU47P)";
+
+	chosen {
+		bootargs = "console=ttyS0,115200 earlycon=sbi root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl";
+	};
+
+	cpus {
+		timebase-frequency = <62500000>;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0xc 0x00000000>;
+		numa-node-id = <0>;
+	};
+
+	memory@1080000000 {
+		device_type = "memory";
+		reg = <0x10 0x80000000 0x4 0x00000000>;
+		numa-node-id = <1>;
+	};
+
+	pmem@c80000000 {
+		compatible = "pmem-region";
+		reg = <0xc 0x80000000 0x4 0x00000000>;
+	};
+
+	distance-map {
+		compatible = "numa-distance-map-v1";
+		distance-matrix = <0 0 10>, <0 1 20>, <1 0 20>, <1 1 10>;
+	};
+};
+
+&cpu0 {
+	numa-node-id = <0>;
+};

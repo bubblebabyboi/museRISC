@@ -6,6 +6,8 @@
 // tb/cpp/soc_tb.cpp:
 //
 //   0x0000_1000  boot ROM (4 KiB, sigil_bootrom)
+//   0x0010_0000  test finisher (sifive,test1; QEMU virt layout)
+//   0x0010_1000  RTC (google,goldfish-rtc; PLIC source 11)
 //   0x0200_0000  CLINT
 //   0x0C00_0000  PLIC (UART = source 10, ext_irq_i ORed in)
 //   0x1000_0000  16550 UART
@@ -30,12 +32,26 @@
 // sigil_cpu's). The sky130hd flow and its simulation builds set
 // IC_WAYS=1 DC_WAYS=1 (4 KiB direct-mapped I$ and D$, see
 // SIGIL_SOC_PARAMS_SKY130 in rtl/sigil_soc_files.mk).
+//
+// RAM_CACHE_SIZE: size of the cacheable RAM window from 0x8000_0000
+// (sigil_cpu C0_SIZE; default 2 GiB as before). The F2 build sets it
+// to the whole 80 GiB DDR4 + HBM span (docs/LINUX_PLATFORM.md), so
+// memory above 4 GiB is cached like the rest of RAM.
+//
+// Platform devices for Linux (issue #67, docs/LINUX_PLATFORM.md):
+// the test finisher reports power-off / reboot / fail writes on
+// fin_valid_o / fin_data_o; the RTC reads rtc_ns_i (nanoseconds,
+// kept by the platform across SoC resets; tie to 0 if absent) plus
+// a guest-set offset. uart_tx_stall_i = 1 holds the UART transmitter
+// (byte sink full); tie it to 0 when nothing consumes the parallel
+// TX stream.
 `default_nettype none
 module sigil_soc_top #(
     parameter int unsigned IC_SETS = 64,
     parameter int unsigned IC_WAYS = 2,
     parameter int unsigned DC_SETS = 64,
-    parameter int unsigned DC_WAYS = 4
+    parameter int unsigned DC_WAYS = 4,
+    parameter logic [63:0] RAM_CACHE_SIZE = 64'h0000_0000_8000_0000
 ) (
     input  wire        clk_i,
     input  wire        rst_ni,
@@ -62,6 +78,11 @@ module sigil_soc_top #(
     input  wire [7:0]  uart_rx_data_i,
     input  wire        uart_rx_valid_i,
     output wire        uart_rx_ready_o,  // uart_rx_valid_i accepted
+    input  wire        uart_tx_stall_i,  // 1 = hold the UART TX (sink full)
+    // Test finisher event (one-cycle pulse) and RTC time base.
+    output wire        fin_valid_o,
+    output wire [31:0] fin_data_o,
+    input  wire [63:0] rtc_ns_i,
     // Extra PLIC interrupt sources (source 10 is the UART).
     input  wire [31:0] ext_irq_i,
     // Trap observability (test/debug).
@@ -87,6 +108,8 @@ module sigil_soc_top #(
   assign rst_n = rst_sync_q;
 
   localparam logic [63:0] ROM_BASE    = 64'h0000_1000;
+  localparam logic [63:0] FIN_BASE    = 64'h0010_0000;
+  localparam logic [63:0] RTC_BASE    = 64'h0010_1000;
   localparam logic [63:0] CLINT_BASE  = 64'h0200_0000;
   localparam logic [63:0] PLIC_BASE   = 64'h0C00_0000;
   localparam logic [63:0] UART_BASE   = 64'h1000_0000;
@@ -118,7 +141,8 @@ module sigil_soc_top #(
 
   sigil_cpu #(
       .IC_SETS(IC_SETS), .IC_WAYS(IC_WAYS),
-      .DC_SETS(DC_SETS), .DC_WAYS(DC_WAYS)
+      .DC_SETS(DC_SETS), .DC_WAYS(DC_WAYS),
+      .C0_BASE(RAM_BASE), .C0_SIZE(RAM_CACHE_SIZE)
   ) u_cpu (
       .clk_i           (clk_i),
       .rst_ni          (rst_n),
@@ -190,14 +214,17 @@ module sigil_soc_top #(
 
   // Device decode (the fabric presents one access at a time).
   logic sel_rom, sel_clint, sel_plic, sel_uart, sel_crypto;
+  logic sel_fin, sel_rtc;
   assign sel_rom = in_range(dev_addr, ROM_BASE, 64'h1000);
+  assign sel_fin = in_range(dev_addr, FIN_BASE, 64'h1000);
+  assign sel_rtc = in_range(dev_addr, RTC_BASE, 64'h1000);
   assign sel_clint = in_range(dev_addr, CLINT_BASE, 64'h1_0000);
   assign sel_plic = in_range(dev_addr, PLIC_BASE, 64'h400_0000);
   assign sel_uart = in_range(dev_addr, UART_BASE, 64'h100);
   assign sel_crypto = in_range(dev_addr, CRYPTO_BASE, 64'h100);
 
   logic [63:0] rom_data, clint_rdata, plic_rdata, uart_rdata;
-  logic [63:0] crypto_rdata;
+  logic [63:0] crypto_rdata, fin_rdata, rtc_rdata;
   /* verilator lint_off UNUSEDSIGNAL */
   logic [31:0] rom32_unused;
   /* verilator lint_on UNUSEDSIGNAL */
@@ -211,13 +238,15 @@ module sigil_soc_top #(
     else if (sel_plic) dev_rdata = plic_rdata;
     else if (sel_uart) dev_rdata = uart_rdata;
     else if (sel_crypto) dev_rdata = crypto_rdata;
+    else if (sel_fin) dev_rdata = fin_rdata;
+    else if (sel_rtc) dev_rdata = rtc_rdata;
     else dev_rdata = 64'd0;
   end
 
-  logic uart_irq;
+  logic uart_irq, rtc_irq;
   logic [31:0] plic_sources;
   logic [1:0]  plic_eip;
-  assign plic_sources = ext_irq_i | {21'd0, uart_irq, 10'd0};
+  assign plic_sources = ext_irq_i | {20'd0, rtc_irq, uart_irq, 10'd0};
   assign irq_m_ext = plic_eip[0];
   assign irq_s_ext = plic_eip[1];
 
@@ -242,8 +271,19 @@ module sigil_soc_top #(
       .wdata_i(dev_wdata), .rdata_o(uart_rdata),
       .irq_o(uart_irq), .tx_o(uart_tx_o), .rx_i(uart_rx_i),
       .tx_data_o(uart_tx_data_o), .tx_valid_o(uart_tx_valid_o),
+      .tx_stall_i(uart_tx_stall_i),
       .rx_data_i(uart_rx_data_i), .rx_valid_i(uart_rx_valid_i),
       .rx_ready_o(uart_rx_ready_o));
+  sigil_test_finisher u_fin (
+      .clk_i(clk_i), .rst_ni(rst_n),
+      .sel_i(sel_fin && dev_sel), .addr_i(dev_addr[11:0]),
+      .be_i(dev_be), .wdata_i(dev_wdata), .rdata_o(fin_rdata),
+      .fin_valid_o(fin_valid_o), .fin_data_o(fin_data_o));
+  sigil_rtc_goldfish u_rtc (
+      .clk_i(clk_i), .rst_ni(rst_n),
+      .sel_i(sel_rtc && dev_sel), .re_i(dev_re), .addr_i(dev_addr[11:0]),
+      .be_i(dev_be), .wdata_i(dev_wdata), .rdata_o(rtc_rdata),
+      .rtc_ns_i(rtc_ns_i), .irq_o(rtc_irq));
   sigil_crypto_bridge u_crypto_bridge (
       .clk_i(clk_i), .rst_ni(rst_n),
       .sel_i(sel_crypto && dev_sel), .re_i(dev_re),

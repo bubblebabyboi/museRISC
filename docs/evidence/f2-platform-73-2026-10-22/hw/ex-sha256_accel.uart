@@ -1,0 +1,5 @@
+software SHA-256 (C and Zknh) known answers ok
+accelerator SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+accelerator == software for lengths 0..55
+SHA-256 of 55 bytes: accelerator 4036 cycles (1302 instr), sw C 16323 cycles (3960 instr), sw Zknh 11339 cycles (3834 instr)
+SIGIL TEST PASS sha256_accel

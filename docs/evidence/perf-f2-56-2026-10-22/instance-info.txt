@@ -1,0 +1,42 @@
+date_utc: 2026-10-22T11:28:04Z
+instance-id: i-0fa8f24634bfa912f
+instance-type: f2.6xlarge
+ami-id: ami-069f868732bb588dc
+placement/availability-zone: us-east-1a
+kernel: Linux 6.8.0-1021-aws #23-Ubuntu SMP Mon Dec  9 23:59:34 UTC 2024 x86_64
+os: Ubuntu 24.04.1 LTS
+cpu: AMD EPYC 7R13 Processor, nproc 24
+aws-fpga: v2.3.5 c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
+host gcc: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+sigil_host sha256: 5fb72de53cb91bd0fc5bcf1c4de5181f1acca5062319877afdb78711a5c63653
+sigil_host.c sha256: dd2d13741cd17ce3858ed9c506c44187a397b1c0d914ed2c63642d4906254501
+
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-035116450e0a0d093  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+
+coremark-scalar-1000.bin: OK
+coremark-scalar.bin: OK
+coremark-sdk.bin: OK
+coremark-validation-1000.bin: OK
+coremark-validation.bin: OK
+dhrystone-scalar.bin: OK
+dhrystone-sdk.bin: OK
+kernels-autovec.bin: OK
+kernels-scalar.bin: OK
+micro_dmem-default.bin: OK
+micro_imem-default.bin: OK
+micro_pipe-default.bin: OK
+micro_units-default.bin: OK
+micro_vec-default.bin: OK
+sha256chain-sdk.bin: OK
+sha256chain_bulk-sdk.bin: OK
+
+== setup.log tail
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+Type  FpgaImageSlot  FpgaImageId             StatusName    StatusCode   ErrorName    ErrorCode   ShVersion
+AFI          0       agfi-035116450e0a0d093  loaded            0        ok               0       0x10212415
+Type  FpgaImageSlot  VendorId    DeviceId    DBDF
+AFIDEVICE    0       0x1d0f      0xf054      0000:34:00.0
+SETUP_DONE in 32 s

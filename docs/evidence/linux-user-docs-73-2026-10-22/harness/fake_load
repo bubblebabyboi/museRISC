@@ -1,0 +1,4 @@
+#!/bin/bash
+# fpga-load-local-image -S 0 -I AGFI -H
+while [ $# -gt 0 ]; do [ "$1" = -I ] && echo "$2" > /home/ubuntu/docs73/test/fake/afi; shift; done
+echo loaded

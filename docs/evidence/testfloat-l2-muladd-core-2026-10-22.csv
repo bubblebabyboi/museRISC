@@ -1,0 +1,21 @@
+function,instruction,rounding_mode,level,selection,stride,seed,level2_cases_per_mode,cases_in_selection,cases_checked,fails,chunks,result,chunk_wall_seconds_sum
+f32_mulAdd,fmadd.s,RNE,2,complete level-2 stream,1,42,14512627712,14512627712,14512627712,0,217,PASS,90164
+f32_mulAdd,fmadd.s,RTZ,2,every 13th grid triple + first random triples,13,42,14512627712,1116355978,1116355978,0,17,PASS,6639
+f32_mulAdd,fmadd.s,RDN,2,every 13th grid triple + first random triples,13,42,14512627712,1116355978,1116355978,0,17,PASS,6740
+f32_mulAdd,fmadd.s,RUP,2,every 13th grid triple + first random triples,13,42,14512627712,1116355978,1116355978,0,17,PASS,7723
+f32_mulAdd,fmadd.s,RMM,2,every 13th grid triple + first random triples,13,42,14512627712,1116355978,1116355978,0,17,PASS,7795
+f32_mulAdd,fmadd.s/fmsub.s/fnmsub.s/fnmadd.s (rotating),RNE,2,every 97th grid triple + first random triples,97,42,14512627712,149614720,149614720,0,3,PASS,636
+f32_mulAdd,fmadd.s/fmsub.s/fnmsub.s/fnmadd.s (rotating),RTZ,2,every 97th grid triple + first random triples,97,42,14512627712,149614720,149614720,0,3,PASS,636
+f32_mulAdd,fmadd.s/fmsub.s/fnmsub.s/fnmadd.s (rotating),RDN,2,every 97th grid triple + first random triples,97,42,14512627712,149614720,149614720,0,3,PASS,634
+f32_mulAdd,fmadd.s/fmsub.s/fnmsub.s/fnmadd.s (rotating),RUP,2,every 97th grid triple + first random triples,97,42,14512627712,149614720,149614720,0,3,PASS,641
+f32_mulAdd,fmadd.s/fmsub.s/fnmsub.s/fnmadd.s (rotating),RMM,2,every 97th grid triple + first random triples,97,42,14512627712,149614720,149614720,0,3,PASS,630
+f64_mulAdd,fmadd.d,RNE,2,every 97th grid triple + first random triples,97,42,180795884544,1863875100,1863875100,0,28,PASS,7222
+f64_mulAdd,fmadd.d,RTZ,2,every 97th grid triple + first random triples,97,42,180795884544,1863875100,1863875100,0,28,PASS,7889
+f64_mulAdd,fmadd.d,RDN,2,every 97th grid triple + first random triples,97,42,180795884544,1863875100,1863875100,0,28,PASS,7559
+f64_mulAdd,fmadd.d,RUP,2,every 97th grid triple + first random triples,97,42,180795884544,1863875100,1863875100,0,28,PASS,7363
+f64_mulAdd,fmadd.d,RMM,2,every 97th grid triple + first random triples,97,42,180795884544,1863875100,1863875100,0,28,PASS,7172
+f64_mulAdd,fmadd.d/fmsub.d/fnmsub.d/fnmadd.d (rotating),RNE,2,every 997th grid triple + first random triples,997,42,180795884544,181339906,181339906,0,3,PASS,1101
+f64_mulAdd,fmadd.d/fmsub.d/fnmsub.d/fnmadd.d (rotating),RTZ,2,every 997th grid triple + first random triples,997,42,180795884544,181339906,181339906,0,3,PASS,1071
+f64_mulAdd,fmadd.d/fmsub.d/fnmsub.d/fnmadd.d (rotating),RDN,2,every 997th grid triple + first random triples,997,42,180795884544,181339906,181339906,0,3,PASS,1102
+f64_mulAdd,fmadd.d/fmsub.d/fnmsub.d/fnmadd.d (rotating),RUP,2,every 997th grid triple + first random triples,997,42,180795884544,181339906,181339906,0,3,PASS,1123
+f64_mulAdd,fmadd.d/fmsub.d/fnmsub.d/fnmadd.d (rotating),RMM,2,every 997th grid triple + first random triples,997,42,180795884544,181339906,181339906,0,3,PASS,1100

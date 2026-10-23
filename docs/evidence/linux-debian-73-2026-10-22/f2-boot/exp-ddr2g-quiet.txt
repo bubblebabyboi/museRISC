@@ -1,0 +1,185 @@
+[sigil_host] slot 0: AFI agfi-0a1fd54ef68bdc754, shell 0x10212415
+[sigil_host] Sigil CL version 0x00040001, build clock recipe 62.500 MHz, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000002c1)
+[sigil_host] loaded sigil-debian-13-riscv64.ext4: 8589934592 bytes at 0xc80000000 (PCIS 0xc00000000) in 2.383 s = 3.61 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded fw_jump.bin: 277840 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 3.69 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded Image: 15470592 bytes at 0x80200000 (PCIS 0x200000) in 0.004 s = 3.58 GB/s, head/tail verified in 0.000 s
+[sigil_host] loaded sigil-f2-ddr2g-quiet.dtb: 6772 bytes at 0x83000000 (PCIS 0x3000000) in 0.000 s = 7.89 GB/s, head/tail verified in 0.000 s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 1500 s
+
+O   ____    _/ \_  tfoHARrotion : 
+Pfor Platform Timer Platform Console Device     : uart8250
+Platform PMU Device   SuspeFirmware RW Offset      0x40
+Firmware Heap Offset    0x4700ize    :  KB     tiExperimental SBI Extensions : none
+oot
+Domain0 Boot HART           : 0
+       : *
+gion00      x000004000x000005f M:,RW
+Don0 ion       0x00M: (F,R,X) S/U: ()
+Domain0 Region02        0x0000100-0x000010f MI(R,W)
+Doman0 M: (I,R,W) S/U: Domain0 Region04            :) S/U: ()
+00000000c000000-0x000000000fffffff M: () ain0 Next Arg1           : 0x0ysSend    : Boot HART Domain      PMt   : ot MP Boot H PMddr Bi : 
+t HARTbugigg    : 1 triggers
+[   77.084364]  ra : folio_batch_move_lru+0x94/0x132
+[   77.085407]  : fff01e2 r fffff5d0sp 0
+ 77718 t10000000002 :00000 ffffffd602b5f600 a0 : ffffffc5000dc140 a1 : ffffffc6001d3ba0
+7fff7200 a4 :[   77.090720]  s2 : ffffffc6001d3ba0 s3 : 00000[   77.091599]  s5 : ffffffff8015bbc6 s6 : fffffffffffffdf s7 : ffffffff8015bbc0
+[  .096]  : 0000000 t fffd6f10
+c8 se:0000000000000d
+32
+de_mm_fault+0xd7a/0x1294
+dle_mm_fault+0x110/0x1b6[   77.105180] [<ffffffff805d8504>] do_page_fault+0x1e/0x36
+[   77.106207] [<fffff[   77.107863] Code: 0000 c7b1 6705 9736 4318 0713 07 070e 97ba 6784 (64fc) 8493 
+la[  197.532516] : 	tec 0,02 s, , qp)
+cl Qes seen, last rcu_sched kthread activity 12002 (4294957045-4294945043), jiffies_till_nextoo[  197.534576] rcu: rcu_sched kthread starved for 12002 jiffies! g2633 f0x2 RCU_GP_WAIT_FQS(5) -[  197.536524] rcu: grace-period kthred tack dump:
+ning task     stack:0  pid:    g[  197.539189] [<ffffffff805da854>] __sched[  197.540314] [<ffffffff805daf04>] schedule+0x18/0xc0
+schle_eout+197362[<ffff10a_gpad+x11197470fff04akthxa0197572 CU UD0Ps0ffffffc6001d3550
+00
+00049 4 :00000000000048
+ 0000003fcb200000
+ 0000003f8b200000000000020aa2401 s7 : ffffffc5000aa268
+00000001000 s10: 0000003f8b200000
+00000000000
+[97.51251] status: 0000000200000120 badaddr:0000000000000 cause: 8000000000000005
+[  197.562164] [<ffffffff805e0ae2>] _raw_spin_lok+0x80xe
+ffff806ce__poffp_l84/
+448fff186unme_r[  197.565706] [<ffffffff12/0x
+197689[<ffff186>] _vms+0x6a/0x134
+3] ffff2at_ma6/
+896fff026__mx2c
+197993[<ffff8 mmput+0x20/0x28
+8/0x806
+_tae+5/0x120
+409fff00adiel_fx4a
+.57[<ff80>] _pa[  197.576526] [<ffffffff80[  197.578735] [<ffffffff0[  197.579995] [<ffff81b1971[  197.582236] [<ffffffff80158418defe>] _hanl_mm_fault+0xd7a/0x1294
+fff8018e528>] handle_mm_fault+0x110/0x1b6
+[  197.588004] [<ffffffff8000acea>] han[  197.589250] [<ffffffff805d8504>] do_page_fault+0x1e/0x36
+[  197.590247] [<ffffffff805e0f82>] handle_excep 
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Features           : medeleg
+T Pect   pmpPlarm se : syscon-reboot
+syscon-poweroff
+laPlatform CPPC Device        : ---
+Firmware Size               : 321 KB
+Firmware RW Size           :Firmware Scratch Size       : 4096 B (total), 5cy,dbtr,sse
+T           : 0
+Domain0 Ron0   0x0080-0x008f MR,W/U:Domain0 Region03        : 0x0000000010000000-0x0000000010000fff M: (IDomain0 Region05           ,W   0x0000S/U: (R,W,X)
+Domain0 Next Mode           : S-mode
+Domain0 SysSuspend     zBoot HART PMP Count         : 16
+Boot HARBoot HART PMP Address Bits  : 54
+Boot HABoot HART MIDELEG           : 0x000000000000ild) (riscv Thu .000] hinodeSigRV6oC AWS (VP)[  .000]  spficon 0 det   ed.000]  RFrt 0x0[  [  .000]  revedm: 000[    0.000000] OF: reser me0x0000040..000000[  .000] E_D(0)llocated [  0000Zone ras:
+[    0.000000] Early memoryde ges  0000  n   [mex000000000x000005f]
+[  .000] ode0: m 000080000-0000fffff  0000Inim sp n 0 m 000080[  .000]  HSxteon ect
+[  .000] cv:se IA322u86
+ernel command line: console=ttyS0,115200 earlycon=[    0.000000] Dentry cach[    0.000000] Inode-cache hash table entries: 131072 (order: [    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonel.00 [    0.000000] : 	 reictcalatealuf sdulenlmenelas 1ies  0000rcudjung metforu_fut_f=1nr__id
+000 0000][    0.000000] rcu: srcu_init: Seng u_sct ntion.  00] ourffisk:fff_cy0xff, le_11200 
+ff : 0x1cd428c,x_i_ns81514   04] clo bi63Msol16np   0738Calatidellooskid),luelcued ing timdeft: 327  0303LSMnitizilsables, linear)
+.
+[    0.140954] rcu: 	Max[    0.165666] EFI services will not be available.
+erncod472K256 (order: 2, 16384 bytes, linear)
+[  .326] : Rste PFTLIPF_TE tocfam
+[    0.33817DMAreacat256B GKER poforomilloion[    0.340598] : plloed  KiFP_NELP_D2 ool fo  0822cpuRatof e ass e tnaled d aces[    0.608176] HugeTLB: registered 2.00 MiB pageze,e-a[    0.609048] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[  .789] : Rste PFET tocfam
+.805] ide hatabentries: 32768 (or: 6621byt lir)[  .088] _lin_paddntries: 65536 (order: 6, 262144 bytes, linear)
+8([    1.103256] TCP bind hash tabl[  .121] : H tas cigu (eblid 16[    1.144877] NET: Registered PFUNIX/PF_LOCAL protocol family
+ fu in(APers 7.
+[  .239] : Rste PF  1057io edu mqadl red1 handlers for 2 contexts.
+rng disabled
+i  12, base_baud = 115200) is a 16550A
+ legacy consdisa1334512] printk: legacy bootconsole [sbi0] disabled
+98021] tun: Univamespace0.0: uish_rtc 1010000.rtc: set92663351)
+[  .508] pmu16 re harre cours  1710rispmui: f sliniltg is not supported as sscof extensios navable9911] NET: Rste PFET6oto fay
+31]-siO[  nd MPLS over IPv4 tunneling driver.607] : Rste PFCKErotl fly tydnssol re07073] Demotion targets for[    2.323490] EXT4-fs (pmem0): mounted filesystwith ordered data mode. Quota mode: disabled.
+[    2.325642] VFS: Mounted root (ext4 filesystem[    2.331285] devtmpfs: mounted
+  26] g ukerinim) ory188  29931] Run /sbin/init asp]104?7h13u1 running in s+IP+KM+LIYPTUP BCRSETPLUS +FDI2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF -XKBCOMMON -UTMP +SYSVINIT +LIBARCHIVE)073sysd[1Deted hiteie)m
+
+trict-fs: BP LSM hook not enabled in the kern[  .817] tem]: atelicystgetsli- Si[   0m] Created slicm/getty.
+[   68.919946] systemd[1]: Created slice system-seia\x2dgetty.slice - Slice[  OK  ] Created slice system-serial\x2dgetâice /sem/ialtty
+[  .99at and Session Sli
+[   69.021178] systemd[1]: Started systemd-askppasrd-€¦est  Console Directory Watch
+quests to Wall Directory Watch.
+[  OK  assword-wall.âystemd[1]: Set up automount proc-sys-fs-binfmt_misc.automount - Arbitrary Execut[et autmoc--fsnfmatilent Point.
+[   69.095911] systemd[1]: Expecting device dev-ttyS39mdev-ttyS0.device - /dev/tet path[  OK  e-fs.target - Remote File S[   69.137176] systemd[1]: Reached target slices.target - Slice Units.
+[  OK  s.target - [   aps
+tion/Decryption.
+0m] Listening on systemrypn/Dyptn.[   69.556876] systemd[1: Litening on systemd-€¦- initctl Listening on systemd-journald-dev-log system070temLis onmd-ld. - l S.
+[   ourd.setTPMeasts ed,R Policy skipped, unmet conditionrSocket.
+0m] Listening onv Contro[  .682] temd1]: Listening on systemd-udevd-kernel.socket - udev Kerne0m] Listening on systemocket - udev Kernel Socket.
+g dev-hFile System...MounSystem...
+         Mounting - POSIX Message Queue File Sys..[   70.711] tem]: Mounting run-lock.g run-l
+]: Mount
+         Mounting rnel-debug.mount - Kernel Debug File System...ernel Trael/g
+ 728] d[1unt   Moung ;1;tmp.mtmp...ticdesrvi- Cte st of Static Devs.devn 72.504993] snmeond87vig 1;3yst-joaldrvi[0m -J.205] tem]: ng d-m-lovicad g systemd-modules-load.service - Los...
+[   77.684068] systemd[1]: Starting systemd-remount-fs.service -rvicâ€0muRoond nelle tem.ice - Create Static Device Nodes in /de        Startince Nodesin /devrly TPM SRK Setup skipped, unmet[  .8774]s-load-credentials.service - Load udev Rules from Credentials...
+         Startitemdevad-¦adev es m Cents..
+      rtiservice - Coldplug All udev Devices.mount - Huge Pages File System.
+[ OK  ge Page1;39mdev-mqueue.mount - POSI 8979] systemd[1]: Mount1;39mrun-lock.mo9msker-deb. 90302sysd[1Moud tmou- Tp[  OK  ] Mounted tmp.mount - Temporary Directory /tp.
+0*  sysd-u-locre¦ictartrunning **   nni0m] (1mit
+M *5mi
+M  g (26s / 15min)M  0;3*15m
+M[  [0;*3 o7) osystemd-remount.sece/rt nin28sno it)b tememo-fsrvim] (3 of 7) Jono limit)1*] (4 of 7) Job systepâ€¦ice/start running (30s / no limit)
+*1;3*0;* ] (f 7ob temmpfs-spâ€e/st ru no)0;3  ] (of nning (31s / no 1;3[0igtemlesser Load ;1;sysd-mlesad.vic0m - Le kpagquevirddrf6020c8Oop
+ink
+ Codprt t 6.-si
+657] Hardware name: Sigil RV64 SoC on AWS F2 (VU47P) (DT)
+ ffffffc6001d3b80
+101225 gpfff5
+[  101.663138] 0
+d60b74e80 a6 : fffff6001d3ba0 s3 : 000000000000000c s4 : ffffffd67efe3cc0
+[  101.667512]  s5 : ffffffff8015bbc6 s6 : ffffffffffffffdf s7 :[  101.668404]  s8 : 0000000000000020 s9 : ffffffff80efdfb8 s10: 0000000000001
+000[  101.670831] status000200120dad fffd6ca0se:0[  .673] ffff80b62follru_loae+0x42/0x86
+ee 0][<ffffffff8015d84a>] folor_ma+0x82/0xbc
+[  101.675132] [<ffffffff8018966[  101.681208] [<ffffffff805d8504>] do_page_fault+0x1e/0x36
+00000000000000 ]---
+             : Sigil RV64 SoC on AWS F2 (VU47P)
+M Device         : ---
+Platform Reboot Device      : syscon-reboot
+Platform Suspend Device Firmware Bset    : 000Firre SeB
+Firmware Heap Offs    : 700re p S      37 (to), B (Firmware ce SDom0 N             : root
+        :          : 0x0000000080040000-0x000000008005ffff M: (F,R,XDomainegi2        : 0x0000000000100000-0x000000000100fff M: (I,W(Rgion06            : 0x0000000000000000-0xffffffffffffffff )
+Domain0 Next Address        : 0x0000000080200000
+Domain0 SysSusp      yes
+Boot H Don      : t
+Boot HATBoot HART Debug Triggers    : 1 triggers
+[  0.000000] Linux version 6.12.114-sigil (sigil@sigil-build) (riscv64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntuU Btilor ntu.424 S Oc0:0TC   0000hS etnsion detected
+000] SBI SRST extension detected
+[    0.000000] SBI DBCN extension detected
+[    0.000000] earlycon: sbi0 at I/O prt0x000000008003ffff (256 KiB) noap non-reusale mmode_resv1@80000000
+000000080040000..0x000000008005[  .000] (1)d [ffb7ff[  .00  0000  n   [mex000006000x000]    m 0010000-0x000000147f000000] Initmem setup node 0 [mem 0x0000000080000000-0x0000000c7fffffff]
+cv:ISAtenns fhi   0.000000] riscv   0000per: Edded 21pae5528 r8192 d32296 u86016
+6
+  0000Poly zone: Normal
+e:off
+[    0.000000] software IO TLB: area num 1.
+000000fffff000] (64MB)
+ immentation.
+[  .000000] 	Tracio[    0.000000] rcu: Adjusting geometry for rcanou[    0.000000] RCU Tasks Trceint64 al errs med SBPI struct sizes based nmax_idle_ns: 19112604462000ns
+, rlp([    0.009314] pid_max: default: 32768 minim[  .92Denchetabrie860er:710yte  22] cach tntr4  23]   2894Mouoinachashblees:2 (rder: 8, 1048576 bytes, vmalloc)
+[    3.071] D acatusig 1b[    3.079903] rcu: Hierach[    3.05 scodryCUs..el code, 4448K rwdata, 2048K rodata, 2467K init, 383K bss, 1148472K reserved, 0K cma-reserved)
+[    3.423459] devtmpfs: initialized
+608] futex hash table entries: 256 (order: 2, 16384 bytes, vmalloc)[    3.547703] NET: Registered PF_NETLINK/PF_ROUTE protoolfamily
+[  .567] : plloed 6[  .576] : plloe 4096 KiB GFP_[    3.846969] HugeTLB: regB 2[    3.947643] clocksource: Se
+.11IP  hale tr[  .317]  eslis ha l nP bind hash table entries: 65536 (order: 9, 2097152 bytes, vmalloc)
+  6354TCPashbleonfredbli24286 ytes, vmalloc)
+[    6.928964] kvm [1]: VMID 14 bits available
+[    7.148388] fuse: init[    7.171053] io scheduler mq-deadline registered
+[    7.173632] io sceduer bqfor 2 contexts.
+ rts, IRQ sharing disabled
+ial0 a 0x00  12_ba152 a prientkcy nso] disad
+[  .357] ntkegaboonso[sb diled  7405loomod lod
+device drive[    7.546sh_ 100.rtc: rs] rv-psbiBI  exion is 16 mwaandharre nte
+  7sbi: Perf sampling/filtering is not supported as ssco[  719with IPv6u O(M) h I
+[  .74
+T: ere[  gised3995] Demotion targets forll
+  8127clkisaling u[    8.831667] Freeing unused kernel image (initme) me33777] Run /init as init process
+
+
+[sigil_host] result: TIMEOUT (timeout) after 1500.000 s, 93750162969 core cycles
+[sigil_host] measured core clock: 62.500 MHz (cycle counter / wall time; build recipe 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000009 pc 0xffffffff8000a50c, STATUS 0x000002c1

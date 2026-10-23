@@ -1,0 +1,2 @@
+/include/ "sigil-f2.dts"
+/ { chosen { bootargs = "console=ttyS0,115200 root=/dev/pmem0 rootfstype=ext4 ro rootwait no4lvl quiet loglevel=1 systemd.show_status=0"; }; };

@@ -1,0 +1,3 @@
+#!/bin/bash
+f=/home/ubuntu/docs73/test/fake/afi
+if [ -f "$f" ]; then echo "AFI          0       $(cat $f)  loaded            0        ok               0       0x10212415"; else echo "AFI          0       none                    cleared           1        ok               0       0x10212415"; fi

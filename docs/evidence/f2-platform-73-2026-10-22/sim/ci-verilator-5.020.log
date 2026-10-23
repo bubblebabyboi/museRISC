@@ -1,0 +1,207 @@
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module keccak_f1600 rtl/crypto/keccak_f1600.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sha512_block rtl/crypto/sha512_block.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_core rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_muldiv_mc rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_muldiv_mc -GCOMB=1 rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 flow/designs/nangate45/sigil_soc/sram/fakeram45_256x64_1r1w.v flow/designs/nangate45/sigil_soc/sram/fakeram45_512x64.v flow/designs/nangate45/sigil_soc/sram/fakeram45_64x44.v rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 -GIC_WAYS=1 -GDC_WAYS=1 flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_64x256_8.v flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_128x256_8.v flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_44x64_8.v rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_64x256_8.v flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_128x256_8.v flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_44x64_8.v rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_OREG rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_VRF_OREG rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv rtl/fpga/sigil_axi_memeng.sv rtl/fpga/sigil_fpga_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv rtl/fpga/sigil_axi_memeng.sv rtl/fpga/sigil_fpga_top.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv rtl/fpga/sigil_axi_memeng.sv rtl/fpga/sigil_fpga_top.sv rtl/fpga/sigil_ocl_regs.sv rtl/fpga/sigil_fpga_ocl.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl "-GRAM_SIZE=64'h1400000000" "-GHBM_PRESENT=1'b1" rtl/core/sigil_pkg.sv rtl/core/sigil_cache_pkg.sv rtl/core/sigil_regfile.sv rtl/core/sigil_fpregfile.sv rtl/core/sigil_alu.sv rtl/core/sigil_muldiv.sv rtl/core/sigil_muldiv_mc.sv rtl/core/sigil_fpu_pkg.sv rtl/core/sigil_fpu.sv rtl/core/sigil_bext_pkg.sv rtl/core/sigil_bext.sv rtl/core/sigil_vregfile.sv rtl/core/sigil_vec_pkg.sv rtl/core/sigil_vec.sv rtl/core/sigil_rvc.sv rtl/core/sigil_decoder.sv rtl/core/sigil_csr.sv rtl/core/sigil_mmu.sv rtl/core/sigil_core.sv rtl/core/sigil_sram_sp.sv rtl/core/sigil_icache.sv rtl/core/sigil_dcache.sv rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv rtl/crypto/sha256_block.sv rtl/crypto/sha512_block.sv rtl/crypto/keccak_f1600.sv rtl/crypto/sigil_hash_stream.sv rtl/crypto/ec_field.sv rtl/crypto/sigil_crypto_top.sv rtl/soc/sigil_clint.sv rtl/soc/sigil_plic.sv rtl/soc/sigil_uart16550.sv rtl/soc/sigil_bootrom.sv rtl/soc/sigil_test_finisher.sv rtl/soc/sigil_rtc_goldfish.sv rtl/soc/sigil_crypto_bridge.sv rtl/soc/sigil_soc_fabric.sv rtl/soc/sigil_soc_top.sv rtl/fpga/sigil_fifo.sv rtl/fpga/sigil_mbus_axi4.sv rtl/fpga/sigil_axi_memeng.sv rtl/fpga/sigil_fpga_top.sv rtl/fpga/sigil_ocl_regs.sv rtl/fpga/sigil_fpga_ocl.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_memeng -GAXI_DATA_W=64 rtl/fpga/sigil_axi_memeng.sv
+verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_decerr rtl/fpga/sigil_axi_decerr.sv
+make: Entering directory '/w/sim'
+/usr/bin/python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsigil_mbus_axi4.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0.cpp Vsigil_mbus_axi4___024root__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0__Slow.cpp Vsigil_mbus_axi4__Syms.cpp > Vsigil_mbus_axi4__ALL.cpp
+echo "" > Vsigil_mbus_axi4__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_mbus_axi4__ALL.a Vsigil_mbus_axi4__ALL.o
+/usr/bin/python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsigil_mbus_axi4.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0.cpp Vsigil_mbus_axi4___024root__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0__Slow.cpp Vsigil_mbus_axi4__Syms.cpp > Vsigil_mbus_axi4__ALL.cpp
+echo "" > Vsigil_mbus_axi4__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_mbus_axi4__ALL.a Vsigil_mbus_axi4__ALL.o
+/usr/bin/python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsigil_mbus_axi4.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0.cpp Vsigil_mbus_axi4__ConstPool_0.cpp Vsigil_mbus_axi4___024root__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h97aefcf9__0__Slow.cpp Vsigil_mbus_axi4___024root__DepSet_h1d0e5ea5__0__Slow.cpp Vsigil_mbus_axi4__Syms.cpp > Vsigil_mbus_axi4__ALL.cpp
+echo "" > Vsigil_mbus_axi4__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_mbus_axi4__ALL.a Vsigil_mbus_axi4__ALL.o
+cd ../build/sim && for w in 64 128 512; do \
+done
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4995 rd1, 5009 rd-line, 5006 wr1, 4990 wr-line, 4175 quiesce pulses, 859 out-of-window, 278 error clears) in 236266 cycles; AXI: 9575 AR (43189 R beats), 9566 AW (42914 W beats, 9566 B); stall cycles AW 0 W 0 AR 0 R 0 B 0
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4921 rd1, 4972 rd-line, 5148 wr1, 4959 wr-line, 9671 quiesce pulses, 850 out-of-window, 283 error clears) in 542392 cycles; AXI: 9460 AR (42717 R beats), 9690 AW (43031 W beats, 9690 B); stall cycles AW 6464 W 28179 AR 6417 R 0 B 0
+AXI BRIDGE TB PASS [64-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4944 rd1, 4990 rd-line, 5048 wr1, 5018 wr-line, 9872 quiesce pulses, 793 out-of-window, 241 error clears) in 547782 cycles; AXI: 9543 AR (42996 R beats), 9664 AW (43390 W beats, 9664 B); stall cycles AW 6395 W 28793 AR 6464 R 0 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (5015 rd1, 5033 rd-line, 4874 wr1, 5078 wr-line, 4030 quiesce pulses, 844 out-of-window, 299 error clears) in 223279 cycles; AXI: 9624 AR (24120 R beats), 9532 AW (24103 W beats, 9532 B); stall cycles AW 0 W 0 AR 0 R 14496 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4995 rd1, 5013 rd-line, 5006 wr1, 4986 wr-line, 8506 quiesce pulses, 809 out-of-window, 254 error clears) in 479751 cycles; AXI: 9591 AR (24027 R beats), 9600 AW (24015 W beats, 9600 B); stall cycles AW 6363 W 16148 AR 6544 R 3535 B 0
+AXI BRIDGE TB PASS [128-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4906 rd1, 5080 rd-line, 5018 wr1, 4996 wr-line, 8725 quiesce pulses, 790 out-of-window, 262 error clears) in 481752 cycles; AXI: 9586 AR (24163 R beats), 9624 AW (23997 W beats, 9624 B); stall cycles AW 6482 W 15846 AR 6402 R 3622 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:1 gap 0 ready aw/w/ar 100/100/100% seed 1]: 20000 txns (4976 rd1, 5020 rd-line, 5017 wr1, 4987 wr-line, 3807 quiesce pulses, 829 out-of-window, 316 error clears) in 211067 cycles; AXI: 9590 AR (9590 R beats), 9581 AW (9581 W beats, 9581 B); stall cycles AW 0 W 0 AR 0 R 0 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 1]: 20000 txns (4974 rd1, 5061 rd-line, 4987 wr1, 4978 wr-line, 7940 quiesce pulses, 779 out-of-window, 279 error clears) in 450971 cycles; AXI: 9635 AR (9635 R beats), 9586 AW (9586 W beats, 9586 B); stall cycles AW 6353 W 6369 AR 6548 R 0 B 0
+AXI BRIDGE TB PASS [512-bit AXI, axi lat 1:24 gap 3 ready aw/w/ar 60/60/60% seed 2]: 20000 txns (4916 rd1, 4994 rd-line, 4968 wr1, 5122 wr-line, 8126 quiesce pulses, 818 out-of-window, 279 error clears) in 450886 cycles; AXI: 9492 AR (9492 R beats), 9690 AW (9690 W beats, 9690 B); stall cycles AW 6399 W 6461 AR 6368 R 0 B 0
+echo "" > Vsigil_fpga_top__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_fpga_top__ALL.a Vsigil_fpga_top.o Vsigil_fpga_top___024root__DepSet_h1186e699__0.o Vsigil_fpga_top___024root__DepSet_h1186e699__1.o Vsigil_fpga_top___024root__DepSet_h1186e699__2.o Vsigil_fpga_top___024root__DepSet_h1186e699__3.o Vsigil_fpga_top___024root__DepSet_h1186e699__4.o Vsigil_fpga_top___024root__DepSet_h1186e699__5.o Vsigil_fpga_top___024root__DepSet_h1186e699__6.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0.o Vsigil_fpga_top___024root__DepSet_hfffce81f__1.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_hdbe507ae__0.o Vsigil_fpga_top__ConstPool_0.o Vsigil_fpga_top___024root__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__0__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__1__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__2__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__3__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__4__Slow.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_h365d494a__0__Slow.o Vsigil_fpga_top__Syms.o
+echo "" > Vsigil_fpga_top__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_fpga_top__ALL.a Vsigil_fpga_top.o Vsigil_fpga_top___024root__DepSet_h1186e699__0.o Vsigil_fpga_top___024root__DepSet_h1186e699__1.o Vsigil_fpga_top___024root__DepSet_h1186e699__2.o Vsigil_fpga_top___024root__DepSet_h1186e699__3.o Vsigil_fpga_top___024root__DepSet_h1186e699__4.o Vsigil_fpga_top___024root__DepSet_h1186e699__5.o Vsigil_fpga_top___024root__DepSet_h1186e699__6.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0.o Vsigil_fpga_top___024root__DepSet_hfffce81f__1.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_hdbe507ae__0.o Vsigil_fpga_top__ConstPool_0.o Vsigil_fpga_top___024root__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__0__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__1__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__2__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__3__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__4__Slow.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_h365d494a__0__Slow.o Vsigil_fpga_top__Syms.o
+/usr/lib/gcc/riscv64-unknown-elf/13.2.0/../../../riscv64-unknown-elf/bin/ld: warning: /w/build/soc-tests/hash_soc_test.elf has a LOAD segment with RWX permissions
+cd ../build/sim && for tb in fpga_top_tb fpga_top_tb_w512; do \
+done
+loaded 994 bytes at 0x80000000 from /w/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+FPGA SMOKE: memory
+
+reset requested mid-run at 3000000 cycles after release
+soc reset after 51 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+
+FPGA TOP TB PASS run 0 (exit string at 11170649 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE PASSFPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 11173342 cycles after reset release)
+AXI: 98821 AR (790568 R beats), 82217 AW (657736 W beats, 82217 B); stall cycles AW 35480 W 281323 AR 42186 R 0 B 0
+loaded 994 bytes at 0x80000000 from /w/build/soc-tests/fpga_smoke_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+FPGA SMOKE: memory
+
+reset requested mid-run at 3000000 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 0 (exit string at 10571093 cycles after reset release)
+soc reset after 2 cycles of quiesce; reloading
+FPGA SMOKE: memory
+FPGA SMOKE: memory ok
+FPGA SMOKE: uart rx
+FPGA SMOKE: uart rx ok
+FPGA SMOKE PASS
+FPGA TOP TB PASS run 1 (exit string at 10568175 cycles after reset release)
+AXI: 101724 AR (101724 R beats), 85120 AW (85120 W beats, 85120 B); stall cycles AW 36518 W 36573 AR 43594 R 0 B 0
+cd ../build/sim && ./fpga_top_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --engine-test \
+loaded 2112 bytes at 0x80000000 from /w/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 64-bit AXI, RAM window 128 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+engine mode 0 base 0x100000 size 0x8000: 5957 cycles (5.50 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 2 base 0x100000 size 0x8000: 8252 cycles (3.97 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 1 base 0x200000 size 0x8000: 5906 cycles (5.55 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0x200000 size 0x8000: 8242 cycles (3.98 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0x200000 size 0x8000: 8232 cycles (3.98 B/cycle), mismatches 1 first 0x204238, resp errors 0, fail 1
+engine mode 0 base 0x0 size 0x0: 1 cycles (0.00 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+FPGA TOP TB engine checks PASS
+SHA-512 1000 B: 0x0000000000005650 cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 98744 cycles after reset release)
+AXI: 101 AR (12712 R beats), 32 AW (8192 W beats, 32 B); stall cycles AW 11 W 3619 AR 51 R 0 B 0
+echo "" > Vsigil_fpga_top__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_fpga_top__ALL.a Vsigil_fpga_top.o Vsigil_fpga_top___024root__DepSet_h1186e699__0.o Vsigil_fpga_top___024root__DepSet_h1186e699__1.o Vsigil_fpga_top___024root__DepSet_h1186e699__2.o Vsigil_fpga_top___024root__DepSet_h1186e699__3.o Vsigil_fpga_top___024root__DepSet_h1186e699__4.o Vsigil_fpga_top___024root__DepSet_h1186e699__5.o Vsigil_fpga_top___024root__DepSet_h1186e699__6.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0.o Vsigil_fpga_top___024root__DepSet_hfffce81f__1.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_hdbe507ae__0.o Vsigil_fpga_top__ConstPool_0.o Vsigil_fpga_top___024root__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__0__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__1__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__2__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__3__Slow.o Vsigil_fpga_top___024root__DepSet_h1186e699__4__Slow.o Vsigil_fpga_top___024root__DepSet_hfffce81f__0__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__Slow.o Vsigil_fpga_top_sigil_fpu_pkg__DepSet_h365d494a__0__Slow.o Vsigil_fpga_top__Syms.o
+/usr/lib/gcc/riscv64-unknown-elf/13.2.0/../../../riscv64-unknown-elf/bin/ld: warning: /w/build/soc-tests/f2_platform_test.elf has a LOAD segment with RWX permissions
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --engine-test --rtc-ns 1761091200000000000 \
+loaded 2021 bytes at 0x80000000 from /w/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+engine mode 0 base 0xffffc000 size 0x8000: 787 cycles (41.64 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 2 base 0xffffc000 size 0x8000: 1046 cycles (31.33 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 1 base 0xfffffc000 size 0x8000: 758 cycles (43.23 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1013 cycles (32.35 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+engine mode 3 base 0xfffffc000 size 0x8000: 1051 cycles (31.18 B/cycle), mismatches 1 first 0x1000000238, resp errors 0, fail 1
+engine mode 0 base 0x0 size 0x0: 1 cycles (0.00 B/cycle), mismatches 0 first 0x0, resp errors 0, fail 0
+FPGA TOP TB engine checks PASS
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111dd80
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 746561 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 746561 cycles after reset release)
+UART bursts: 64 lines byte-exact
+reboots: 0
+AXI: 1099 AR (2611 R beats), 811 AW (1819 W beats, 811 B); stall cycles AW 338 W 801 AR 484 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2021 bytes at 0x80000000 from /w/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111d970
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM: oob read done
+F2 PLATFORM PASS
+
+finisher: 0x00005555 (power off, code 0) at 750727 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 750727 cycles after reset release)
+bridge error capture: addr 0x1480000000 info 0xac000000 count 1
+reboots: 0
+AXI: 1075 AR (1075 R beats), 795 AW (795 W beats, 795 B); stall cycles AW 330 W 343 AR 474 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 20000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2021 bytes at 0x80000000 from /w/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111d970
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+
+finisher: 0x002a3333 (fail, code 42) at 746240 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 746240 cycles after reset release)
+reboots: 0
+AXI: 1076 AR (1076 R beats), 795 AW (795 W beats, 795 B); stall cycles AW 327 W 343 AR 476 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 40000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 --rtc-ns 1761091200000000000 --finisher \
+loaded 2021 bytes at 0x80000000 from /w/build/soc-tests/f2_platform_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da111d970
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+F2 PLATFORM: reboot
+
+finisher: reboot (0x00007777) at 761232 cycles after release
+soc reset after 2 cycles of quiesce; reloading
+F2 PLATFORM: start
+F2 PLATFORM: rtc 0x1870a71da1cbb940
+F2 PLATFORM: memory
+F2 PLATFORM: uart
+F2 PLATFORM PASS
+F2 PLATFORM: rebooted once
+
+finisher: 0x00005555 (power off, code 0) at 763444 cycles after release
+
+FPGA TOP TB PASS run 0 (finisher at 763444 cycles after reset release)
+reboots: 1
+AXI: 2164 AR (2164 R beats), 2082 AW (2082 W beats, 2082 B); stall cycles AW 893 W 864 AR 914 R 0 B 0
+cd ../build/sim && ./fpga_top_tb_f2 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+loaded 2112 bytes at 0x80000000 from /w/build/soc-tests/hash_soc_test.bin
+fpga_top_tb: 512-bit AXI, RAM window 81920 MiB, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1, caches on
+SHA-512 1000 B: 0x0000000000005650 cycles
+SOC HASH PASS
+FPGA TOP TB PASS run 0 (exit string at 98538 cycles after reset release)
+AXI: 53 AR (53 R beats), 0 AW (0 W beats, 0 B); stall cycles AW 0 W 0 AR 33 R 0 B 0
+echo "" > Vsigil_fpga_ocl__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_fpga_ocl__ALL.a Vsigil_fpga_ocl.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__0.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__1.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__2.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__3.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__4.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__5.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__6.o Vsigil_fpga_ocl___024root__DepSet_h46d2c256__0.o Vsigil_fpga_ocl___024root__DepSet_h46d2c256__1.o Vsigil_fpga_ocl_sigil_fpu_pkg__DepSet_hee70b8ed__0.o Vsigil_fpga_ocl__ConstPool_0.o Vsigil_fpga_ocl___024root__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__0__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__1__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__2__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__3__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__4__Slow.o Vsigil_fpga_ocl___024root__DepSet_h78dc04d8__5__Slow.o Vsigil_fpga_ocl___024root__DepSet_h46d2c256__0__Slow.o Vsigil_fpga_ocl_sigil_fpu_pkg__Slow.o Vsigil_fpga_ocl_sigil_fpu_pkg__DepSet_hb9363e8b__0__Slow.o Vsigil_fpga_ocl__Syms.o
+cd ../build/sim && ./fpga_ocl_tb 50000000 --axi-lat 8:40 --axi-gap 2 --axi-ready 70 \
+fpga_ocl_tb: 512-bit AXI, axi lat 8:40 gap 2 ready aw/w/ar 70/70/70% seed 1
+memory engine over OCL: 2040 core cycles for a 64 KiB check
+SHA-512 1000 B: 0x0000000000005650 cycles
+SOC HASH PASSUART drained with 14 TX_DATA and 42 TX_DATA3 reads
+
+AXI: 85 AR (2101 R beats), 32 AW (2048 W beats, 32 B); stall cycles AW 13 W 869 AR 53 R 0 B 0
+FPGA OCL TB PASS ("SOC HASH PASS" after 98548 core cycles; 106827 harness cycles total)
+echo "" > Vsigil_soc_top__ALL.verilator_deplist.tmp
+Archive ar -rcs Vsigil_soc_top__ALL.a Vsigil_soc_top.o Vsigil_soc_top___024root__DepSet_h8551761f__0.o Vsigil_soc_top___024root__DepSet_h8551761f__1.o Vsigil_soc_top___024root__DepSet_h8551761f__2.o Vsigil_soc_top___024root__DepSet_h8551761f__3.o Vsigil_soc_top___024root__DepSet_h8551761f__4.o Vsigil_soc_top___024root__DepSet_h8551761f__5.o Vsigil_soc_top___024root__DepSet_h8551761f__6.o Vsigil_soc_top___024root__DepSet_hcbabb878__0.o Vsigil_soc_top___024root__DepSet_hcbabb878__1.o Vsigil_soc_top_sigil_fpu_pkg__DepSet_h2837bdd1__0.o Vsigil_soc_top__ConstPool_0.o Vsigil_soc_top___024root__Slow.o Vsigil_soc_top___024root__DepSet_h8551761f__0__Slow.o Vsigil_soc_top___024root__DepSet_h8551761f__1__Slow.o Vsigil_soc_top___024root__DepSet_h8551761f__2__Slow.o Vsigil_soc_top___024root__DepSet_h8551761f__3__Slow.o Vsigil_soc_top___024root__DepSet_h8551761f__4__Slow.o Vsigil_soc_top___024root__DepSet_hcbabb878__0__Slow.o Vsigil_soc_top_sigil_fpu_pkg__Slow.o Vsigil_soc_top_sigil_fpu_pkg__DepSet_h6eca7fae__0__Slow.o Vsigil_soc_top__Syms.o
+cd ../build/sim && ./soc_rtl_tb 50000000 --mem-lat 1:6 --mem-gap 2 --mem-ready 70 \
+loaded 2112 bytes at 0x80000000 from /w/build/soc-tests/hash_soc_test.bin
+SHA-512 1000 B: 0x0000000000005650 cycles
+SOC HASH PAS
+SOC RTL TB PASS (exit string at 97618 cycles)
+Smake: Leaving directory '/w/sim'
+EXIT 0

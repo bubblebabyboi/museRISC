@@ -37,6 +37,8 @@ SIGIL_SOC_RTL = \
   soc/sigil_plic.sv \
   soc/sigil_uart16550.sv \
   soc/sigil_bootrom.sv \
+  soc/sigil_test_finisher.sv \
+  soc/sigil_rtc_goldfish.sv \
   soc/sigil_crypto_bridge.sv \
   soc/sigil_soc_fabric.sv \
   soc/sigil_soc_top.sv

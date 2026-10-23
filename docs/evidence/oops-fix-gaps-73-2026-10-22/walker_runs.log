@@ -1,0 +1,309 @@
+# Walker race tests, before/after, on sigil-fpga-build (Verilator 5.048)
+# One line per run: <tb> <test> <config> exit=<rc> stale=<OOPSCHK stale-walk-rsp lines> inv=<PTWINV live lines> err=<%Error lines> <wall> :: <CORE TB line> :: <PTWCOV counters (oops_core_tb only)>
+# tb: core_tb = plain harness (as core-test, with the core's SVA); oops_core_tb = + tb/sv/sigil_oops_chk.sv + tb/sv/sigil_ptw_inv.sv
+# config: lat1 = --mem-lat 1; rand = --mem-lat 1:6 --mem-gap 2 --mem-ready 70; lat4050 = --mem-lat 40:50; nocache = --no-cache
+# max cycles 40000000 per run
+
+## BEFORE: 9265d31 RTL (walk_abandon fix incl. the G-width term, no A/D lock) + the review's tests
+core_tb hyp_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (2756 cycles) :: 
+core_tb hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (7409 cycles) :: 
+core_tb hyp_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (3214 cycles) :: 
+core_tb hyp_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS hyp_directed.bin (3737 cycles) :: 
+oops_core_tb hyp_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (2756 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (7409 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb hyp_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (3737 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_ad_store_race_directed lat1 exit=1 stale=0 inv=0 err=0 0s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (667 cycles) :: 
+core_tb ptw_ad_store_race_directed lat4050 exit=1 stale=0 inv=0 err=0 0s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (1819 cycles) :: 
+core_tb ptw_ad_store_race_directed nocache exit=1 stale=0 inv=0 err=0 1s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (735 cycles) :: 
+core_tb ptw_ad_store_race_directed rand exit=1 stale=0 inv=0 err=0 0s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (840 cycles) :: 
+oops_core_tb ptw_ad_store_race_directed lat1 exit=1 stale=0 inv=0 err=0 1s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (667 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed lat4050 exit=1 stale=0 inv=0 err=0 0s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (1819 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed rand exit=1 stale=0 inv=0 err=0 0s :: CORE TB FAIL ptw_ad_store_race_directed.bin test 496 (840 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_drop_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (29110 cycles) :: 
+core_tb ptw_drop_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_drop_directed.bin (156828 cycles) :: 
+core_tb ptw_drop_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (50994 cycles) :: 
+core_tb ptw_drop_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (37590 cycles) :: 
+oops_core_tb ptw_drop_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (29110 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_drop_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_drop_directed.bin (156828 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_drop_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (37590 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_gwidth_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (411585 cycles) :: 
+core_tb ptw_gwidth_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_directed.bin (1310591 cycles) :: 
+core_tb ptw_gwidth_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_gwidth_directed.bin (739375 cycles) :: 
+core_tb ptw_gwidth_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (471566 cycles) :: 
+oops_core_tb ptw_gwidth_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (411585 cycles) :: pre=4 inflight=2 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=644 gw_issue=644
+oops_core_tb ptw_gwidth_directed lat4050 exit=0 stale=0 inv=0 err=0 7s :: CORE TB PASS ptw_gwidth_directed.bin (1310591 cycles) :: pre=90 inflight=83 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=558 gw_issue=558
+oops_core_tb ptw_gwidth_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (471566 cycles) :: pre=11 inflight=6 inflight_drp=0 rsp_same=4 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+core_tb ptw_gwidth_load_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (409917 cycles) :: 
+core_tb ptw_gwidth_load_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles) :: 
+core_tb ptw_gwidth_load_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_gwidth_load_directed.bin (736903 cycles) :: 
+core_tb ptw_gwidth_load_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (468924 cycles) :: 
+oops_core_tb ptw_gwidth_load_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (409917 cycles) :: pre=3 inflight=1 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+oops_core_tb ptw_gwidth_load_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles) :: pre=92 inflight=90 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=548 gw_issue=548
+oops_core_tb ptw_gwidth_load_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (468924 cycles) :: pre=12 inflight=5 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=628 gw_issue=628
+core_tb ptw_gwidth_redirect_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (89480 cycles) :: 
+core_tb ptw_gwidth_redirect_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (314511 cycles) :: 
+core_tb ptw_gwidth_redirect_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (154154 cycles) :: 
+core_tb ptw_gwidth_redirect_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (104467 cycles) :: 
+oops_core_tb ptw_gwidth_redirect_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (89480 cycles) :: pre=3 inflight=3 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=317 gw_issue=317
+oops_core_tb ptw_gwidth_redirect_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (314511 cycles) :: pre=91 inflight=86 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=229 gw_issue=229
+oops_core_tb ptw_gwidth_redirect_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (104467 cycles) :: pre=12 inflight=10 inflight_drp=0 rsp_same=1 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=308 gw_issue=308
+core_tb ptw_preempt_b2b_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (55386 cycles) :: 
+core_tb ptw_preempt_b2b_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_b2b_directed.bin (295600 cycles) :: 
+core_tb ptw_preempt_b2b_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (96337 cycles) :: 
+core_tb ptw_preempt_b2b_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (72011 cycles) :: 
+oops_core_tb ptw_preempt_b2b_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (55386 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_b2b_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (295600 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_b2b_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (72011 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_cached_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles) :: 
+core_tb ptw_preempt_cached_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles) :: 
+core_tb ptw_preempt_cached_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (86022 cycles) :: 
+core_tb ptw_preempt_cached_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles) :: 
+oops_core_tb ptw_preempt_cached_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_cached_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_cached_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (34280 cycles) :: 
+core_tb ptw_preempt_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (178421 cycles) :: 
+core_tb ptw_preempt_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (57936 cycles) :: 
+core_tb ptw_preempt_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_directed.bin (44603 cycles) :: 
+oops_core_tb ptw_preempt_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (34280 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_directed.bin (178421 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (44603 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_guest_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (185921 cycles) :: 
+core_tb ptw_preempt_guest_directed lat4050 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_guest_directed.bin (532802 cycles) :: 
+core_tb ptw_preempt_guest_directed nocache exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_guest_directed.bin (322166 cycles) :: 
+core_tb ptw_preempt_guest_directed rand exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_guest_directed.bin (216619 cycles) :: 
+oops_core_tb ptw_preempt_guest_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (185921 cycles) :: pre=47 inflight=36 inflight_drp=0 rsp_same=11 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_guest_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_preempt_guest_directed.bin (532802 cycles) :: pre=129 inflight=118 inflight_drp=0 rsp_same=9 rsp_drp_same=0 issue_acc=2 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_guest_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (216619 cycles) :: pre=55 inflight=44 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (411755 cycles) :: 
+core_tb ptw_preempt_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles) :: 
+core_tb ptw_preempt_hyp_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_preempt_hyp_directed.bin (739571 cycles) :: 
+core_tb ptw_preempt_hyp_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (471578 cycles) :: 
+oops_core_tb ptw_preempt_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (411755 cycles) :: pre=24 inflight=12 inflight_drp=0 rsp_same=12 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles) :: pre=329 inflight=313 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=8 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_hyp_directed rand exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_preempt_hyp_directed.bin (471578 cycles) :: pre=42 inflight=29 inflight_drp=0 rsp_same=6 rsp_drp_same=0 issue_acc=7 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_trapdrop_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (103117 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (390903 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (184379 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (122578 cycles) :: 
+oops_core_tb ptw_preempt_trapdrop_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (103117 cycles) :: pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_trapdrop_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (390903 cycles) :: pre=384 inflight=370 inflight_drp=12 rsp_same=0 rsp_drp_same=2 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_trapdrop_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (122578 cycles) :: pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_twoload_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles) :: 
+core_tb ptw_preempt_twoload_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles) :: 
+core_tb ptw_preempt_twoload_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (75448 cycles) :: 
+core_tb ptw_preempt_twoload_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles) :: 
+oops_core_tb ptw_preempt_twoload_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_twoload_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_twoload_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_directed lat1 exit=1 stale=0 inv=0 err=0 2s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (356243 cycles) :: 
+core_tb ptw_svadu_race_directed lat4050 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (615580 cycles) :: 
+core_tb ptw_svadu_race_directed nocache exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (565800 cycles) :: 
+core_tb ptw_svadu_race_directed rand exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (411947 cycles) :: 
+oops_core_tb ptw_svadu_race_directed lat1 exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (356243 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed lat4050 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (615580 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed rand exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_directed.bin test 12 (411947 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb vm_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (17253 cycles) :: 
+core_tb vm_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (28966 cycles) :: 
+core_tb vm_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (31800 cycles) :: 
+core_tb vm_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (19877 cycles) :: 
+oops_core_tb vm_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (17253 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (28966 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (19877 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb vm_sfence_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (19689 cycles) :: 
+core_tb vm_sfence_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (38968 cycles) :: 
+core_tb vm_sfence_cache_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (28947 cycles) :: 
+core_tb vm_sfence_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (23256 cycles) :: 
+oops_core_tb vm_sfence_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (19689 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_sfence_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (38968 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_sfence_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (23256 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_hyp_directed lat1 exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (410289 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed lat4050 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (687938 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed nocache exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (672338 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed rand exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (469294 cycles) :: 
+oops_core_tb ptw_svadu_race_hyp_directed lat1 exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (410289 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed lat4050 exit=1 stale=0 inv=0 err=0 5s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (687938 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed rand exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (469294 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+
+## AFTER: efe871d (73-oops-fix: + walker A/D lock, a_walk_live / a_walk_lock_amo assertions), committed tree
+core_tb amo_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2613 cycles) :: 
+core_tb amo_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (7483 cycles) :: 
+core_tb amo_cache_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2493 cycles) :: 
+core_tb amo_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (3478 cycles) :: 
+oops_core_tb amo_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2613 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb amo_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (7483 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb amo_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (3478 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb hyp_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (2756 cycles) :: 
+core_tb hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (7409 cycles) :: 
+core_tb hyp_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (3214 cycles) :: 
+core_tb hyp_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (3737 cycles) :: 
+oops_core_tb hyp_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS hyp_directed.bin (2756 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS hyp_directed.bin (7409 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb hyp_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS hyp_directed.bin (3737 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_ad_store_race_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_ad_store_race_directed.bin (10251 cycles) :: 
+core_tb ptw_ad_store_race_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_ad_store_race_directed.bin (41952 cycles) :: 
+core_tb ptw_ad_store_race_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (16944 cycles) :: 
+core_tb ptw_ad_store_race_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (12365 cycles) :: 
+oops_core_tb ptw_ad_store_race_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (10251 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (41952 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (12365 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_drop_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (29110 cycles) :: 
+core_tb ptw_drop_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_drop_directed.bin (156828 cycles) :: 
+core_tb ptw_drop_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (50994 cycles) :: 
+core_tb ptw_drop_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (37590 cycles) :: 
+oops_core_tb ptw_drop_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (29110 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_drop_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_drop_directed.bin (156828 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_drop_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_drop_directed.bin (37590 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_gwidth_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (411585 cycles) :: 
+core_tb ptw_gwidth_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_directed.bin (1310591 cycles) :: 
+core_tb ptw_gwidth_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_gwidth_directed.bin (739375 cycles) :: 
+core_tb ptw_gwidth_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (471566 cycles) :: 
+oops_core_tb ptw_gwidth_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (411585 cycles) :: pre=4 inflight=2 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=644 gw_issue=644
+oops_core_tb ptw_gwidth_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_directed.bin (1310591 cycles) :: pre=90 inflight=83 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=558 gw_issue=558
+oops_core_tb ptw_gwidth_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_directed.bin (471566 cycles) :: pre=11 inflight=6 inflight_drp=0 rsp_same=4 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+core_tb ptw_gwidth_load_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (409917 cycles) :: 
+core_tb ptw_gwidth_load_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles) :: 
+core_tb ptw_gwidth_load_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_gwidth_load_directed.bin (736903 cycles) :: 
+core_tb ptw_gwidth_load_directed rand exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_gwidth_load_directed.bin (468924 cycles) :: 
+oops_core_tb ptw_gwidth_load_directed lat1 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_gwidth_load_directed.bin (409917 cycles) :: pre=3 inflight=1 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=637 gw_issue=637
+oops_core_tb ptw_gwidth_load_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_gwidth_load_directed.bin (1300353 cycles) :: pre=92 inflight=90 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=548 gw_issue=548
+oops_core_tb ptw_gwidth_load_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_gwidth_load_directed.bin (468924 cycles) :: pre=12 inflight=5 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=5 issue_nacc=0 trap=0 idle=0 gw=628 gw_issue=628
+core_tb ptw_gwidth_redirect_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (89480 cycles) :: 
+core_tb ptw_gwidth_redirect_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (314511 cycles) :: 
+core_tb ptw_gwidth_redirect_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (154154 cycles) :: 
+core_tb ptw_gwidth_redirect_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (104467 cycles) :: 
+oops_core_tb ptw_gwidth_redirect_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (89480 cycles) :: pre=3 inflight=3 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=317 gw_issue=317
+oops_core_tb ptw_gwidth_redirect_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (314511 cycles) :: pre=91 inflight=86 inflight_drp=0 rsp_same=2 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=229 gw_issue=229
+oops_core_tb ptw_gwidth_redirect_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_gwidth_redirect_directed.bin (104467 cycles) :: pre=12 inflight=10 inflight_drp=0 rsp_same=1 rsp_drp_same=0 issue_acc=1 issue_nacc=0 trap=0 idle=0 gw=308 gw_issue=308
+core_tb ptw_preempt_b2b_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_b2b_directed.bin (55386 cycles) :: 
+core_tb ptw_preempt_b2b_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_b2b_directed.bin (295600 cycles) :: 
+core_tb ptw_preempt_b2b_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (96337 cycles) :: 
+core_tb ptw_preempt_b2b_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_b2b_directed.bin (72011 cycles) :: 
+oops_core_tb ptw_preempt_b2b_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (55386 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_b2b_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_b2b_directed.bin (295600 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_b2b_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_b2b_directed.bin (72011 cycles) :: pre=24 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=24 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_cached_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles) :: 
+core_tb ptw_preempt_cached_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles) :: 
+core_tb ptw_preempt_cached_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (86022 cycles) :: 
+core_tb ptw_preempt_cached_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles) :: 
+oops_core_tb ptw_preempt_cached_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (67879 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_cached_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (167400 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_cached_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_cached_directed.bin (89087 cycles) :: pre=32 inflight=16 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_directed.bin (34280 cycles) :: 
+core_tb ptw_preempt_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (178421 cycles) :: 
+core_tb ptw_preempt_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (57936 cycles) :: 
+core_tb ptw_preempt_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_directed.bin (44603 cycles) :: 
+oops_core_tb ptw_preempt_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (34280 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (178421 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_directed.bin (44603 cycles) :: pre=16 inflight=16 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_guest_directed lat1 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_guest_directed.bin (185921 cycles) :: 
+core_tb ptw_preempt_guest_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_preempt_guest_directed.bin (532802 cycles) :: 
+core_tb ptw_preempt_guest_directed nocache exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_guest_directed.bin (322166 cycles) :: 
+core_tb ptw_preempt_guest_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (216619 cycles) :: 
+oops_core_tb ptw_preempt_guest_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (185921 cycles) :: pre=47 inflight=36 inflight_drp=0 rsp_same=11 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_guest_directed lat4050 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_guest_directed.bin (532802 cycles) :: pre=129 inflight=118 inflight_drp=0 rsp_same=9 rsp_drp_same=0 issue_acc=2 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_guest_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_guest_directed.bin (216619 cycles) :: pre=55 inflight=44 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=3 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (411755 cycles) :: 
+core_tb ptw_preempt_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles) :: 
+core_tb ptw_preempt_hyp_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_preempt_hyp_directed.bin (739571 cycles) :: 
+core_tb ptw_preempt_hyp_directed rand exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_preempt_hyp_directed.bin (471578 cycles) :: 
+oops_core_tb ptw_preempt_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (411755 cycles) :: pre=24 inflight=12 inflight_drp=0 rsp_same=12 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 8s :: CORE TB PASS ptw_preempt_hyp_directed.bin (1316884 cycles) :: pre=329 inflight=313 inflight_drp=0 rsp_same=8 rsp_drp_same=0 issue_acc=8 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_hyp_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_preempt_hyp_directed.bin (471578 cycles) :: pre=42 inflight=29 inflight_drp=0 rsp_same=6 rsp_drp_same=0 issue_acc=7 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_trapdrop_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (103117 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (390903 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (184379 cycles) :: 
+core_tb ptw_preempt_trapdrop_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (122578 cycles) :: 
+oops_core_tb ptw_preempt_trapdrop_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (103117 cycles) :: pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_trapdrop_directed lat4050 exit=0 stale=0 inv=0 err=0 2s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (390903 cycles) :: pre=384 inflight=370 inflight_drp=12 rsp_same=0 rsp_drp_same=2 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_trapdrop_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_trapdrop_directed.bin (122578 cycles) :: pre=384 inflight=384 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=192 idle=0 gw=0 gw_issue=0
+core_tb ptw_preempt_twoload_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles) :: 
+core_tb ptw_preempt_twoload_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles) :: 
+core_tb ptw_preempt_twoload_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (75448 cycles) :: 
+core_tb ptw_preempt_twoload_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles) :: 
+oops_core_tb ptw_preempt_twoload_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (56689 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_twoload_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (132841 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_preempt_twoload_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_preempt_twoload_directed.bin (72621 cycles) :: pre=32 inflight=0 inflight_drp=0 rsp_same=16 rsp_drp_same=0 issue_acc=16 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (356051 cycles) :: 
+core_tb ptw_svadu_race_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (615388 cycles) :: 
+core_tb ptw_svadu_race_directed nocache exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (565800 cycles) :: 
+core_tb ptw_svadu_race_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (411698 cycles) :: 
+oops_core_tb ptw_svadu_race_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (356051 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (615388 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (411698 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (410033 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (687682 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (672338 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed rand exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (469142 cycles) :: 
+oops_core_tb ptw_svadu_race_hyp_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (410033 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed lat4050 exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (687682 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (469142 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb vm_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (17253 cycles) :: 
+core_tb vm_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (28966 cycles) :: 
+core_tb vm_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (31800 cycles) :: 
+core_tb vm_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (19877 cycles) :: 
+oops_core_tb vm_directed lat1 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_directed.bin (17253 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (28966 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_directed.bin (19877 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb vm_sfence_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (19689 cycles) :: 
+core_tb vm_sfence_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_sfence_cache_directed.bin (38968 cycles) :: 
+core_tb vm_sfence_cache_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (28947 cycles) :: 
+core_tb vm_sfence_cache_directed rand exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS vm_sfence_cache_directed.bin (23256 cycles) :: 
+oops_core_tb vm_sfence_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (19689 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_sfence_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (38968 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb vm_sfence_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS vm_sfence_cache_directed.bin (23256 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+
+## VARIANT updonly: efe871d RTL with walk_lock_o only in W_VS_UPD / W_G_UPD (no W_G_READ g purpose 2 term)
+##   -> single-stage Svadu tests pass, the VS-guest variant ptw_svadu_race_hyp fails: the purpose-2 term is needed
+core_tb amo_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2613 cycles) :: 
+core_tb amo_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS amo_cache_directed.bin (7483 cycles) :: 
+core_tb amo_cache_directed nocache exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2493 cycles) :: 
+core_tb amo_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (3478 cycles) :: 
+oops_core_tb amo_cache_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (2613 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb amo_cache_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (7483 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb amo_cache_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS amo_cache_directed.bin (3478 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_ad_store_race_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (10251 cycles) :: 
+core_tb ptw_ad_store_race_directed lat4050 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (41952 cycles) :: 
+core_tb ptw_ad_store_race_directed nocache exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_ad_store_race_directed.bin (16944 cycles) :: 
+core_tb ptw_ad_store_race_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (12365 cycles) :: 
+oops_core_tb ptw_ad_store_race_directed lat1 exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (10251 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed lat4050 exit=0 stale=0 inv=0 err=0 1s :: CORE TB PASS ptw_ad_store_race_directed.bin (41952 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_ad_store_race_directed rand exit=0 stale=0 inv=0 err=0 0s :: CORE TB PASS ptw_ad_store_race_directed.bin (12365 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (356051 cycles) :: 
+core_tb ptw_svadu_race_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (615388 cycles) :: 
+core_tb ptw_svadu_race_directed nocache exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (565800 cycles) :: 
+core_tb ptw_svadu_race_directed rand exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (411698 cycles) :: 
+oops_core_tb ptw_svadu_race_directed lat1 exit=0 stale=0 inv=0 err=0 3s :: CORE TB PASS ptw_svadu_race_directed.bin (356051 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed lat4050 exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (615388 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_directed rand exit=0 stale=0 inv=0 err=0 4s :: CORE TB PASS ptw_svadu_race_directed.bin (411698 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+core_tb ptw_svadu_race_hyp_directed lat1 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (410161 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed lat4050 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (687810 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_svadu_race_hyp_directed.bin (672338 cycles) :: 
+core_tb ptw_svadu_race_hyp_directed rand exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (469167 cycles) :: 
+oops_core_tb ptw_svadu_race_hyp_directed lat1 exit=1 stale=0 inv=0 err=0 4s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (410161 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed lat4050 exit=1 stale=0 inv=0 err=0 5s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (687810 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+oops_core_tb ptw_svadu_race_hyp_directed rand exit=1 stale=0 inv=0 err=0 3s :: CORE TB FAIL ptw_svadu_race_hyp_directed.bin test 12 (469167 cycles) :: pre=0 inflight=0 inflight_drp=0 rsp_same=0 rsp_drp_same=0 issue_acc=0 issue_nacc=0 trap=0 idle=0 gw=0 gw_issue=0
+
+## VARIANT nogw: 9265d31 RTL with walk_abandon_o = walk_preempt (G-width term removed)
+##   -> the width-fault tests fail (err = a_walk_rsp assertion; inv = PTWINV): they guard that term
+core_tb ptw_gwidth_directed lat1 exit=1 stale=0 inv=0 err=2 0s ::  :: 
+core_tb ptw_gwidth_directed lat4050 exit=1 stale=0 inv=0 err=2 2s ::  :: 
+core_tb ptw_gwidth_directed nocache exit=1 stale=0 inv=0 err=2 1s ::  :: 
+core_tb ptw_gwidth_directed rand exit=1 stale=0 inv=0 err=2 0s ::  :: 
+oops_core_tb ptw_gwidth_directed lat1 exit=1 stale=0 inv=2 err=2 1s ::  :: 
+oops_core_tb ptw_gwidth_directed lat4050 exit=1 stale=0 inv=20 err=2 2s ::  :: 
+oops_core_tb ptw_gwidth_directed rand exit=1 stale=0 inv=5 err=2 1s ::  :: 
+core_tb ptw_gwidth_load_directed lat1 exit=1 stale=0 inv=0 err=2 1s ::  :: 
+core_tb ptw_gwidth_load_directed lat4050 exit=1 stale=0 inv=0 err=2 2s ::  :: 
+core_tb ptw_gwidth_load_directed nocache exit=0 stale=0 inv=0 err=0 5s :: CORE TB PASS ptw_gwidth_load_directed.bin (736903 cycles) :: 
+core_tb ptw_gwidth_load_directed rand exit=1 stale=0 inv=0 err=2 0s ::  :: 
+oops_core_tb ptw_gwidth_load_directed lat1 exit=1 stale=0 inv=2 err=2 1s ::  :: 
+oops_core_tb ptw_gwidth_load_directed lat4050 exit=1 stale=0 inv=20 err=2 3s ::  :: 
+oops_core_tb ptw_gwidth_load_directed rand exit=1 stale=0 inv=9 err=2 1s ::  :: 
+core_tb ptw_gwidth_redirect_directed lat1 exit=1 stale=0 inv=0 err=2 0s ::  :: 
+core_tb ptw_gwidth_redirect_directed lat4050 exit=1 stale=0 inv=0 err=2 0s ::  :: 
+core_tb ptw_gwidth_redirect_directed nocache exit=1 stale=0 inv=0 err=2 0s ::  :: 
+core_tb ptw_gwidth_redirect_directed rand exit=1 stale=0 inv=0 err=2 0s ::  :: 
+oops_core_tb ptw_gwidth_redirect_directed lat1 exit=1 stale=0 inv=2 err=2 0s ::  :: 
+oops_core_tb ptw_gwidth_redirect_directed lat4050 exit=1 stale=0 inv=20 err=2 0s ::  :: 
+oops_core_tb ptw_gwidth_redirect_directed rand exit=1 stale=0 inv=3 err=2 1s ::  :: 

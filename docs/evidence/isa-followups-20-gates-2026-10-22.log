@@ -1,0 +1,52 @@
+# Issue #20 branch 20-isa-followups: gate runs (sigil-verify, Ubuntu 24.04, Verilator 5.048)
+
+== gates at commit 0c46ae5 (core_tb HTIF console + fpu_tb coverage guard; RTL = main eeaa332), sigil-verify, Verilator 5.048, 2026-10-22
+-- make lint
+0
+lint_rc=0 (no warnings/errors)
+-- make test
+ALL PHASE-0 KATs PASS
+-- make -C sim fpu (instrumented build; coverage written)
+FPU TB PASS (476563 checks)
+-- make -C sim riscv-tests
+riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+-- make core-test (VJOBS=2)
+coretest_rc=0 wall=2794s
+      4 FPGA SMOKE PASS
+      2 FPU TB PASS (476563 checks)
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro vrforeg]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro sky130]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13280622 cycles, seed 0x5eed8a) [SRAM macro oreg]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a) [SRAM macro fakeram45]
+      1 VEC TB PASS (61743 checks, 22880 random trials, 13232168 cycles, seed 0x5eed8a)
+      1 SOC RTL TB PASS (exit string at 40649633 cycles) [SRAM macro sky130]
+      1 SOC RTL TB PASS (exit string at 40648793 cycles) [SRAM macro oreg]
+      1 SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro vrforeg]
+      1 SOC RTL TB PASS (exit string at 27689496 cycles) [SRAM macro fakeram45]
+      1 RVC TB PASS (49152 checks)
+      1 REGFILE TB PASS (4194 checks)
+      1 PLIC TB PASS (4000133 checks, 2000000 random cycles, 93552 claim reads, 26792 nonzero, seed 0x91c)
+      1 MULDIV_MC TB PASS (985873 checks, 125137 squashes, 6393441 cycles)
+      1 MULDIV_MC (COMB=1) TB PASS (203248 checks, 0 squashes, 265043 cycles)
+      1 MULDIV TB PASS (165877 checks)
+      1 MMU TB PASS (74 checks)
+      1 ICACHE TB PASS
+      1 FPGA OCL TB PASS ("SOC HASH PASS" after 105056 core cycles; 106119 harness cycles total)
+      1 DECODER TB PASS (12343 checks)
+      1 DCACHE TB PASS
+      1 CSR TB PASS (214 checks)
+      1 CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro vrforeg]
+      1 CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro sky130]
+      1 CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro oreg]
+      1 CORE TB PASS: 37 directed runs, 0 FAIL [SRAM macro fakeram45]
+      1 BEXT TB PASS (60866 checks)
+      1 ALU TB PASS (205642 checks)
+      1 ALL 7 EXAMPLES PASS on soc_rtl_tb
+      1   lines with all attached points covered : 54.00%  (3727/6840)
+      1   echo "CORE TB PASS: $(grep -c 'CORE TB PASS' srammacro_core_$m.log) directed runs, 0 FAIL [SRAM macro $m]"; \
+      1     --exit-string "FPGA SMOKE PASS" || exit 1; \
+CORE TB PASS lines: 186; FAIL lines (excluding the literal 0 FAIL summaries): 0
+
+== final gates at commit 17aca6b (last code change; later commits are docs/evidence only), 2026-10-22T09:52Z
+-- make lint: lint_rc=0, 0 warnings/errors, 14 s
+-- make test: test_rc=0, ALL PHASE-0 KATs PASS

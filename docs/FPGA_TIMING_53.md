@@ -889,6 +889,16 @@ setting (`SIGIL_VRF_OREG` + `SIGIL_FPGA_TIMING`).
   - Tests: the review's directed tests that pass on `main` (21
     programs; `vm_irq_directed` at 152 timer-IRQ offsets) run in
     `sim/run_directed.sh`.
+- **Main merge (`9da0006`: #73, walker-race fix #74).** `sigil_mmu`
+  gains `walk_abandon_o` (the core drops the PTE read of a walk that
+  a data miss preempts or a G-stage width fault ends) and
+  `walk_lock_o` (the walker keeps the data port from a leaf read to
+  its A/D write-back). Both come from the walker FSM, which
+  FPGA_TIMING does not change, so they apply in both settings; with
+  FPGA_TIMING the payload select `mem_port_sel` also leaves the port
+  to the walker under `walk_lock`, as `mem_issue` does. The #74
+  directed tests (`ptw_*`) run before the #53 review tests in
+  `sim/run_directed.sh`, so `main`'s seeds are unchanged.
 
 ### Step 16 (optional, after closure): redirect port for translated fetch
 

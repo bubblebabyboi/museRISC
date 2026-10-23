@@ -1,0 +1,14 @@
+# make -C sim perf BENCHES=coremark CONFIG=default MEM="soc axi" REPEAT=2 JOBS=12 re-run at 45260527dfc4273c9cb1b589fe2e403f58fe75df (2026-10-22T10:56:08Z), 12 valid, 0 failed, deterministic: True
+# compared with the evidence run at 320cf57ed828aab9e7c9c3082dcd4942a0fe6da3 (2026-10-22T09:39:42Z)
+scalar axi/default rep 0: 91 record fields, cycles=14339056, image c56fb68ce74d117d: IDENTICAL
+scalar axi/default rep 1: 91 record fields, cycles=14339056, image c56fb68ce74d117d: IDENTICAL
+scalar soc/default rep 0: 91 record fields, cycles=14337806, image c56fb68ce74d117d: IDENTICAL
+scalar soc/default rep 1: 91 record fields, cycles=14337806, image c56fb68ce74d117d: IDENTICAL
+sdk axi/default rep 0: 91 record fields, cycles=14573757, image 400c9a3ccba55f2a: IDENTICAL
+sdk axi/default rep 1: 91 record fields, cycles=14573757, image 400c9a3ccba55f2a: IDENTICAL
+sdk soc/default rep 0: 91 record fields, cycles=14572507, image 400c9a3ccba55f2a: IDENTICAL
+sdk soc/default rep 1: 91 record fields, cycles=14572507, image 400c9a3ccba55f2a: IDENTICAL
+validation axi/default rep 0: 91 record fields, cycles=14366037, image d0bf2ae1cf5c4d9b: IDENTICAL
+validation axi/default rep 1: 91 record fields, cycles=14366037, image d0bf2ae1cf5c4d9b: IDENTICAL
+validation soc/default rep 0: 91 record fields, cycles=14364787, image d0bf2ae1cf5c4d9b: IDENTICAL
+validation soc/default rep 1: 91 record fields, cycles=14364787, image d0bf2ae1cf5c4d9b: IDENTICAL

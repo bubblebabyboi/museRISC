@@ -26,9 +26,23 @@
 // 512 -> 1 (the F2 Shell DDR4 width). Simulation checks flag any
 // burst that is not.
 //
-// Address map: AXI address = AXI_BASE + ((addr - MEM_BASE) &
-// MEM_MASK), truncated to AXI_ADDR_W. With the defaults the SoC
-// RAM window 0x8000_0000 + 128 MiB lands at DDR offset 0.
+// Address map: requests in the RAM window [MEM_BASE, MEM_BASE +
+// MEM_SIZE) go to AXI address AXI_BASE + (addr - MEM_BASE), truncated
+// to AXI_ADDR_W (no aliasing). With the defaults the SoC RAM window
+// 0x8000_0000 + 128 MiB lands at AXI offset 0 (simulation builds); the
+// F2 build sets MEM_SIZE = 80 GiB: DDR4 at AXI 0x0 and HBM at AXI
+// 0x10_0000_0000 (docs/LINUX_PLATFORM.md). A request outside the
+// window is not sent to AXI: a read returns zero beats, a write is
+// dropped, and both are acknowledged normally and recorded as an
+// error (the mbus has no error response).
+//
+// Errors (issue #62): AXI error responses (xRESP != OKAY), responses
+// with an unexpected ID and out-of-window requests set the sticky
+// err_o and count in err_count_o; the first one since the last
+// err_clr_i pulse (or reset) is captured: err_addr_o = SoC address of
+// the transaction, err_info_o = {valid, write, out_of_window,
+// id_mismatch, xRESP[1:0], 2'b0, req_len[7:0], response ID[15:0]}.
+// The data/ack is still returned.
 //
 // Handshakes: every AXI output is a flop (no combinational path
 // from the AXI slave to the mbus or back). RREADY/BREADY are high
@@ -38,9 +52,7 @@
 // (64-bit AXI: one beat every two cycles; DDR latency dominates).
 // AW and W are offered independently (AXI forbids a slave from
 // waiting for W before AW and vice versa is allowed, so no
-// deadlock). AXI error responses (xRESP != OKAY) and responses
-// with an unexpected ID set the sticky err_o; the mbus has no
-// error response, so the data/ack is still returned.
+// deadlock).
 //
 // quiesce_i: stop accepting new mbus requests (the transaction in
 // progress completes); idle_o is high when none is in progress.
@@ -53,14 +65,19 @@ module sigil_mbus_axi4 #(
     parameter int unsigned AXI_DATA_W = 64,   // 64, 128, 256 or 512
     parameter logic [AXI_ID_W-1:0] AXI_ID = '0,
     parameter logic [63:0] MEM_BASE = 64'h0000_0000_8000_0000,
-    parameter logic [63:0] MEM_MASK = 64'h0000_0000_07FF_FFFF,
+    parameter logic [63:0] MEM_SIZE = 64'h0000_0000_0800_0000,
     parameter logic [63:0] AXI_BASE = 64'h0
 ) (
     input  wire                    clk_i,
     input  wire                    rst_ni,
     input  wire                    quiesce_i,
     output logic                   idle_o,
+    // Error status (sticky until err_clr_i).
+    input  wire                    err_clr_i,
     output logic                   err_o,
+    output logic [63:0]            err_addr_o,
+    output logic [31:0]            err_info_o,
+    output logic [31:0]            err_count_o,
     // mbus slave (from sigil_soc_top mem_*)
     input  wire                    req_valid_i,
     output logic                   req_ready_o,
@@ -126,11 +143,12 @@ module sigil_mbus_axi4 #(
   localparam int unsigned DW = AXI_DATA_W;
   localparam int unsigned SW = AXI_DATA_W / 8;
 
-  typedef enum logic [1:0] {S_IDLE, S_RD, S_WR, S_WB} state_e;
+  // S_ORD / S_OWR: an out-of-window read / write served locally.
+  typedef enum logic [2:0] {S_IDLE, S_RD, S_WR, S_WB, S_ORD, S_OWR} state_e;
   state_e st_q;
 
   // Request decode.
-  logic        req_fire, req_burst;
+  logic        req_fire, req_burst, req_inwin;
   logic [63:0] req_off;
   logic [AXI_ADDR_W-1:0] req_axaddr;
   logic [7:0]  req_axlen;
@@ -140,7 +158,8 @@ module sigil_mbus_axi4 #(
 
   assign req_fire = req_valid_i && req_ready_o;
   assign req_burst = (req_len_i != 8'd0);
-  assign req_off = AXI_BASE + ((req_addr_i - MEM_BASE) & MEM_MASK);
+  assign req_inwin = (req_addr_i >= MEM_BASE) && ((req_addr_i - MEM_BASE) < MEM_SIZE);
+  assign req_off = AXI_BASE + (req_addr_i - MEM_BASE);
   assign req_beats = {1'b0, req_len_i} + 9'd1;
   always_comb begin
     if (req_burst) begin
@@ -180,6 +199,18 @@ module sigil_mbus_axi4 #(
   logic              rlast_q;   // rbuf_q holds the RLAST beat
   logic              ack_q;
   logic              err_q;
+  // Out-of-window read beats still to return.
+  logic [8:0]        ocnt_q;
+  // Transaction being served (for the error capture).
+  logic [63:0]       txn_addr_q;
+  logic [7:0]        txn_len_q;
+  logic [63:0]       cap_addr_q;
+  logic [31:0]       cap_info_q, err_cnt_q;
+  // Error event this cycle (at most one source per cycle: B, R and
+  // a new request are mutually exclusive in time for one transaction).
+  logic              ev;
+  logic [63:0]       ev_addr;
+  logic [31:0]       ev_info;
 
   logic r_fire, b_fire;
   assign r_fire = m_axi_rvalid && m_axi_rready;
@@ -187,12 +218,16 @@ module sigil_mbus_axi4 #(
 
   always_comb begin
     req_ready_o = ((st_q == S_IDLE) && !quiesce_i) ||
-                  ((st_q == S_WR) && !wvalid_q);
+                  ((st_q == S_WR) && !wvalid_q) || (st_q == S_OWR);
     idle_o = (st_q == S_IDLE) && !ack_q;
     err_o = err_q;
-    rsp_valid_o = (rcnt_q != '0) || ack_q;
-    rsp_rdata_o = rbuf_q[63:0];
-    rsp_last_o = ack_q || ((rcnt_q == (RSH + 1)'(1)) && rlast_q);
+    err_addr_o = cap_addr_q;
+    err_info_o = cap_info_q;
+    err_count_o = err_cnt_q;
+    rsp_valid_o = (rcnt_q != '0) || ack_q || (st_q == S_ORD);
+    rsp_rdata_o = (st_q == S_ORD) ? 64'd0 : rbuf_q[63:0];
+    rsp_last_o = ack_q || ((rcnt_q == (RSH + 1)'(1)) && rlast_q) ||
+                 ((st_q == S_ORD) && (ocnt_q == 9'd1));
     // Gather the accepted write beat into its 64-bit lane.
     gdata_n = gdata_q;
     gstrb_n = gstrb_q;
@@ -202,6 +237,30 @@ module sigil_mbus_axi4 #(
     // top lane, or on the last beat of the burst.
     w_complete = !(st_q == S_WR ? wr_burst_q : req_burst) ||
                  (req_lane == LANE_W'(RATIO - 1)) || req_last_i;
+  end
+
+  // Error events: an out-of-window request, or a B / R beat with an
+  // error response or a foreign ID.
+  logic b_bad, r_bad;
+  assign b_bad = b_fire && (m_axi_bresp != 2'b00 || m_axi_bid != AXI_ID);
+  assign r_bad = r_fire && (m_axi_rresp != 2'b00 || m_axi_rid != AXI_ID);
+  always_comb begin
+    ev = 1'b0;
+    ev_addr = txn_addr_q;
+    ev_info = 32'd0;
+    if (req_fire && st_q == S_IDLE && !req_inwin) begin
+      ev = 1'b1;
+      ev_addr = req_addr_i;
+      ev_info = {1'b1, req_write_i, 1'b1, 1'b0, 2'b11, 2'b00, req_len_i, 16'd0};
+    end else if (b_bad) begin
+      ev = 1'b1;
+      ev_info = {1'b1, 1'b1, 1'b0, m_axi_bid != AXI_ID, m_axi_bresp, 2'b00,
+                 txn_len_q, 16'(m_axi_bid)};
+    end else if (r_bad) begin
+      ev = 1'b1;
+      ev_info = {1'b1, 1'b0, 1'b0, m_axi_rid != AXI_ID, m_axi_rresp, 2'b00,
+                 txn_len_q, 16'(m_axi_rid)};
+    end
   end
 
   // AXI outputs.
@@ -259,15 +318,54 @@ module sigil_mbus_axi4 #(
       rlast_q <= 1'b0;
       ack_q <= 1'b0;
       err_q <= 1'b0;
+      ocnt_q <= 9'd0;
+      txn_addr_q <= 64'd0;
+      txn_len_q <= 8'd0;
+      cap_addr_q <= 64'd0;
+      cap_info_q <= 32'd0;
+      err_cnt_q <= 32'd0;
     end else begin
       ack_q <= 1'b0;
+      // Error status: a clear, then this cycle's event (an event in
+      // the clearing cycle is kept).
+      if (err_clr_i) begin
+        err_q <= 1'b0;
+        cap_info_q <= 32'd0;
+        err_cnt_q <= 32'd0;
+      end
+      if (ev) begin
+        err_q <= 1'b1;
+        if (!err_q || err_clr_i) begin
+          cap_addr_q <= ev_addr;
+          cap_info_q <= ev_info;
+        end
+        if (err_clr_i) err_cnt_q <= 32'd1;
+        else if (err_cnt_q != 32'hFFFF_FFFF) err_cnt_q <= err_cnt_q + 32'd1;
+      end
       if (m_axi_arvalid && m_axi_arready) arvalid_q <= 1'b0;
       if (m_axi_awvalid && m_axi_awready) awvalid_q <= 1'b0;
       if (m_axi_wvalid && m_axi_wready) wvalid_q <= 1'b0;
 
       // Request beats (IDLE: first beat of any request; WR: the
       // remaining beats of a write burst).
-      if (req_fire) begin
+      if (req_fire && st_q == S_IDLE) begin
+        txn_addr_q <= req_addr_i;
+        txn_len_q <= req_len_i;
+      end
+      if (req_fire && (st_q == S_OWR || (st_q == S_IDLE && !req_inwin))) begin
+        // Out of the RAM window: no AXI transaction.
+        if (req_write_i) begin
+          if (req_last_i) begin
+            ack_q <= 1'b1;
+            st_q <= S_IDLE;
+          end else begin
+            st_q <= S_OWR;
+          end
+        end else begin
+          ocnt_q <= {1'b0, req_len_i} + 9'd1;
+          st_q <= S_ORD;
+        end
+      end else if (req_fire) begin
         if (st_q == S_IDLE) begin
           axaddr_q <= req_axaddr;
           axlen_q <= req_axlen;
@@ -301,9 +399,11 @@ module sigil_mbus_axi4 #(
 
       // Write response: one ack beat once B is in (B can only
       // follow the AW handshake and the WLAST beat).
-      if (b_fire) begin
-        bgot_q <= 1'b1;
-        if (m_axi_bresp != 2'b00 || m_axi_bid != AXI_ID) err_q <= 1'b1;
+      if (b_fire) bgot_q <= 1'b1;
+      // Out-of-window read: zero beats, one per cycle.
+      if (st_q == S_ORD) begin
+        ocnt_q <= ocnt_q - 9'd1;
+        if (ocnt_q == 9'd1) st_q <= S_IDLE;
       end
       if (st_q == S_WB && bgot_q) begin
         bgot_q <= 1'b0;
@@ -322,7 +422,6 @@ module sigil_mbus_axi4 #(
           rbuf_q <= m_axi_rdata >> {rd_lane_q, 6'd0};
           rcnt_q <= (RSH + 1)'(1);
         end
-        if (m_axi_rresp != 2'b00 || m_axi_rid != AXI_ID) err_q <= 1'b1;
       end else if (rcnt_q != '0) begin
         rcnt_q <= rcnt_q - 1'b1;
         rbuf_q <= rbuf_q >> 64;
