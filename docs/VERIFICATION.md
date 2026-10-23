@@ -328,7 +328,12 @@ compares them in order; the first difference is reported:
   unchanged may be logged by one side only (the DUT logs the mask
   register of a compare whose elements are all masked off; Spike does
   not);
-- traps: cause, epc and tval (interrupts included);
+- traps: cause, epc and tval (interrupts included). A vector load
+  that faults on an element after writing earlier ones gets a commit
+  line from Spike (those elements and the `vstart` write) before the
+  exception; the instruction did not retire and the DUT logs only the
+  trap, so that line is dropped and the partial contents are compared
+  when the program next logs the register (`01995ef`);
 - Spike's trace is cut after its first store to `tohost`; the DUT trace
   must contain exactly the same records up to that point;
 - one implementation-defined CSR bit is left out of CSR-write
@@ -353,7 +358,7 @@ hard-codes 5 sub-programs), and the streams pygen does not implement
 (`riscv_hazard_instr_stream`, `riscv_multi_page_load_store_instr_stream`,
 `riscv_mem_region_stress_test`) dropped.
 
-Supported (18 generated + 6 directed):
+Supported (18 generated + 12 directed):
 
 | Test | Source list | Notes |
 |---|---|---|
@@ -379,8 +384,14 @@ Supported (18 generated + 6 directed):
 | `sigil_hint_test` | Sigil, directed, random | HINT encodings, seeded by the seed: 200 blocks of 24 random HINTs written to memory and run after FENCE.I with PRNG data in the registers: 32-bit rd = x0 forms of LUI, AUIPC, OP-IMM (incl. the Zicbop prefetch encodings), OP (incl. M and the Zbb funct7 0x20 forms), OP-IMM-32, OP-32; FENCE with random pred/succ, fm and the ignored rs1/rd fields; 16-bit C.NOP with nzimm, C.ADDI with imm 0, C.LI/C.LUI/C.MV/C.ADD with rd = x0, C.SLLI with rd = x0 or shamt 0, C.SRLI/C.SRAI with shamt 0; about 250,000 records |
 | `sigil_priv_test` | Sigil, directed, random | privileged architecture, seeded by the seed: 128 iterations, each with random Sv39 test mappings (4 KiB leaves with random V/R/W/X/U/G/D and backing page, sometimes a reserved PTE bit; a whole Svnapot 64 KiB group; a 2 MiB leaf, sometimes misaligned; a non-leaf with reserved bits), random PMP entries 0-2 (NA4, NAPOT 8 B-16 KiB, TOR) over the page tables and backing pages, random `medeleg`/`mideleg`/`mie` and pending SSIP/STIP/SEIP, random `mstatus` (MPP S or U, TVM, SUM, MXR, FS, SIE, SPIE, SPP, MPIE); then one random load, store, AMO, LR, FP load, fetch, EBREAK, S CSR read or SFENCE.VMA in S or U; handlers in M and S log cause/epc/tval/status, the iteration ends by ECALL; hardware D updates (`menvcfg.ADUE`) read back each iteration; about 110,000 records and 300 traps per run |
 | `sigil_vector_test` | Sigil, directed, random | RVV, seeded by the seed: 24 iterations, each a random legal vtype (SEW 8-64, LMUL mf8-m8, ta/ma), AVL in [0, VLMAX], vxrm, frm and data with corner values; loads/stores of every addressing mode (unit-stride, strided incl. negative and zero stride, indexed, segment, fault-only-first, mask, whole-register); integer, fixed-point, widening/narrowing, extension, mask, permutation, reduction and FP (SEW 32/64) arithmetic, masked and unmasked; CSRs read back and all 32 vector registers stored and reloaded each iteration; about 82,000 records |
-| `sigil_viota_test` | Sigil, directed, random | `viota.m`, self-checking, seeded by the seed: 96 iterations, each a random legal vtype (SEW 8-64, LMUL mf8-m8, ta/tu, ma/mu), AVL 0, 1, 2, VLMAX-1, VLMAX, above 2*VLMAX or random, masked or unmasked, an LMUL-aligned vd group (v0 when unmasked) and vs2 any register outside it (v0 included, also under `v0.t`), with random, all-ones, sparse or dense masks; every element of the vd group (tail elements unchanged or, under ta, all ones; unchanged at vl = 0) and every other register is checked in scalar code (and so compared); one iteration in 16 each runs vd not aligned, `v0.t` with vd = v0, or `vill` set, which must trap and change nothing. `-DVIOTA_VSTART=1` / `-DVIOTA_OVERLAP=1` add `vstart` != 0 and vs2 inside the vd group (both trap on Spike; not in the list, Sigil executes them); about 720,000 records |
-| `sigil_viota_sweep_test` | Sigil, directed, sweep | the same program with `-DVIOTA_SWEEP=1` (testlist `defines`): every combination of the 22 legal vtypes, tu/ta, mu/ma, unmasked/`v0.t` and 8 AVL classes (0, 1, 2, VLMAX-1, VLMAX, all ones, VLMAX+1, random), 1,408 in all, legal encodings only, vs2 an odd register (not LMUL-aligned) in 6 of 8 iterations and v0 in 1 of 8; each run is one chunk of 88 combinations (RDV_SEED mod 16). `sw/core-tests/viota_sweep_directed` runs all 1,408 on the core |
+| `sigil_viota_test` | Sigil, directed, random | `viota.m`, self-checking, seeded by the seed: 96 iterations, each a random legal vtype (SEW 8-64, LMUL mf8-m8, ta/tu, ma/mu), AVL 0, 1, 2, VLMAX-1, VLMAX, above 2*VLMAX or random, masked or unmasked, an LMUL-aligned vd group (v0 when unmasked) and vs2 any register outside it (v0 included, also under `v0.t`), with random, all-ones, sparse or dense masks; every element of the vd group (tail elements unchanged or, under ta, all ones; unchanged at vl = 0) and every other register is checked in scalar code (and so compared); one iteration in 16 each runs vd not aligned, `v0.t` with vd = v0, or `vill` set, which must trap and change nothing. `-DVIOTA_VSTART=1` / `-DVIOTA_OVERLAP=1` are the next two entries; about 720,000 records |
+| `sigil_viota_sweep_test` | Sigil, directed, sweep | the same program with `-DVIOTA_SWEEP=1` (testlist `asm_defs`): every combination of the 22 legal vtypes, tu/ta, mu/ma, unmasked/`v0.t` and 8 AVL classes (0, 1, 2, VLMAX-1, VLMAX, all ones, VLMAX+1, random), 1,408 in all, legal encodings only, vs2 an odd register (not LMUL-aligned) in 6 of 8 iterations and v0 in 1 of 8; each run is one chunk of 88 combinations (RDV_SEED mod 16). `sw/core-tests/viota_sweep_directed` runs all 1,408 on the core |
+| `sigil_viota_vstart_test` | Sigil, directed, random | `sigil_viota_test` with `-DVIOTA_VSTART=1`: half the iterations run `viota.m` after `csrw vstart` (1-64), which must raise an illegal-instruction exception, change no register and keep `vstart` (RVV 1.0 sec. 15.8). Fails on the RTL before `fd22878` |
+| `sigil_viota_overlap_test` | Sigil, directed, random | `sigil_viota_test` with `-DVIOTA_OVERLAP=1`: half the iterations use a vs2 inside the vd group (reserved by sec. 15.8 / 5.2), which Spike and Sigil (since `913bc0a`) reject as an illegal instruction |
+| `sigil_vf_nanbox_test` | Sigil, directed, random | the f-register scalar of every `.vf` instruction: NaN-boxed at SEW=32, raw at SEW=64, reserved at SEW 8/16; 28 scalars (boxed and unboxed singles, NaN payloads, doubles, near-boxed patterns, PRNG) x 12 vtypes with random ta/ma, AVL, frm, mask and data; f-register producers followed by a `.vf` after 0-3 instructions; vtype changes right before a `.vf`; self-checked against spec values; about 178,000 records |
+| `sigil_vfcvt_sew16_test` | Sigil, directed, random | FP conversions at SEW 16 and 8 without Zvfh/Zvfhmin: the six int16 <-> f32 conversions run, every form with a 16-bit FP operand and every FP form at SEW=8 traps; random data, mask, frm, ta/ma and AVL over e16 mf4-m4 and e8. Fails on the RTL before `1eac727` |
+| `sigil_pmp_test` | Sigil, directed, random | PMP matching (priority, NA4/NAPOT/TOR boundaries, partial matches of 8-byte accesses, L in M) for every access kind in M, M+MPRV (MPP S and U), S and U: scalar loads/stores of 1-8 bytes (compressed, misaligned), AMO, LR/SC, FP, HLV/HLVX/HSV, every vector addressing mode, fetches straddling PMP words, Sv39 PTE reads and A/D write-backs; a sweep of fixed configurations, then 24 random iterations (odd seeds end with locked entries); about 800,000 records and 8,000 traps per run. Fails on the RTL before `3ae351d` |
+| `sigil_pmp_whole64_test` | Sigil, directed, random | `sigil_pmp_test` with `-DPMP_WHOLE64`: also `vl1re64.v`/`vl2re64.v`, whose 8-byte elements an NA4 entry or a TOR boundary can split. Fails on the RTL before `9bdd552` |
 
 Excluded (18), with the reason recorded in the test list:
 
@@ -416,6 +427,7 @@ entries of [`evidence/README.md`](evidence/README.md) index the files.
 | main merged into the branch | `adf4c97` | 1-5 | 100 | 100 PASS | 2,535,412 |
 | review: full list with the PMP fix and `sigil_priv_test` | `c98428b` | 1-5 | 105 | 105 PASS | 3,100,449 |
 | review: the four directed programs | `37aa1d7` | 1-205 | 820 | 820 PASS | 97,111,729 |
+| merge-ready: whole list (30 tests) x 1-3, vector programs x 4-16, PMP/privileged x 4-12 | `1eac727` | 1-16 | 208 | 208 PASS | 69,840,382 |
 
 The full list on `c98428b` (21 tests then; 30 minutes with 12 jobs)
 compared 12,645 traps and interrupts and 3.1 million records, with the
@@ -445,19 +457,26 @@ Findings:
   producers and consumers, the illegal encodings) pass on Spike and on
   the fixed RTL and fail without the fix
   ([evidence](evidence/riscv-dv-8-2026-10-22/critic/viota-review.txt)).
-- **Core: `vstart` != 0 does not make `viota.m` illegal** (open,
-  older than `63a50a5`). RVV 1.0 requires an illegal-instruction
+- **Core: `vstart` != 0 did not make `viota.m` and its class illegal**
+  (older than `63a50a5`). RVV 1.0 requires an illegal-instruction
   exception for `vstart` != 0 on `viota.m`, `vcpop.m`, `vfirst.m`,
-  `vmsbf/vmsif/vmsof.m`, `vcompress.vm` and the reductions; Spike raises
-  it, Sigil executes all of them from `vstart` (`viota.m` counts from 0
-  at element `vstart`). The riscv-dv programs never write `vstart` before
-  them. `viota_vstart_directed` and `vstart_illegal_directed` (all
-  twelve instructions; passes on Spike) fail; not in the suite.
+  `vmsbf/vmsif/vmsof.m`, `vcompress.vm` and every reduction; Spike
+  raises it, Sigil executed all of them from `vstart` (`viota.m` counted
+  from 0 at element `vstart`). The riscv-dv programs never write `vstart`
+  before them; the `viota.m` review found it. Fixed in `fd22878`, which
+  also holds such an instruction in EX while a vector load/store that
+  consumes `vstart` is in MEM (without that, the check saw the old
+  `vstart` and trapped). `vstart_illegal_directed` (23 instructions,
+  masked, `vstart` = vl and > vl, `vstart` kept by the trap, `vstart` = 0
+  runs, an instruction right behind a load/store that consumes `vstart`)
+  and `viota_vstart_directed` fail without it (exit `0x7fffffe`, cases
+  1-26; exit 257); without the EX hold, case 31 fails.
 - `viota.m` with vs2 inside the vd group is reserved; Spike raises an
-  illegal-instruction exception, Sigil executes it. Before `63a50a5` an
-  unaligned vs2 in the group trapped by the alignment rule (e.g.
-  `viota.m v8, v9` at LMUL 2), an aligned one (`viota.m v8, v8`) did not;
-  now none does. Either is allowed for a reserved encoding.
+  illegal-instruction exception. Before `63a50a5` Sigil trapped an
+  unaligned vs2 in the group through the alignment rule (e.g.
+  `viota.m v8, v9` at LMUL 2) and ran an aligned one (`viota.m v8, v8`);
+  after it, none trapped. Since `913bc0a` all do, as on Spike
+  (`viota_overlap_directed`, `sigil_viota_overlap_test`).
 - **Core: `.vf` scalars at SEW=32 were not NaN-box checked in the moves**
   (`vfmv.v.f`, `vfmv.s.f`, `vfmerge.vfm`, `vfslide1up/down.vf` took the low
   half of an f register that does not hold a NaN-boxed single; RVV
@@ -466,6 +485,19 @@ Findings:
   earlier RTL. Both were found by the random RVV program in its first
   run (8 of 8 seeds), after rounds 1-3 had passed 1,500 runs with the
   fixed vector program.
+- **Core: the int16 <-> f32 conversions trapped at SEW=16** (older than
+  `63a50a5`). Zve32f/Zve64d define every vector FP instruction whose FP
+  operands are EEW=32/64, so `vfwcvt.f.x(u).v` and
+  `vfncvt.(rtz.)x(u).f.w` are legal at SEW=16 without Zvfh; Spike runs
+  them, Sigil rejected every FP instruction at SEW < 32. Found by the
+  `.vf` review (`sigil_vfcvt_sew16_test`, seeds 1-4 MISMATCH at the first
+  `vfwcvt.f.x.v` at e16). Fixed in `1eac727` (legality, int16 sign
+  extension, int16/uint16 saturation with NV alone);
+  `vfcvt_sew16_directed` fails at test 1 without it.
+- An invalid `frm` (5-7): Spike traps every vector FP instruction, Sigil
+  only the ones that round. RVV 1.0 makes any vector FP instruction
+  reserved then (`norm:V_inv_frm_rsv`), so both are allowed; the
+  programs keep `frm` in 0-4.
 - **Core: PMP decided an 8-byte access by its first 4-byte word.** The
   lowest-numbered entry that matches any byte of an access decides, and
   an entry that matches only part of the access fails it in every mode.
@@ -479,6 +511,15 @@ Findings:
   test 11, which set up its buffer with M-mode stores across such a
   boundary, was corrected (`37aa1d7`)
   ([evidence](evidence/riscv-dv-8-2026-10-22/critic/pmp-partial-match.txt)).
+  Review (`sigil_pmp_test`, `pmp_modes_directed`; Spike and Sail):
+  whole-register loads with EEW=64 still checked their 8-byte elements
+  byte by byte, so an element split by NA4/TOR did not fault in M and
+  reported the first failing byte as `mtval` in S/U (Spike and Sail:
+  the element address). Fixed in `9bdd552`: the first byte of each
+  element of an 8-byte-aligned `vl<n>re64.v` is checked as the whole
+  element; `pmp_whole64_directed` and `sigil_pmp_whole64_test` fail
+  without it, and `vec_trap_directed` test 13 now expects the element
+  address ([evidence](evidence/riscv-dv-8-2026-10-22/pmp-review/pmp-review.txt)).
 - Trace probe: vector registers were logged after a younger vector load
   had overwritten them (false `vslide1down.vx` mismatches); fixed in
   `862868c` (simulation only).
@@ -528,7 +569,8 @@ Findings:
   only: the generated tests run with satp Bare, so no random instruction
   stream runs under Sv39. Not covered: the H extension (two-stage
   translation), debug mode, random CSR accesses (`riscv_csr_test`),
-  sub-programs, locked PMP entries, MPRV, PMP entry 0 in TOR mode.
+  sub-programs, PMP entry 0 in TOR mode (locked PMP entries and MPRV:
+  `sigil_pmp_test`).
   ACT, riscv-tests `-v-` and the directed core tests cover parts of
   these.
 - V, Zba/Zbk*/Zkn/Zicond and HINTs come only from directed programs:
