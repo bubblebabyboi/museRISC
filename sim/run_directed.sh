@@ -88,6 +88,8 @@ run pmp_partial pmp_partial_directed.bin
 # Sv39 PTE reads (data and fetch walks), fetches straddling into a word
 # without X, and locked entries in M.
 run pmp_modes pmp_modes_directed.bin
+# Whole-register loads with EEW=64: an element split by PMP fails.
+run pmp_whole64 pmp_whole64_directed.bin
 # L1 cache / memory-interface directed tests
 run smc_fencei smc_fencei_directed.bin
 run amo_cache amo_cache_directed.bin

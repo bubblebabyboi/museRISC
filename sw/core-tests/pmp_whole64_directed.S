@@ -4,11 +4,12 @@
 // and Sail perform each as one 8-byte access, so an NA4 entry or a TOR
 // boundary splitting an element fails it, in M too, with tval = the
 // element's address. The core transfers whole registers byte by byte
-// and checks each byte alone: no fault in M (tests 1, 4), tval at the
-// first failing byte in S/U (test 2). vl1re8.v (test 3, 1-byte
-// elements) is the control both agree on. FAILS on the RTL as of
-// f239397 (at test 1); not in the directed run list. Passes on Spike
-// when assembled with -DSPIKE_HTIF (tohost exit, link at 0x80000000).
+// and checked each byte alone up to 312215e: no fault in M (tests 1,
+// 4), tval at the first failing byte in S/U (test 2); it now checks
+// the first byte of each element as the whole element. vl1re8.v (test
+// 3, 1-byte elements) is the control all agree on. Passes on Spike and
+// Sail when assembled with -DSPIKE_HTIF (tohost exit, link at
+// 0x80000000).
 // Convention: t0 = test number, exit store 0 = pass.
     .option arch, +v
     .option norvc  // norvc last: gas 13 .option arch resets it

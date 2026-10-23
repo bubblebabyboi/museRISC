@@ -44,9 +44,9 @@
 # Whole-register loads with EEW=64 (vl1re64.v/vl2re64.v) are left out
 # unless assembled with -DPMP_WHOLE64 (testlist entry
 # sigil_pmp_whole64_test): Spike, like Sail, performs them as 8-byte
-# element accesses, so an entry splitting an element fails it, while the
-# core's sequencer transfers whole registers byte by byte and checks
-# each byte on its own (no fault in M, tval at the failing byte in S/U).
+# element accesses, so an entry splitting an element fails it. The
+# core's sequencer transfers whole registers byte by byte; it checks
+# the first byte of each such element as the whole element.
 #
 # Kept architecturally defined: no W-without-R encodings, no misaligned
 # whole-register base (an implementation may or may not raise

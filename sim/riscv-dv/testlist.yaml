@@ -311,11 +311,10 @@
   source: Sigil directed (sim/riscv-dv/directed)
   description: >
     sigil_pmp_test plus whole-register loads with EEW=64 (vl1re64.v,
-    vl2re64.v). Fails on the RTL as of f239397: Spike (and Sail) performs
-    their 8-byte elements as single accesses, so an NA4 entry or a TOR
-    boundary splitting an element fails it (also in M); the core's
-    sequencer transfers whole registers byte by byte and checks each
-    byte alone (no fault in M, tval at the failing byte in S/U).
+    vl2re64.v): Spike (and Sail) performs their 8-byte elements as single
+    accesses, so an NA4 entry or a TOR boundary splitting an element
+    fails it (also in M). Failed before the core checked the first byte
+    of each such element as the whole element (8-dvfix-pmp-w64).
   asm: directed/sigil_pmp_test.S
   asm_defs: [PMP_WHOLE64]
   march: rv64gcvh_zcb
