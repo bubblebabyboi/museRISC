@@ -39,7 +39,7 @@ FPGA, and how to use it. To boot it on your own F2, go to
 |---|---|---|
 | Firmware | OpenSBI generic `fw_jump` at `0x8000_0000` | v1.9 (`cbf9f673`) |
 | Kernel | Linux 6.12 LTS, `sw/linux/kernel/sigil_defconfig`, `Image` at `0x8020_0000` | 6.12.114 |
-| Device tree | `sigil-f2.dtb` / `sigil-qemu.dtb` / `sigil-sim.dtb` from `sw/linux/dts/sigil.dtsi`, at `0x8300_0000` | this repo |
+| Device tree | `sigil-f2.dtb` (62.5 MHz AFIs) / `sigil-f2-100.dtb` (100 MHz AFIs) / `sigil-qemu.dtb` / `sigil-sim.dtb` from `sw/linux/dts/sigil.dtsi`, at `0x8300_0000` | this repo |
 | Root file system | Debian 13 trixie riscv64, ext4, 8 GiB file system on the 16 GiB pmem disk | snapshot.debian.org `20261020T000000Z` (Debian 13.7) |
 
 **Hardware view from Linux** (F2 build): one RV64 hart
@@ -100,7 +100,7 @@ sudo bash scripts/build_debian_rootfs.sh # Debian 13 ext4 image + .zst + manifes
 ```
 
 Outputs: `build/linux/{fw_jump.bin,Image,Image-initramfs,sigil-f2.dtb,
-sigil-qemu.dtb,sigil-sim.dtb}` and `build/debian/sigil-debian-13-riscv64.ext4`
+sigil-f2-100.dtb,sigil-qemu.dtb,sigil-sim.dtb}` and `build/debian/sigil-debian-13-riscv64.ext4`
 (+ `.ext4.zst`, `manifest.txt`, `rootfs.sha256`). The kernel takes about a
 minute on 16 cores; the root file system about six minutes (package
 maintainer scripts run under qemu-user). Versions, checksums and the
@@ -131,7 +131,7 @@ Zfh, Zihpm), Sv39 only, the same physical memory map and NUMA nodes,
 the same UART/PLIC/CLINT/finisher/RTC addresses, and the same OpenSBI,
 kernel and disk image as the F2. Deviations, all from QEMU:
 
-- **Timebase 10 MHz** (QEMU's fixed CLINT rate; F2: 62.5 MHz). That is
+- **Timebase 10 MHz** (QEMU's fixed CLINT rate; F2: the core clock, §4.2). That is
   the only difference between `sigil-qemu.dtb` and `sigil-f2.dtb` apart
   from the next two points.
 - **Three QEMU NUMA "sockets"** lay out the three memory ranges (QEMU
@@ -192,7 +192,8 @@ AFI, and puts `sigil-run` (bare-metal programs,
 
 [`sigil-linux`](../fpga/scripts/sigil-linux) then:
 
-1. downloads `fw_jump.bin`, `Image`, `sigil-f2.dtb` and
+1. downloads `fw_jump.bin`, `Image`, `sigil-f2.dtb` (and
+   `sigil-f2-100.dtb` if the release has it) and
    `sigil-debian-13-riscv64.ext4.zst` (about 240 MB) from the release
    into `~/.cache/sigil-linux/<tag>/`, once, and checks them against the
    release's `SHA256SUMS`;
@@ -202,7 +203,8 @@ AFI, and puts `sigil-run` (bare-metal programs,
 3. loads the Sigil AFI if the FPGA does not have it; the first boot
    after a load also zeroes all 64 GiB of DDR4 (about 17 s, #62);
 4. boots OpenSBI + Linux with your disk in the pmem window and your
-   terminal as the console (the `sigil_host` command of §4.2);
+   terminal as the console (the `sigil_host` command of §4.2), with the
+   device tree for the AFI's core clock (`sigil_host --info`, §4.2);
 5. after you power Debian off, copies the pmem window back into
    `~/sigil-disk.ext4`, so the next `sigil-linux` continues where you
    left off.
@@ -252,6 +254,26 @@ The boot payloads are the same files as in QEMU, with `sigil-f2.dtb`:
 
 OpenSBI is built with `FW_JUMP_FDT_ADDR=0x83000000`, so the DTB stays
 where the host put it and the kernel may be up to 46 MiB.
+
+**The device tree must match the AFI's core clock.** `mtime` ticks once
+per core clock, so `/cpus/timebase-frequency` is the core clock:
+
+| AFI core clock | Device tree | `timebase-frequency` |
+|---|---|---|
+| 62.5 MHz (AWS_CLK_GEN recipe B1; the public Linux AFIs so far) | `sigil-f2.dtb` | `62500000` |
+| 100 MHz (recipe B5, #53; [`FPGA_F2.md`](FPGA_F2.md#100-mhz-core-clock-53-afi-built-not-yet-run-on-an-f2)) | `sigil-f2-100.dtb` | `100000000` |
+
+`sigil_host` prints the core clock of the loaded AFI on every run (`core
+clock 100.000 MHz (the AFI's build recipe, OCL CLK_KHZ)`) and, with
+`--linux`, the DTB to use; `sudo sigil_host --info` prints it for
+scripts (`core_clk_khz=100000`, `dtb=sigil-f2-100.dtb`) without
+touching the SoC. `sigil-linux` uses `--info` to pick the DTB. If the
+`--dtb` you pass has another timebase, `sigil_host` loads it with the
+core clock instead and prints a warning naming the right DTB
+(`--keep-timebase` loads it unchanged); so `sigil-f2.dtb` from a
+release without `sigil-f2-100.dtb` still boots with the right time on
+a 100 MHz AFI. The two DTBs differ only in that value
+(`sw/linux/dts/sigil-f2-100.dts` includes `sigil-f2.dts`).
 
 What `sigil-linux` does, by hand (after the setup script, or steps 1–4
 of [`FPGA_F2.md`](FPGA_F2.md#flash-sigil-on-your-own-f2)):
@@ -616,15 +638,15 @@ shows where the time goes.
   starts at the image build date.
 - Early boot entropy comes from timer jitter (there is no hardware RNG
   yet); a host-provided `/chosen/rng-seed` would make it instant.
-- The system clock of the F2 build is the core clock; a faster FPGA
-  build (#53) changes `timebase-frequency` in `sigil-f2.dts`.
+- The system clock of the F2 build is the core clock: `sigil-f2.dtb`
+  for 62.5 MHz AFIs, `sigil-f2-100.dtb` for 100 MHz AFIs (#53, §4.2).
 
 ## 9. Files and versions
 
 | Path | What |
 |---|---|
 | `sw/linux/kernel/sigil.config`, `sigil_defconfig` | kernel configuration (fragment and full defconfig) |
-| `sw/linux/dts/sigil.dtsi` + `sigil-{f2,qemu,sim}.dts` | device trees, one source |
+| `sw/linux/dts/sigil.dtsi` + `sigil-{f2,f2-100,qemu,sim}.dts` | device trees, one source (`f2-100`: the 100 MHz timebase) |
 | `sw/linux/sigil.dts` | historic name, = `sigil-sim.dts` (Verilator gate) |
 | `sw/linux/opensbi/*.patch` | applied to OpenSBI v1.9 by `build_opensbi.sh` (D$ write-back before a system reset) |
 | `sw/linux/debian/overlay/` | files the image adds to Debian (fstab, issue, motd, systemd tuning, boot marker, helpers) |

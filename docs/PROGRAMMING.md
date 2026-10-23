@@ -668,6 +668,9 @@ blocking caches. A cache hit costs 2 cycles, and a taken branch flushes
   so cache coherence is never an issue.
 - **Clock on F2:** the interim F2 core clock is **62.5 MHz**, with
   `mtime` at the same rate. Divide cycle counts by 62.5e6 for seconds.
+  The 100 MHz AFI of #53 ([`FPGA_F2.md`](FPGA_F2.md#100-mhz-core-clock-53-afi-built-not-yet-run-on-an-f2))
+  runs the core and `mtime` at 100 MHz; `sigil_host` prints the core
+  clock of the loaded AFI on every run.
   Cycle counts on F2 differ from simulation, because DDR latency is
   real: a line fill takes ~8–40 bus cycles in `fpga_top_tb`, but about
   46 core cycles from DDR4 and 51 from HBM on the F2.

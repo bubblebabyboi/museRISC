@@ -85,8 +85,11 @@ brought up in QEMU and run unchanged on the FPGA.
 
 `mtime` advances **once per core clock**. The device tree's
 `timebase-frequency` therefore equals the core clock of the build:
-**62 500 000** for the current F2 recipe B1 (62.5 MHz); update it with the
-clock recipe (#53). The host can read the build's clock from OCL `CLK_KHZ`.
+**62 500 000** for AFIs built with F2 recipe B1 (62.5 MHz, `sigil-f2.dtb`)
+and **100 000 000** for recipe B5 (100 MHz, `sigil-f2-100.dtb`, #53). The
+host reads the build's clock from OCL `CLK_KHZ` (`sigil_host --info`:
+`core_clk_khz`) and loads a DTB whose timebase differs with the core
+clock instead, with a warning.
 
 ## Boot
 

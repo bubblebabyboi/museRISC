@@ -225,12 +225,14 @@ settable at run time (`sigil_host --recipe-b N` →
 |---|---:|---|
 | **B1** (default) | **62.5 MHz** | **interim label for the first AFI** — F0 closed ~68 MHz OOC; the CL build closes 16 ns with +0.147 ns |
 | B4 | 75 MHz | after partial #53 progress |
-| B5 | 100 MHz | the epic target once #53 closes 10 ns |
+| B5 | 100 MHz | #53: closes 10 ns with `--fpga-timing` (core +0.336 ns); AFI built, not yet run on an F2 ([below](#100-mhz-core-clock-53-afi-built-not-yet-run-on-an-f2)) |
 
 Groups A/C/HBM are instantiated (the SDK's clkgen calls program and
 poll every MMCM) but unused, left at the HDK defaults A1/C0/H2. The
 OCL `CLK_KHZ` register reports the build recipe's nominal frequency;
-the host compares it with the measured one.
+the host prints it as the core clock (`sigil_host --info`:
+`core_clk_khz`), checks a Linux DTB's `timebase-frequency` against it
+and compares it with the measured one.
 
 ### OCL register map (AppPF BAR0, 32-bit accesses)
 
@@ -248,7 +250,7 @@ converter. Unmapped reads return `0xBAAD_DEC0`; registers alias every
 | 0x018 | CYCLE_LO | RO, side effect | | core-clock cycles since CL reset, low half; **reading it snapshots the high half** |
 | 0x01C | CYCLE_HI | RO | | high half captured by the last CYCLE_LO read (read LO then HI = atomic 64-bit value) |
 | 0x020 | TRAP_COUNT | RO | 0 | core traps since release (cleared while held) |
-| 0x024 | CLK_KHZ | RO | build | nominal core clock of the build recipe (62500 for B1) |
+| 0x024 | CLK_KHZ | RO | build | nominal core clock of the build recipe (62500 for B1, 100000 for B5) |
 | 0x028 / 0x02C | TRAP_CAUSE_LO / HI | RO | | cause of the last trap (`trap_cause_o`) |
 | 0x030 / 0x034 | TRAP_PC_LO / HI | RO | | PC of the last trap |
 | 0x03C | SCRATCH | RW | 0 | host scratch |
@@ -609,6 +611,39 @@ sudo fpga/host/sigil_host --memtest all                      # full-range DDR4 +
   boundary, `f2_platform_test` from the boot ROM through the real CL,
   finisher, error capture, PCIS read-back of the core's DDR4/HBM lines),
   `test_sigil_hash`, `test_sigil_host_cosim`.
+
+## 100 MHz core clock (#53): AFI built, not yet run on an F2
+
+The #73 Linux platform with #53's FPGA timing structures, with the core
+on AWS_CLK_GEN recipe B5 (`clk_extra_b1` = 100 MHz) instead of B1
+(62.5 MHz). It is **private** for now and has passed static timing only:
+the F2 smoke tests and the Debian boot at 100 MHz are still to be run,
+and the 62.5 MHz AFI below stays the public one until then.
+
+| | |
+|---|---|
+| AGFI | `agfi-05cbbdc9f2ee7b87b` (AFI `afi-090769c4f8c375270`, us-east-1), name `sigil-linux-100mhz-2026_10_22-232507`; load permission: private |
+| Core clock | 100 MHz (AWS_CLK_GEN B5; OCL `CLK_KHZ` = 100000); HBM AXI 250 MHz (H0) |
+| Memory, devices | as the 62.5 MHz Linux AFI: DDR4 64 GiB + HBM 16 GiB, finisher, RTC, OCL v4 |
+| Built from | branch `53-100mhz-afi` commit `cf63ab8` = `73-oops-fix` (walker-race fix) + `53-mem-stage-pipeline` up to `d8d5e92` (#53 ISA review round 2 fixes); `fpga/scripts/build_cl_sigil.sh --recipe-b B5 --recipe-hbm H0 --fpga-timing` (`SIGIL_FPGA_TIMING` + `SIGIL_VRF_OREG`), aws-fpga v2.3.5, Vivado 2025.2, unencrypted DCP (`2026_10_22-232507.Developer_CL.tar`, sha256 `0fe4b1ea0ddf4d40ebc04c5d5925f5bc52abdae82bb1ce24bf87c9a6150ca24c`) |
+| Timing | all constraints met: design WNS +0.033 ns (AWS DDR crossbar IP, 250 MHz), core +0.336 ns at 10 ns, WHS +0.005 ns ([`evidence/f2-100mhz-cl-2026-10-22/`](evidence/f2-100mhz-cl-2026-10-22/README.md)) |
+| Linux device tree | **`sigil-f2-100.dtb`** (`timebase-frequency` 100000000; [`LINUX.md` §4.2](LINUX.md#42-by-hand-the-sigil_host-command-reference)) |
+
+To try it on your own F2, load it instead of the public AFI (it works
+only for accounts it has been shared with until it is made public):
+
+```sh
+sudo fpga-load-local-image -S 0 -I agfi-05cbbdc9f2ee7b87b -H
+sudo fpga/host/sigil_host --info          # core_clk_khz=100000, dtb=sigil-f2-100.dtb
+SIGIL_AGFI=agfi-05cbbdc9f2ee7b87b ~/bin/sigil-linux   # picks sigil-f2-100.dtb itself
+```
+
+This needs the `sigil_host` and `sigil-linux` of #53 (branch
+`53-100mhz-afi` until it is merged): `sigil_host --info`, the DTB choice
+and the timebase check. With a release that has no `sigil-f2-100.dtb`,
+`sigil-linux` boots `sigil-f2.dtb` and `sigil_host` sets its timebase to
+100 MHz (it says so). Older versions boot `sigil-f2.dtb` unchanged on
+this AFI, so Linux time would run 1.6 times too fast.
 
 ## Flash Sigil on your own F2
 
