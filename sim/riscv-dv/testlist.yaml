@@ -23,6 +23,9 @@
 # steps of 5,000 and every trap ends a step, so a trap can cost up to
 # 5,000: trap-heavy tests need a budget far above their length.
 #
+# asm_defs (optional, directed entries): extra preprocessor defines for
+# the program, e.g. [PMP_WHOLE64], passed as -D<name> next to RDV_SEED.
+#
 # gen_mem_gb (optional): the test's pygen peak memory in GiB, rounded up.
 # The driver starts a generation only while the estimates of the running
 # ones fit in its memory budget (--gen-mem-gb); tests without the key
@@ -285,6 +288,37 @@
     registers.
   asm: directed/sigil_hint_test.S
   march: rv64gc
+
+- test: sigil_pmp_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    PMP matching (priority, NA4/NAPOT/TOR boundaries, partial matches of
+    8-byte accesses, L in M) with every access kind in M, M+MPRV (MPP S
+    and U), S and U: scalar loads/stores of 1-8 bytes incl. compressed and
+    misaligned, AMO .w/.d, LR/SC, lone SC, FP, HLV/HLVX/HSV, vector
+    unit-stride/strided/indexed/segment/fault-only-first/masked/whole-
+    register (EEW 8 and 32) loads and stores, fetches of 16/32-bit
+    parcels straddling PMP words; Sv39 PTE reads and A/D write-backs under
+    NA4/TOR/NAPOT entries; a sweep of fixed configurations, then 24
+    random iterations (odd seeds end with locked entries). Fails on the
+    RTL before 3ae351d (8-byte accesses judged by their first word).
+  asm: directed/sigil_pmp_test.S
+  march: rv64gcvh_zcb
+  # About 8,000 traps per run; Spike charges up to 5,000 per trap.
+  spike_max_instr: 100000000
+
+- test: sigil_pmp_whole64_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_pmp_test plus whole-register loads with EEW=64 (vl1re64.v,
+    vl2re64.v): Spike (and Sail) performs their 8-byte elements as single
+    accesses, so an NA4 entry or a TOR boundary splitting an element
+    fails it (also in M). Failed before the core checked the first byte
+    of each such element as the whole element (8-dvfix-pmp-w64).
+  asm: directed/sigil_pmp_test.S
+  asm_defs: [PMP_WHOLE64]
+  march: rv64gcvh_zcb
+  spike_max_instr: 100000000
 
 # ---------------------------------------------------------------------
 # Excluded

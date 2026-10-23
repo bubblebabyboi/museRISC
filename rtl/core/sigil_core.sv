@@ -1726,6 +1726,16 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // element width or the scalar funct3; also the PMP check width.
   logic [1:0] mem_size_code;
   assign mem_size_code = vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0];
+  // PMP checks both words of an 8-byte access. Whole-register loads
+  // with EEW=64 move bytes but their elements are 8-byte accesses: the
+  // first byte of each element (base 8-byte aligned) is checked as the
+  // whole element, so a split element faults there (tval = element
+  // address, vstart = its index), as on Spike and Sail. A misaligned
+  // base keeps per-byte checks (a misaligned element may be split).
+  logic pmp_wide_data;
+  assign pmp_wide_data = (mem_size_code == 2'b11) ||
+      (vls_is && vls_whole && (vls_idx_eew == 3'd3) &&
+       (exmem_addr_q[2:0] == 3'd0) && (mem_va[2:0] == 3'd0));
 
   // Data-port request payload. be names the accessed lanes for
   // loads too (an uncached I/O load sees its exact width).
@@ -1947,7 +1957,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .pmp_acc_b_i   (exmem_ctrl_q.hlvx ? 2'd3 :
                       exmem_ctrl_q.mem_write ? 2'd1 : 2'd0),
       .pmp_priv_b_i  (eff_priv_mem),
-      .pmp_wide_b_i  (mem_size_code == 2'b11),
+      .pmp_wide_b_i  (pmp_wide_data),
       .pmp_allow_b_o (pmp_allow_data),
       .pmp_addr_c_i  (walk_addr),
       .pmp_acc_c_i   (walk_acc),

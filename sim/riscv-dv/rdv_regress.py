@@ -281,7 +281,8 @@ def run_one(entry, seed, a):
     if "asm" in entry:
         shutil.copyfile(os.path.join(HERE, entry["asm"]), p["asm"])
         row["gen_s"] = 0
-        asm_defs = ["-DRDV_SEED=%d" % row["gen_seed"]]
+        asm_defs = ["-DRDV_SEED=%d" % row["gen_seed"]] + [
+            "-D%s" % d for d in entry.get("asm_defs", [])]
     else:
         cmd = [a.venv_py, "pygen/pygen_src/test/riscv_instr_base_test.py",
                "--target=sigil", "--gen_test=%s" % entry.get("gen_test", "riscv_instr_base_test"),
