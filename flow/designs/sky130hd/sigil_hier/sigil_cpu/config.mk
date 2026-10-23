@@ -25,7 +25,15 @@ SKY130_MACROS = sky130_sram_1rw1r_64x256_8 sky130_sram_1rw1r_128x256_8 \
                 sky130_sram_1rw1r_44x64_8
 export ADDITIONAL_LEFS = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m).lef)
 export ADDITIONAL_LIBS = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m)_TT_1p8V_25C.lib)
-export ADDITIONAL_GDS  = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m).gds)
+# The GDS merge reads copies of the OpenRAM GDS with the macro name
+# prefixed to every subcell (../sram_gds_uniq.rb, which says why: the
+# three macros share 62 subcell names with different contents, and the
+# merge adds same-named cells together). Made on demand under objects/.
+export ADDITIONAL_GDS  = $(foreach m,$(SKY130_MACROS),$(WORK_HOME)/objects/$(PLATFORM)/sigil_sram_uniq/$(m)__sigil_uniq.gds)
+%__sigil_uniq.gds:
+	mkdir -p $(@D)
+	$(KLAYOUT_CMD) -zz -rd in=$(SKY130_RAM)/$(notdir $*)/$(notdir $*).gds -rd out=$@ \
+	  -r $(SIGIL_HIER_DIR)/sram_gds_uniq.rb
 export VERILOG_FILES = \
   $(foreach m,$(SKY130_MACROS),$(DESIGN_HOME)/$(PLATFORM)/sigil_soc/sram/$(m).v) \
   $(addprefix $(DESIGN_HOME)/src/sigil_soc/,$(filter core/%,$(SIGIL_SOC_RTL)))
