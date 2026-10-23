@@ -1,0 +1,47 @@
+== 1 sigil-f2.dtb on a 100 MHz CL
+[sigil_host] WARNING: /home/ubuntu/mhz100-sw/repo-dtb/build/linux/sigil-f2.dtb: timebase-frequency 62500000 Hz, but the core clock is 100000000 Hz: loaded with 100000000 Hz (the DTB for this clock is sigil-f2-100.dtb; --keep-timebase loads it unchanged)
+after: timebase 100000000 (1 copies)
+rng-seed bytes filled: 0
+PASS: fixed copy == sigil-f2-100.dtb
+== 2 sigil-f2-100.dtb on a 100 MHz CL
+[sigil_host] /home/ubuntu/mhz100-sw/repo-dtb/build/linux/sigil-f2-100.dtb: timebase-frequency 100000000 Hz = the core clock
+after: timebase 100000000 (1 copies)
+rng-seed bytes filled: 0
+PASS: unchanged
+== 3 sigil-f2-100.dtb on a 62.5 MHz CL
+[sigil_host] WARNING: /home/ubuntu/mhz100-sw/repo-dtb/build/linux/sigil-f2-100.dtb: timebase-frequency 100000000 Hz, but the core clock is 62500000 Hz: loaded with 62500000 Hz (the DTB for this clock is sigil-f2.dtb; --keep-timebase loads it unchanged)
+after: timebase 62500000 (1 copies)
+rng-seed bytes filled: 0
+PASS: fixed copy == sigil-f2.dtb
+== 4 sigil-f2.dtb on a 100 MHz CL, --keep-timebase
+[sigil_host] WARNING: /home/ubuntu/mhz100-sw/repo-dtb/build/linux/sigil-f2.dtb: timebase-frequency 62500000 Hz, but the core clock is 100000000 Hz (--keep-timebase): Linux time will run 1.600x real time
+after: timebase 62500000 (1 copies)
+rng-seed bytes filled: 0
+PASS: unchanged
+== 5 /chosen/rng-seed (32 B) + a /cpus/cpu@0 timebase copy, 100 MHz
+[sigil_host] WARNING: rng.dtb: timebase-frequency 62500000 Hz, but the core clock is 100000000 Hz: loaded with 100000000 Hz (the DTB for this clock is sigil-f2-100.dtb; --keep-timebase loads it unchanged)
+after: timebase 100000000 (2 copies)
+rng-seed bytes filled: 32
+PASS: rng-seed filled
+PASS: both timebases 100 MHz
+PASS: only those 40 bytes changed
+== 6 core clock unknown (0): sigil-sim.dtb
+after: timebase 10000000 (1 copies)
+rng-seed bytes filled: 0
+PASS: unchanged
+== 7 not a DTB
+[sigil_host] WARNING: g.bin has no /cpus/timebase-frequency (the core clock is 100000000 Hz)
+after: timebase 0 (0 copies)
+rng-seed bytes filled: 0
+PASS: unchanged
+== 8 truncated DTB
+[sigil_host] WARNING: h.bin has no /cpus/timebase-frequency (the core clock is 100000000 Hz)
+after: timebase 0 (0 copies)
+rng-seed bytes filled: 0
+PASS: unchanged
+== 9 sigil-qemu.dtb (10 MHz) on a 62.5 MHz CL
+[sigil_host] WARNING: /home/ubuntu/mhz100-sw/repo-dtb/build/linux/sigil-qemu.dtb: timebase-frequency 10000000 Hz, but the core clock is 62500000 Hz: loaded with 62500000 Hz (the DTB for this clock is sigil-f2.dtb; --keep-timebase loads it unchanged)
+after: timebase 62500000 (1 copies)
+rng-seed bytes filled: 0
+PASS: timebase 62.5 MHz, 4 bytes changed
+FDT RESULT: 11 passed, 0 failed

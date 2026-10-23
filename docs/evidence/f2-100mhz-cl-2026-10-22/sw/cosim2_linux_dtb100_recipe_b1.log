@@ -1,0 +1,87 @@
+#-----------------------------------------------------------
+# xsim v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Fri Oct 23 01:16:27 2026
+# Process ID         : 2860723
+# Current directory  : /home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast
+# Command line       : xsim -log test_sigil_host_cosim.log -mode tcl -source {xsim.dir/tb/xsim_script.tcl}
+# Log file           : /home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast/test_sigil_host_cosim.log
+# Journal file       : /home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/sim/xsim/test_sigil_host_cosim_sv_fast/xsim.jou
+# Running On         : ip-172-31-66-228
+# Platform           : Ubuntu
+# Operating System   : Ubuntu 24.04.1 LTS
+# Processor Detail   : Intel(R) Xeon(R) Gold 6455B
+# CPU Frequency      : 3656.459 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 32
+# Host memory        : 265990 MB
+# Swap memory        : 10737 MB
+# Total Virtual      : 276728 MB
+# Available Virtual  : 266054 MB
+#-----------------------------------------------------------
+source xsim.dir/tb/xsim_script.tcl
+# xsim {tb} -autoloadwcfg -tclbatch {/home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/scripts/waves.tcl}
+Time resolution is 1 ps
+source /home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/scripts/waves.tcl
+## run -all
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+WARNING: Behavioral models for independent clock FIFO configurations do not model synchronization delays. The behavioral models are functionally correct, and will represent the behavior of the configured FIFO. See the FIFO Generator User Guide for more information.
+[sigil_host] slot 0: AFI xsim-cl_sigil, shell 0x10212415
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+
+__INFO__: Writing SDA interface at Base addr = 0x58000
+
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x51
+
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x51
+
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+
+[sigil_host] AWS_CLK_GEN: group B recipe B1 (A1 C0 H0 for the other groups)
+__INFO__: Writing SDA interface at Base addr = 0x58000
+
+__INFO__: CLKS_AVAIL = 0x1ff | Expected MMCM lock mask = 0x151
+
+__INFO__: Writing SDA interface at Base addr = 0x58000
+
+__INFO__: Reading SDA interface at addr = 0x58020 | read_data = 0x151
+
+[sigil_host] Sigil CL version 0x00040001, RAM window 81920 MiB at 0x80000000 (DDR4 64 GiB + HBM 16 GiB)
+[sigil_host] HBM AXI clock: AWS_CLK_GEN recipe H0
+[sigil_host] core clock 62.500 MHz (--recipe-b B1; the AFI's build recipe is 62.500 MHz)
+[sigil_host] Linux timebase-frequency must be 62500000 Hz: boot with sigil-f2.dtb
+[sigil_host] RTC increment 0x10000000 (16.000 ns per core cycle)
+[sigil_host] DDR4 ready, HBM ready (STATUS 0x000000c1)
+[sigil_host] loaded ../../../fw/hash_soc_test.bin: 2104 bytes at 0x80000000 (PCIS 0x0) in 0.000 s = 0.36 GB/s, fully verified in 0.000 s
+[sigil_host]   read-back rate 0.04 GB/s
+[sigil_host] loaded ../../../fw/hash_soc_test.bin: 2104 bytes at 0x80200000 (PCIS 0x200000) in 0.000 s = 0.36 GB/s, fully verified in 0.000 s
+[sigil_host]   read-back rate 0.04 GB/s
+[sigil_host] WARNING: ../../../fw/sigil-f2-100.dtb: timebase-frequency 100000000 Hz, but the core clock is 62500000 Hz: loaded with 62500000 Hz (the DTB for this clock is sigil-f2.dtb; --keep-timebase loads it unchanged)
+[sigil_host] loaded ../../../fw/sigil-f2-100.dtb: 6976 bytes at 0x83000000 (PCIS 0x3000000) in 0.000 s = 0.36 GB/s, fully verified in 0.000 s
+[sigil_host]   read-back rate 0.04 GB/s
+[sigil_host] SoC released: boot PC 0x1000, caches on, timeout 0.02 s
+SHA-512 1000 B: 0x000000000000584e cycles
+SOC HASH PASS
+
+[sigil_host] result: PASS (SOC HASH PASS) after 0.002 s, 105245 core cycles
+[sigil_host] measured core clock: 62.499 MHz (cycle counter / wall time; expected 62.500 MHz)
+[sigil_host] traps: 0, last cause 0x0000000000000000 pc 0x0000000000000000, STATUS 0x000000c0
+[ 1988124.000 ns] cosim: sigil_host returned 0
+[ 1989224.000 ns] : Detected   0 errors
+[ 1989224.000 ns] : Checking protocol checker error status...
+*** TEST PASSED ***
+$finish called at time : 1989224 ns : File "/home/ubuntu/mhz100-sw/repo/fpga/cl_sigil/verif/tests/sigil_test_utils.svh" Line 278
+run: Time (s): cpu = 00:00:00.32 ; elapsed = 00:05:20 . Memory (MB): peak = 1570.078 ; gain = 128.000 ; free physical = 10235 ; free virtual = 253805
+## quit
+INFO: xsimkernel Simulation Memory Usage: 339228 KB (Peak: 380108 KB), Simulation CPU Usage: 320770 ms
+INFO: [Common 17-206] Exiting xsim at Fri Oct 23 01:21:49 2026...

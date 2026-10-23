@@ -1,0 +1,19 @@
+# cosim 2 (#53): --linux with the 100 MHz DTB on the B1 CL
+--recipe-b
+1
+--scrub
+never
+--linux
+--fw
+../../../fw/hash_soc_test.bin
+--image
+../../../fw/hash_soc_test.bin
+--dtb
+../../../fw/sigil-f2-100.dtb
+--verify
+--exit
+SOC HASH PASS
+--timeout
+0.02
+--log
+sigil_host_uart.log

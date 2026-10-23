@@ -1,0 +1,106 @@
+== d1. release with sigil-f2-100.dtb, 62.5 MHz AFI -> sigil-f2.dtb (100 MHz DTB downloaded, verified)
+[sigil-linux] downloading SHA256SUMS
+######################################################################## 100.0%
+[sigil-linux] downloading fw_jump.bin
+######################################################################## 100.0%
+[sigil-linux] downloading Image
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2.dtb
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-debian-13-riscv64.ext4.zst
+#######                                                                    9.9%##############                                                            19.8%######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2-100.dtb
+######################################################################## 100.0%
+[sigil-linux] note: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 was made from sigil-linux-f2-2026-10-22; booting it with the rel100-tag kernel (--fresh starts from the rel100-tag image)
+[sigil-linux] core clock 62500 kHz: device tree sigil-f2.dtb
+[sigil-linux] booting Debian from /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/fw_jump.bin --image /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/Image --dtb /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/mhz100-sw/sltest/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.oO8Zxo/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0
+PASS: rc 0
+PASS: downloaded the 100 MHz DTB
+PASS: dtb sigil-f2.dtb
+PASS: says the clock
+== d2. same release, 100 MHz AFI -> sigil-f2-100.dtb
+[sigil-linux] note: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 was made from sigil-linux-f2-2026-10-22; booting it with the rel100-tag kernel (--fresh starts from the rel100-tag image)
+[sigil-linux] core clock 100000 kHz: device tree sigil-f2-100.dtb
+[sigil-linux] booting Debian from /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/fw_jump.bin --image /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/Image --dtb /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/sigil-f2-100.dtb --load 0xC80000000=/home/ubuntu/mhz100-sw/sltest/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.O6lqaB/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0
+PASS: rc 0
+PASS: no download
+PASS: dtb sigil-f2-100.dtb
+PASS: says the clock
+== d3. release without sigil-f2-100.dtb (sigil-linux-f2-2026-10-22), 100 MHz AFI -> sigil-f2.dtb + note
+[sigil-linux] note: sigil-linux-f2-2026-10-22 has no sigil-f2-100.dtb: booting sigil-f2.dtb, sigil_host sets its timebase to the core clock
+[sigil-linux] core clock 100000 kHz: device tree sigil-f2.dtb
+[sigil-linux] booting Debian from /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/mhz100-sw/sltest/cache/sigil-linux-f2-2026-10-22/fw_jump.bin --image /home/ubuntu/mhz100-sw/sltest/cache/sigil-linux-f2-2026-10-22/Image --dtb /home/ubuntu/mhz100-sw/sltest/cache/sigil-linux-f2-2026-10-22/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/mhz100-sw/sltest/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.LBNQVf/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0
+PASS: rc 0
+PASS: no 100 MHz DTB download
+PASS: dtb sigil-f2.dtb
+PASS: note
+== d4. --info fails (no clock) -> sigil-f2.dtb, boot still attempted
+[sigil-linux] note: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 was made from sigil-linux-f2-2026-10-22; booting it with the rel100-tag kernel (--fresh starts from the rel100-tag image)
+[sigil-linux] core clock ? kHz: device tree sigil-f2.dtb
+[sigil-linux] booting Debian from /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/fw_jump.bin --image /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/Image --dtb /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/sigil-f2.dtb --load 0xC80000000=/home/ubuntu/mhz100-sw/sltest/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.NoLUaR/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0
+PASS: rc 0
+PASS: dtb sigil-f2.dtb
+PASS: unknown clock
+== d5. corrupted cached 100 MHz DTB is downloaded again
+[sigil-linux]   sigil-f2-100.dtb: FAILED
+[sigil-linux]   sha256sum: WARNING: 1 computed checksum did NOT match
+[sigil-linux] checksum mismatch: downloading rel100-tag again
+[sigil-linux] downloading SHA256SUMS
+######################################################################## 100.0%
+[sigil-linux] downloading fw_jump.bin
+######################################################################## 100.0%
+[sigil-linux] downloading Image
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2.dtb
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-debian-13-riscv64.ext4.zst
+######################################################################## 100.0%
+[sigil-linux] downloading sigil-f2-100.dtb
+######################################################################## 100.0%
+[sigil-linux] note: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 was made from sigil-linux-f2-2026-10-22; booting it with the rel100-tag kernel (--fresh starts from the rel100-tag image)
+[sigil-linux] core clock 100000 kHz: device tree sigil-f2-100.dtb
+[sigil-linux] booting Debian from /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] the login prompt takes minutes at 62.5 MHz (estimate: about 9 min); log in as sigil / sigil
+[sigil-linux] 'sudo poweroff' saves the disk and ends the session; Ctrl-] leaves without saving
+[sigil-linux] tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost
+[fake sigil_host] uid=0 args: --linux --fw /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/fw_jump.bin --image /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/Image --dtb /home/ubuntu/mhz100-sw/sltest/cache/rel100-tag/sigil-f2-100.dtb --load 0xC80000000=/home/ubuntu/mhz100-sw/sltest/disk/d.ext4 --save 0xC80000000=/dev/shm/sigil-linux.J2UPgA/pmem.ext4:17179869184 --console --on-reboot rerun
+[sigil-linux] Debian powered off: saving the disk to /home/ubuntu/mhz100-sw/sltest/disk/d.ext4
+[sigil-linux] disk saved: /home/ubuntu/mhz100-sw/sltest/disk/d.ext4 (8192 MiB file system, 969M on this volume)
+rc=0
+PASS: rc 0
+PASS: redownloaded
+== d6. a sigil_host without --info is refused before anything runs
+[sigil-linux] error: /home/ubuntu/mhz100-sw/sltest/sigil/fpga/host/sigil_host is too old for Sigil Linux: update it with
+  git -C /home/ubuntu/mhz100-sw/sltest/sigil pull && make -C /home/ubuntu/mhz100-sw/sltest/sigil/fpga/host SDK_DIR=$HOME/aws-fpga/sdk
+rc=1
+PASS: rc 1
+PASS: too old
+DTB RESULT: 19 passed, 0 failed
