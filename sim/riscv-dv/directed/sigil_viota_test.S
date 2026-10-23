@@ -14,6 +14,8 @@
 #   - masked-off elements are unchanged (mu) or unchanged/all ones (ma);
 #   - tail elements up to the end of the vd group (for fractional LMUL
 #     the whole register) are unchanged (tu) or unchanged/all ones (ta);
+#     with vl = 0 they are unchanged under ta too (RVV 1.0 sec. 5.4:
+#     no element is updated when vstart >= vl);
 #   - every register outside the vd group is unchanged;
 #   - vstart reads 0 afterwards, and no trap was taken.
 # One iteration in 16 each runs an encoding RVV 1.0 makes illegal
@@ -31,6 +33,17 @@
 #                    (reserved by RVV 1.0; Spike raises an illegal-
 #                    instruction exception).
 #
+# VIOTA_SWEEP=1 replaces the random choice of vtype, policy, AVL and
+# masking by a sweep of all 1408 combinations: the 22 legal vtypes
+# (SEW 8..64 x LMUL mf8..m8) x {tu,ta} x {mu,ma} x {unmasked, v0.t} x
+# eight AVL classes (0, 1, 2, VLMAX-1, VLMAX, all ones, VLMAX+1,
+# random in [0, VLMAX]); only legal encodings, with vs2 an odd register
+# (so off every LMUL > 1 boundary) in 6 of 8 iterations, v0 in 1 of 8,
+# any register in 1 of 8. Iteration i runs combination
+# (SWEEP_START + i) mod 1408; by default ITERS = 88 and SWEEP_START =
+# (RDV_SEED mod 16) * 88, one of 16 chunks, each every vtype under four
+# AVL classes and one policy/masking pair.
+#
 # With SIGIL_CORE_TEST defined it builds as a directed core test
 # (sw/core-tests/viota_directed.S: exit store to 0x1000_0000, 0 = pass).
 # Failure code (tohost = ((iteration << 8 | code) << 1) | 1):
@@ -41,8 +54,18 @@
 #ifndef RDV_SEED
 #define RDV_SEED 1
 #endif
+#ifndef VIOTA_SWEEP
+#define VIOTA_SWEEP 0
+#endif
 #ifndef ITERS
+#if VIOTA_SWEEP
+#define ITERS 88
+#else
 #define ITERS 96
+#endif
+#endif
+#ifndef SWEEP_START
+#define SWEEP_START ((RDV_SEED % 16) * 88)
 #endif
 #ifndef VIOTA_VSTART
 #define VIOTA_VSTART 0
@@ -77,6 +100,14 @@
         slli    t0, s0, 17
         xor     s0, s0, t0
         mv      \rd, s0
+        .endm
+
+        # rd = this iteration's sweep combination (VIOTA_SWEEP).
+        .macro COMBO rd
+        li      \rd, ITERS + SWEEP_START
+        sub     \rd, \rd, s1
+        li      t0, 1408
+        remu    \rd, \rd, t0
         .endm
 
         .macro FILL base, n
@@ -123,6 +154,24 @@ _start:
 iter:
         FILL    s2, 256
 
+#if VIOTA_SWEEP
+        # --- sweep: combination = vtype + 22 * (AVL class + 8 *
+        #     (policy + 4 * masked)), VLMAX in s9
+        COMBO   a1
+        li      t1, 22
+        remu    a2, a1, t1
+        divu    a1, a1, t1
+        la      a3, vtypes
+        add     a3, a3, a2
+        lbu     a4, 0(a3)
+        srli    a5, a1, 3
+        andi    a5, a5, 3               # vta (bit 0), vma (bit 1)
+        slli    a5, a5, 6
+        or      s4, a4, a5
+        vsetvl  s9, x0, s4
+        andi    a2, a1, 7               # AVL class
+        RND     a1
+#else
         # --- random legal vtype with random vta/vma, VLMAX in s9
         RND     a1
         andi    a2, a1, 31
@@ -137,6 +186,7 @@ iter:
         srli    a1, a1, 16
         andi    a2, a1, 7
         srli    a1, a1, 3
+#endif
         li      a7, 0
         beqz    a2, avl_set
         li      a7, 1
@@ -154,6 +204,11 @@ iter:
         li      a7, -1
         li      t1, 5
         beq     a2, t1, avl_set
+#if VIOTA_SWEEP
+        addi    a7, s9, 1               # class 7: VLMAX+1 (vl = VLMAX)
+        li      t1, 7
+        beq     a2, t1, avl_set
+#endif
         addi    t1, s9, 1
         remu    a7, a1, t1
 avl_set:
@@ -172,6 +227,13 @@ avl_set:
         srli    a1, a1, 1
         andi    a2, a1, 15
         li      gp, K_LEGAL
+#if VIOTA_SWEEP
+        COMBO   t2                      # masked: combination >= 704
+        li      t1, 704
+        sltu    tp, t2, t1
+        xori    tp, tp, 1
+        j       3f                      # legal encodings only
+#endif
 #if VIOTA_VSTART
         li      t1, 8
         bgeu    a2, t1, 2f
@@ -233,6 +295,11 @@ vd_done:
         beqz    a2, 2f
 4:      RND     a1
         andi    s11, a1, 31
+#if VIOTA_SWEEP
+        li      t1, 1
+        beq     a2, t1, 2f              # 1 in 8: any register,
+        ori     s11, s11, 1             # else odd (not LMUL-aligned)
+#endif
 2:      bltu    s11, s10, vs2_done
         add     t1, s10, s7
         bgeu    s11, t1, vs2_done
@@ -374,6 +441,7 @@ el_act:
 el_tail:
         beq     a4, a5, el_next         # tail: unchanged,
         li      a7, 6
+        beqz    s8, fail                # (always when vl = 0)
         srli    t1, s4, 6               # or all ones under vta
         andi    t1, t1, 1
         beqz    t1, fail
