@@ -53,6 +53,33 @@ foreach mm {max min} {
   both $f "[expr { $mm == "max" ? "setup" : "hold " }] ws $ws ns tns $tns ns violating_endpoints $nv"
 }
 both $f "max_slew_violations [sta::max_slew_violation_count] max_cap_violations [sta::max_capacitance_violation_count] max_fanout_violations [sta::max_fanout_violation_count]"
+# Setup split by endpoint: block output ports (checked against the
+# boundary budget of constraint.sdc) vs internal endpoints (register
+# and macro pins); worst slack of each, also when it is positive (from
+# the 5000 worst endpoints).
+foreach kind {outputs internal} {
+  set sws($kind) "-"
+  set snv($kind) 0
+  set stns($kind) 0.0
+}
+foreach pe [find_timing_paths -path_delay max -group_path_count 5000 \
+              -endpoint_path_count 1 -sort_by_slack] {
+  set kind [expr { [string match "*/*" [get_full_name [get_property $pe endpoint]]] ? "internal" : "outputs" }]
+  set s [get_property $pe slack]
+  if { $sws($kind) eq "-" || $s < $sws($kind) } {
+    set sws($kind) $s
+  }
+}
+foreach pe [find_timing_paths -path_delay max -slack_max 0 \
+              -group_path_count 1000000 -endpoint_path_count 1] {
+  set kind [expr { [string match "*/*" [get_full_name [get_property $pe endpoint]]] ? "internal" : "outputs" }]
+  incr snv($kind)
+  set stns($kind) [expr { $stns($kind) + [get_property $pe slack] }]
+}
+foreach kind {outputs internal} {
+  set w [expr { $sws($kind) eq "-" ? "-" : [format %.3f $sws($kind)] }]
+  both $f "setup to $kind ws $w ns tns [format %.3f $stns($kind)] ns violating_endpoints $snv($kind)"
+}
 close $f
 
 report_worst_slack -max -digits 3
