@@ -1,0 +1,14 @@
+# Comparator self-check (sim/riscv-dv/rdv_trace.py at 661c046), 2026-10-22T08:46:36Z
+# Matching DUT traces from a 2000-instruction run (seed 21) are corrupted one field at a time; rc 0 = MATCH, 1 = MISMATCH.
+unmodified (amo)             rc=0 MATCH ref=1879 dut=1879 
+x write value                rc=1 MISMATCH ref=1879 dut=1879 #235 pc=0x8000032e insn=0xe012a7af priv=1 (amomaxu.w a5, ra, (t0)): x: dut {x15=0xfffffffffffffff0} ref {x15=0xffffffffffffffff}
+dropped record               rc=1 MISMATCH ref=1879 dut=1878 #299 pc=0x80000418 insn=0x00221a3b priv=1 (sllw    s4, tp, sp): pc: dut 0x8000041c ref 0x80000418; insn: dut 0xc47cb3 ref 0x221a3b; x: dut {x25=0x0} ref {x20=0x0}
+store data                   rc=1 MISMATCH ref=1879 dut=1879 #117 pc=0x80000188 insn=0x6307a62f priv=1 (amoand.w.rl a2, a6, (a5)): store: dut [0x80005070:4=0xf] ref [0x80005070:4=0x0]
+privilege                    rc=1 MISMATCH ref=1879 dut=1879 #399 pc=0x80000620 insn=0x8ed5 priv=1 (c.or    a3, a3): priv: dut 0 ref 1
+mstatus write value          rc=1 MISMATCH ref=1879 dut=1879 #33 pc=0x80000076 insn=0x30069073 priv=3 (csrw    mstatus, a3): csr 0x300 (mstatus): dut 0x0 ref 0xa00000800
+trap cause (ebreak)          rc=1 MISMATCH ref=6264 dut=6264 #129 trap cause=0x3 epc=0x800001b4 tval=0x800001b4: cause: dut 0x2 ref 0x3
+unmodified (fp)              rc=0 MATCH ref=2725 dut=2725 
+f write value                rc=1 MISMATCH ref=2725 dut=2725 #166 pc=0x80000210 insn=0xf20f89d3 priv=1 (fmv.d.x fs3, t6): f: dut {f19=0xffffffffffffffff} ref {f19=0x7ff800000000}
+missing fflags update        rc=1 MISMATCH ref=2725 dut=2725 #312 pc=0x800003ec insn=0xc02c7153 priv=1 (fcvt.l.s sp, fs8): fflags write: dut none ref 0x10
+unmodified (vector)          rc=0 MATCH ref=53 dut=53 
+vector register value        rc=1 MISMATCH ref=53 dut=53 #12 pc=0x8000002c insn=0x021101d7 priv=3 (vadd.vv v3, v1, v2): v3: dut 0x7777776888888885555555566666665b33333324444444391111111222222238796a5b5c3d2e1f2ecfc0b1a3a495867ba9876544

@@ -59,7 +59,8 @@ CACHE_RTL := $(RTL)/sigil_cache_pkg.sv $(RTL)/sigil_sram_sp.sv \
              $(RTL)/sigil_bus_arb.sv
 CPU_RTL  := $(CORE_RTL) $(filter-out $(RTL)/sigil_cache_pkg.sv,$(CACHE_RTL)) \
             $(RTL)/sigil_cpu.sv
-TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed vec_trap_directed \
+TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_directed irq_exc_race_directed amo_directed fp_directed fp_stall_directed fp_irq_directed bext_directed rvc_directed pipeline_directed priv_directed counter_time_directed hyp_directed vec_directed fpvec_directed fpvec_nanbox_directed vfcvt_sew16_directed vec_trap_directed viota_directed viota_cases_directed \
+            viota_vstart_directed viota_overlap_directed vstart_illegal_directed \
             vm_directed \
             trap_illegal trap_misalign trap_ecall trap_ebreak \
             trap_store_misalign trap_younger_store trap_younger_csr irq_seip_rmw irq_mip_rmw_variants \
@@ -70,9 +71,10 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed ptw_preempt_hyp_directed \
             ptw_preempt_guest_directed ptw_gwidth_directed ptw_gwidth_load_directed \
             ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
-            ptw_svadu_race_hyp_directed
+            ptw_svadu_race_hyp_directed pmp_partial_directed pmp_modes_directed \
+            pmp_whole64_directed
 
-.PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
+.PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests riscv-dv \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
         fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples
@@ -83,6 +85,18 @@ all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec 
 # Caches on, seeded random bus latency/gaps/backpressure.
 riscv-tests: $(BUILD)/core_tb
 	CORE_TB_ARGS="$(CORE_RAND_ARGS)" bash $(ROOT)/sim/run_riscv_tests.sh
+
+## ---- riscv-dv random-instruction regression vs Spike (issue #8) --------
+# Not part of `all`. TESTS=a,b on the command line (default: every
+# supported test; this Makefile's own TESTS list of directed programs is
+# not used), SEEDS=1,2,3 or 1-10 (default 1,2,3), JOBS=N (default
+# min(16, cores)); other driver options via RDV_ARGS (see
+# scripts/riscv_dv_regress.sh --help). Results in
+# build/riscv-dv/run/results.csv; see docs/VERIFICATION.md.
+RDV_TESTS := $(if $(filter command line,$(origin TESTS)),$(TESTS))
+riscv-dv: $(BUILD)/core_tb
+	bash $(ROOT)/scripts/riscv_dv_regress.sh $(if $(RDV_TESTS),--tests $(RDV_TESTS)) \
+	  $(if $(SEEDS),--seeds $(SEEDS)) $(if $(JOBS),--jobs $(JOBS)) $(RDV_ARGS)
 
 $(BUILD) $(OBJ):
 	mkdir -p $@
@@ -374,8 +388,10 @@ crypto: sha256 sha512 keccak ecfield cryptotop hashstream
 ## ---- Core harness + directed software ---------------------------------
 # core_tb cacheability: [0, 0x1000_0000) (directed tests at PA 0)
 # plus the default DRAM window at 0x8000_0000 (ELF tests).
+# SIGIL_COMMIT_TRACE: the core's sim-only retire trace reads
+# +sigil_trace=FILE (riscv-dv regression, docs/VERIFICATION.md).
 $(BUILD)/core_tb: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)
-	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu \
+	$(VERILATOR) $(VFLAGS) $(OBJ)/core --top-module sigil_cpu +define+SIGIL_COMMIT_TRACE \
 	  "-GC1_BASE=64'h0" "-GC1_SIZE=64'h10000000" \
 	  -CFLAGS -I$(abspath $(ROOT)/tb/cpp) \
 	  -o $(abspath $(BUILD)/core_tb) $(CPU_RTL) \

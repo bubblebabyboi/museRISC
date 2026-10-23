@@ -79,9 +79,35 @@ run counter_time counter_time_directed.bin
 run hyp hyp_directed.bin
 run vecsw vec_directed.bin 4000000
 run fpvecsw fpvec_directed.bin 4000000
+# .vf scalar NaN-boxing in every .vf class (issue #8).
+run fpvecnanbox fpvec_nanbox_directed.bin 4000000
+# int16 <-> f32 conversions at SEW=16 (Zve32f), the reserved forms
+# around them (issue #8).
+run vfcvt16 vfcvt_sew16_directed.bin 1000000
 run vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
+# viota.m (issue #8): vs2 is one mask register at any LMUL; random
+# vtype/AVL/policies/masks, plus the encodings that must trap.
+run viota viota_directed.bin 4000000
+# viota.m cases with hand-computed results: LMUL 1-8, vl 0/VLMAX, mu/ma,
+# vs2 = v0, back-to-back producers/consumers, illegal encodings.
+run viotacases viota_cases_directed.bin 1000000
+# viota.m with vstart != 0 and with vs2 inside the vd group must trap.
+run viotavstart viota_vstart_directed.bin 4000000
+run viotaoverlap viota_overlap_directed.bin 4000000
+# Reductions, vcpop/vfirst, vmsbf/sif/sof, viota, vcompress trap on
+# vstart != 0; one right behind a load/store that consumes vstart
+# does not.
+run vstartill vstart_illegal_directed.bin
 run trap_pa_fetch trap_pa_fetch.bin 100000 --expect-trap 1
 run trap_pa_load trap_pa_load.bin 100000 --expect-trap 5
+# PMP: an entry matching part of an 8-byte access fails it (issue #8).
+run pmp_partial pmp_partial_directed.bin
+# The same rule as U/S (MPRV), for AMO/LR/SC, vector EEW=64 elements,
+# Sv39 PTE reads (data and fetch walks), fetches straddling into a word
+# without X, and locked entries in M.
+run pmp_modes pmp_modes_directed.bin
+# Whole-register loads with EEW=64: an element split by PMP fails.
+run pmp_whole64 pmp_whole64_directed.bin
 # L1 cache / memory-interface directed tests
 run smc_fencei smc_fencei_directed.bin
 run amo_cache amo_cache_directed.bin

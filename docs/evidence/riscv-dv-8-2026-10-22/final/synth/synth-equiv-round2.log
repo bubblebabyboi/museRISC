@@ -1,0 +1,68 @@
+# Synthesized-logic review of the review-round fixes on 8-riscv-dv (issue #8)
+# 2026-10-23 UTC. Question: compared with the RTL reviewed before (f239397, rtl/ as 37aa1d7,
+# already proven to differ from main 9da0006 only at the three first fixes: ../../synth-equiv/),
+# does 1eac727 change the synthesized logic only where the new fixes say it does?
+#   old = f239397   new = 1eac727 (rtl/ as on the branch head; later commits are docs/evidence)
+# New fixes: 9bdd552 vl<n>re64.v elements checked by PMP as 8-byte accesses (w64);
+#   fd22878 vstart != 0 illegal for the vstart=0 class (vstart) and that class held in EX while
+#   a vector load/store is in MEM (hold); 913bc0a viota.m vs2 inside the vd group illegal
+#   (overlap); 1eac727 int16 <-> f32 conversions at SEW=16 (cvt16: core legality, vector-unit
+#   sign extension and saturation).
+# Define sets: the five of scripts/synth_view_diff.sh (SYNTHESIS, +SIGIL_SRAM_FAKERAM45,
+# +SIGIL_SRAM_SKY130, +SIGIL_SRAM_OREG, +SIGIL_VRF_OREG).
+# Tools: Mac (Apple M3, macOS 26.6.2): Verilator 5.044, sv2v 0.0.13, Yosys 0.69+post.
+# Scripts: ../../synth-equiv/tools/ (equiv_core.sh, unit_diff.sh, split_units.py, bb_stub.py,
+# name_unproven.py) and tools/ here (neutralize2.py, equiv_mod.sh, area2.sh).
+
+== Result
+
+Relative to f239397, two modules change, sigil_core and sigil_vec, in every define set. Each of
+their differences is one of the new fixes:
+  sigil_core  vec_illegal (vstart, overlap), vec_ex_stall (hold), ex_fp_bad (cvt16) and the
+              PMP port input pmp_wide_b_i (w64); nothing else, proven for every other signal
+  sigil_vec   fp_a / fpu_a_o (cvt16: int16 sign extension) and fp_res (cvt16: int16/uint16
+              saturation and NV); nothing else
+With the new fixes reverted (neutralize2.py), both modules are proven equivalent to f239397's in
+all five define sets. sigil_csr and the other 45 units are byte-identical after preprocessing.
+No new simulation-only code: the simulation view differs in the same 64 lines.
+Relative to main 9da0006 the branch therefore changes sigil_core, sigil_csr and sigil_vec, at the
+three first fixes (../../synth-equiv/synth-equiv.log) plus the ones above.
+
+== 1. Synthesis views (scripts/synth_view_diff.sh)
+
+f239397 vs 1eac727 (synth_view_diff_f239397_1eac727.txt): every define set and the simulation
+view differ in 64 lines; the +/- lines are identical in all six (sha256 c151ecac88f32756 of the
+changed lines; synthesis-view-f239397-1eac727.diff is the SYNTHESIS one).
+9da0006 vs 1eac727 (synth_view_diff_9da0006_1eac727.txt): 119 lines in every synthesis view, 363
+in the simulation view (the trace probe, as before).
+
+== 2. Which design units differ (tools: unit_diff.sh; unit_old_new.txt, unit_main_new.txt)
+
+f239397 vs 1eac727, every define set: 48 units, differing: sigil_core sigil_vec
+9da0006 vs 1eac727, every define set: 48 units, differing: sigil_core sigil_csr sigil_vec
+
+== 3. Yosys equivalence (equiv_make / equiv_simple -seq 2 / equiv_induct -seq 2; eq/)
+
+sigil_core with its 12 children as port-only blackboxes (equiv_core.sh), sigil_vec as is
+(equiv_mod.sh):
+  core_neutral  f239397 vs 1eac727 with the five hunks reverted, five define sets:
+                11,035 of 11,035 $equiv cells proven in each
+  vec_neutral   f239397 vs 1eac727 with the cvt16 hunks reverted, five define sets:
+                4,954 (SYNTHESIS, FAKERAM45) / 4,992 (SRAM_OREG, SKY130, VRF_OREG) proven, 0 unproven
+  core_full     f239397 vs 1eac727 (SYNTHESIS): 11,031 proven, 4 unproven:
+                  vec_illegal, vec_ex_stall, ex_fp_bad (1 bit each), the u_csr input pmp_wide_b_i
+  ctl_<fix>     one fix kept, the other four reverted (SYNTHESIS): 1 unproven each, at its signal:
+                  vstart -> vec_illegal; hold -> vec_ex_stall; overlap -> vec_illegal;
+                  cvt16 -> ex_fp_bad; w64 -> pmp_wide_b_i
+  vec_full      f239397 vs 1eac727 (SYNTHESIS): 4,789 proven, 165 unproven:
+                  fp_a / fpu_a_o (48 bits each: bits 63:16, the sign extension) and fp_res
+                  (69 bits: the 64-bit result and the 5 flags, the saturation)
+
+== 4. Size (generic gates, SYNTHESIS; tools/area2.sh, area.txt)
+
+  sigil_core own logic  21,449 -> 21,730 cells (+281), 2,730 flip-flops on both
+  sigil_vec             46,072 -> 46,043 cells (ABC noise), 1,645 flip-flops on both
+No flip-flop is added. The core's new logic is a 64-input OR of vstart, a 9-way compare of the
+vector op code, a 5-bit compare for the viota.m overlap and a 4-bit sub-op compare, all feeding
+vec_illegal / ex_fp_bad / vec_ex_stall; the vector unit's is a 17-bit range check and a 64-bit
+mux after its FP result register fr_q. Timing on the FPGA flow was not run.

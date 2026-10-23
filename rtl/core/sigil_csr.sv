@@ -99,10 +99,12 @@ module sigil_csr (
     input  wire [63:0] pmp_addr_b_i,
     input  wire [1:0]  pmp_acc_b_i,
     input  wire [1:0]  pmp_priv_b_i,
+    input  wire        pmp_wide_b_i,  // 8-byte access: two 4-byte PMP words
     output logic       pmp_allow_b_o,
     input  wire [63:0] pmp_addr_c_i,
     input  wire [1:0]  pmp_acc_c_i,
     input  wire [1:0]  pmp_priv_c_i,
+    input  wire        pmp_wide_c_i,
     output logic       pmp_allow_c_o
 );
   localparam logic [1:0] PRIV_U = 2'b00, PRIV_S = 2'b01, PRIV_M = 2'b11;
@@ -491,6 +493,128 @@ module sigil_csr (
          csr_rdata[4:0]}
       : csr_rdata;
 
+`ifndef SYNTHESIS
+  // ------------------------------------------------------------
+  // Commit-trace support (simulation only, issue #8)
+  // ------------------------------------------------------------
+  // sigil_core's retire trace (+sigil_trace=<file>) logs every
+  // explicit CSR write with the value the CSR reads back after the
+  // write, as the reference model (Spike --log-commits) does. It
+  // reads trace_wval hierarchically in the cycle after the write
+  // edge: a copy of the read mux above, addressed by the last
+  // written CSR. The assertion below keeps the copy honest: any
+  // read of the same CSR through the real port must agree.
+  logic [11:0] trace_waddr_q;
+  logic [63:0] trace_wval;
+  always_ff @(posedge clk_i) if (wr_en_i) trace_waddr_q <= addr_i;
+  always_comb begin : trace_rd_mux
+    trace_wval = 64'd0;
+    unique case (trace_waddr_q)
+      12'h001: trace_wval = {59'd0, fflags_q};                     // fflags
+      12'h002: trace_wval = {61'd0, frm_q};                        // frm
+      12'h003: trace_wval = {56'd0, frm_q, fflags_q};              // fcsr
+      12'h008: trace_wval = vstart_q;                              // vstart
+      12'h009: trace_wval = {63'd0, vxsat_q};                      // vxsat
+      12'h00A: trace_wval = {62'd0, vxrm_q};                       // vxrm
+      12'h00F: trace_wval = {61'd0, vxrm_q, vxsat_q};              // vcsr
+      12'h100: trace_wval = virt_q ? vsstatus_val :
+                           (mstatus_o & SSTATUS_MASK);          // sstatus
+      12'h104: trace_wval = virt_q ? vsie_val :
+                           (mie_q & mideleg_q & 64'hAAA);       // sie
+      12'h105: trace_wval = virt_q ? vstvec_q : stvec_q;           // stvec
+      12'h106: trace_wval = scounteren_q;                          // scounteren
+      12'h10A: trace_wval = senvcfg_q;                             // senvcfg
+      12'h140: trace_wval = virt_q ? vsscratch_q : sscratch_q;     // sscratch
+      12'h141: trace_wval = virt_q ? vsepc_q : sepc_q;             // sepc
+      12'h142: trace_wval = virt_q ? vscause_q : scause_q;         // scause
+      12'h143: trace_wval = virt_q ? vstval_q : stval_q;           // stval
+      12'h144: trace_wval = virt_q ? vsip_val :
+                           (mip_val & mideleg_q & 64'hAAA);     // sip
+      12'h180: trace_wval = virt_q ? vsatp_q : satp_q;             // satp
+      12'h200: trace_wval = vsstatus_val;                          // vsstatus
+      12'h204: trace_wval = vsie_val;                              // vsie
+      12'h205: trace_wval = vstvec_q;                              // vstvec
+      12'h240: trace_wval = vsscratch_q;                           // vsscratch
+      12'h241: trace_wval = vsepc_q;                               // vsepc
+      12'h242: trace_wval = vscause_q;                             // vscause
+      12'h243: trace_wval = vstval_q;                              // vstval
+      12'h244: trace_wval = vsip_val;                              // vsip
+      12'h280: trace_wval = vsatp_q;                               // vsatp
+      12'h600: trace_wval = hstatus_val;                           // hstatus
+      12'h602: trace_wval = hedeleg_q;                             // hedeleg
+      12'h603: trace_wval = hideleg_q;                             // hideleg
+      12'h604: trace_wval = mie_q & 64'h444;                       // hie
+      12'h605: trace_wval = htimedelta_q;                          // htimedelta
+      12'h606: trace_wval = hcounteren_q;                          // hcounteren
+      12'h607: trace_wval = 64'd0;                                 // hgeie
+      12'h60A: trace_wval = henvcfg_q;                             // henvcfg
+      12'h643: trace_wval = htval_q;                               // htval
+      12'h644: trace_wval = hvip_q & 64'h444;                      // hip
+      12'h645: trace_wval = hvip_q;                                // hvip
+      12'h64A: trace_wval = htinst_q;                              // htinst
+      12'h680: trace_wval = hgatp_q;                               // hgatp
+      12'hE12: trace_wval = 64'd0;                                 // hgeip
+      12'h300: trace_wval = mstatus_o;                             // mstatus
+      12'h301: trace_wval = 64'h8000_0000_0034_11AF;               // misa: RV64 IMABC FDHV SU
+      12'h302: trace_wval = medeleg_q;                             // medeleg
+      12'h303: trace_wval = mideleg_q | 64'h444;  // VS ints always delegated                             // mideleg
+      12'h304: trace_wval = mie_q;                                 // mie
+      12'h305: trace_wval = mtvec_q;                               // mtvec
+      12'h306: trace_wval = mcounteren_q;                          // mcounteren
+      12'h30A: trace_wval = menvcfg_q;                             // menvcfg
+      12'h320: trace_wval = mcountinhibit_q;                       // mcountinhibit
+      12'h340: trace_wval = mscratch_q;                            // mscratch
+      12'h341: trace_wval = mepc_q;                                // mepc
+      12'h342: trace_wval = mcause_q;                              // mcause
+      12'h343: trace_wval = mtval_q;                               // mtval
+      12'h344: trace_wval = mip_val;                               // mip
+      12'h34A: trace_wval = mtinst_q;                              // mtinst
+      12'h34B: trace_wval = mtval2_q;                              // mtval2
+      12'h3A0: trace_wval = pmpcfg0_val;                           // pmpcfg0
+      12'h3A2: trace_wval = pmpcfg2_val;                           // pmpcfg2
+      12'hB00: trace_wval = mcycle_q;                              // mcycle
+      12'hB02: trace_wval = minstret_q;                            // minstret
+      12'hC00: trace_wval = mcycle_q;                              // cycle
+      12'hC01: trace_wval = virt_q ? (mtime_q + htimedelta_q) : mtime_q;  // time
+      12'hC02: trace_wval = minstret_q;                            // instret
+      12'hC20: trace_wval = vl_q;                                  // vl
+      12'hC21: trace_wval = vtype_o;                               // vtype
+      12'hC22: trace_wval = 64'd64;                                // vlenb
+      12'hF11: trace_wval = 64'd0;                                 // mvendorid
+      12'hF12: trace_wval = 64'h5349_474C;                         // marchid "SIGL"
+      12'hF13: trace_wval = 64'h0003_0000;                         // mimpid
+      12'hF14: trace_wval = 64'd0;                                 // mhartid
+      12'hF15: trace_wval = 64'd0;                                 // mconfigptr
+      default: begin
+        if ((trace_waddr_q >= 12'h3B0) && (trace_waddr_q <= 12'h3BF)) begin
+          trace_wval = pmpaddr_q[trace_waddr_q[3:0]];
+        end else if ((trace_waddr_q >= 12'hB03) && (trace_waddr_q <= 12'hB1F)) begin
+          trace_wval = 64'd0;                                      // mhpmcounter3-31
+        end else if ((trace_waddr_q >= 12'h323) && (trace_waddr_q <= 12'h33F)) begin
+          trace_wval = 64'd0;                                      // mhpmevent3-31
+        end else if (((trace_waddr_q >= 12'h7A0) && (trace_waddr_q <= 12'h7A5)) ||
+                     (trace_waddr_q == 12'h7A8) || (trace_waddr_q == 12'h7AA) ||
+                     (trace_waddr_q == 12'h5A8)) begin
+          // Sdtrig trigger CSRs, zero triggers implemented:
+          // tselect/tdata*/tinfo/tcontrol/context all read 0
+          // (tinfo.type = none), writes are ignored.
+          trace_wval = 64'd0;
+        end
+      end
+    endcase
+  end
+  logic trace_chk_q;
+  initial trace_chk_q = 1'b0;
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) trace_chk_q <= 1'b0;
+    else if (wr_en_i) trace_chk_q <= 1'b1;
+  end
+  always_ff @(posedge clk_i) begin
+    if (trace_chk_q && (addr_i == trace_waddr_q) && (trace_wval != csr_rdata))
+      $error("sigil_csr: trace read mux disagrees with the read port for CSR %03h", addr_i);
+  end
+`endif
+
   // xRET/WFI/SFENCE legality by mode; sys_virt_inst marks the
   // denials that are virtual-instruction (cause 22) in a VM.
   logic sys_virt_inst;
@@ -680,36 +804,62 @@ module sigil_csr (
   // PMP compares in the pmpaddr domain (PA[55:2], 54 bits); the
   // unused input bits (byte offsets, cfg permission bits consumed
   // by the caller) are inherent to the interface.
+  // Returns {m1, m0}: whether the entry matches the 4-byte word at
+  // addr (m0) and the word after it (m1). Only 8-byte accesses use
+  // m1, and they are 8-byte aligned (misaligned accesses trap), so
+  // the second word is {addr[55:3], 1}. A NAPOT region (at least 8
+  // bytes, naturally aligned) matches both words or neither; NA4
+  // and TOR boundaries can split an 8-byte access.
   /* verilator lint_off UNUSEDSIGNAL */
-  function automatic logic pmp_match(
+  function automatic logic [1:0] pmp_match(
       input logic [63:0] addr,
       input logic [7:0]  cfg,
       input logic [63:0] pmpaddr,
       input logic [63:0] prev_pmpaddr);
-    logic [53:0] a54, enc, prev, napot_mask;
+    logic [53:0] a54, a54o, enc, prev, napot_mask;
+    logic lo, hi, m;
     a54 = addr[55:2];
+    a54o = {addr[55:3], 1'b1};
     enc = pmpaddr[53:0];
     prev = prev_pmpaddr[53:0];
     napot_mask = enc ^ (enc + 54'd1);  // trailing-ones span, incl. the 0 above
     unique case (cfg[4:3])
-      2'b00:   pmp_match = 1'b0;                                    // OFF
-      2'b01:   pmp_match = (a54 >= prev) && (a54 < enc);            // TOR
-      2'b10:   pmp_match = (a54 == enc);                            // NA4
-      default: pmp_match = ((a54 ^ enc) & ~napot_mask) == 54'd0;    // NAPOT
+      2'b00:   pmp_match = 2'b00;                                   // OFF
+      2'b01: begin                                                  // TOR
+        lo = (a54 >= prev);
+        hi = (a54 < enc);
+        // a54o = a54 + 1: a54o >= prev iff lo or prev == a54o, and
+        // a54o < enc iff hi and enc != a54o.
+        pmp_match = {(lo || (prev == a54o)) && hi && (enc != a54o), lo && hi};
+      end
+      2'b10:   pmp_match = {a54o == enc, a54 == enc};               // NA4
+      default: begin                                                // NAPOT
+        m = ((a54 ^ enc) & ~napot_mask) == 54'd0;
+        pmp_match = {m, m};
+      end
     endcase
   endfunction
   /* verilator lint_on UNUSEDSIGNAL */
 
+  // The lowest-numbered entry that matches any byte of the access
+  // decides; if it does not match all of its bytes, the access
+  // fails whatever the privilege, L, R, W and X (priv. spec,
+  // "Priority and Matching Logic").
   function automatic logic pmp_check(
       input logic [63:0] addr,
       input logic [1:0]  acc,
-      input logic [1:0]  priv);
+      input logic [1:0]  priv,
+      input logic        wide);
     logic allow;
+    logic [1:0] m;
     allow = (priv == PRIV_M);
     for (int i = 15; i >= 0; i--) begin
-      if (pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
-                    (i == 0) ? 64'd0 : pmpaddr_q[i-1])) begin
-        if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
+      m = pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
+                    (i == 0) ? 64'd0 : pmpaddr_q[i-1]);
+      if (m[0] || (wide && m[1])) begin
+        if (wide && (m[0] != m[1])) begin
+          allow = 1'b0;
+        end else if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
           allow = 1'b1;
         end else if (acc == 2'd0) begin
           allow = pmpcfg_q[i][0];
@@ -725,9 +875,10 @@ module sigil_csr (
     return allow;
   endfunction
 
-  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
-  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
-  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
+  // Fetch: one 4-byte word per check.
+  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i, 1'b0);
+  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i, pmp_wide_b_i);
+  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i, pmp_wide_c_i);
 
   // PMP write locking: an entry is locked by its own L bit, and
   // pmpaddr[i] is also locked when entry i+1 is a locked TOR entry

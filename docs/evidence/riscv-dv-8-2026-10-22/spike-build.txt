@@ -1,0 +1,29 @@
+Spike (reference model) used by the riscv-dv regression, issue #8
+=================================================================
+Host:      sigil-verify (c7i.8xlarge, Ubuntu 24.04.5 LTS, x86_64)
+Source:    https://github.com/riscv-software-src/riscv-isa-sim
+Commit:    2c300cd90eb74bb79f3fcdd58596a6f8d842d01c (master, 2026-10-21 21:13:23 -0700)
+Submodule: berkeley-softfloat-3 32eb3295a3c814c1551f94ebc29eed1dec3cb3b1
+Version:   "Spike RISC-V ISA Simulator 1.1.1-dev"
+Compiler:  g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, dtc 1.7.0
+Install:   ~/opt/spike (bin/spike)
+
+Build:
+  git clone https://github.com/riscv-software-src/riscv-isa-sim.git ~/riscv-isa-sim
+  cd ~/riscv-isa-sim && git submodule update --init --recursive
+  mkdir build && cd build && ../configure --prefix=$HOME/opt/spike
+  make -j16 && make install
+
+Note: the machine's provisioning build (2026-10-22T06:1x) failed with
+SPIKE_RC=2 ("specialize_upstream.h: No such file or directory"): Spike
+master now takes SoftFloat from the berkeley-softfloat-3 submodule, which
+the provisioning script did not initialise. Re-run on 2026-10-22T06:20Z
+with `git submodule update --init --recursive`, then make/make install:
+SPIKE_RC=0 (~/spike_build.log).
+
+Configuration used (sim/riscv-dv/rdv_regress.py, docs/VERIFICATION.md):
+  spike --isa=rv64imafdcbvh_zicsr_zifencei_zicntr_zbc_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zcb_zvl512b_svnapot \
+        --priv=msu --triggers=0 --pmpregions=16 --pmpgranularity=4 --wfi-as-nop \
+        -l --log-commits --log=spike.log --instructions=2000000 test.elf
+With this ISA string `csrr misa` returns 0x80000000003411af on Spike,
+the same value as Sigil's read-only misa (checked on both, 2026-10-22).

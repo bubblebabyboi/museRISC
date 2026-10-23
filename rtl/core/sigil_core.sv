@@ -598,6 +598,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic [63:0]   csr_vl, csr_vstart, csr_vset_vl;
   logic [63:0]   vec_scalar;
   logic          vec_illegal, vec_align_bad;
+  logic          ex_vstart0_op;  // illegal when vstart != 0
   logic [2:0]    vec_wlmul;
   logic [63:0]   vset_avl, vset_vtype_raw, vec_vlmax;
   logic [1:0]    csr_vxrm;
@@ -616,10 +617,14 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // vector load/store occupies MEM (the whole pipeline is
   // frozen by mem_stall until its last cycle anyway; this
   // adds that last cycle), so it observes the vstart/vl
-  // updates that commit on the load/store's final edge.
+  // updates that commit on the load/store's final edge. So is
+  // an op whose legality depends on vstart (ex_vstart0_op): a
+  // legal one waits for vec_start anyway, but one judged
+  // illegal on the old vstart must not trap on it.
   assign vec_ex_stall = (vec_unit_op && !vec_done) ||
                         (idex_valid_q && !idex_exc_q && vls_is &&
-                         (idex_ctrl_q.csr || idex_ctrl_q.vset));
+                         (idex_ctrl_q.csr || idex_ctrl_q.vset ||
+                          (idex_ctrl_q.vec && ex_vstart0_op)));
   assign vec_commit = vec_unit_op && vec_done && !trap_fire &&
                       !mem_exc && !mem_stall;
 `ifndef SYNTHESIS
@@ -757,6 +762,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       ex_vs2_log2 = ((idex_ctrl_q.bext_op == VOP_MLOG) ||
                      (idex_ctrl_q.bext_op == VOP_MSBIT))
                     ? -4'sd3 : ex_lmul_log2;
+    end else if (idex_ctrl_q.bext_op == VOP_IOTA) begin
+      ex_vd_log2 = ex_lmul_log2;
+      ex_vs2_log2 = -4'sd3;  // vs2 is a mask register
     end else if (idex_ctrl_q.bext_op == VOP_EXT) begin
       ex_vd_log2 = ex_lmul_log2;
       // imm[2:1]: 01=/8, 10=/4, 11=/2
@@ -771,14 +779,47 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
            4'(signed'({1'b0, csr_vtype[5:3]})))
         : ex_lmul_log2;
   end
+  // RVV vector-scalar FP operand: with SEW=32 an f register that
+  // does not hold a NaN-boxed single is read as the canonical NaN
+  // (RVV 1.0 sec. 13 / "NaN boxing"), for every .vf form, including
+  // the moves, merges and slides that bypass the FPU (vfmv.v.f,
+  // vfmv.s.f, vfmerge.vfm, vfslide1up/down.vf).
+  logic [63:0] vec_frs1;
+  assign vec_frs1 = ((csr_vtype[5:3] == 3'd2) &&
+                     (ex_frs1[63:32] != 32'hffff_ffff))
+                    ? 64'hffff_ffff_7fc0_0000 : ex_frs1;
+  // Register-number bits inside a group of 2^log2n registers
+  // (none for a single register or a fractional group).
+  function automatic logic [4:0] grp_mask(input logic signed [3:0] log2n);
+    grp_mask = (log2n == 4'sd1) ? 5'b00001 :
+               (log2n == 4'sd2) ? 5'b00011 :
+               (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
+  endfunction
   function automatic logic align_bad(
       input logic [4:0] regno, input logic signed [3:0] log2n);
-    logic [4:0] mask;
-    mask = (log2n == 4'sd1) ? 5'b00001 :
-           (log2n == 4'sd2) ? 5'b00011 :
-           (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
-    align_bad = |(regno & mask);
+    align_bad = |(regno & grp_mask(log2n));
   endfunction
+  // viota.m: vs2 inside the vd group breaks the overlap rule
+  // (RVV 1.0 sec. 15.8 / 5.2: reserved); trapped, as Spike does.
+  // vd is LMUL-aligned here (else illegal anyway), so vs2 is in
+  // the group iff it equals vd above the in-group bits.
+  logic ex_iota_overlap;
+  assign ex_iota_overlap = (idex_ctrl_q.bext_op == VOP_IOTA) &&
+      (((idex_instr_q[24:20] ^ idex_rd_q) & ~grp_mask(ex_lmul_log2)) == 5'd0);
+  // Instructions that raise illegal-instruction when vstart != 0
+  // (RVV 1.0): reductions (sec. 14), vcpop.m, vfirst.m, vmsbf.m,
+  // vmsif.m, vmsof.m (15.2-15.6), viota.m (15.8), vcompress.vm
+  // (16.5). Held in EX while a vector load/store is in MEM (see
+  // vec_ex_stall) so the check sees the vstart it leaves behind.
+  assign ex_vstart0_op = (idex_ctrl_q.bext_op == VOP_RED) ||
+      (idex_ctrl_q.bext_op == VOP_WRED) ||
+      (idex_ctrl_q.bext_op == VOP_FRED) ||
+      (idex_ctrl_q.bext_op == VOP_FWRED) ||
+      (idex_ctrl_q.bext_op == VOP_CPOP) ||
+      (idex_ctrl_q.bext_op == VOP_FIRST) ||
+      (idex_ctrl_q.bext_op == VOP_MSBIT) ||
+      (idex_ctrl_q.bext_op == VOP_IOTA) ||
+      (idex_ctrl_q.bext_op == VOP_COMPRESS);
   assign vec_align_bad =
       (idex_ctrl_q.bext_op != VOP_MVSX) &&
       (idex_ctrl_q.bext_op != VOP_MVXS) &&
@@ -841,10 +882,19 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
        (4'(signed'({1'b0, csr_vtype[5:3]})) <
         (4'sd4 - 4'(signed'({2'b00, idex_imm_q[2:1]})))));
   // FP vector legality (stage 9): FS must be enabled, SEW
-  // must name a supported FP width (32/64; no Zfh), and
-  // rounding forms need a legal dynamic frm. FPU op codes
-  // ride in imm[4:0]: ADD/SUB/MUL/DIV are 0..3.
-  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad;
+  // must name a supported FP width (32/64; no Zvfh/Zvfhmin),
+  // and rounding forms need a legal dynamic frm. FPU op codes
+  // ride in imm[4:0]: ADD/SUB/MUL/DIV are 0..3. At SEW=16 the
+  // int16 <-> f32 conversions are defined by Zve32f/Zve64d
+  // (their FP operand is EEW=32): vfwcvt.f.xu.v / f.x.v (sub-op
+  // 10/11) and vfncvt.xu.f.w / x.f.w / rtz.xu.f.w / rtz.x.f.w
+  // (16/17/22/23).
+  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad, ex_fp_cvt16;
+  assign ex_fp_cvt16 = (csr_vtype[5:3] == 3'd1) &&
+      (idex_ctrl_q.bext_op == VOP_FCVT) &&
+      ((idex_imm_q[4:1] == 4'b0101) ||
+       (idex_imm_q[4:1] == 4'b1000) ||
+       (idex_imm_q[4:1] == 4'b1011));
   assign ex_fp_vec =
       ((idex_ctrl_q.bext_op >= VOP_FBIN) &&
        (idex_ctrl_q.bext_op <= VOP_FMVFS)) ||
@@ -864,7 +914,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       ((idex_ctrl_q.bext_op == VOP_FCVT) &&
        (idex_imm_q[2:0] < 3'd6));
   assign ex_fp_bad = ex_fp_vec &&
-      ((csr_fs == 2'b00) || (csr_vtype[5:3] < 3'd2) ||
+      ((csr_fs == 2'b00) || ((csr_vtype[5:3] < 3'd2) && !ex_fp_cvt16) ||
        (ex_fp_rounds && (csr_frm > 3'd4)));
   // vmv<nr>r.v register count (log2) for the vector unit.
   assign vec_wlmul = (idex_instr_q[19:15] == 5'd1) ? 3'd1 :
@@ -927,6 +977,8 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
        (!idex_ctrl_q.vset && vec_align_bad) ||
        (!idex_ctrl_q.vset && ex_vec_bad) ||
        (!idex_ctrl_q.vset && ex_fp_bad) ||
+       (!idex_ctrl_q.vset && ex_iota_overlap) ||
+       (!idex_ctrl_q.vset && ex_vstart0_op && (csr_vstart != 64'd0)) ||
        ((idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) && ex_vls_bad));
   assign vset_avl = (idex_ctrl_q.fpu_aux == 2'd1)
       ? {59'd0, idex_instr_q[19:15]} : ex_rs1;
@@ -1008,8 +1060,9 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .vd_i      (idex_rd_q),
       .nreg_i    (4'd1 << vec_wlmul),
       // FP vector .vf forms read the scalar from the FP
-      // register file; integer .vx forms use the GPR value.
-      .scalar_i  (idex_ctrl_q.fp_rs1 ? ex_frs1 : ex_rs1),
+      // register file (NaN-box checked, vec_frs1); integer
+      // .vx forms use the GPR value.
+      .scalar_i  (idex_ctrl_q.fp_rs1 ? vec_frs1 : ex_rs1),
       .imm_i     (idex_imm_q),
       .vxrm_i    (csr_vxrm),
       .frm_i     (csr_frm),
@@ -1709,12 +1762,27 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign sc_success = res_valid_q && (res_pa_q == mmu_d_pa) &&
                       (res_is_d_q || (exmem_ctrl_q.funct3 == 3'b010));
 
+  // Size of the MEM access (0: 1 byte .. 3: 8 bytes): the vector
+  // element width or the scalar funct3; also the PMP check width.
+  logic [1:0] mem_size_code;
+  assign mem_size_code = vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0];
+  // PMP checks both words of an 8-byte access. Whole-register loads
+  // with EEW=64 move bytes but their elements are 8-byte accesses: the
+  // first byte of each element (base 8-byte aligned) is checked as the
+  // whole element, so a split element faults there (tval = element
+  // address, vstart = its index), as on Spike and Sail. A misaligned
+  // base keeps per-byte checks (a misaligned element may be split).
+  logic pmp_wide_data;
+  assign pmp_wide_data = (mem_size_code == 2'b11) ||
+      (vls_is && vls_whole && (vls_idx_eew == 3'd3) &&
+       (exmem_addr_q[2:0] == 3'd0) && (mem_va[2:0] == 3'd0));
+
   // Data-port request payload. be names the accessed lanes for
   // loads too (an uncached I/O load sees its exact width).
   always_comb begin
     logic [7:0]  be;
     logic [63:0] wdata;
-    unique case (vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0])
+    unique case (mem_size_code)
       2'b00: begin
         be = 8'h01 << mem_va[2:0];
         wdata = {8{eff_store_data[7:0]}};
@@ -1929,10 +1997,12 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .pmp_acc_b_i   (exmem_ctrl_q.hlvx ? 2'd3 :
                       exmem_ctrl_q.mem_write ? 2'd1 : 2'd0),
       .pmp_priv_b_i  (eff_priv_mem),
+      .pmp_wide_b_i  (pmp_wide_data),
       .pmp_allow_b_o (pmp_allow_data),
       .pmp_addr_c_i  (walk_addr),
       .pmp_acc_c_i   (walk_acc),
       .pmp_priv_c_i  (2'b01),  // implicit PTE accesses check as S
+      .pmp_wide_c_i  (1'b1),   // 8-byte PTE read / A/D write-back
       .pmp_allow_c_o (pmp_allow_walk)
   );
 
@@ -2227,5 +2297,203 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       end
     end
   end
+
+`ifndef SYNTHESIS
+  // ------------------------------------------------------------
+  // Commit trace (simulation only, issue #8)
+  // ------------------------------------------------------------
+  // With the plusarg +sigil_trace=<file>, every retired
+  // instruction and every trap taken is written to <file>, one
+  // line each (the DUT side of the riscv-dv regression,
+  // scripts/riscv_dv_regress.sh; format in docs/VERIFICATION.md):
+  //   I <cycle> <priv> <pc> <insn> [x<n>=<v>] [f<n>=<v>]
+  //     [c<csr>=<v>] [m<va>:<bytes>=<v>] [v<n>=<VLEN bits>]...
+  //   E <cycle> <priv> <epc> <cause> <tval>
+  // An instruction retires in WB on the minstret condition
+  // (memwb_valid_q && !memwb_exc_q && !mem_stall). What MEM/WB
+  // does not carry (instruction bits, privilege, and the CSR,
+  // fflags, store and VRF side effects) rides along in shadow
+  // registers loaded under the pipeline registers' own update
+  // conditions. Nothing here feeds back into the design; without
+  // the plusarg nothing is written. The plusarg is read only in builds
+  // with +define+SIGIL_COMMIT_TRACE (core_tb, sim/Makefile): Verilator
+  // aborts a $value$plusargs call in a harness that never called
+  // commandArgs (e.g. fpga_ocl_tb).
+  int          tr_fd;
+  initial begin
+    tr_fd = 0;
+`ifdef SIGIL_COMMIT_TRACE
+    begin
+      string path;
+      if ($value$plusargs("sigil_trace=%s", path)) begin
+        tr_fd = $fopen(path, "w");
+        if (tr_fd == 0) $error("sigil_core: cannot open trace file %s", path);
+      end
+    end
+`endif
+  end
+  final if (tr_fd != 0) $fclose(tr_fd);
+
+  logic [63:0] tr_cycle_q;
+  always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) tr_cycle_q <= 64'd0;
+    else         tr_cycle_q <= tr_cycle_q + 64'd1;
+  end
+
+  // Shadow of the VRF: every write (vector unit or MEM
+  // sequencer), byte-masked, so a retiring vector instruction
+  // can log the whole registers it wrote.
+  logic [63:0] tr_vrf_q [256];
+  initial for (int i = 0; i < 256; i++) tr_vrf_q[i] = 64'd0;
+  always @(posedge clk_i) begin
+    if (vrf_we) begin
+      for (int b = 0; b < 8; b++) begin
+        if (vrf_wbe[b]) tr_vrf_q[vrf_wa][b*8 +: 8] <= vrf_wd[b*8 +: 8];
+      end
+    end
+  end
+  // VRF rows (registers) written this cycle, by owner: the
+  // vector unit serves the instruction in EX, the load/store
+  // sequencer the one in MEM (never both in one cycle).
+  logic [31:0] tr_vu_row, tr_vls_row;
+  assign tr_vu_row = (vrf_we && !vls_is) ? (32'd1 << vrf_wa[7:3]) : 32'd0;
+  assign tr_vls_row = (vrf_we && vls_is) ? (32'd1 << vrf_wa[7:3]) : 32'd0;
+
+  // Scalar store issued by the instruction in MEM (its final,
+  // write phase for an AMO; a failing SC issues none).
+  logic tr_st_fire;
+  assign tr_st_fire = mem_issue && dreq_ready_i && mem_write_phase &&
+                      !mem_fencei && !vls_is;
+  logic [4:0] tr_ff_flags;
+  assign tr_ff_flags = vec_fflags_we ? vec_fflags : fpu_flags;
+  // The pipeline registers advance (EX->MEM->WB) at this edge.
+  logic tr_adv;
+  assign tr_adv = !trap_take && !freeze && !mem_stall;
+
+  logic [31:0] tr_x_vregs_q;  // rows the EX instruction wrote so far
+  logic [31:0] tr_m_instr_q, tr_w_instr_q;
+  logic        tr_m_rvc_q, tr_w_rvc_q;
+  logic [1:0]  tr_m_priv_q, tr_w_priv_q;
+  logic        tr_m_csr_q, tr_w_csr_q;
+  logic [11:0] tr_w_csr_addr_q;
+  logic [63:0] tr_w_csr_val_q;
+  logic        tr_m_ff_q, tr_w_ff_q;
+  logic [4:0]  tr_m_ffv_q, tr_w_ffv_q;
+  logic [31:0] tr_m_vregs_q, tr_w_vregs_q;
+  logic        tr_m_st_q, tr_w_st_q;
+  logic [63:0] tr_m_st_addr_q, tr_w_st_addr_q;
+  logic [63:0] tr_m_st_data_q, tr_w_st_data_q;
+  logic [1:0]  tr_m_st_size_q, tr_w_st_size_q;
+  always @(posedge clk_i) begin
+    if (trap_take || ex_advance) tr_x_vregs_q <= 32'd0;
+    else                         tr_x_vregs_q <= tr_x_vregs_q | tr_vu_row;
+    if (tr_adv) begin
+      // MEM -> WB. A CSR write committed at the previous edge
+      // (EX->MEM), so the CSR unit's trace read mux now shows
+      // the written CSR's new value.
+      tr_w_instr_q <= tr_m_instr_q;
+      tr_w_rvc_q <= tr_m_rvc_q;
+      tr_w_priv_q <= tr_m_priv_q;
+      tr_w_csr_q <= tr_m_csr_q;
+      tr_w_csr_addr_q <= u_csr.trace_waddr_q;
+      tr_w_csr_val_q <= u_csr.trace_wval;
+      tr_w_ff_q <= tr_m_ff_q;
+      tr_w_ffv_q <= tr_m_ffv_q;
+      tr_w_vregs_q <= tr_m_vregs_q | tr_vls_row;
+      tr_w_st_q <= tr_m_st_q;
+      tr_w_st_addr_q <= tr_m_st_addr_q;
+      tr_w_st_data_q <= tr_m_st_data_q;
+      tr_w_st_size_q <= tr_m_st_size_q;
+      // EX -> MEM (privilege as executed: xRET changes it at
+      // this very edge).
+      tr_m_instr_q <= idex_instr_q;
+      tr_m_rvc_q <= idex_rvc_q;
+      tr_m_priv_q <= priv;
+      tr_m_csr_q <= csr_we;
+      tr_m_ff_q <= (csr_fflags_we || vec_fflags_we) && (tr_ff_flags != 5'd0);
+      tr_m_ffv_q <= u_csr.fflags_q | tr_ff_flags;
+      tr_m_vregs_q <= tr_x_vregs_q | tr_vu_row;
+      tr_m_st_q <= 1'b0;
+    end else begin
+      // MEM holds (its access is in flight): collect its effects.
+      tr_m_vregs_q <= tr_m_vregs_q | tr_vls_row;
+      if (tr_st_fire) begin
+        tr_m_st_q <= 1'b1;
+        tr_m_st_addr_q <= mem_va;
+        tr_m_st_data_q <= eff_store_data;
+        tr_m_st_size_q <= exmem_ctrl_q.funct3[1:0];
+      end
+    end
+  end
+
+  // The rows the WB instruction wrote, captured as it enters WB
+  // (with this edge's VRF write merged in). The shadow itself can
+  // change before the instruction retires: a younger vector load
+  // in MEM stalls retirement while it writes the VRF, possibly the
+  // same registers.
+  function automatic logic [63:0] tr_merge(input logic [63:0] old_w,
+                                           input logic [63:0] wd,
+                                           input logic [7:0] be);
+    logic [63:0] w;
+    w = old_w;
+    for (int b = 0; b < 8; b++) if (be[b]) w[b*8 +: 8] = wd[b*8 +: 8];
+    return w;
+  endfunction
+  logic [31:0] tr_w_rows_next;
+  assign tr_w_rows_next = tr_m_vregs_q | tr_vls_row;
+  // Packed: Verilator 5.020 rejects delayed assignments to an
+  // unpacked array inside a for loop (BLKLOOPINIT).
+  logic [255:0][63:0] tr_w_vsnap_q;
+  initial for (int i = 0; i < 256; i++) tr_w_vsnap_q[i] = 64'd0;
+  always @(posedge clk_i) begin
+    if (tr_adv && (tr_w_rows_next != 32'd0)) begin
+      for (int i = 0; i < 256; i++) begin
+        if (tr_w_rows_next[i / 8]) begin
+          tr_w_vsnap_q[i] <= (vrf_we && (vrf_wa == 8'(i)))
+                             ? tr_merge(tr_vrf_q[i], vrf_wd, vrf_wbe)
+                             : tr_vrf_q[i];
+        end
+      end
+    end
+  end
+
+  always @(posedge clk_i) begin
+    if ((tr_fd != 0) && chk_live_q) begin
+      if (memwb_valid_q && !memwb_exc_q && !mem_stall && !freeze) begin
+        if (tr_w_rvc_q) begin
+          $fwrite(tr_fd, "I %0d %0d %h %h", tr_cycle_q, tr_w_priv_q,
+                  memwb_pc_q, tr_w_instr_q[15:0]);
+        end else begin
+          $fwrite(tr_fd, "I %0d %0d %h %h", tr_cycle_q, tr_w_priv_q,
+                  memwb_pc_q, tr_w_instr_q);
+        end
+        if (memwb_reg_write_q && (memwb_rd_q != 5'd0))
+          $fwrite(tr_fd, " x%0d=%h", memwb_rd_q, memwb_result_q);
+        if (memwb_fp_write_q)
+          $fwrite(tr_fd, " f%0d=%h", memwb_rd_q, memwb_result_q);
+        if (tr_w_csr_q)
+          $fwrite(tr_fd, " c%h=%h", tr_w_csr_addr_q, tr_w_csr_val_q);
+        if (tr_w_ff_q)
+          $fwrite(tr_fd, " c001=%h", {59'd0, tr_w_ffv_q});
+        if (tr_w_st_q)
+          $fwrite(tr_fd, " m%h:%0d=%h", tr_w_st_addr_q,
+                  4'd1 << tr_w_st_size_q, tr_w_st_data_q);
+        for (int r = 0; r < 32; r++) begin
+          if (tr_w_vregs_q[r]) begin
+            $fwrite(tr_fd, " v%0d=", r);
+            for (int w = 7; w >= 0; w--) begin
+              $fwrite(tr_fd, "%h", tr_w_vsnap_q[8'(r * 8 + w)]);
+            end
+          end
+        end
+        $fwrite(tr_fd, "\n");
+      end
+      if (trap_take) begin
+        $fwrite(tr_fd, "E %0d %0d %h %h %h\n", tr_cycle_q, tr_w_priv_q,
+                memwb_pc_q, memwb_cause_q, memwb_tval_q);
+      end
+    end
+  end
+`endif
 endmodule
 `default_nettype wire

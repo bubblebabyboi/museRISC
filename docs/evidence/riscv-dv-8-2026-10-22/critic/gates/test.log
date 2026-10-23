@@ -1,0 +1,119 @@
+# make test VJOBS=4, Verilator 5.048 2026-04-26 rev v5.048, commit 37aa1d7, 2026-10-23T00:00:05Z
+python3 sw/golden.py
+KECCAK_ZERO_OUT=eaf1ff7b5ceca24975f644e97f30a13b16f53526e70465c21841f924a2c509e4940c7922ae3a26148c3ee88a1ccf32c8b87c5a554fd00ecb613670957bc4661164befef28cc970f205e5635a21d9ae6101f22f1a11a5569f43b831cd0347c82681a57c16dbcf555fa9a6e6260d712103eb5aa93f2317d63530935ab7d08ffc64ad30a6f71b19059c8c5bda0cd6192e7690fee5a0a44647c4ff97a42d7f8e6fd48b284e056253d057bd1547306f80494dd598261ea65aa9ee84d5ccf933c0478af1258f7940e1dde7
+golden.py: SHA-256 KAT + Keccak/SHA3-256 sponge OK
+python3 sw/ec_ops.py
+secp256k1: 2G, n*G=inf, ECDSA verify + tamper OK
+Ed25519: RFC 8032 TEST 1+2 sign/verify + tamper OK
+EC_OPS PASS
+python3 sw/hash_kat.py --self-check
+hash_kat.py: Keccak-256 sponge matches published vectors and hashlib SHA3-256/SHAKE256; 70 stream vectors OK
+make -C sim crypto
+make[1]: Entering directory '/home/ubuntu/wt/8-riscv-dv-fix/sim'
+cd ../build/sim && COV_FILE=cov_sha256.dat ./sha256_tb
+PASS sha256(abc)
+PASS sha256(empty)
+TB_SHA256 PASS (8 checks)
+cd ../build/sim && COV_FILE=cov_sha512.dat ./sha512_tb
+PASS sha512(abc)
+PASS sha512(empty)
+TB_SHA512 PASS (8 checks)
+cd ../build/sim && COV_FILE=cov_keccak.dat ./keccak_tb
+PASS keccak-f1600(0)
+TB_KECCAK PASS (4 checks)
+cd ../build/sim && COV_FILE=cov_ecfield.dat ./ec_field_tb
+PASS mul 2*3 secp
+PASS mul (p-1)^2 secp
+PASS mul (p-2)^2 c25519
+PASS mul mixed secp
+PASS add (p-1)+(p-1)
+PASS sub 2-3 secp
+TB_EC_FIELD PASS (24 checks)
+cd ../build/sim && COV_FILE=cov_cryptotop.dat ./crypto_top_tb
+PASS sha256(abc) via AXI
+PASS sha256(empty) via AXI
+PASS field mul mixed secp via AXI
+PASS field sub 2-3 secp via AXI
+PASS field mul (p-2)^2 c25519 via AXI
+PASS field mul 2*3 custom mod via AXI
+PASS reserved engine 1 stays idle
+TB_SIGIL_CRYPTO_TOP PASS (1857 checks)
+cd ../build/sim && COV_FILE=cov_hashstream.dat ./hash_stream_tb
+PASS sha512    len=   0 out= 64 backpressure
+PASS sha512    len=   1 out= 64 poll
+PASS sha512    len=   2 out= 64 backpressure
+PASS sha512    len=   3 out= 64 poll
+PASS sha512    len=   4 out= 64 backpressure
+PASS sha512    len=   5 out= 64 poll
+PASS sha512    len=   7 out= 64 backpressure
+PASS sha512    len= 110 out= 64 poll
+PASS sha512    len= 111 out= 64 backpressure
+PASS sha512    len= 112 out= 64 poll
+PASS sha512    len= 113 out= 64 backpressure
+PASS sha512    len= 116 out= 64 poll
+PASS sha512    len= 124 out= 64 backpressure
+PASS sha512    len= 127 out= 64 poll
+PASS sha512    len= 128 out= 64 backpressure
+PASS sha512    len= 129 out= 64 poll
+PASS sha512    len= 239 out= 64 backpressure
+PASS sha512    len= 240 out= 64 poll
+PASS sha512    len= 255 out= 64 backpressure
+PASS sha512    len= 256 out= 64 poll
+PASS sha512    len= 257 out= 64 backpressure
+PASS sha512    len= 389 out= 64 poll
+PASS sha512    len=1000 out= 64 backpressure
+PASS sha3_256  len=   0 out= 32 poll
+PASS keccak256 len=   0 out= 32 backpressure
+PASS sha3_256  len=   1 out= 32 poll
+PASS keccak256 len=   1 out= 32 backpressure
+PASS sha3_256  len=   2 out= 32 poll
+PASS keccak256 len=   2 out= 32 backpressure
+PASS sha3_256  len=   3 out= 32 poll
+PASS keccak256 len=   3 out= 32 backpressure
+PASS sha3_256  len=   4 out= 32 poll
+PASS keccak256 len=   4 out= 32 backpressure
+PASS sha3_256  len=   5 out= 32 poll
+PASS keccak256 len=   5 out= 32 backpressure
+PASS sha3_256  len=   7 out= 32 poll
+PASS keccak256 len=   7 out= 32 backpressure
+PASS sha3_256  len= 132 out= 32 poll
+PASS keccak256 len= 132 out= 32 backpressure
+PASS sha3_256  len= 133 out= 32 poll
+PASS keccak256 len= 133 out= 32 backpressure
+PASS sha3_256  len= 134 out= 32 poll
+PASS keccak256 len= 134 out= 32 backpressure
+PASS sha3_256  len= 135 out= 32 poll
+PASS keccak256 len= 135 out= 32 backpressure
+PASS sha3_256  len= 136 out= 32 poll
+PASS keccak256 len= 136 out= 32 backpressure
+PASS sha3_256  len= 137 out= 32 poll
+PASS keccak256 len= 137 out= 32 backpressure
+PASS sha3_256  len= 271 out= 32 poll
+PASS keccak256 len= 271 out= 32 backpressure
+PASS sha3_256  len= 272 out= 32 poll
+PASS keccak256 len= 272 out= 32 backpressure
+PASS sha3_256  len= 273 out= 32 poll
+PASS keccak256 len= 273 out= 32 backpressure
+PASS sha3_256  len= 413 out= 32 poll
+PASS keccak256 len= 413 out= 32 backpressure
+PASS sha3_256  len=1000 out= 32 poll
+PASS keccak256 len=1000 out= 32 backpressure
+PASS sha512    len=   3 out= 64 poll
+PASS sha3_256  len=   3 out= 32 backpressure
+PASS keccak256 len=   3 out= 32 poll
+PASS sha512    len=  43 out= 64 backpressure
+PASS sha3_256  len=  43 out= 32 poll
+PASS keccak256 len=  43 out= 32 backpressure
+PASS shake256  len=   0 out= 32 poll
+PASS shake256  len=   3 out=136 backpressure
+PASS shake256  len= 137 out=137 poll
+PASS shake256  len= 300 out=300 backpressure
+PASS shake256  len= 272 out=500 poll
+PASS HOPTR/HDOUT/HCTRL/err registers
+PASS INIT aborts an in-flight message
+PASS legacy SHA-256 interleaved with a stream
+TB_HASH_STREAM PASS (70 KATs: sha512=25 sha3_256=20 keccak256=20 shake256=5; 12401 checks, 288 backpressure cycles, 17780 cycles)
+make[1]: Leaving directory '/home/ubuntu/wt/8-riscv-dv-fix/sim'
+ALL PHASE-0 KATs PASS
+make test rc=0
+# end 2026-10-23T00:00:08Z

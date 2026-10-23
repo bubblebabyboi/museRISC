@@ -23,7 +23,9 @@
 //       on element 1 trims vl to 1 without trapping.
 //  10-12: vstart > 0 honored by vl1re32.v, vs1r.v and vmv1r.v.
 //  13:  vl1re64.v PMP fault inside element 2 (byte 20): vstart =
-//       2 (EEW=64 elements), mtval = pbuf+20; resume completes.
+//       2 (EEW=64 elements), mtval = pbuf+16 (the element: the TOR
+//       top splits it, so the 8-byte element access fails); resume
+//       completes.
 //  14:  vs1r.v PMP fault at byte 20 (EEW=8): vstart = 20, bytes
 //       0-19 stored, 20+ not.
 //  15:  fault-only-first with vstart=1, element 1 faults: vl
@@ -342,12 +344,19 @@ irq_after_vmacc:
     bne a2, a3, fail                 // element 2 loaded
 
     // ---- 11: whole-register store honors vstart (EEW=8) ----
+    // M-mode (MPRV clear) with entry 0 unlocked, but test 9 left its
+    // TOR top at pbuf+4, inside the dwords below: an entry matching
+    // only part of an access fails it in any mode (issue #8), so
+    // first move the top past the buffer.
     li t0, 11
+    la t1, pbuf
+    addi t1, t1, 64
+    srli t1, t1, 2
+    csrw pmpaddr0, t1                // TOR [0, pbuf+64)
     la a1, pbuf
     li a2, -1
     sd a2, 0(a1)
     sd a2, 8(a1)
-    li t1, (1 << 17)                 // (PMP off for M: MPRV clear)
     vmv.v.i v13, 0
     csrwi vstart, 4
     vs1r.v v13, (a1)
@@ -376,7 +385,8 @@ irq_after_vmacc:
     bne a2, a3, fail                 // element 3 copied
 
     // ---- 13: vl1re64.v PMP fault inside element 2
-    // (byte 20): vstart = 2, mtval = pbuf+20; resume completes ----
+    // (byte 20): vstart = 2, mtval = pbuf+16 (the split element, as
+    // on Spike and Sail); resume completes ----
     li t0, 13
     la a1, pbuf
     li a2, 0x0000003100000030
@@ -409,7 +419,7 @@ irq_after_vmacc:
     li t0, 132
     ld a2, 8(a1)
     la a3, pbuf
-    addi a3, a3, 20
+    addi a3, a3, 16
     bne a2, a3, fail
     li t0, 133
     csrr a2, vstart

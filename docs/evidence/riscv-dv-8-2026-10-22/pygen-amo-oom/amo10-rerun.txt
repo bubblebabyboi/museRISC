@@ -1,0 +1,57 @@
+# Representative rerun: the 10 riscv_amo_test seeds of round 1, all queued at once (sigil-verify, 2026-10-22 UTC)
+# start Thu Oct 22 11:33:10 UTC 2026
+# commit d02176b6bf2ec273379625c4ce38f447278a6afc
+# args --tests riscv_amo_test --seeds 100000-100009 --jobs 16
+# rc 0
+# end Thu Oct 22 11:55:44 UTC 2026
+# Command: scripts/riscv_dv_regress.sh --tests riscv_amo_test --seeds 100000-100009 --jobs 16 --out ~/riscv-dv-runs/amo-oom-fix/amo10
+# Spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c (Spike RISC-V ISA Simulator 1.1.1-dev); Verilator 5.048 2026-04-26 rev v5.048; Python 3.12.3; riscv-dv 0d71c2b666dec48dde0b804a2138426da56aa252; pygen stamp d4b9ec8d0412c910a753e0daf9be15d6a019315388fea9c0350dfa6ee480f390
+
+## Driver log
+riscv-dv regression: 1 tests x 10 seeds = 10 runs, 16 parallel, pygen memory budget 44.4 GB, out /home/ubuntu/riscv-dv-runs/amo-oom-fix/amo10
+PASS        riscv_amo_test seed 100000 
+PASS        riscv_amo_test seed 100003 
+PASS        riscv_amo_test seed 100001 
+PASS        riscv_amo_test seed 100002 
+PASS        riscv_amo_test seed 100005 
+PASS        riscv_amo_test seed 100004 
+PASS        riscv_amo_test seed 100007 
+PASS        riscv_amo_test seed 100006 
+PASS        riscv_amo_test seed 100008 
+PASS        riscv_amo_test seed 100009 
+pygen peak RSS (GB): riscv_amo_test 8.4
+summary: PASS 10 (10 runs, 1354 s) -> /home/ubuntu/riscv-dv-runs/amo-oom-fix/amo10/results.csv
+
+## /usr/bin/time -v (driver and children)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 22:33.76
+	Maximum resident set size (kbytes): 8850792
+	Exit status: 0
+
+## Per seed: pygen start and end (first/last gen.log line, UTC), gen_s, gen_rss_mb, status, compare result
+100000 1400526329 11:33:11 11:39:23 443.0 7947 PASS ref records 4553 (tohost reached: True), dut records 4553 (tohost reached: True) / 4553 records match / RESULT MATCH
+100001 1400526330 11:33:11 11:39:49 476.0 8607 PASS ref records 4635 (tohost reached: True), dut records 4635 (tohost reached: True) / 4635 records match / RESULT MATCH
+100002 1400526331 11:33:11 11:40:02 487.8 8643 PASS ref records 4215 (tohost reached: True), dut records 4215 (tohost reached: True) / 4215 records match / RESULT MATCH
+100003 1400526332 11:33:11 11:39:25 445.2 7997 PASS ref records 4437 (tohost reached: True), dut records 4437 (tohost reached: True) / 4437 records match / RESULT MATCH
+100004 1400526333 11:40:34 11:46:48 449.1 8356 PASS ref records 4331 (tohost reached: True), dut records 4331 (tohost reached: True) / 4331 records match / RESULT MATCH
+100005 1400526334 11:40:36 11:46:46 443.6 8422 PASS ref records 4556 (tohost reached: True), dut records 4556 (tohost reached: True) / 4556 records match / RESULT MATCH
+100006 1400526335 11:41:07 11:47:41 470.0 8620 PASS ref records 4304 (tohost reached: True), dut records 4304 (tohost reached: True) / 4304 records match / RESULT MATCH
+100007 1400526336 11:41:19 11:47:33 449.8 8520 PASS ref records 4313 (tohost reached: True), dut records 4313 (tohost reached: True) / 4313 records match / RESULT MATCH
+100008 1400526337 11:48:03 11:54:14 446.0 8440 PASS ref records 4069 (tohost reached: True), dut records 4069 (tohost reached: True) / 4069 records match / RESULT MATCH
+100009 1400526338 11:48:00 11:54:28 464.3 8491 PASS ref records 4548 (tohost reached: True), dut records 4548 (tohost reached: True) / 4548 records match / RESULT MATCH
+
+## Memory sampler (5 s): count of samples by number of python3 processes above 1 GiB RSS
+  0 big pygen: 8 samples
+  1 big pygen: 4 samples
+  2 big pygen: 97 samples
+  3 big pygen: 6 samples
+  4 big pygen: 155 samples
+## Lowest MemAvailable sample (time, MemAvailable kB, python3 RSS sum kB, # >1 GiB)
+11:40:02 28240360 34038992 4
+## Highest python3 RSS sum sample
+11:47:48 28568752 34769268 4
+
+## Kernel OOM kills on the host so far (sudo dmesg -T): only the 4 of round 1
+[Thu Oct 22 10:38:24 2026] Out of memory: Killed process 755159 (python3) total-vm:9106952
+[Thu Oct 22 10:39:09 2026] Out of memory: Killed process 755631 (python3) total-vm:9813472
+[Thu Oct 22 10:39:53 2026] Out of memory: Killed process 755985 (python3) total-vm:9730280
+[Thu Oct 22 10:40:39 2026] Out of memory: Killed process 755503 (python3) total-vm:9850392

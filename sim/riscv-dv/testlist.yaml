@@ -1,0 +1,515 @@
+# Sigil riscv-dv test list (issue #8), for sim/riscv-dv/rdv_regress.py.
+#
+# Every riscv-dv built-in test (yaml/base_testlist.yaml and the
+# target/rv64gc, rv64imc, rv32imcb and rv64gcv lists at the pinned
+# commit) appears here once: either with the pygen options it runs with,
+# or with `excluded:` and the reason. gen_opts use riscv-dv's
+# "+name=value" syntax; the driver turns them into pygen "--name=value"
+# arguments, as run.py does for --simulator pyflow.
+#
+# Changes against upstream that apply to every runnable test:
+# - num_of_sub_program=0: pygen's sub-program call stack is unimplemented
+#   (riscv_jump_instr and riscv_instr_sequence.insert_jump_instr are TODOs,
+#   riscv_callstack_gen does not run), so all code is in the main program.
+# - gen_test riscv_instr_base_test with the directed streams spelled out:
+#   pygen's riscv_rand_instr_test hard-codes num_of_sub_program=5.
+# - directed streams that pygen does not implement are dropped:
+#   riscv_hazard_instr_stream, riscv_multi_page_load_store_instr_stream,
+#   riscv_mem_region_stress_test.
+# - satp is Bare (no page tables in pygen), see riscv_core_setting.py.
+#
+# spike_max_instr (optional): Spike's --instructions budget for the test
+# (default: the driver's --max-instr, 2,000,000). Spike charges it in
+# steps of 5,000 and every trap ends a step, so a trap can cost up to
+# 5,000: trap-heavy tests need a budget far above their length.
+#
+# asm_defs (optional, directed entries): extra preprocessor defines for
+# the program, e.g. [PMP_WHOLE64] or [NAME=1], each passed as -D<item>
+# after -DRDV_SEED.
+#
+# gen_mem_gb (optional): the test's pygen peak memory in GiB, rounded up.
+# The driver starts a generation only while the estimates of the running
+# ones fit in its memory budget (--gen-mem-gb); tests without the key
+# count DEFAULT_GEN_MEM_GB from rdv_regress.py. Measured peaks are in
+# docs/VERIFICATION.md.
+
+- test: riscv_arithmetic_basic_test
+  source: yaml/base_testlist.yaml
+  description: Arithmetic instructions only, no load/store/branch, M-mode.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_int_numeric_corner_stream,4
+    +no_fence=1
+    +no_data_page=1
+    +no_branch_jump=1
+    +boot_mode=m
+    +no_csr_instr=1
+
+- test: riscv_rand_instr_test
+  source: yaml/base_testlist.yaml
+  description: Random instruction stress with load/store, loop and jal streams.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_loop_instr,4
+    +directed_instr_2=riscv_load_store_hazard_instr_stream,4
+    +directed_instr_3=riscv_jal_instr,4
+
+- test: riscv_jump_stress_test
+  source: yaml/base_testlist.yaml
+  description: Back-to-back jump stress (riscv_jal_instr).
+  gen_opts: >
+    +instr_cnt=5000
+    +num_of_sub_program=0
+    +directed_instr_1=riscv_jal_instr,20
+
+- test: riscv_loop_test
+  source: yaml/base_testlist.yaml
+  description: Nested-loop stress (riscv_loop_instr).
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +directed_instr_1=riscv_loop_instr,20
+
+- test: riscv_no_fence_test
+  source: yaml/base_testlist.yaml
+  description: riscv_rand_instr_test streams with FENCE disabled.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +no_fence=1
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+    +directed_instr_2=riscv_load_store_hazard_instr_stream,4
+
+- test: riscv_illegal_instr_test
+  source: yaml/base_testlist.yaml
+  description: Illegal instructions mixed in (5 per 1000); the handler skips them.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +illegal_instr_ratio=5
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_ebreak_test
+  source: yaml/base_testlist.yaml
+  description: Random instructions with EBREAK enabled (breakpoint exceptions).
+  gen_opts: >
+    +instr_cnt=6000
+    +num_of_sub_program=0
+    +no_ebreak=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_unaligned_load_store_test
+  source: yaml/base_testlist.yaml
+  description: >
+    Unaligned loads/stores. Sigil (and the Spike config) trap them; the
+    generated handler skips the access and resumes (patch AE), so a run
+    takes about 2,000 misaligned-access traps.
+  # Spike's --instructions budget is charged up to 5,000 per trap.
+  spike_max_instr: 40000000
+  gen_opts: >
+    +instr_cnt=6000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,20
+    +directed_instr_1=riscv_load_store_hazard_instr_stream,20
+    +enable_unaligned_load_store=1
+
+- test: riscv_mmu_stress_test
+  source: yaml/base_testlist.yaml
+  description: >
+    Load/store stress in a random boot mode. With satp Bare it stresses the
+    LSU, caches and PMP checks, not address translation.
+  gen_opts: >
+    +instr_cnt=5000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,40
+    +directed_instr_1=riscv_load_store_hazard_instr_stream,40
+
+- test: riscv_machine_mode_rand_test
+  source: target/rv64gc/testlist.yaml
+  description: Random instructions, M-mode.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +boot_mode=m
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_privileged_mode_rand_test
+  source: target/rv64gc/testlist.yaml
+  description: Random instructions in a randomly chosen boot mode (M/S/U).
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_u_mode_rand_test
+  source: target/rv32imc_sv32/testlist.yaml
+  description: Random instructions in U-mode (traps go to M-mode handlers).
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +boot_mode=u
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_non_compressed_instr_test
+  source: target/rv32imc/testlist.yaml
+  description: >
+    No compressed instructions: the generator emits none and the program
+    is assembled without C/Zcb (march below), so the assembler adds none.
+  march: rv64g_zba_zbb_zbc_zbs_zbkb
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +disable_compressed_instr=1
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+- test: riscv_amo_test
+  source: target/rv64gc/testlist.yaml
+  description: LR/SC and AMO streams.
+  # pygen peaks at 7.8-9.0 GiB RSS (most seen: 9,231 MiB, seed 200024),
+  # every other test below 2; ten at once were OOM-killed on the 61 GiB
+  # machine (docs/VERIFICATION.md).
+  gen_mem_gb: 10
+  gen_opts: >
+    +instr_cnt=5000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_lr_sc_instr_stream,10
+    +directed_instr_1=riscv_amo_instr_stream,10
+
+- test: riscv_floating_point_arithmetic_test
+  source: target/rv64gc/testlist.yaml
+  description: F/D arithmetic, no load/store/branch, M-mode.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +no_fence=1
+    +no_data_page=1
+    +no_branch_jump=1
+    +enable_floating_point=1
+    +boot_mode=m
+
+- test: riscv_floating_point_rand_test
+  source: target/rv64gc/testlist.yaml
+  description: F/D mixed with the random integer streams.
+  gen_opts: >
+    +enable_floating_point=1
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_loop_instr,4
+    +directed_instr_4=riscv_jal_instr,4
+
+- test: riscv_floating_point_mmu_stress_test
+  source: target/rv64gc/testlist.yaml
+  description: F/D with heavy load/store streams (satp Bare, see riscv_mmu_stress_test).
+  gen_opts: >
+    +instr_cnt=5000
+    +num_of_sub_program=0
+    +enable_floating_point=1
+    +directed_instr_0=riscv_load_store_rand_instr_stream,40
+    +directed_instr_1=riscv_load_store_hazard_instr_stream,40
+
+- test: riscv_b_ext_test
+  source: target/rv32imcb/testlist.yaml
+  description: >
+    Bitmanip: the ratified subset of pygen's draft-0.92 B groups (Zbb, Zbs,
+    Zbc, sext.b/h; Zbkb pack/packh) - see riscv_core_setting.py. Upstream
+    passes +enable_bitmanip_groups=a,b, which pygen (nargs='*') reads as
+    one unknown group name; the default (all groups) is used and the
+    non-ratified instructions are removed by unsupported_instr.
+  gen_opts: >
+    +instr_cnt=10000
+    +num_of_sub_program=0
+    +enable_b_extension=1
+    +directed_instr_0=riscv_load_store_rand_instr_stream,4
+    +directed_instr_1=riscv_jal_instr,4
+
+# ---------------------------------------------------------------------
+# Directed programs (Sigil additions, like riscv-dv's --asm_test): the
+# extensions pygen cannot generate, through the same Spike comparison.
+# Both are PRNG-driven: the driver assembles them with
+# -DRDV_SEED=<gen_seed>, so each seed is a different program (and a
+# different DUT bus timing).
+# ---------------------------------------------------------------------
+- test: sigil_bitmanip_crypto_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    PRNG-driven Zba/Zbb/Zbs (RV64 W forms), Zbkb/Zbkc/Zbkx, Zkne/Zknd/Zknh
+    and Zicond, 300 iterations, operands from the seeded PRNG.
+  asm: directed/sigil_bitmanip_crypto_test.S
+  march: rv64gc_zba_zbb_zbc_zbs_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zcb
+
+- test: sigil_vector_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    Random RVV (Zve64d, VLEN 512): 24 iterations, each with a random legal
+    vtype (SEW 8-64, LMUL mf8-m8, ta/ma), AVL in [0, VLMAX], vxrm, frm and
+    data; vector loads/stores of every addressing mode, integer,
+    fixed-point, widening/narrowing, mask, permutation, reduction and FP
+    instructions, masked and unmasked; the whole vector state is reloaded
+    (and so compared) every iteration.
+  asm: directed/sigil_vector_test.S
+  march: rv64gcv_zcb
+
+- test: sigil_viota_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    viota.m, self-checking, 96 iterations: random legal vtype (SEW 8-64,
+    LMUL mf8-m8, ta/tu, ma/mu), AVL 0/1/2/VLMAX-1/VLMAX/above/random, masked
+    and unmasked, any LMUL-aligned vd group (v0 when unmasked) with vs2 any
+    register outside it (incl. v0 under v0.t), random/all-ones/sparse/dense
+    masks; every element of the vd group and every other register checked
+    in scalar code (and so compared). One iteration in 16 each: vd not
+    aligned, v0.t with vd = v0, vill set (must trap, change nothing).
+  asm: directed/sigil_viota_test.S
+  march: rv64gcv_zcb
+
+- test: sigil_viota_sweep_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    viota.m, self-checking, the same program with VIOTA_SWEEP: a sweep of
+    all 1408 combinations of the 22 legal vtypes, tu/ta, mu/ma, unmasked/
+    v0.t and 8 AVL classes (0, 1, 2, VLMAX-1, VLMAX, all ones, VLMAX+1,
+    random), vs2 an odd register (not LMUL-aligned) in 6 of 8 iterations,
+    v0 in 1 of 8. Each run is one chunk of 88 combinations, (seed's
+    RDV_SEED mod 16); legal encodings only.
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_SWEEP=1]
+  march: rv64gcv_zcb
+
+- test: sigil_viota_vstart_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_viota_test with VIOTA_VSTART: half the iterations run viota.m
+    after csrw vstart (1..64), which RVV 1.0 sec. 15.8 makes an
+    illegal-instruction exception (no register changed, vstart kept).
+    Failed before the core's vstart check (RTL up to 4958c3f).
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_VSTART=1]
+  march: rv64gcv_zcb
+
+- test: sigil_viota_overlap_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_viota_test with VIOTA_OVERLAP: half the iterations use a vs2
+    inside the vd group, an encoding RVV 1.0 reserves (sec. 15.8, 5.2);
+    Spike and Sigil raise an illegal-instruction exception for it.
+    Failed before the core's overlap check (RTL up to 4958c3f).
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_OVERLAP=1]
+  march: rv64gcv_zcb
+
+- test: sigil_priv_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    Random privileged architecture, 128 iterations: Sv39 test mappings
+    (random 4 KiB leaves, Svnapot 64 KiB groups, 2 MiB leaves incl.
+    misaligned ones, reserved PTE bits, hardware D updates with
+    menvcfg.ADUE), random PMP entries over the page tables and backing
+    pages, random medeleg/mideleg/mie and pending SSIP/STIP/SEIP,
+    random mstatus (MPP S/U, SUM, MXR, FS, SIE); each iteration one
+    random load, store, AMO, LR, FP load, fetch, EBREAK, S CSR access
+    or SFENCE.VMA in S or U, traps handled in M or S as delegated.
+  asm: directed/sigil_priv_test.S
+  march: rv64gc
+  # Spike's --instructions budget is charged up to 5,000 per trap.
+  spike_max_instr: 20000000
+
+- test: sigil_hint_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    HINT encodings (what riscv_hint_instr_test would generate; pygen cannot):
+    200 blocks of 24 random 32-bit HINTs (rd = x0: LUI, AUIPC, OP-IMM incl.
+    Zicbop prefetch encodings, OP incl. M and Zbb funct7 0x20 forms,
+    OP-IMM-32, OP-32) and FENCEs with random pred/succ, fm and ignored
+    rs1/rd, and 16-bit HINTs (C.NOP nzimm, C.ADDI imm 0, C.LI/C.LUI/C.MV/
+    C.ADD rd = x0, C.SLLI rd = x0 or shamt 0, C.SRLI/C.SRAI shamt 0),
+    written to memory and executed after FENCE.I with PRNG data in the
+    registers.
+  asm: directed/sigil_hint_test.S
+  march: rv64gc
+
+- test: sigil_pmp_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    PMP matching (priority, NA4/NAPOT/TOR boundaries, partial matches of
+    8-byte accesses, L in M) with every access kind in M, M+MPRV (MPP S
+    and U), S and U: scalar loads/stores of 1-8 bytes incl. compressed and
+    misaligned, AMO .w/.d, LR/SC, lone SC, FP, HLV/HLVX/HSV, vector
+    unit-stride/strided/indexed/segment/fault-only-first/masked/whole-
+    register (EEW 8 and 32) loads and stores, fetches of 16/32-bit
+    parcels straddling PMP words; Sv39 PTE reads and A/D write-backs under
+    NA4/TOR/NAPOT entries; a sweep of fixed configurations, then 24
+    random iterations (odd seeds end with locked entries). Fails on the
+    RTL before 3ae351d (8-byte accesses judged by their first word).
+  asm: directed/sigil_pmp_test.S
+  march: rv64gcvh_zcb
+  # About 8,000 traps per run; Spike charges up to 5,000 per trap.
+  spike_max_instr: 100000000
+
+- test: sigil_pmp_whole64_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_pmp_test plus whole-register loads with EEW=64 (vl1re64.v,
+    vl2re64.v): Spike (and Sail) performs their 8-byte elements as single
+    accesses, so an NA4 entry or a TOR boundary splitting an element
+    fails it (also in M). Failed before the core checked the first byte
+    of each such element as the whole element (9bdd552).
+  asm: directed/sigil_pmp_test.S
+  asm_defs: [PMP_WHOLE64]
+  march: rv64gcvh_zcb
+  spike_max_instr: 100000000
+
+- test: sigil_vf_nanbox_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    The f-register scalar of every .vf instruction (NaN-boxing at SEW=32,
+    raw at SEW=64, reserved at SEW 8/16): 28 scalars (boxed/unboxed
+    singles, NaN payloads, doubles, near-boxed patterns, PRNG) x 12 vtypes
+    with random ta/ma, AVL, frm, mask and data; every f-register producer
+    followed by a .vf consumer after 0-3 instructions; vtype changes right
+    before a .vf; scalar F with unboxed operands; self-checked spec values.
+  asm: directed/sigil_vf_nanbox_test.S
+  march: rv64gcv_zcb
+  # About 5,500 illegal-instruction traps (FP at SEW 8/16, widening at
+  # SEW=64 or LMUL=8); Spike charges up to 5,000 instructions per trap.
+  spike_max_instr: 60000000
+
+- test: sigil_vfcvt_sew16_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    FP vector conversions at SEW 16 and 8 without Zvfh/Zvfhmin: the
+    int16 <-> f32 widening/narrowing conversions are legal, every form
+    with a 16-bit FP operand and every FP form at SEW=8 is reserved. 16
+    iterations x 6 vtypes (e16 mf4..m4, e8 m1), random data, mask, frm,
+    ta/ma and AVL. Failed on the RTL up to 4958c3f (pre-existing): the
+    core treated every FP vector instruction at SEW < 32 as reserved,
+    including the six int16 <-> f32 conversions, which Spike executes.
+  asm: directed/sigil_vfcvt_sew16_test.S
+  march: rv64gcv_zcb
+  spike_max_instr: 20000000
+
+# ---------------------------------------------------------------------
+# Excluded
+# ---------------------------------------------------------------------
+- test: riscv_rand_jump_test
+  source: yaml/base_testlist.yaml
+  excluded: >
+    The test is jumps among 10 sub-programs; pygen cannot generate
+    sub-programs (call stack unimplemented), and without them it is
+    riscv_rand_instr_test.
+
+- test: riscv_ebreak_debug_mode_test
+  source: yaml/base_testlist.yaml
+  excluded: >
+    Needs debug mode (Sdext, debug ROM); Sigil has none and pygen's
+    gen_debug_rom is a TODO.
+
+- test: riscv_full_interrupt_test
+  source: yaml/base_testlist.yaml
+  excluded: >
+    Needs an interrupt agent that raises interrupts at the same
+    instruction on the DUT and on Spike (riscv-dv's UVM irq sequence with
+    compare_final_value_only). core_tb can raise MTIP at a cycle count
+    but Spike's CLINT timing is instruction-based, so traces cannot be
+    compared step by step; needs a lockstep/tandem flow.
+
+- test: riscv_csr_test
+  source: yaml/base_testlist.yaml
+  excluded: >
+    Generated by scripts/gen_csr_test.py from a CSR description YAML with
+    per-field WARL/reset behaviour; no Sigil description exists yet, and
+    upstream marks it no_iss (RTL-only self-check).
+
+- test: riscv_pmp_test
+  source: target/rv32imc/testlist.yaml
+  excluded: >
+    pygen has no PMP configuration (riscv_pmp_cfg and the +pmp_* options
+    are not ported; setup_pmp/gen_pmp_csr_write are TODOs). PMP is
+    covered by the ACT PMP suites.
+
+- test: riscv_hint_instr_test
+  source: target/rv32imc/testlist.yaml
+  excluded: >
+    pygen's HINT generation (+hint_instr_ratio, riscv_illegal_instr hint
+    path) fails with a constraint solve failure for every seed tried
+    (docs/evidence/riscv-dv-8-2026-10-22/critic/hint-test-gen-fail.txt).
+    The HINT encodings run in the directed sigil_hint_test instead.
+
+- test: riscv_misaligned_instr_test
+  source: target/rv32i/testlist.yaml
+  excluded: >
+    Targets IALIGN=32 cores (JALR to an address with bit 1 set). Sigil
+    has C (IALIGN=16), where such targets are legal and JALR clears bit
+    0, so no instruction-address-misaligned exception can occur; the test
+    also needs 8 sub-programs.
+
+- test: riscv_rand_test
+  source: target/ml/testlist.yaml
+  excluded: >
+    Its knob set needs +hint_instr_ratio (broken in pygen, see
+    riscv_hint_instr_test), sub-programs and riscv_hazard_instr_stream;
+    the remaining knobs are covered by riscv_rand_instr_test and
+    riscv_illegal_instr_test.
+
+- test: riscv_load_store_shared_mem_test
+  source: target/multi_harts/testlist.yaml
+  excluded: Multi-hart test (the multi_harts target); Sigil is a single-hart core.
+
+- test: riscv_single_hart_test
+  source: target/multi_harts/testlist.yaml
+  excluded: Part of the multi_harts target's list; Sigil is a single-hart core.
+
+- test: riscv_invalid_csr_test
+  source: target/rv64gc/testlist.yaml
+  excluded: >
+    pygen's CSR instruction never constrains the CSR address (the
+    include/exclude CSR filters are not applied to riscv_instr.csr), and
+    random addresses hit the free-running counters (cycle/time/instret),
+    which differ between an RTL core and an ISS by construction.
+
+- test: riscv_sfence_exception_test
+  source: target/rv64gc/testlist.yaml
+  excluded: >
+    pygen filters SFENCE.VMA out of every random instruction list and has
+    no allow_sfence_exception stream, so the test has nothing to test.
+
+- test: riscv_page_table_exception_test
+  source: target/rv64gc/testlist.yaml
+  excluded: >
+    Needs page tables; pygen's create_page_table / riscv_page_table_list
+    are TODOs (upstream also runs it with iterations 0).
+
+- test: riscv_vector_arithmetic_test
+  source: target/rv64gcv/testlist.yaml
+  excluded: >
+    pygen has no vector instruction classes (the RVV group has no isa
+    module; VECTOR_EXTENSION_ENABLE paths are unimplemented). The DUT
+    trace already logs vector register writes for when a generator exists.
+
+- test: riscv_vector_arithmetic_stress_test
+  source: target/rv64gcv/testlist.yaml
+  excluded: Same as riscv_vector_arithmetic_test (no vector support in pygen).
+
+- test: riscv_vector_load_store_test
+  source: target/rv64gcv/testlist.yaml
+  excluded: Same as riscv_vector_arithmetic_test (no vector support in pygen).
+
+- test: riscv_vector_amo_test
+  source: target/rv64gcv/testlist.yaml
+  excluded: Same as riscv_vector_arithmetic_test (no vector support in pygen).
+
+- test: riscv_zbb_zbt_test
+  source: target/rv32imcb/testlist.yaml
+  excluded: >
+    Zbt (cmov/cmix/fsl/fsr) was dropped from the ratified B extension;
+    Sigil does not implement it. Zbb runs in riscv_b_ext_test.

@@ -3307,3 +3307,183 @@ walker race (#74) is in every earlier core (the first public AFI
 table at the runs on the shipped RTL, and add #75 to `LINUX.md`. No
 relative link or anchor is broken. The notes checklist's placeholder grep
 prints nothing. The superseded AFI appears only as history.
+
+## #8: riscv-dv random regression vs Spike (2026-10-22)
+
+[`riscv-dv-8-2026-10-22/`](riscv-dv-8-2026-10-22/). Flow, pins and
+rules: [`docs/VERIFICATION.md`](../VERIFICATION.md). Random programs
+from riscv-dv's Python generator (pygen, `0d71c2b6`, patched: fixes
+A-AD in `sim/riscv-dv/patches/pygen-sigil.patch`) run on Spike
+(`2c300cd9`, configured as Sigil: [`spike-build.txt`](riscv-dv-8-2026-10-22/spike-build.txt))
+and on the core (`build/sim/core_tb`, Verilator 5.048, sim-only retire
+trace); every retired instruction and trap is compared. sigil-verify
+(c7i.8xlarge, Ubuntu 24.04.5), shared machine.
+
+- **Full regression, 60/60 PASS** (`./scripts/riscv_dv_regress.sh
+  --seeds 1-3 --jobs 14`, branch at `384d813`): 18 riscv-dv built-in
+  tests + 2 directed programs (Zba/Zbb/Zbs/Zbk*/Zkn/Zicond; RVV) x 3
+  seeds, 680,586 records compared incl. 582 traps (441 breakpoints, 84
+  illegal instructions, 54 ECALLs, 3 misaligned), boot modes M/S/U:
+  [`results-full-seeds1-3.csv`](riscv-dv-8-2026-10-22/results-full-seeds1-3.csv),
+  [`coverage-full-seeds1-3.csv`](riscv-dv-8-2026-10-22/coverage-full-seeds1-3.csv),
+  1483 s with 14 jobs.
+- **Confirmation on the final head, 60/60 PASS** (`make -C sim riscv-dv
+  SEEDS=4-6 JOBS=7`, `661c046`): 673,480 records, 542 traps:
+  [`results-full-seeds4-6.csv`](riscv-dv-8-2026-10-22/results-full-seeds4-6.csv),
+  [`coverage-full-seeds4-6.csv`](riscv-dv-8-2026-10-22/coverage-full-seeds4-6.csv).
+- Fields compared (integer/FP/vector register writes, stores, CSR
+  writes, fflags): [`compared-fields.txt`](riscv-dv-8-2026-10-22/compared-fields.txt);
+  comparator self-check on corrupted traces:
+  [`comparator-selfcheck.log`](riscv-dv-8-2026-10-22/comparator-selfcheck.log);
+  artifact sample: [`sample-riscv_amo_test-seed21.txt`](riscv-dv-8-2026-10-22/sample-riscv_amo_test-seed21.txt).
+- core_tb built with Verilator 5.020 runs the flow: 4/4 PASS,
+  [`results-verilator-5.020.csv`](riscv-dv-8-2026-10-22/results-verilator-5.020.csv).
+- Gates with the trace probe in the RTL (`661c046`): `make lint` clean on
+  Verilator 5.048, 5.020 and 5.044 ([`lint-verilator-5.048.log`](riscv-dv-8-2026-10-22/lint-verilator-5.048.log),
+  [`lint-verilator-5.020.log`](riscv-dv-8-2026-10-22/lint-verilator-5.020.log),
+  [`lint-verilator-5.044.log`](riscv-dv-8-2026-10-22/lint-verilator-5.044.log));
+  `make core-test` rc=0, 0 TB FAIL/TIMEOUT; `make riscv-tests` 123/123:
+  [`gates-core-test-riscv-tests.log`](riscv-dv-8-2026-10-22/gates-core-test-riscv-tests.log).
+- Findings: no divergence attributable to a Sigil bug. LR/SC of
+  different widths has an implementation-defined SC outcome (Sigil fails
+  `sc.d` after `lr.w`, Spike succeeds); the generator now pairs widths:
+  [`lrsc-width-mismatch-compare.txt`](riscv-dv-8-2026-10-22/lrsc-width-mismatch-compare.txt).
+- Not covered: address translation, PMP programming, interrupts, trap
+  delegation, sub-programs, random CSR accesses; V/Zk/Zicond only via the
+  directed programs; 18 riscv-dv tests excluded with reasons in
+  `sim/riscv-dv/testlist.yaml`. Not in CI yet.
+
+## #8: riscv-dv round-1 GEN_FAILs were generator out-of-memory kills (2026-10-22)
+
+[`riscv-dv-8-2026-10-22/pygen-amo-oom/`](riscv-dv-8-2026-10-22/pygen-amo-oom/).
+Flow and the fix: [`docs/VERIFICATION.md`](../VERIFICATION.md)
+("Generator memory"). sigil-verify (c7i.8xlarge, 61 GiB, no swap,
+shared with the perf harness); Spike `2c300cd9`, riscv-dv `0d71c2b6`,
+Verilator 5.048, Python 3.12.3.
+
+- **Cause** (round 1, `--tests all --seeds 100000-100009 --jobs 16`,
+  runner at `b86bc8d`): 196 PASS, 4 `GEN_FAIL` `pygen rc=-9`
+  (`riscv_amo_test` 100000/100001/100002/100006). All ten amo
+  generations ran at once at about 8 GiB each; the kernel OOM-killed
+  four python3 processes (anon-rss 7.3-8.0 GiB, 10:38-10:40 UTC); each
+  killed `gen.log` stops at "Start generating 5000 instruction" with no
+  traceback, and no program was written, so the core never ran them.
+  Rerun alone they match Spike (4553/4635/4215/4304 records):
+  [`round1-gen-fail.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/round1-gen-fail.txt).
+- **Fix** (`9e64bc3`, `d02176b`): `rdv_regress.py` runs pygen under a
+  memory budget (`--gen-mem-gb`, default 75% of MemAvailable; per-test
+  `gen_mem_gb` in `testlist.yaml`, 9 for `riscv_amo_test`, default 2.5),
+  queues jobs seed-major, records pygen's peak RSS (`gen_rss_mb`) and
+  labels a SIGKILLed pygen as a likely OOM kill. Later commits
+  (`74d5673` comments, `59fd02a` a `%` in the `--help` text) do not
+  change what a run does, so the runs below at `d02176b` stand.
+- **Peak RSS per test** (one seed each, 20/20 PASS): amo 7.8 GiB, all
+  others 0.9-1.9 GiB:
+  [`measure-peak-rss.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/measure-peak-rss.txt).
+- **Representative rerun, 10/10 PASS** (`--tests riscv_amo_test --seeds
+  100000-100009 --jobs 16`, `d02176b`): budget 44.4 GiB, generations
+  ran four at a time (never more than 4 pygen processes above 1 GiB),
+  lowest MemAvailable 26.9 GiB; records match the round-1 reruns:
+  [`amo10-rerun.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/amo10-rerun.txt).
+- **Round-1 command on the fixed runner, 200/200 PASS** (`d02176b`,
+  3209 s): 2,231,764 records compared (the same total as round 1 after
+  its rerun), pygen peaks amo 7.8-8.4 GiB and others 0.9-2.0 GiB over 10
+  seeds, lowest MemAvailable 37.0 GiB, no new kernel OOM kill:
+  [`full-regression.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-regression.txt),
+  [`full-results.csv`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-results.csv).
+
+## #8: riscv-dv completeness review: three core bugs, random RVV/privileged/HINT programs, CI (2026-10-22)
+
+Summary of every riscv-dv round, root cause and waiver:
+[`riscv-dv-8-2026-10-22/SUMMARY.md`](riscv-dv-8-2026-10-22/SUMMARY.md).
+Review files: [`riscv-dv-8-2026-10-22/critic/`](riscv-dv-8-2026-10-22/critic/),
+[`riscv-dv-8-2026-10-22/rounds/`](riscv-dv-8-2026-10-22/rounds/). Flow:
+[`docs/VERIFICATION.md`](../VERIFICATION.md). sigil-verify (c7i.8xlarge,
+Ubuntu 24.04.5, shared), Spike `2c300cd9`, riscv-dv `0d71c2b6` + patches
+A-AE, Verilator 5.048 (CI replays: 5.020), GCC 16.1.0, Python 3.12.3.
+
+- **Random RVV program** (`e7a82fe`): `sigil_vector_test` was a fixed
+  53-instruction program; it now draws vtype, AVL, vxrm, frm, operands
+  and data per seed. Its first run failed 8 of 8 seeds: `viota.m` with a
+  mask register not aligned to LMUL trapped, and the SEW=32 `.vf` moves
+  did not NaN-box check their scalar (core, fixed in `63a50a5`, directed
+  checks `vec_directed` 25 and `fpvec_directed` 11):
+  [`core-findings.txt`](riscv-dv-8-2026-10-22/critic/core-findings.txt).
+  Vector registers in the retire trace were read too late (probe,
+  `862868c`/`e1c4338`): [`trace-snapshot.txt`](riscv-dv-8-2026-10-22/critic/trace-snapshot.txt).
+- **Misaligned accesses resume** (patch AE, ~2,000 traps per run) and a
+  per-test Spike budget (`a397c78`):
+  [`unaligned-and-spike-budget.txt`](riscv-dv-8-2026-10-22/critic/unaligned-and-spike-budget.txt);
+  **comparator** checks one-sided vector writes (`34ddf8e`):
+  [`comparator-selfcheck-v2.log`](riscv-dv-8-2026-10-22/critic/comparator-selfcheck-v2.log).
+- **main merged into the branch** (`adf4c97`, conflicts in `core_tb.cpp`,
+  `sim/Makefile`, this file): the full list and a CI replay give the same
+  records and cycles as before the merge.
+- **Random privileged program** `sigil_priv_test` (`a36305c`, `c98428b`):
+  Sv39/Svnapot/2 MiB mappings with random permissions and reserved bits,
+  hardware D updates (Spike `svadu`), random PMP (NA4/NAPOT/TOR), random
+  delegation, S-level interrupts via `mip`, random mstatus. It found that
+  **PMP decided an 8-byte access by its first word** (core, fixed in
+  `3ae351d`; new core test `pmp_partial_directed`; `vec_trap_directed`
+  test 11 corrected in `37aa1d7`):
+  [`pmp-partial-match.txt`](riscv-dv-8-2026-10-22/critic/pmp-partial-match.txt).
+  Bring-up against Spike (CLINT MTIP, `medeleg`/`mideleg` WARL choices):
+  [`priv/program-bringup.txt`](riscv-dv-8-2026-10-22/critic/priv/program-bringup.txt).
+- **Random HINT program** `sigil_hint_test` (`c73c4a6`) in place of the
+  excluded `riscv_hint_instr_test` (pygen's solve failure:
+  [`hint-test-gen-fail.txt`](riscv-dv-8-2026-10-22/critic/hint-test-gen-fail.txt)).
+- **Runs**: [`full-regression.txt`](riscv-dv-8-2026-10-22/critic/full-regression.txt)
+  (sections 1-6; results and coverage CSVs next to it). Full list on
+  `c98428b`: 105/105 PASS, 3,100,449 records. The four directed programs
+  x seeds 1-205 on `37aa1d7`: 820/820 PASS, 97,111,729 records.
+- **CI**: `.github/workflows/riscv-dv.yml` (nightly + `workflow_dispatch`,
+  never on push or pull_request, not a required check) and
+  `scripts/build_spike.sh`; not run on GitHub yet (`workflow_dispatch`
+  needs it on `main`); replayed from a fresh clone with apt Verilator
+  5.020 on `e1c4338` and `adf4c97`, 20/20 PASS each:
+  [`ci-replay.txt`](riscv-dv-8-2026-10-22/critic/ci-replay.txt).
+- **Gates** (`37aa1d7`): `make lint` rc=0 on Verilator 5.044 (Mac),
+  5.048 and 5.020 (sigil-verify); `make test` rc=0; `make core-test`
+  rc=0 (297 "TB PASS", 0 FAIL, 2,609 s); `make riscv-tests` 123/123:
+  [`gates/`](riscv-dv-8-2026-10-22/critic/gates/). The first run, on
+  `c98428b`, stopped core-test at `vec_trap_directed` test 11 (fixed in
+  `37aa1d7`).
+- **Full ACT** (`65a48ae`, 2026-10-23, sigil-verify, Verilator 5.048,
+  core_tb default config, the 2,578-ELF set of main's gates, fingerprint
+  `839ba8be…`): 2,577/2,578, only the `PMPSm_cfg_A_tor_zero-00` PA0
+  waiver fails. Main `9da0006` rerun on the same ELFs and machine gives
+  the same result with every ELF's verdict and cycle count equal, and
+  the waiver's core_tb bus trace is byte-identical on both:
+  [`act-full.log`](riscv-dv-8-2026-10-22/act-full.log),
+  [`act-full-8-riscv-dv-65a48ae.csv`](riscv-dv-8-2026-10-22/act-full-8-riscv-dv-65a48ae.csv),
+  [`act-full-main-9da0006.csv`](riscv-dv-8-2026-10-22/act-full-main-9da0006.csv).
+
+## #8: review round 2 and merge-ready gates (2026-10-23)
+
+Ready-to-merge report:
+[`riscv-dv-8-2026-10-22/final/merge-ready.txt`](riscv-dv-8-2026-10-22/final/merge-ready.txt).
+The reviews of the three first fixes (branches `8-dvfix-viota`,
+`8-dvfix-nanbox`, `8-dvfix-pmp`, `8-dvfix-pmp-w64`, merged into
+`8-riscv-dv`) proved four more core defects, all fixed with directed
+tests: `vstart` != 0 not illegal for reductions, `vcpop`/`vfirst`,
+`vmsbf/sif/sof`, `viota`, `vcompress` (`fd22878`); `viota.m` with vs2
+inside the vd group (reserved) not trapped as on Spike (`913bc0a`); the
+int16 <-> f32 conversions trapped at SEW=16 (`1eac727`); `vl<n>re64.v`
+elements PMP-checked byte by byte (`9bdd552`). Issues: #76, #77, #78.
+
+- **Gates** on RTL `1eac727`: lint (Verilator 5.044, 5.048, 5.020),
+  `make test`, `make core-test`, `make riscv-tests`, full ACT
+  (2,577/2,578, every ELF's verdict and cycle count as on main), riscv-dv
+  vs Spike, Linux RTL boot:
+  [`final/gates/`](riscv-dv-8-2026-10-22/final/gates/),
+  [`final/act/`](riscv-dv-8-2026-10-22/final/act/),
+  [`final/rdv/`](riscv-dv-8-2026-10-22/final/rdv/).
+- **New tests on Spike and mutants** of each new fix (each mutant fails
+  its test; why the EX hold behind a vector load/store is needed):
+  [`final/mutation/mutation.txt`](riscv-dv-8-2026-10-22/final/mutation/mutation.txt).
+- **Synthesized logic** vs `f239397` and main: only `sigil_core` and
+  `sigil_vec` change, at the new fixes' signals, proven by Yosys in the
+  five synthesis define sets:
+  [`final/synth/synth-equiv-round2.log`](riscv-dv-8-2026-10-22/final/synth/synth-equiv-round2.log).
+- **Port to `53-100mhz-afi`** (FPGA_TIMING parallel PMP): file:line list in
+  the report.

@@ -1,0 +1,44 @@
+# Issue #8 completeness review: vector values in the DUT retire trace were read too late
+# sigil-verify, 2026-10-22 UTC. Spike 2c300cd9, Verilator 5.048. Simulation-only probe
+# (rtl/core/sigil_core.sv, SIGIL_COMMIT_TRACE); the design itself was not affected.
+
+## Symptom (core fixes of 63a50a5 applied, probe as at 84974af), 19:57Z
+scripts/riscv_dv_regress.sh --tests sigil_vector_test --seeds 1-16 --jobs 16 --keep
+summary: MISMATCH 16; every first divergence is the masked
+  vslide1down.vx v24, v8, a2, v0.t
+which the program follows with
+  800003f8: 3c866c57  vslide1down.vx v24,v8,a2,v0.t
+  800003fc: 02098c07  vle8.v         v24,(s3)
+
+seed 3 (vtype 0x86: e8 mf4, tu, ma; vl 5), elements of v24 as logged:
+  e0 m=1 old=19 vs2[1]=31 expected=31 ref=31 dut=33
+  e1 m=0 old=cb           expected=cb ref=cb dut=ec   (masked off, must be unchanged)
+  e2 m=1 old=b6 vs2[3]=19 expected=19 ref=19 dut=ba
+  e3 m=1 old=36 vs2[4]=cb expected=cb ref=cb dut=4c
+  e4 m=1 old=88 x[a2]=e5  expected=e5 ref=e5 dut=e4   (last element takes the scalar)
+  e5.. tail: ref = dut = old
+Spike's value is the spec result in every element. The DUT's logged
+elements 0-4 are bytes 0-4 of buffer B (s3), which the next instruction,
+vle8.v v24,(s3), loads into v24 (the same bytes as v3, loaded from s3
+earlier in the iteration; seed 8, e8 m4 vl 26, shows the same).
+
+A minimal program (vslide1down/vslide1up masked and unmasked, back to
+back, no vector load after them) matched Spike, so the unit computes
+the right result.
+
+## Cause
+The probe printed the vector registers an instruction wrote from its
+VRF shadow at retirement (WB). A vector load in MEM stalls the pipeline
+(mem_stall), and the retire condition includes !mem_stall, so the older
+instruction waits in WB while the load writes the VRF: its registers
+were printed with the load's data in elements [0, vl).
+
+## Fix (862868c)
+The rows the instruction wrote are copied from the shadow as it enters
+WB, with that edge's VRF write merged in, and printed from the copy.
+A younger vector arithmetic op cannot write before that edge (it writes
+at least three cycles after it starts in EX), and a younger vector load
+writes only from its MEM access cycles on.
+
+## After, 20:03Z (same command, core_tb rebuilt)
+summary: PASS 16 (16 runs, 41 s); records 81,825-82,376 per run.

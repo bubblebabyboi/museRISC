@@ -1,0 +1,5 @@
+core_old   21449 cells,  2730 flip-flops
+core_new   21730 cells,  2730 flip-flops
+vec_old    46072 cells,  1645 flip-flops
+vec_new    46043 cells,  1645 flip-flops
+(Yosys 0.69+post, sv2v 0.0.13)

@@ -1,0 +1,33 @@
+# Issue #8 completeness review: why riscv_hint_instr_test (and riscv_rand_test, which needs the same knob) stay excluded
+# sigil-verify, Python 3.12.3, pyvsc 0.9.1.10086043874, riscv-dv 0d71c2b6 pygen with patches A-AE (hint.sh in tools/).
+# Upstream (target/rv32imc/testlist.yaml): gen_opts +hint_instr_ratio=5. Here without sub-programs, like every supported test.
+
+# riscv_hint_instr_test generation, pygen at 34ddf8e (stamp 5fa63cb251fa8d3b1c5eed64e6e4c21b42edcf5a45b6ad5ea94ef343dc828c8a), 2026-10-22T20:33:45Z
+# cmd: /home/ubuntu/wt/8-riscv-dv/build/riscv-dv/venv/bin/python3 pygen/pygen_src/test/riscv_instr_base_test.py --target=sigil --gen_test=riscv_instr_base_test --num_of_tests=1 --start_idx=0 --seed=<s> --instr_cnt=10000 --num_of_sub_program=0 --hint_instr_ratio=5 --asm_file_name=... --log_file_name=...
+seed 4 rc=1 t=148s asm=none | Traceback (most recent call last):     raise SolveFailure( 
+seed 2 rc=1 t=149s asm=none | Traceback (most recent call last):     raise SolveFailure( 
+seed 1 rc=1 t=151s asm=none | Traceback (most recent call last):     raise SolveFailure( 
+seed 3 rc=1 t=152s asm=none | Traceback (most recent call last):     raise SolveFailure( 
+# done 2026-10-22T20:36:17Z
+
+## seed 1 traceback (pygen output, abridged)
+    self.asm.gen_program()
+  File "gen/pygen/pygen_src/riscv_asm_program_gen.py", line 124, in gen_program
+    self.main_program[hart].generate_instr_stream()
+  File "gen/pygen/pygen_src/riscv_instr_sequence.py", line 250, in generate_instr_stream
+    self.insert_illegal_hint_instr()
+  File "gen/pygen/pygen_src/riscv_instr_sequence.py", line 306, in insert_illegal_hint_instr
+    with vsc.randomize_with(self.illegal_instr):
+  File "venv/lib/python3.12/site-packages/vsc/methods.py", line 95, in __exit__
+    raise e
+  File "venv/lib/python3.12/site-packages/vsc/methods.py", line 86, in __exit__
+    Randomizer.do_randomize(
+  File "venv/lib/python3.12/site-packages/vsc/model/randomizer.py", line 598, in do_randomize
+    r.randomize(ri, bounds_v.bound_m)
+  File "venv/lib/python3.12/site-packages/vsc/model/randomizer.py", line 214, in randomize
+    raise SolveFailure(
+vsc.model.solve_failure.SolveFailure: solve failure
+
+pyvsc cannot solve the constraints of riscv_illegal_instr in its HINT mode (insert_illegal_hint_instr),
+for any of the 4 seeds tried; no program is generated. It needs a pygen fix in that HINT path
+(not attempted here); until then this regression does not check how the core treats HINTs.

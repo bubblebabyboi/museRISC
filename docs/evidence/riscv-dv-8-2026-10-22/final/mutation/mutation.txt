@@ -1,0 +1,50 @@
+# Review-round fixes on 8-riscv-dv (issue #8): new directed tests on Spike and the core, and
+# mutants of each fix. 2026-10-23 UTC, sigil-verify (c7i.8xlarge, Ubuntu 24.04), Verilator 5.048,
+# Spike 2c300cd9 (~/opt/spike), riscv64-unknown-elf GCC 16.1.0 (deps/). RTL 1eac727.
+# Scripts: ctf.sh (Spike with -DSPIKE_HTIF, then core_tb), mut.sh (mutants, core_tb
+# --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 7).
+
+== New and affected directed tests, fixed RTL (ctf.sh)
+Spike (rc 0 = pass):  vstart_illegal_directed 0, vfcvt_sew16_directed 0, fpvec_nanbox_directed 0,
+                      pmp_whole64_directed 0
+core_tb, random bus (--mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 7) / --no-cache:
+  vstart_illegal_directed  PASS 6694 / PASS 8932 cycles (also default config 6028, --mem-lat 3:20 6689)
+  vfcvt_sew16_directed     PASS 148137 / PASS 243647
+  viota_vstart_directed    PASS 882423 / PASS 1657450
+  viota_overlap_directed   PASS 853621 / PASS 1600579
+  viota_directed           PASS 983741 / PASS 1856899
+  viota_cases_directed     PASS 14816 / PASS 17306
+  fpvec_nanbox_directed    PASS 33788 / PASS 53001
+  pmp_whole64_directed     PASS 975 / PASS 1431
+  pmp_modes_directed       PASS 7569 / PASS 10657
+  vec_trap_directed        PASS 14448 / PASS 15992 (--irq-timer-after 2000)
+(the viota/pmp/nanbox tests come from the review branches 8-dvfix-viota, 8-dvfix-nanbox,
+8-dvfix-pmp(-w64); their Spike/Sail runs are in ../critic/viota-review.txt and
+../pmp-review/pmp-review.txt)
+
+== Mutants (mut.sh): one part of one fix removed; the tests named must fail
+  no_vstart   vec_illegal without the vstart term
+              vstart_illegal_directed  FAIL exit 134217726 = 0x7fffffe (cases 1-26)
+              viota_vstart_directed    FAIL exit 257 (iteration 1, trap not taken)
+  no_hold     vec_ex_stall without the vstart=0 class
+              vstart_illegal_directed  FAIL exit 2147483648 = 1 << 31 (case 31); also in the
+              default config and --mem-lat 3:20; PASS with --no-cache (see below)
+  no_overlap  vec_illegal without the viota.m overlap term
+              viota_overlap_directed   FAIL exit 1 (iteration 0, trap not taken)
+  no_cvt16    ex_fp_bad back to SEW < 32
+              vfcvt_sew16_directed     FAIL test 1
+  no_sat      vector unit without the int16/uint16 saturation
+              vfcvt_sew16_directed     FAIL test 3
+  no_sext     vector unit without the int16 sign extension
+              vfcvt_sew16_directed     FAIL test 1
+
+== Why the EX hold is needed (holdexp.S on the no_hold mutant, simulation probe)
+A vector load/store resets vstart on its last MEM cycle, the same edge on which EX advances, so
+an instruction in EX right behind it is judged on the old vstart. The first version of
+vstart_illegal_directed (load/store right after csrw vstart) passed on the no_hold mutant: a
+$display probe showed EX empty (idex_valid 0) during every resumed load, because the fetch had
+not caught up. holdexp.S tries several sequences in front of `csrw vstart, 3; vle8.v; vredsum.vs`;
+with a scalar `ld` just before the vector load, the reduction sat in EX for 129 cycles while the
+load was in MEM, and the no_hold mutant took 3 illegal-instruction traps (core_tb default config;
+none with --no-cache). vstart_illegal_directed cases 31-34 now run that shape (a scalar load
+first) three times, and case 31 fails on the mutant as listed above.

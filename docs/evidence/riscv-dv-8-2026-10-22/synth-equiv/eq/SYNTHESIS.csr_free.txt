@@ -1,0 +1,6 @@
+defines=[SYNTHESIS] module=sigil_csr gold=main gate=br mode=free
+Found 5866 $equiv cells in equiv:
+  Of those cells 5864 are proven and 2 are unproven.
+    1 bit(s), matched wire: gold wire pmp_allow_b_o | gate wire pmp_allow_b_o
+    1 bit(s), matched wire: gold wire pmp_allow_c_o | gate wire pmp_allow_c_o
+yosys rc=0 55s (Yosys 0.69+post, sv2v 0.0.13)
