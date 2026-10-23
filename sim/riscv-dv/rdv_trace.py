@@ -220,7 +220,19 @@ def parse_spike(path, entry, tohost):
                     if not mi:
                         raise ValueError("%s:%d: unknown trap %r" % (path, ln, name))
                     cause = int(mi.group(2)) | ((1 << 63) if mi.group(1) == "interrupt" else 0)
-                recs.append(Rec("E", _int(m.group(2)), cause=cause, src=ln))
+                epc = _int(m.group(2))
+                # A vector load/store that faults on an element after
+                # writing vector register elements before it: Spike
+                # prints a commit line for it (those elements and the
+                # vstart write; riscv/execute.cc, catch of mem_trap_t),
+                # then the exception. The instruction did not retire, and
+                # the DUT logs only the trap; the partial register
+                # contents are compared when the program next logs that
+                # register, vstart when it reads it.
+                if (recs and recs[-1].kind == "I" and recs[-1].pc == epc and
+                        not cause >> 63 and is_vector_mem(recs[-1])):
+                    recs.pop()
+                recs.append(Rec("E", epc, cause=cause, src=ln))
                 continue
             m = _TVAL.match(line)
             if m and recs and recs[-1].kind == "E":
@@ -291,6 +303,13 @@ def parse_dut(path, limit=None):
 # ---------------------------------------------------------------------
 def _fmt_regs(prefix, d):
     return "{%s}" % ", ".join("%s%d=0x%x" % (prefix, k, d[k]) for k in sorted(d))
+
+
+def is_vector_mem(rec):
+    """Vector loads/stores: LOAD-FP/STORE-FP opcode with a vector width
+    (funct3 0/5/6/7)."""
+    return (rec.ilen == 4 and (rec.insn & 0x7F) in (0x07, 0x27) and
+            ((rec.insn >> 12) & 7) in (0, 5, 6, 7))
 
 
 def is_vector_store(rec):
