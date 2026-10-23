@@ -127,3 +127,59 @@ Rows: ci-replay-results.csv. Same programs and results as seed 1 of the
 Verilator 5.048 run on the same commit (full-regression.txt, section 3):
 the harness built with apt Verilator 5.020 and the riscv-collab 2026.08.27
 toolchain gives the same 20 PASS with the same record and core cycle counts per run.
+
+## Second replay: after main was merged into the branch (adf4c97)
+Same procedure (tools/ci_replay.py; ~/rdvcrit2/ci.sh: fresh clone of
+origin/8-riscv-dv from GitHub, sandbox HOME, nproc 4, cache misses).
+# start Thu Oct 22 23:17:05 UTC 2026 commit adf4c97d8347843ad0eb9d4bad8289ae8d3b0d52
+# rc 0 end Thu Oct 22 23:48:33 UTC 2026
+# clone head: adf4c97d8347843ad0eb9d4bad8289ae8d3b0d52
+== Check out Sigil: emulated (clone at /home/ubuntu/rdvcrit2/ci/sigil)
+== Install host tools: skipped (see host tool check)
+== Cache RISC-V GCC toolchain: emulated (cache miss)
+== Install RISC-V GCC toolchain
+== Install RISC-V GCC toolchain: rc=0, 37 s
+== Cache Spike: emulated (cache miss)
+== Build pinned Spike
+== Build pinned Spike: rc=0, 243 s
+== Cache riscv-dv clone and Python venv: emulated (cache miss)
+== Set up the generator (riscv-dv pin, patched pygen, venv)
+== Set up the generator (riscv-dv pin, patched pygen, venv): rc=0, 13 s
+== Build the core harness with the retire trace
+== Build the core harness with the retire trace: rc=0, 314 s
+== Run riscv-dv regression
+riscv-dv regression: 20 tests x 1 seeds = 20 runs, 4 parallel, pygen memory budget 34.0 GB, out /home/ubuntu/rdvcrit2/ci/sigil/build/riscv-dv/ci
+summary: PASS 20 (20 runs, 1280 s) -> /home/ubuntu/rdvcrit2/ci/sigil/build/riscv-dv/ci/results.csv
+== Run riscv-dv regression: rc=0, 1280 s
+== Summarize results
+== Summarize results: rc=0, 0 s
+== Upload riscv-dv results: would upload:
+== job wall time 1888 s
+
+test                                   runs pass   records  traps dut_cycles boot modes / pygen peak MiB
+riscv_arithmetic_basic_test               1    1     12209      1      53640 M:1 / 1393
+riscv_rand_instr_test                     1    1     14440      1      65073 S:1 / 1912
+riscv_jump_stress_test                    1    1      5281      1      29594 M:1 / 931
+riscv_loop_test                           1    1     31507      1     116149 S:1 / 1821
+riscv_no_fence_test                       1    1      9413      1      49096 S:1 / 1641
+riscv_illegal_instr_test                  1    1     11470     29      55108 U:1 / 1554
+riscv_ebreak_test                         1    1     19255    153      75087 S:1 / 984
+riscv_unaligned_load_store_test           1    1    204456   2019     560694 M:1 / 1588
+riscv_mmu_stress_test                     1    1     15881      1      74404 M:1 / 1986
+riscv_machine_mode_rand_test              1    1      9267      1      47129 M:1 / 1563
+riscv_privileged_mode_rand_test           1    1      8926      1      47125 U:1 / 1557
+riscv_u_mode_rand_test                    1    1      8798      1      45696 U:1 / 1540
+riscv_non_compressed_instr_test           1    1      8569      1      40509 S:1 / 1341
+riscv_amo_test                            1    1      4163      1      20645 U:1 / 8339
+riscv_floating_point_arithmetic_test      1    1     10354      1      50746 M:1 / 1262
+riscv_floating_point_rand_test            1    1     16207      1      76500 U:1 / 1797
+riscv_floating_point_mmu_stress_test      1    1     16752      1      80685 U:1 / 1971
+riscv_b_ext_test                          1    1      9461      1      48605 S:1 / 1503
+sigil_bitmanip_crypto_test                1    1     24924      0      90839 M(directed):1 / 0
+sigil_vector_test                         1    1     82178      0    1160582 M(directed):1 / 0
+total runs 20, PASS 20, records 523511, dut cycles 2787906, runs with ref != dut records 0
+# runs 20 (PASS 20), records 523511, traps 2216 (causes 2:28 3:152 4:1259 6:759 8:6 9:6 11:6), FP-write records 10603, vector-write records 3825
+Rows: ci-replay-results-adf4c97.csv. Every run has the same record count
+and core cycle count as in the first replay (e1c4338): main's RTL changes
+(MMU walker-race fix #74, Svadu atomicity, performance counters) do not
+show in these bare-mode programs.

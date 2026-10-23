@@ -1,4 +1,4 @@
-# Issue #8 completeness review: final full regression and a 200-seed run of the directed programs
+# Issue #8 completeness review: full regressions on the review commits and 200-seed runs of the directed programs
 # sigil-verify (c7i.8xlarge, 32 vCPU, 61 GiB, Ubuntu 24.04.5), shared with the perf-harness workflow;
 # Spike 2c300cd9, riscv-dv 0d71c2b6 + patches A-AE, riscv64-unknown-elf GCC 16.1.0, Python 3.12.3.
 
@@ -103,3 +103,140 @@ commits after 34ddf8e (ef27681: test-list text and amo memory estimate;
 e1c4338: the probe's WB snapshot packed into one vector) change neither
 the programs nor the core's timing.
 Rows: full-results-seeds1-5-e1c4338.csv, full-coverage-seeds1-5-e1c4338.csv.
+
+## 4. All 20 tests x seeds 1-5 after merging main into the branch (tools/full.sh merged-s1-5 all 1-5 12)
+# start Thu Oct 22 23:16:48 UTC 2026
+# commit adf4c97d8347843ad0eb9d4bad8289ae8d3b0d52
+# args --tests all --seeds 1-5 --jobs 12
+# verilator Verilator 5.048 2026-04-26 rev v5.048
+# spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c
+# gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# core_tb build rc 0
+# rc 0
+# end Thu Oct 22 23:47:03 UTC 2026
+riscv-dv regression: 20 tests x 5 seeds = 100 runs, 12 parallel, pygen memory budget 43.5 GB, out /home/ubuntu/rdvcrit2/merged-s1-5/run
+summary: PASS 100 (100 runs, 1802 s) -> /home/ubuntu/rdvcrit2/merged-s1-5/run/results.csv
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 30:01.62
+	Maximum resident set size (kbytes): 8772332
+	Exit status: 0
+
+Per test:
+test                                   runs pass   records  traps dut_cycles boot modes / pygen peak MiB
+riscv_arithmetic_basic_test               5    5     60891      5     265397 M:5 / 1402
+riscv_rand_instr_test                     5    5     67330      5     312636 M:1 S:4 / 2010
+riscv_jump_stress_test                    5    5     27331      5     150111 M:2 S:1 U:2 / 938
+riscv_loop_test                           5    5    113376      5     444088 S:3 U:2 / 1849
+riscv_no_fence_test                       5    5     48697      5     250108 M:2 S:3 / 1652
+riscv_illegal_instr_test                  5    5     55631    144     267984 M:1 S:2 U:2 / 1556
+riscv_ebreak_test                         5    5     92206    717     340925 M:1 S:2 U:2 / 986
+riscv_unaligned_load_store_test           5    5   1005983  10047    2767445 M:2 S:1 U:2 / 1585
+riscv_mmu_stress_test                     5    5     78361      5     365165 M:3 S:1 U:1 / 1993
+riscv_machine_mode_rand_test              5    5     45429      5     233893 M:5 / 1563
+riscv_privileged_mode_rand_test           5    5     45258      5     235087 M:1 S:2 U:2 / 1570
+riscv_u_mode_rand_test                    5    5     43678      5     225758 U:5 / 1567
+riscv_non_compressed_instr_test           5    5     42767      5     205651 M:1 S:2 U:2 / 1353
+riscv_amo_test                            5    5     21838      5     108724 S:1 U:4 / 8566
+riscv_floating_point_arithmetic_test      5    5     51822      5     254313 M:5 / 1259
+riscv_floating_point_rand_test            5    5     67890      5     337354 M:1 S:1 U:3 / 1851
+riscv_floating_point_mmu_stress_test      5    5     83270      5     404280 M:1 S:1 U:3 / 1968
+riscv_b_ext_test                          5    5     48051      5     242218 S:3 U:2 / 1513
+sigil_bitmanip_crypto_test                5    5    124620      0     454230 M(directed):5 / 0
+sigil_vector_test                         5    5    410983      0    5457059 M(directed):5 / 0
+total runs 100, PASS 100, records 2535412, dut cycles 13322426, runs with ref != dut records 0
+# runs 100 (PASS 100), records 2535412, traps 10983 (causes 2:139 3:712 4:6133 6:3909 8:32 9:27 11:31), FP-write records 49831, vector-write records 19241
+Every run has the same gen_seed, status, record count and core cycle
+count as in section 3 (e1c4338): main's RTL changes (MMU walker-race
+fix #74, Svadu A/D atomicity, performance counters) do not show in these
+programs (satp Bare).
+Rows: full-results-seeds1-5-adf4c97.csv, full-coverage-seeds1-5-adf4c97.csv.
+
+## 5. All 21 tests x seeds 1-5 with the PMP fix and the privileged program (tools/full.sh final-s1-5 all 1-5 12)
+# Spike's ISA string has _svadu from a36305c on (sim/riscv-dv/rdv_regress.py).
+# start Thu Oct 22 23:48:03 UTC 2026
+# commit c98428b481a00d083cdba733bf97279087ce274e
+# args --tests all --seeds 1-5 --jobs 12
+# verilator Verilator 5.048 2026-04-26 rev v5.048
+# spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c
+# gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# core_tb build rc 0
+# rc 0
+# end Fri Oct 23 00:18:27 UTC 2026
+riscv-dv regression: 21 tests x 5 seeds = 105 runs, 12 parallel, pygen memory budget 43.6 GB, out /home/ubuntu/rdvcrit2/final-s1-5/run
+summary: PASS 105 (105 runs, 1810 s) -> /home/ubuntu/rdvcrit2/final-s1-5/run/results.csv
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 30:10.22
+	Maximum resident set size (kbytes): 8772424
+	Exit status: 0
+
+Per test (trap causes with bit 63 set are interrupts: 1 SSI, 5 STI, 9 SEI):
+test                                   runs pass   records  traps dut_cycles boot modes / pygen peak MiB
+riscv_arithmetic_basic_test               5    5     60891      5     265397 M:5 / 1403
+riscv_rand_instr_test                     5    5     67330      5     312636 M:1 S:4 / 2010
+riscv_jump_stress_test                    5    5     27331      5     150111 M:2 S:1 U:2 / 938
+riscv_loop_test                           5    5    113376      5     444088 S:3 U:2 / 1849
+riscv_no_fence_test                       5    5     48697      5     250108 M:2 S:3 / 1653
+riscv_illegal_instr_test                  5    5     55631    144     267984 M:1 S:2 U:2 / 1556
+riscv_ebreak_test                         5    5     92206    717     340925 M:1 S:2 U:2 / 986
+riscv_unaligned_load_store_test           5    5   1005983  10047    2767445 M:2 S:1 U:2 / 1585
+riscv_mmu_stress_test                     5    5     78361      5     365165 M:3 S:1 U:1 / 1993
+riscv_machine_mode_rand_test              5    5     45429      5     233893 M:5 / 1563
+riscv_privileged_mode_rand_test           5    5     45258      5     235087 M:1 S:2 U:2 / 1570
+riscv_u_mode_rand_test                    5    5     43678      5     225758 U:5 / 1566
+riscv_non_compressed_instr_test           5    5     42767      5     205651 M:1 S:2 U:2 / 1353
+riscv_amo_test                            5    5     21838      5     108724 S:1 U:4 / 8566
+riscv_floating_point_arithmetic_test      5    5     51822      5     254313 M:5 / 1260
+riscv_floating_point_rand_test            5    5     67890      5     337354 M:1 S:1 U:3 / 1851
+riscv_floating_point_mmu_stress_test      5    5     83270      5     404280 M:1 S:1 U:3 / 1968
+riscv_b_ext_test                          5    5     48051      5     242218 S:3 U:2 / 1514
+sigil_bitmanip_crypto_test                5    5    124620      0     454230 M(directed):5 / 0
+sigil_vector_test                         5    5    410983      0    5457059 M(directed):5 / 0
+sigil_priv_test                           5    5    565037   1662    1743663 M(directed):5 / 0
+total runs 105, PASS 105, records 3100449, dut cycles 15066089, runs with ref != dut records 0
+# runs 105 (PASS 105), records 3100449, traps 12645 (causes 2:277 3:725 4:6133 5:15 6:3909 7:9 8:287 9:533 11:31 12:21 13:153 15:124 9223372036854775809:143 9223372036854775813:135 9223372036854775817:150), FP-write records 49845, vector-write records 19241
+The 100 runs of the 20 earlier tests have the same records and core
+cycles as in section 4: the PMP fix and Spike's `svadu` change nothing
+for them (user_init.s opens PMP with one NAPOT entry over everything,
+and the pygen programs never enable translation or touch menvcfg).
+Rows: full-results-seeds1-5-c98428b.csv, full-coverage-seeds1-5-c98428b.csv.
+
+## 6. The four directed programs x seeds 1-205 on the final RTL (tools/full.sh directed-s1-205 <4 tests> 1-205 12)
+# start Fri Oct 23 00:18:54 UTC 2026
+# commit 37aa1d794b4fd20ff21d51937e62f55a9f4f32fe
+# args --tests sigil_priv_test,sigil_hint_test,sigil_vector_test,sigil_bitmanip_crypto_test --seeds 1-205 --jobs 12
+# verilator Verilator 5.048 2026-04-26 rev v5.048
+# spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c
+# gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+# core_tb build rc 0
+# rc 0
+# end Fri Oct 23 00:55:38 UTC 2026
+riscv-dv regression: 4 tests x 205 seeds = 820 runs, 12 parallel, pygen memory budget 45.3 GB, out /home/ubuntu/rdvcrit2/directed-s1-205/run
+summary: PASS 820 (820 runs, 2204 s) -> /home/ubuntu/rdvcrit2/directed-s1-205/run/results.csv
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 36:44.50
+	Maximum resident set size (kbytes): 2961568
+	Exit status: 0
+
+Per test:
+test                                   runs pass   records  traps dut_cycles boot modes / pygen peak MiB
+sigil_bitmanip_crypto_test              205  205   5109420      0   18622597 M(directed):205 / 0
+sigil_vector_test                       205  205  16843493      0  222833806 M(directed):205 / 0
+sigil_priv_test                         205  205  23081150  67826   71232087 M(directed):205 / 0
+sigil_hint_test                         205  205  52077666      0  213304375 M(directed):205 / 0
+total runs 820, PASS 820, records 97111729, dut cycles 525992865, runs with ref != dut records 0
+# runs 820 (PASS 820), records 97111729, traps 67826 (causes 1:44 2:5216 3:809 5:548 7:468 8:10226 9:21094 12:755 13:5981 15:5473 9223372036854775809:5597 9223372036854775813:5679 9223372036854775817:5936), FP-write records 12799, vector-write records 771207
+sigil_priv_test runs 205 records 23081150 traps 67826
+   fetch access 44, illegal 5216, breakpoint 809, load access 548, store access 468, ecall U 10226, ecall S 21094, fetch page 755, load page 5981, store page 5473, SSI 5597, STI 5679, SEI 5936
+sigil_hint_test runs 205 records 52077666 traps 0
+
+RVV iterations by SEW/LMUL (tools/vtypes.py: each iteration's csrr a5, vtype):
+iterations 4920
+  e8 : m1 153, m2 144, m4 280, m8 154, mf2 155, mf4 161, mf8 172
+  e16: m1 171, m2 294, m4 140, m8 141, mf2 172, mf4 147
+  e32: m1 287, m2 300, m4 345, m8 315, mf2 302
+  e64: m1 309, m2 316, m4 324, m8 138
+pairs 22
+Seeds 1-5 of sigil_bitmanip_crypto_test, sigil_vector_test and
+sigil_priv_test have the same records and core cycles as in section 5
+(the RTL of 37aa1d7 equals c98428b's; the commits between add
+sigil_hint_test and correct a core test). sigil_priv_test seeds 1-8,
+five of which fail on the RTL before the PMP fix (pmp-partial-match.txt),
+all pass here.
+Rows: directed-results-seeds1-205-37aa1d7.csv, directed-coverage-seeds1-205-37aa1d7.csv.

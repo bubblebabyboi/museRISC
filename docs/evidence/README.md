@@ -3391,3 +3391,60 @@ Verilator 5.048, Python 3.12.3.
   seeds, lowest MemAvailable 37.0 GiB, no new kernel OOM kill:
   [`full-regression.txt`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-regression.txt),
   [`full-results.csv`](riscv-dv-8-2026-10-22/pygen-amo-oom/full-results.csv).
+
+## #8: riscv-dv completeness review: three core bugs, random RVV/privileged/HINT programs, CI (2026-10-22)
+
+Summary of every riscv-dv round, root cause and waiver:
+[`riscv-dv-8-2026-10-22/SUMMARY.md`](riscv-dv-8-2026-10-22/SUMMARY.md).
+Review files: [`riscv-dv-8-2026-10-22/critic/`](riscv-dv-8-2026-10-22/critic/),
+[`riscv-dv-8-2026-10-22/rounds/`](riscv-dv-8-2026-10-22/rounds/). Flow:
+[`docs/VERIFICATION.md`](../VERIFICATION.md). sigil-verify (c7i.8xlarge,
+Ubuntu 24.04.5, shared), Spike `2c300cd9`, riscv-dv `0d71c2b6` + patches
+A-AE, Verilator 5.048 (CI replays: 5.020), GCC 16.1.0, Python 3.12.3.
+
+- **Random RVV program** (`e7a82fe`): `sigil_vector_test` was a fixed
+  53-instruction program; it now draws vtype, AVL, vxrm, frm, operands
+  and data per seed. Its first run failed 8 of 8 seeds: `viota.m` with a
+  mask register not aligned to LMUL trapped, and the SEW=32 `.vf` moves
+  did not NaN-box check their scalar (core, fixed in `63a50a5`, directed
+  checks `vec_directed` 25 and `fpvec_directed` 11):
+  [`core-findings.txt`](riscv-dv-8-2026-10-22/critic/core-findings.txt).
+  Vector registers in the retire trace were read too late (probe,
+  `862868c`/`e1c4338`): [`trace-snapshot.txt`](riscv-dv-8-2026-10-22/critic/trace-snapshot.txt).
+- **Misaligned accesses resume** (patch AE, ~2,000 traps per run) and a
+  per-test Spike budget (`a397c78`):
+  [`unaligned-and-spike-budget.txt`](riscv-dv-8-2026-10-22/critic/unaligned-and-spike-budget.txt);
+  **comparator** checks one-sided vector writes (`34ddf8e`):
+  [`comparator-selfcheck-v2.log`](riscv-dv-8-2026-10-22/critic/comparator-selfcheck-v2.log).
+- **main merged into the branch** (`adf4c97`, conflicts in `core_tb.cpp`,
+  `sim/Makefile`, this file): the full list and a CI replay give the same
+  records and cycles as before the merge.
+- **Random privileged program** `sigil_priv_test` (`a36305c`, `c98428b`):
+  Sv39/Svnapot/2 MiB mappings with random permissions and reserved bits,
+  hardware D updates (Spike `svadu`), random PMP (NA4/NAPOT/TOR), random
+  delegation, S-level interrupts via `mip`, random mstatus. It found that
+  **PMP decided an 8-byte access by its first word** (core, fixed in
+  `3ae351d`; new core test `pmp_partial_directed`; `vec_trap_directed`
+  test 11 corrected in `37aa1d7`):
+  [`pmp-partial-match.txt`](riscv-dv-8-2026-10-22/critic/pmp-partial-match.txt).
+  Bring-up against Spike (CLINT MTIP, `medeleg`/`mideleg` WARL choices):
+  [`priv/program-bringup.txt`](riscv-dv-8-2026-10-22/critic/priv/program-bringup.txt).
+- **Random HINT program** `sigil_hint_test` (`c73c4a6`) in place of the
+  excluded `riscv_hint_instr_test` (pygen's solve failure:
+  [`hint-test-gen-fail.txt`](riscv-dv-8-2026-10-22/critic/hint-test-gen-fail.txt)).
+- **Runs**: [`full-regression.txt`](riscv-dv-8-2026-10-22/critic/full-regression.txt)
+  (sections 1-6; results and coverage CSVs next to it). Full list on
+  `c98428b`: 105/105 PASS, 3,100,449 records. The four directed programs
+  x seeds 1-205 on `37aa1d7`: 820/820 PASS, 97,111,729 records.
+- **CI**: `.github/workflows/riscv-dv.yml` (nightly + `workflow_dispatch`,
+  never on push or pull_request, not a required check) and
+  `scripts/build_spike.sh`; not run on GitHub yet (`workflow_dispatch`
+  needs it on `main`); replayed from a fresh clone with apt Verilator
+  5.020 on `e1c4338` and `adf4c97`, 20/20 PASS each:
+  [`ci-replay.txt`](riscv-dv-8-2026-10-22/critic/ci-replay.txt).
+- **Gates** (`37aa1d7`): `make lint` rc=0 on Verilator 5.044 (Mac),
+  5.048 and 5.020 (sigil-verify); `make test` rc=0; `make core-test`
+  rc=0 (297 "TB PASS", 0 FAIL, 2,609 s); `make riscv-tests` 123/123:
+  [`gates/`](riscv-dv-8-2026-10-22/critic/gates/). The first run, on
+  `c98428b`, stopped core-test at `vec_trap_directed` test 11 (fixed in
+  `37aa1d7`).

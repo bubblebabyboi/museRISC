@@ -1,0 +1,19 @@
+# First gate run, at c98428b (before 37aa1d7): make core-test stopped at vec_trap_directed test 11.
+# lint 5.020/5.048, make test and make riscv-tests passed there too:
+make core-test rc=2
+make lint rc=0
+make lint rc=0
+make riscv-tests rc=0
+make test rc=0
+# make core-test VJOBS=4, Verilator 5.048 2026-04-26 rev v5.048, riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0, commit c98428b, 2026-10-22T23:52:24Z
+CORE TB PASS fpvec_directed.bin (1511 cycles)
+[rand] core_tb vec_trap_directed.bin 4000000 --irq-timer-after 2000 --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 29
+CORE TB FAIL vec_trap_directed.bin test 11 (13313 cycles)
+make[1]: *** [Makefile:730: core] Error 1
+make[1]: Leaving directory '/home/ubuntu/wt/8-riscv-dv-fix/sim'
+make: *** [Makefile:77: core-test] Error 2
+Command exited with non-zero status 2
+wall 223.20 s
+make core-test rc=2
+wall 223.20 s
+# Cause and fix: ../pmp-partial-match.txt (vec_trap test 11 set up its buffer with M-mode dword stores across a TOR top that test 9 left at pbuf+4; corrected in 37aa1d7).

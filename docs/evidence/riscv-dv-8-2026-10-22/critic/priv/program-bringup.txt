@@ -1,0 +1,62 @@
+# Issue #8 completeness review: bring-up of sim/riscv-dv/directed/sigil_priv_test.S against Spike
+# sigil-verify, 2026-10-22 UTC (23:30-23:45). Spike 2c300cd9, Verilator 5.048, GCC 16.1.0.
+# Each first run of the program diverged on something that is not a core bug; what was
+# changed for each, before the program was committed (a36305c). Commands:
+#   scripts/riscv_dv_regress.sh --tests sigil_priv_test --seeds 1-4 --jobs 2 --keep --out ~/rdvcrit2/priv1
+# (the out directory was reused, so the outputs below are the driver's console lines).
+
+1. Assembly: "can't relax section: bad value" (ld: 6 bytes required for alignment to
+   8-byte boundary, but only 4 present). The stub's `.align 3` sat inside
+   `.option norvc`, which cannot pad 2 bytes. Fixed in the program: align before
+   `.option push/norvc/norelax`.
+
+2. mip.MTIP (platform): first divergence at the first `csrc mip`:
+     MISMATCH sigil_priv_test seed 1 #24079 pc=0x8000011a insn=0x3442b073 (csrc mip, t0):
+       csr 0x344 (mip): dut 0x0 ref 0x80
+   Spike's CLINT resets mtimecmp to 0, so MTIP is pending as soon as mtime moves;
+   core_tb has no CLINT (irq_m_timer_i stays 0). The program now writes
+   mtimecmp (0x0200_4000, hart 0, the Sigil SoC CLINT address too) = all ones at
+   start; on core_tb the store lands in plain memory. Both traces log the store.
+
+3. medeleg (implementation-defined, WARL):
+     MISMATCH sigil_priv_test seed 2 #24463 (csrw medeleg, t1): csr 0x302 (medeleg): dut 0x8004 ref 0x80a6
+     MISMATCH sigil_priv_test seed 1 #24470 (csrw medeleg, t1): csr 0x302 (medeleg): dut 0x100 ref 0x120
+   Sigil's medeleg write mask is 0xF0_B75D (rtl/core/sigil_csr.sv): instruction,
+   load and store access faults (bits 1, 5, 7) stay in M. Spike can delegate them.
+   Which exceptions are delegable is the implementation's choice (the spec has
+   software find out by writing ones and reading back). The program draws medeleg
+   from the bits both delegate: 2, 3, 8, 12, 13, 15 (0xB10C).
+
+4. mideleg bit 12, SGEIP (implementation-defined):
+     MISMATCH sigil_priv_test seed 1 #24473 (csrw mideleg, t1): csr 0x303 (mideleg): dut 0x646 ref 0x1646
+     MISMATCH sigil_priv_test seed 2 #24466 (csrw mideleg, t1): csr 0x303 (mideleg): dut 0x464 ref 0x1464
+   Both read the VS interrupts (bits 2, 6, 10) as delegated, as the H extension
+   requires. Bit 12 must also read one if guest external interrupts are
+   implemented (GEILEN > 0). Sigil has GEILEN = 0 (hgeie reads 0) and reads 0;
+   Spike without Ssaia also has hgeie = 0 but reads bit 12 as one
+   (riscv/csrs.cc: MIDELEG_FORCED_MASK = MIP_HS_MASK whenever H is enabled).
+   Waived in the comparator: rdv_trace.py CSR_IMPL_DEFINED = {0x303: 1 << 12}
+   (only that bit, only in CSR-write comparisons; the program never reads
+   mideleg into a register).
+
+5. After 1-4: seed 3 PASS; seeds 1, 2, 4 MISMATCH on an M-mode `ld` of a PTE that
+   Spike faults (load access fault) and the core does not: the PMP core bug,
+   pmp-partial-match.txt. With NA4 left out of the program (exploration copy
+   only), 38 of 38 seeds matched on the RTL of adf4c97; with the fix (3ae351d)
+   the committed program matches (full-regression.txt).
+
+Spike configuration added with the program (sim/riscv-dv/rdv_regress.py SPIKE_ISA):
+`_svadu`. Sigil's walker always sets A and D in hardware (Svadu semantics);
+Spike does so only with Svadu and menvcfg.ADUE = 1, which the program sets,
+and otherwise raises page faults (Svade). The pygen tests run with satp Bare
+and never touch menvcfg, so this changes nothing for them (the full list on
+c98428b has the same records as on adf4c97: full-regression.txt).
+
+Things the program keeps clear of because the spec leaves them to the
+implementation: A clear in a leaf (A may be set speculatively; the program
+presets A and randomizes D, whose update must be exact), misaligned accesses
+(their priority against page and access faults is implementation-defined), SC
+(whether a failing SC to a no-write page faults), FP stores (FS may go Dirty
+imprecisely), WFI in U, nonzero ASIDs (ASIDLEN), mixed NAPOT groups, PMP
+entry 0 in TOR mode (base 0, the ACT PA0 waiver area), locked PMP entries and
+MPRV (they would also stop the M-mode scaffolding).

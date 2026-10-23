@@ -1,0 +1,1 @@
+# git status --short (must be empty):
