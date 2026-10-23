@@ -712,3 +712,33 @@ die").
   KLayout DRC of the s116b GDS (`make drc`, ORFS sky130hd.lydrc: BEOL
     checks, deep mode, 4 threads; 119,050,226 flat polygons) from
     23:33Z, in parallel.
+  Why the 4 remaining slew nets resist repair_design (s116b final,
+    sigil_hier analysis of the RCX SPEF + 6_final.def + route.guide):
+    each runs a few hundred um in a straight line near the right
+    core edge (e.g. net34993, buf_4 at (3369, 1639) to an o21ai_0 and
+    9 diodes at (3374, 2177-2191), 550 um apart), but its global route
+    (route.guide of the global-route stage, followed by the detailed
+    route) detours ~800 um west to x = 2560 and back on met1/met2:
+    wire capacitance 0.397 pF (net35000, 800 um apart: 0.436 pF;
+    net50365, 1100 um: 0.605 pF). repair_design sizes its buffering
+    from a placement Steiner tree (the straight distance), so it sees
+    no violation to buffer. Test on the s116b data (`make run`, no
+    write): repair_design then rsz::repair_net_cmd with a 150 um
+    maximum wire length on the 4 nets still violating: 7 + 5 + 2 + 3
+    buffers, estimated max slew 0 / max cap 0. drt_eco_repair.tcl now
+    does this when SIGIL_NET_MAX_LEN is set (commit 027394e).
+  s116c round 1 (23:30-00:01Z, 31 min): repair_design 54 resized, 68
+    buffers on 98 nets (34 slew / 1 cap pins left, the 4 detoured
+    nets); repair_timing (margin 0.8) 41 buffers, 195 upsized, 120 pin
+    swaps, 6 clones (estimated WNS +0.698); detailed route 7.6 min
+    23,456 / 8,271 / 7,178 / 1,016 / 220 / 59 / 0; antenna rounds 32 ->
+    3 -> 1 -> 0 nets; OpenRCX 54 s. Routed (OpenRCX, TT): setup WNS
+    +0.308 ns (0 endpoints; the dbg_st outputs now meet), hold +0.247,
+    34 max-slew / 1 max-cap pins (the same 4 nets), 0 antenna nets.
+    Stopped in round 2 (00:03Z): it would only repeat repair_design on
+    those nets. 5_2_route.odb (round 1) and 5_2_route_eco1.spef kept.
+  s116d = s116c after round 1 (copied with timestamps) + ECO with
+    drt_eco_repair.tcl of 027394e: SIGIL_ECO_SPEF = s116c's
+    5_2_route_eco1.spef (OpenRCX of exactly this layout),
+    SIGIL_NET_MAX_LEN=150, SIGIL_SETUP_MARGIN=0.3, slew/cap margins
+    20 %, up to 3 rounds. Started 00:03Z.
