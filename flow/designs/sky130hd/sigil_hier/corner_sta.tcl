@@ -8,7 +8,7 @@
 #   docker run ... -e RES=<results dir> -e CORNER=ss -e OUT=<dir> \
 #     -e PDKLIB=<dir> -e MODEL=1 <image> openroad -exit -no_init corner_sta.tcl
 # env: RES (results dir), STAGE (see below), CORNER (ss|tt|ff|orfs), OUT (report dir),
-#      PDKLIB (dir with the sky130_fd_sc_hd corner .libs),
+#      PDKLIB (dir with the sky130_fd_sc_hd corner .libs), BLOCK_LIBS (see below),
 #      MODEL (1: also write a timing model <design>_<corner>.lib to OUT)
 set res $::env(RES); set corner $::env(CORNER); set out $::env(OUT)
 set plat /OpenROAD-flow-scripts/flow/platforms
@@ -26,6 +26,16 @@ foreach m [glob -nocomplain -directory $plat/sky130ram sky130_sram_*] {
   set n [file tail $m]
   if { [file exists $m/${n}_TT_1p8V_25C.lib] } {
     read_liberty $m/${n}_TT_1p8V_25C.lib
+  }
+}
+# BLOCK_LIBS (optional, top level): the hard blocks' timing models,
+# space-separated; %c in a path is replaced by the corner (tt for
+# "orfs"), e.g. .../sigil_cpu_%c.lib (corner models written by this
+# script with MODEL=1 on the routed block).
+if { [info exists ::env(BLOCK_LIBS)] && $::env(BLOCK_LIBS) != "" } {
+  set bc [expr { $corner == "orfs" ? "tt" : $corner }]
+  foreach l $::env(BLOCK_LIBS) {
+    read_liberty [string map [list %c $bc] $l]
   }
 }
 # STAGE (optional, default 6_final): an earlier stage (e.g. 4_cts) is
