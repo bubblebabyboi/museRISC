@@ -1,0 +1,124 @@
+# 53-100mhz-afi gates at 0deea68 (RTL and fpga/ = cf63ab8, the source of CL build 2026_10_22-232507)
+# sigil-fpga-build r7iz.8xlarge; Verilator 5.048 deps, 5.020 Ubuntu package for lint; chainM.sh = the chainHEAD.sh
+# of ../fpga-timing-100mhz-afi-53-2026-10-22/gates.log at a new head (off: SIGIL_FPGA_TIMING undefined, lint
+# 5.048 + 5.020 with the FPGA lint lines, oops walker set, core-test, riscv-tests; fpga: SIGIL_FPGA_TIMING +
+# SIGIL_VRF_OREG on every Verilator build, oops walker set OOPS_CFG=fpga, core-test with the vrforeg/fpga SRAM
+# families, riscv-tests). core-test includes fpgatop-f2-quick (F2 platform, memtest) and the 74-run directed
+# list (the #73 walker race tests and the #53 review tests).
+
+## Chain off at 0deea68
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T23:39:16Z mode off
+head 0deea68d85dbe59e81987fb0e11a8a7c42a78e54 dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=4
+/dev/root       484G  268G  216G  56% /
+lint-5.048 rc=0 27s 23:39:43
+lint-5.020 rc=0 22s 23:40:05
+oops-ptw-walker rc=0 93s 23:41:38
+core-test rc=0 3670s 00:42:48
+riscv-tests rc=0 20s 00:43:08
+end 2026-10-23T00:43:08Z porcelain-after=[0]
+DONE
+core-test:
+  TB PASS lines: 396, TB FAIL lines: 0, %Error lines: 0
+  CSR TB PASS (214 checks) [FPGA_TIMING]
+  MMU TB PASS (74 checks)
+  MMU TB PASS (77 checks) [FPGA_TIMING]
+  DCACHE TB PASS [FPGA_TIMING]
+  ICACHE TB PASS [FPGA_TIMING]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro fakeram45]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro sky130]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro oreg]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro vrforeg]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro fpga]
+  f2:       1 F2 MEMTEST PASS
+  f2:       5 F2 PLATFORM PASS
+riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+oops-ptw-walker: 42 CORE TB PASS, 42 PTWINV violations=0
+lint:
+  5.048 lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.048 lint OK sigil_mmu -GFPGA_TIMING=1'b1
+  5.048 lint OK sigil_csr -GFPGA_TIMING=1'b1
+  5.020 lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  5.020 lint OK sigil_mmu -GFPGA_TIMING=1'b1
+  5.020 lint OK sigil_csr -GFPGA_TIMING=1'b1
+## Chain fpga at 0deea68
+host ip-172-31-66-228 (sigil-fpga-build) start 2026-10-22T23:39:16Z mode fpga
+head 0deea68d85dbe59e81987fb0e11a8a7c42a78e54 dirty=[0]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=4
+VERILATOR=verilator +define+SIGIL_FPGA_TIMING +define+SIGIL_VRF_OREG
+/dev/root       484G  268G  216G  56% /
+oops-ptw-walker-fpga rc=0 271s 23:43:47
+core-test-fpga rc=0 3947s 00:49:34
+riscv-tests-fpga rc=0 24s 00:49:58
+end 2026-10-23T00:49:58Z porcelain-after=[0]
+DONE
+core-test:
+  TB PASS lines: 387, TB FAIL lines: 0, %Error lines: 0
+  CSR TB PASS (214 checks) [FPGA_TIMING]
+  MMU TB PASS (74 checks)
+  MMU TB PASS (77 checks) [FPGA_TIMING]
+  DCACHE TB PASS [FPGA_TIMING]
+  ICACHE TB PASS [FPGA_TIMING]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro vrforeg]
+  CORE TB PASS: 74 directed runs, 0 FAIL [SRAM macro fpga]
+  f2:       1 F2 MEMTEST PASS
+  f2:       5 F2 PLATFORM PASS
+riscv-tests: riscv-tests rv64ui+um+ua+uf+ud+uc+mi+si: 123/123 PASS, 0 FAIL
+oops-ptw-walker: 42 CORE TB PASS, 42 PTWINV violations=0
+
+## First run of the chains at cf63ab8 (before 08c607a): core-test stopped at mmu_tb_fpga in both settings
+# The unit TB had not been updated for sigil_mmu's new dl_mem_i port (undriven = EX capture); 53-mem-stage-pipeline
+# fixed the TB in 08c607a (merged as 0deea68), RTL unchanged. Every other step passed:
+M1-off: head cf63ab87a166c6b03ab1abcba0e79d2ef3631dbf dirty=[0]
+  lint-5.048 rc=0 30s 23:26:49
+  lint-5.020 rc=0 22s 23:27:11
+  oops-ptw-walker rc=0 115s 23:29:06
+  core-test rc=2 72s 23:30:18
+  riscv-tests rc=0 42s 23:31:00
+  end 2026-10-22T23:31:00Z porcelain-after=[0]
+  DONE
+M1-fpga: head cf63ab87a166c6b03ab1abcba0e79d2ef3631dbf dirty=[0]
+  oops-ptw-walker-fpga rc=0 298s 23:31:17
+  core-test-fpga rc=2 71s 23:32:28
+  riscv-tests-fpga rc=0 48s 23:33:16
+  end 2026-10-22T23:33:16Z porcelain-after=[0]
+  DONE
+      2 FAIL tb/cpp/mmu_tb.cpp:194: xlate_d(0x401000ull, false, 1, &pa) == 1
+
+## Equivalence (FPGA_TIMING=0 identical to 73-oops-fix), macOS, at cf63ab8 (RTL = 0deea68)
+# REF=origin/73-oops-fix SV2V=<sv2v> scripts/fpga_timing_equiv.sh   (default list)
+# head cf63ab87a166c6b03ab1abcba0e79d2ef3631dbf dirty=[0], REF=origin/73-oops-fix (2968b6d), Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000334), sv2v 0.0.13, Darwin arm64, start 2026-10-22T23:27:06Z
+sigil_csr vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 3936 are proven and 0 are unproven, 53 s
+sigil_mmu vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 5128 are proven and 0 are unproven, 1300 s
+sigil_dcache vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 2076 are proven and 0 are unproven, 7 s
+sigil_icache vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 768 are proven and 0 are unproven, 1 s
+sigil_core (default) vs origin/73-oops-fix (2968b6d), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 68 s
+sigil_core (SIGIL_SRAM_OREG) vs origin/73-oops-fix (), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 68 s
+rc=0 end 2026-10-22T23:52:10Z
+# The SIGIL_SRAM_OREG line above lost its REF label: origin/73-oops-fix stopped resolving during the run (the
+# branch was deleted on the remote after 73-oops-fix reached main, and a fetch pruned the local ref). The gold
+# sources had been extracted at the start of the sigil_core proof. Rerun of sigil_core at 0deea68 with
+# REF=2968b6d (the same commit):
+sigil_core (default) vs 2968b6d (2968b6d), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 66 s
+sigil_core (SIGIL_SRAM_OREG) vs 2968b6d (2968b6d), FPGA_TIMING=0: EQUIVALENT, 12 paired submodules, 10537 are proven and 0 are unproven, 66 s
+
+## Local lint of the merge (macOS, Verilator 5.044): make lint rc=0, lintx.sh:
+  lint OK sigil_fpga_top  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  lint OK sigil_fpga_top -GAXI_DATA_W=512 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  lint OK sigil_fpga_ocl  +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  lint OK sigil_fpga_ocl -GRAM_SIZE=64'h1400000000 -GHBM_PRESENT=1'b1 +SIGIL_FPGA_TIMING +SIGIL_VRF_OREG
+  lint OK sigil_mmu -GFPGA_TIMING=1'b1
+  lint OK sigil_csr -GFPGA_TIMING=1'b1
+  verilator Verilator 5.044 2026-01-01 rev vUNKNOWN-built20260101

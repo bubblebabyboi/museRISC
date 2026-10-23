@@ -76,6 +76,8 @@ AWS FPGA: Build Time = 0:48:07.716880.
 # reports, build.log, the Vivado log and the generated clock constraints; ~/mhz100-cl/rpt-211218/
 # holds the full reports.
 #
+# Superseded as the AFI source by build 2 (../b2-232507/build-steps.txt), which has the #53 review
+# round 2 FPGA_TIMING fixes. The commands below are kept for the record.
 # AFI creation (for the lead; same bucket and form as the oops-fix AFI):
 #   aws s3 cp 2026_10_22-211218.Developer_CL.tar s3://sigil-fpga-afi-891612553438/dcp/
 #   aws ec2 create-fpga-image --region us-east-1

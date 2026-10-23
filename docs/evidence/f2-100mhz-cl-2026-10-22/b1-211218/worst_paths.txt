@@ -1,6 +1,6 @@
 # Worst paths, CL build 2026_10_22-211218 (53-100mhz-afi cb6c1a2, B5 + H0, SIGIL_FPGA_TIMING + SIGIL_VRF_OREG)
 # Compact form of report_timing -to <clock> -setup -max_paths 10 -nworst 1 -unique_pins (hold: -max_paths 5)
-# and report_timing -from/-to the core clock (inter-clock) on cl_sigil.2026_10_22-211218.post_route.dcp (rpt.tcl).
+# and report_timing -from/-to the core clock (inter-clock) on cl_sigil.2026_10_22-211218.post_route.dcp (../rpt.tcl).
 # Core clock = clk_out2_clk_mmcm_b (AWS_CLK_GEN clk_extra_b1, 10 ns); clk_main_a0 4 ns; DDR = mmcm_clkout0 3.752 ns;
 # HBM AXI = clk_out1_clk_mmcm_hbm 4 ns. Path group **async_default** = recovery/removal checks on async resets.
 # Columns: slack, path group, requirement, data path delay (logic + route), logic levels; then start pin -> end pin.

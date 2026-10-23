@@ -1,4 +1,4 @@
-# report_bus_skew on cl_sigil.2026_10_22-211218.post_route.dcp (busskew.tcl): the set_bus_skew constraints
+# report_bus_skew on cl_sigil.2026_10_22-211218.post_route.dcp (../busskew.tcl): the set_bus_skew constraints
 # of the clock-converter / CDC IP (not covered by report_timing_summary). 43 constraints, all met,
 # worst slack +2.838 ns. Columns: Id, instance under WRAPPER/CL, corner, requirement, actual skew, slack (ns).
 1    G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3 Fast  req   2.222 actual  -0.781 slack   3.003

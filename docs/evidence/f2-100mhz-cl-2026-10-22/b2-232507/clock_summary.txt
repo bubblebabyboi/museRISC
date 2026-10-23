@@ -1,0 +1,16 @@
+clock                                          period_ns      MHz  setup_in  setup_all hold_in   hold_all 
+(setup_in/hold_in: paths launched and captured by the clock; setup_all/hold_all: every path captured by it, inter-clock included)
+CLK_DIMM_DP                                      10.005    99.95    8.036     8.036     0.048     0.048  
+WRAPPER/RL/RL_DEBUG_BRIDGE/inst/axi_jtag/inst/u_jtag_proc/tck_i_reg/Q   32.000    31.25   13.157    13.157     0.215     0.215  
+clk_125                                           8.000   125.00    inf       inf       inf       inf    
+clk_core                                          4.000   250.00    inf       inf       inf       inf    
+clk_hbm_ref                                      10.000   100.00    4.204     4.204     0.012     0.012  
+clk_main_a0                                       4.000   250.00    0.033     0.033     0.010     0.010  
+clk_out1_clk_mmcm_hbm                             4.000   250.00    0.120     0.120     0.014     0.014  
+clk_out2_clk_mmcm_b                              10.000   100.00    0.336     0.336     0.005     0.005  
+clk_spi                                          40.000    25.00   10.520    10.520     8.585     8.585  
+mmcm_clkout0                                      3.752   266.52    0.051     0.051     0.010     0.010  
+mmcm_clkout6                                      7.504   133.26    1.909     1.339     0.011     0.011  
+pll_clk[0]_DIV                                    3.752   266.52      -       0.646       -       0.782  
+pll_clk[1]_DIV                                    3.752   266.52      -       0.891       -       0.706  
+pll_clk[2]_DIV                                    3.752   266.52      -       0.565       -       0.633  

@@ -1,0 +1,281 @@
+# Worst paths, CL build 2026_10_22-232507 (53-100mhz-afi cf63ab8, B5 + H0, SIGIL_FPGA_TIMING + SIGIL_VRF_OREG)
+# Compact form of report_timing -to <clock> -setup -max_paths 10 -nworst 1 -unique_pins (hold: -max_paths 5)
+# and report_timing -from/-to the core clock (inter-clock) on cl_sigil.2026_10_22-232507.post_route.dcp (../rpt.tcl).
+# Core clock = clk_out2_clk_mmcm_b (AWS_CLK_GEN clk_extra_b1, 10 ns); clk_main_a0 4 ns; DDR = mmcm_clkout0 3.752 ns;
+# HBM AXI = clk_out1_clk_mmcm_hbm 4 ns. Path group **async_default** = recovery/removal checks on async resets.
+# Columns: slack, path group, requirement, data path delay (logic + route), logic levels; then start pin -> end pin.
+
+== worst_setup_to_clk_out2_clk_mmcm_b
+0.336ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.472ns  (logic 2.210ns, route 7.262ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][39]/CE
+0.336ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.472ns  (logic 2.210ns, route 7.262ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][41]/CE
+0.337ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.471ns  (logic 2.210ns, route 7.261ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][36]/CE
+0.337ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.471ns  (logic 2.210ns, route 7.261ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][40]/CE
+0.337ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.468ns  (logic 2.210ns, route 7.258ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][44]/CE
+0.337ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.468ns  (logic 2.210ns, route 7.258ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][47]/CE
+0.339ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.466ns  (logic 2.210ns, route 7.256ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][37]/CE
+0.339ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.466ns  (logic 2.210ns, route 7.256ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][45]/CE
+0.347ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.471ns  (logic 2.210ns, route 7.261ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][12]/CE
+0.347ns  grp clk_out2_clk_mmcm_b    req 10.000ns dp 9.471ns  (logic 2.210ns, route 7.261ns) levels 27
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[15][1]/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/pmpaddr_q_reg[11][20]/CE
+
+== worst_setup_to_clk_main_a0
+0.033ns  grp clk_main_a0            req 4.000ns  dp 3.475ns  (logic 0.222ns, route 3.253ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.033ns  grp clk_main_a0            req 4.000ns  dp 3.475ns  (logic 0.222ns, route 3.253ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.033ns  grp clk_main_a0            req 4.000ns  dp 3.475ns  (logic 0.222ns, route 3.253ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.033ns  grp clk_main_a0            req 4.000ns  dp 3.475ns  (logic 0.222ns, route 3.253ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.040ns  grp clk_main_a0            req 4.000ns  dp 3.467ns  (logic 0.222ns, route 3.245ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.040ns  grp clk_main_a0            req 4.000ns  dp 3.467ns  (logic 0.222ns, route 3.245ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.040ns  grp clk_main_a0            req 4.000ns  dp 3.467ns  (logic 0.222ns, route 3.245ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.040ns  grp clk_main_a0            req 4.000ns  dp 3.467ns  (logic 0.222ns, route 3.245ns) levels 1
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/state_reg[s_ready_i]/C
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.092ns  grp clk_main_a0            req 4.000ns  dp 3.670ns  (logic 0.080ns, route 3.590ns) levels 0
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m00_nodes/m00_w_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+ -> WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m00_nodes/m00_w_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[112]/R
+0.092ns  grp clk_main_a0            req 4.000ns  dp 3.670ns  (logic 0.080ns, route 3.590ns) levels 0
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m00_nodes/m00_w_node/inst/inst_mi_handler/m_sc_areset_r_reg/C
+ -> WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m00_nodes/m00_w_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[113]/R
+
+== worst_setup_to_mmcm_clkout0
+0.051ns  grp mmcm_clkout0           req 3.752ns  dp 3.270ns  (logic 0.702ns, route 2.568ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[11].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_BITSLICE_LOWER[4].GEN_RXTX_BITSLICE_EN.u_xiphy_bitslice_lower/xiphy_rxtx_bitslice/FIFO_RD_CLK
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_mcal_DQIn_reg[245]/D
+0.125ns  grp mmcm_clkout0           req 3.752ns  dp 3.377ns  (logic 0.079ns, route 3.298ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/rst_r1_reg/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[35].rd_buf_indx_cpy_r_reg[35][0]/R
+0.125ns  grp mmcm_clkout0           req 3.752ns  dp 3.377ns  (logic 0.079ns, route 3.298ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/rst_r1_reg/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[35].rd_buf_indx_cpy_r_reg[35][3]/R
+0.125ns  grp mmcm_clkout0           req 3.752ns  dp 3.377ns  (logic 0.079ns, route 3.298ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/rst_r1_reg/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[35].rd_buf_indx_cpy_r_reg[35][4]/R
+0.143ns  grp mmcm_clkout0           req 3.752ns  dp 3.531ns  (logic 0.989ns, route 2.542ns) levels 9
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[3].u_ddr_mc_group/txn_fifo_output_reg[0]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[3].u_ddr_mc_group/txn_fifo_output_reg[1]/D
+0.143ns  grp mmcm_clkout0           req 3.752ns  dp 3.359ns  (logic 0.079ns, route 3.280ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/rst_r1_reg/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[66].init_done_r_reg[66]/R
+0.189ns  grp mmcm_clkout0           req 3.752ns  dp 3.313ns  (logic 0.079ns, route 3.234ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/rst_r1_reg/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[68].rd_buf_indx_cpy_r_reg[68][5]/R
+0.203ns  grp mmcm_clkout0           req 3.752ns  dp 3.436ns  (logic 1.033ns, route 2.403ns) levels 9
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[2].u_ddr_mc_group/txn_fifo_output_reg[1]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[2].u_ddr_mc_group/txn_fifo_output_reg[35]/D
+0.223ns  grp mmcm_clkout0           req 3.752ns  dp 3.298ns  (logic 1.065ns, route 2.233ns) levels 9
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[3].u_ddr_mc_group/txn_fifo_output_reg[0]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[3].u_ddr_mc_group/txn_fifo_output_reg[46]/D
+0.226ns  grp mmcm_clkout0           req 3.752ns  dp 3.123ns  (logic 0.724ns, route 2.399ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_mig_ddr4_phy/inst/generate_block1.u_ddr_xiphy/byte_num[11].xiphy_byte_wrapper.u_xiphy_byte_wrapper/I_BITSLICE_UPPER[3].GEN_RXTX_BITSLICE_EN.u_xiphy_bitslice_upper/xiphy_rxtx_bitslice/FIFO_RD_CLK
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/rdData_reg[225]/D
+
+== worst_setup_to_clk_out1_clk_mmcm_hbm
+0.120ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.595ns  (logic 0.202ns, route 3.393ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][37][userdata][3]/CE
+0.120ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.595ns  (logic 0.202ns, route 3.393ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][37][userdata][5]/CE
+0.123ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.580ns  (logic 0.202ns, route 3.378ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][43][userdata][6]/CE
+0.123ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.580ns  (logic 0.202ns, route 3.378ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][46][userdata][5]/CE
+0.123ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.580ns  (logic 0.202ns, route 3.378ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][48][userdata][6]/CE
+0.123ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.580ns  (logic 0.202ns, route 3.378ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][50][userdata][1]/CE
+0.144ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.568ns  (logic 0.202ns, route 3.366ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][39][userdata][0]/CE
+0.151ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.567ns  (logic 0.202ns, route 3.365ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][39][userdata][4]/CE
+0.163ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.537ns  (logic 0.202ns, route 3.335ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][33][userdata][2]/CE
+0.163ns  grp clk_out1_clk_mmcm_hbm  req 4.000ns  dp 3.537ns  (logic 0.202ns, route 3.335ns) levels 1
+    WRAPPER/CL/G_HBM.HBM/AXI3_REG_SLC_HBM/inst/r.r_pipe/m_valid_i_reg/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][33][userdata][7]/CE
+
+== inter_from_core
+3.875ns  grp clk_main_a0            req 4.444ns  dp 0.594ns  (logic 0.080ns, route 0.514ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.927ns  grp clk_main_a0            req 4.444ns  dp 0.542ns  (logic 0.078ns, route 0.464ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.955ns  grp clk_main_a0            req 4.444ns  dp 0.514ns  (logic 0.079ns, route 0.435ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.962ns  grp clk_main_a0            req 4.444ns  dp 0.507ns  (logic 0.079ns, route 0.428ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.021ns  grp clk_main_a0            req 4.444ns  dp 0.448ns  (logic 0.079ns, route 0.369ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.022ns  grp clk_main_a0            req 4.444ns  dp 0.447ns  (logic 0.078ns, route 0.369ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.031ns  grp clk_main_a0            req 4.444ns  dp 0.438ns  (logic 0.080ns, route 0.358ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.052ns  grp clk_main_a0            req 4.444ns  dp 0.417ns  (logic 0.076ns, route 0.341ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.079ns  grp clk_main_a0            req 4.444ns  dp 0.390ns  (logic 0.079ns, route 0.311ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+4.088ns  grp clk_main_a0            req 4.444ns  dp 0.381ns  (logic 0.078ns, route 0.303ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+
+== inter_to_core
+3.593ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.432ns  (logic 0.079ns, route 0.353ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.635ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.390ns  (logic 0.079ns, route 0.311ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.644ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.381ns  (logic 0.078ns, route 0.303ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.656ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.369ns  (logic 0.079ns, route 0.290ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.656ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.369ns  (logic 0.077ns, route 0.292ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.676ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.349ns  (logic 0.080ns, route 0.269ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.682ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.343ns  (logic 0.079ns, route 0.264ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.696ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.329ns  (logic 0.079ns, route 0.250ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.697ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.328ns  (logic 0.079ns, route 0.249ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+3.715ns  grp clk_out2_clk_mmcm_b    req 4.000ns  dp 0.310ns  (logic 0.078ns, route 0.232ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+
+== worst_hold_to_clk_out2_clk_mmcm_b
+0.005ns  grp clk_out2_clk_mmcm_b    req 0.000ns  dp 0.314ns  (logic 0.060ns, route 0.254ns) levels 0
+    WRAPPER/CL/OCL_CDC/inst/gen_clock_conv.gen_async_lite_conv.clock_conv_lite_fwd_aw/handshake/dest_hsdata_ff_reg[8]/C
+ -> WRAPPER/CL/SIGIL/u_regs/aw_addr_q_reg[8]/D
+0.008ns  grp clk_out2_clk_mmcm_b    req 0.000ns  dp 0.314ns  (logic 0.060ns, route 0.254ns) levels 0
+    WRAPPER/CL/OCL_CDC/inst/gen_clock_conv.gen_async_lite_conv.clock_conv_lite_fwd_w/handshake/dest_hsdata_ff_reg[12]/C
+ -> WRAPPER/CL/SIGIL/u_regs/w_data_q_reg[12]/D
+0.009ns  grp clk_out2_clk_mmcm_b    req 0.000ns  dp 0.319ns  (logic 0.060ns, route 0.259ns) levels 0
+    WRAPPER/CL/OCL_CDC/inst/gen_clock_conv.gen_async_lite_conv.clock_conv_lite_fwd_aw/handshake/dest_hsdata_ff_reg[9]/C
+ -> WRAPPER/CL/SIGIL/u_regs/aw_addr_q_reg[9]/D
+0.010ns  grp clk_out2_clk_mmcm_b    req 0.000ns  dp 0.246ns  (logic 0.083ns, route 0.163ns) levels 1
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_crypto_bridge/u_crypto/u_hash/first_reg/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_crypto_bridge/u_crypto/u_hash/u_sha512/g_reg[5]/D
+0.010ns  grp clk_out2_clk_mmcm_b    req 0.000ns  dp 0.246ns  (logic 0.084ns, route 0.162ns) levels 1
+    WRAPPER/CL/SIGIL/u_top/u_soc/u_crypto_bridge/u_crypto/u_hash/first_reg/C
+ -> WRAPPER/CL/SIGIL/u_top/u_soc/u_crypto_bridge/u_crypto/u_hash/u_sha512/g_reg[9]/D
+
+== worst_hold_to_clk_main_a0
+0.010ns  grp clk_main_a0            req 0.000ns  dp 0.129ns  (logic 0.058ns, route 0.071ns) levels 0
+    <hidden>/<hidden>/cl_sigil/cl_axi_clock_converter__xdcDup__1/axi_clock_converter_v2_1_35_axi_clock_converter__parameterized0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+ -> WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/s01_entry_pipeline/s01_mmu/inst/w_sreg/skid_buffer_reg[1464]/D
+0.010ns  grp clk_main_a0            req 0.000ns  dp 0.406ns  (logic 0.060ns, route 0.346ns) levels 0
+    WRAPPER/CL/OCL_CDC/inst/gen_clock_conv.gen_async_lite_conv.clock_conv_lite_resp_r/handshake/dest_hsdata_ff_reg[9]/C
+ -> <hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+0.010ns  grp clk_main_a0            req 0.000ns  dp 0.178ns  (logic 0.059ns, route 0.119ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[151]/C
+ -> WRAPPER/CL/HBM_SLC0/inst/r.r_pipe/skid_buffer_reg[132]/D
+0.010ns  grp clk_main_a0            req 0.000ns  dp 0.214ns  (logic 0.058ns, route 0.156ns) levels 0
+    WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_exit_pipeline/m01_exit/inst/r_reg/m_vector_i_reg[1082]/C
+ -> WRAPPER/CL/DDR_XBAR/cl_axi_sc_2x2_i/smartconnect_0/inst/m01_nodes/m01_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_42_55/RAMC/I
+0.011ns  grp clk_main_a0            req 0.000ns  dp 0.192ns  (logic 0.060ns, route 0.132ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[2].inst_xpm_memory/xpm_memory_base_inst/gen_rd_b.gen_rd_b_synth_template.gen_rf_narrow_reg.doutb_reg_reg[12]/C
+ -> WRAPPER/CL/HBM_SLC0/inst/r.r_pipe/skid_buffer_reg[359]/D
+
+== worst_hold_to_mmcm_clkout0
+0.010ns  grp mmcm_clkout0           req 0.000ns  dp 0.170ns  (logic 0.080ns, route 0.090ns) levels 1
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/u_ddr_mc_write/genByte[8].u_ddr_mc_wr_byte/genBit[7].u_ddr_mc_wr_bit/dReg_reg[12]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/u_ddr_mc_write/genByte[8].u_ddr_mc_wr_byte/genBit[7].u_ddr_mc_wr_bit/dReg_reg[4]/D
+0.011ns  grp mmcm_clkout0           req 0.000ns  dp 0.166ns  (logic 0.080ns, route 0.086ns) levels 1
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[0].u_ddr_mc_group/trcd_cntr_reg[1][0][0][2]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[0].u_ddr_mc_group/trcd_cntr_reg[1][0][0][3]/D
+0.011ns  grp mmcm_clkout0           req 0.000ns  dp 0.182ns  (logic 0.081ns, route 0.101ns) levels 1
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/u_ddr_mc_write/genByte[6].u_ddr_mc_wr_byte/genBit[2].u_ddr_mc_wr_bit/wosp_reg[1]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_mc_pi/u_ddr_mc_write/genByte[6].u_ddr_mc_wr_byte/genBit[2].u_ddr_mc_wr_bit/dReg_reg[9]/D
+0.011ns  grp mmcm_clkout0           req 0.000ns  dp 0.190ns  (logic 0.058ns, route 0.132ns) levels 0
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[0].u_ddr_mc_group/txn_fifo_output_reg[45]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_mc/bgr[0].u_ddr_mc_group/cas_pend_fifo_reg[3][45]/D
+0.011ns  grp mmcm_clkout0           req 0.000ns  dp 0.174ns  (logic 0.084ns, route 0.090ns) levels 1
+    WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[22].rd_buf_indx_cpy_r_reg[22][0]/C
+ -> WRAPPER/CL/SH_DDR/genblk1.IS_DDR_PRESENT.DDR4_0/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.rd_buffer_ram[22].init_done_r_reg[22]/D
+
+== worst_hold_to_clk_out1_clk_mmcm_hbm
+0.014ns  grp clk_out1_clk_mmcm_hbm  req 0.000ns  dp 0.211ns  (logic 0.059ns, route 0.152ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][10][userdata][3]/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_98_111/RAMC/I
+0.024ns  grp clk_out1_clk_mmcm_hbm  req 0.000ns  dp 0.205ns  (logic 0.060ns, route 0.145ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][7][userdata][2]/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_70_83/RAMD_D1/I
+0.026ns  grp clk_out1_clk_mmcm_hbm  req 0.000ns  dp 0.229ns  (logic 0.060ns, route 0.169ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][44][userdata][5]/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[2].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_0_13/RAMF/I
+0.027ns  grp clk_out1_clk_mmcm_hbm  req 0.000ns  dp 0.127ns  (logic 0.039ns, route 0.088ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.gen_upsizer.inst_upsizer/gen_r_ch.accum_reg[bytes][5][userdata][3]/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[0].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_56_69/RAMD/I
+0.027ns  grp clk_out1_clk_mmcm_hbm  req 0.000ns  dp 0.239ns  (logic 0.058ns, route 0.181ns) levels 0
+    WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[2].inst_wr_addra/count_r_reg[3]/C
+ -> WRAPPER/CL/G_HBM.HBM/AXI_CONVERTER_AXI4_AXI3/cl_axi_sc_1x1_i/smartconnect_0/inst/s00_nodes/s00_r_node/inst/inst_mi_handler/gen_normal_area.inst_fifo_node_payld/gen_xpm_memory_fifo.inst_fifo/gen_mem_rep[2].inst_xpm_memory/xpm_memory_base_inst/gen_wr_a.gen_word_narrow.mem_reg_0_31_70_83/RAMA/WADR3
+
+== data path nets of the worst core-clock paths: fanout, net route delay (ns), arrival (ns), net
+   (u_soc = WRAPPER/CL/SIGIL/u_top/u_soc, u_core = u_soc/u_cpu/u_core; unnamed LUT-to-LUT nets with fanout < 8 omitted)
+-- Slack (MET) : 0.336ns (required time - arrival time), Logic Levels: 27 (CARRY8=5 LUT2=2 LUT4=3 LUT5=2 LUT6=15)
+   u_core/u_csr/pmpaddr_q_reg[15][1]/C -> u_core/u_csr/pmpaddr_q_reg[11][39]/CE
+  fo 14     route 0.319  at 10.511  u_core/u_csr/pmpaddr_q_reg[15][53]_0[1]
+  fo 3      route 0.618  at 11.535  u_core/u_csr/g_pmp_par.hit476_in[35]
+  fo 2      route 0.230  at 12.988  u_core/u_csr/g_pmp_par.hit319_in
+  fo 1      route 0.232  at 14.641  u_core/u_mmu/pmp_allow_data
+  fo 10     route 0.122  at 15.351  u_core/u_csr/memwb_cause_q_reg[0]
+  fo 4      route 0.142  at 15.642  u_core/u_mmu/vls_i_q_reg[0]_0
+  fo 22     route 0.219  at 15.950  u_core/u_csr/ack_i0
+  fo 1      route 0.303  at 17.097  u_core/u_csr/csr_we
+  fo 47     route 0.418  at 17.552  u_core/u_csr/mstatus_mie_q1
+  fo 54     route 0.595  at 19.585  u_core/u_csr/pmpaddr_q[11][53]_i_1_n_0

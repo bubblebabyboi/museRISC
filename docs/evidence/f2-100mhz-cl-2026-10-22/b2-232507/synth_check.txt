@@ -1,29 +1,29 @@
-# CL synthesis of build 2026_10_22-211218: do SIGIL_FPGA_TIMING and SIGIL_VRF_OREG reach it?
+# CL synthesis of build 2026_10_22-232507: do SIGIL_FPGA_TIMING and SIGIL_VRF_OREG reach it?
 
 ## 1. build.log (build_cl_sigil.sh --fpga-timing -> SIGIL_CL_DEFINES -> synth_cl_sigil.tcl)
 
-  build_cl_sigil: tag 2026_10_22-211218, sigil cb6c1a24fff5a99196910d5af16ece1923dc30ac, recipe_b=B5 recipe_hbm=H0 defines=SIGIL_FPGA_TIMING,SIGIL_VRF_OREG
-  AWS FPGA: (21:12:25): Sigil core clock: clk_extra_b1, recipe B5 = 100000 kHz
-  AWS FPGA: (21:12:25): Sigil HBM AXI clock: clk_hbm_axi, recipe H0
-  AWS FPGA: (21:12:25): Sigil extra Verilog defines: SIGIL_FPGA_TIMING SIGIL_VRF_OREG
+  build_cl_sigil: tag 2026_10_22-232507, sigil cf63ab87a166c6b03ab1abcba0e79d2ef3631dbf, recipe_b=B5 recipe_hbm=H0 defines=SIGIL_FPGA_TIMING,SIGIL_VRF_OREG
+  AWS FPGA: (23:25:14): Sigil core clock: clk_extra_b1, recipe B5 = 100000 kHz
+  AWS FPGA: (23:25:14): Sigil HBM AXI clock: clk_hbm_axi, recipe H0
+  AWS FPGA: (23:25:14): Sigil extra Verilog defines: SIGIL_FPGA_TIMING SIGIL_VRF_OREG
   Command: synth_design -mode out_of_context -top cl_sigil -verilog_define XSDB_SLV_DIS -verilog_define SYNTHESIS -verilog_define SIGIL_CORE_CLK_KHZ=100000 -verilog_define SIGIL_HBM_RECIPE=0 -verilog_define SIGIL_FPGA_TIMING -verilog_define SIGIL_VRF_OREG -include_dirs {<src>/rtl/core <src>/fpga/cl_sigil/build/src_post_encryption} -part xcvu47p-fsvh2892-2-e -keep_equivalent_registers
   2040:	Parameter FPGA_TIMING bound to: 1'b1 
   2060:	Parameter FPGA_TIMING bound to: 1'b1 
-  sigil cb6c1a24fff5a99196910d5af16ece1923dc30ac recipe_b=B5 recipe_hbm=H0 defines=SIGIL_FPGA_TIMING,SIGIL_VRF_OREG aws-fpga c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
+  sigil cf63ab87a166c6b03ab1abcba0e79d2ef3631dbf recipe_b=B5 recipe_hbm=H0 defines=SIGIL_FPGA_TIMING,SIGIL_VRF_OREG aws-fpga c34f88e97eaf8a9b6ea7a3516ab65ee64690ab82
 
 The two 'Parameter FPGA_TIMING bound to' lines are sigil_csr and sigil_mmu, which take
 sigil_cache_pkg::FPGA_TIMING from sigil_core. The package localparam is 1 only under
 `ifdef SIGIL_FPGA_TIMING; VRF_OREG is 1 under SIGIL_VRF_OREG (SRAM_OREG stays 0).
 
-## 2. Post-synth netlist: synthcheck.tcl (cells) on cl_sigil.2026_10_22-211218.post_synth.dcp
+## 2. Post-synth netlist: ../synthcheck.tcl (cells) on cl_sigil.2026_10_22-232507.post_synth.dcp
 
 g_ireg / g_dreg: sigil_mmu's registered fetch and data translation (FPGA_TIMING=1 branch);
 g_oreg / out_q in u_vregfile: the VRF output registers (VRF_OREG=1); mt_q: the registered
 data-port lookup. *_off / g_noreg are the FPGA_TIMING=0 / VRF_OREG=0 branches.
 
-  SYNTHCHECK *g_ireg.* primitives=3428 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_ireg.ir_ctx_q[20]_i_1
-  SYNTHCHECK *g_dreg.* primitives=3033 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_dreg.mt_q[fault]_i_1
-  SYNTHCHECK *g_oreg.* primitives=387 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_oreg.out_q[0][63]_i_3
+  SYNTHCHECK *g_ireg.* primitives=3197 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_ireg.ir_ctx_q[20]_i_1
+  SYNTHCHECK *g_dreg.* primitives=3012 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_dreg.mt_q[fault]_i_1
+  SYNTHCHECK *g_oreg.* primitives=387 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_vec/g_oreg.out_q[0][63]_i_1
   SYNTHCHECK *g_mc_req.* primitives=0 e.g. 
   SYNTHCHECK *g_port_sel.* primitives=0 e.g. 
   SYNTHCHECK *g_dl.* primitives=0 e.g. 
@@ -37,18 +37,19 @@ data-port lookup. *_off / g_noreg are the FPGA_TIMING=0 / VRF_OREG=0 branches.
   SYNTHCHECK it_q regs=4
   SYNTHCHECK vrf out_q regs=192 e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_vregfile/g_oreg.out_q_reg[0][0]
 
-## 3. Post-synth netlist: netcheck.tcl (net names), FPGA branch label vs its else label
+## 3. Post-synth netlist: ../netcheck.tcl (net names), FPGA branch label vs its else label
 
 Every block with a local signal or function variable has nets under its FPGA label and none
 under the else label. g_mc_req, g_vls_end, g_port_sel and g_wr_attempt only assign signals
 declared outside the block, so neither branch leaves a labelled net (0 / 0 expected).
+g_dreg.dl_wf is the walk-fault match of the #53 review round 2 fix (535975a).
 
-  NETCHECK g_ireg        nets=5185  g_ireg_off        nets=0     e.g. SIGIL/u_top/g_ireg.it_va_q_reg[63][0]
-  NETCHECK g_dreg        nets=5431  g_dreg_off        nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_dreg.mt_q_reg[pa][10]
+  NETCHECK g_ireg        nets=4700  g_ireg_off        nets=0     e.g. SIGIL/u_top/g_ireg.it_va_q_reg[63][0]
+  NETCHECK g_dreg        nets=6776  g_dreg_off        nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_dreg.dl_wf
   NETCHECK g_mc_req      nets=0     g_mc_req_off      nets=0     e.g. 
   NETCHECK g_vls_end     nets=0     g_vls_end_off     nets=0     e.g. 
   NETCHECK g_port_sel    nets=0     g_port_sel_off    nets=0     e.g. 
-  NETCHECK g_dl          nets=195   g_dl_off          nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_dl.agu[0]
+  NETCHECK g_dl          nets=192   g_dl_off          nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_dl.agu[0]
   NETCHECK g_wr_attempt  nets=0     g_wr_attempt_off  nets=0     e.g. 
-  NETCHECK g_pmp_par     nets=932   g_pmp_par_off     nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_pmp_par.hit0
-  NETCHECK g_oreg        nets=376   g_noreg           nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_oreg.out_q_reg[2][47][0]
+  NETCHECK g_pmp_par     nets=909   g_pmp_par_off     nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/g_pmp_par.hit0
+  NETCHECK g_oreg        nets=393   g_noreg           nets=0     e.g. SIGIL/u_top/u_soc/u_cpu/u_core/u_csr/g_oreg.out_q_reg[2][28]

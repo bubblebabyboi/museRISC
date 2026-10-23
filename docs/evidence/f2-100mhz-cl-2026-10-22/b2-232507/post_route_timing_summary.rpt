@@ -1,0 +1,239 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date              : Fri Oct 23 00:20:11 2026
+| Host              : ip-172-31-66-228 running 64-bit Ubuntu 24.04.1 LTS
+| Command           : report_timing_summary -max_paths 5 -file /home/ubuntu/mhz100-cl/rpt-232507/out/post_route_timing_summary.rpt
+| Design            : top
+| Device            : xcvu47p-fsvh2892
+| Speed File        : -2  PRODUCTION 1.30 05-01-2022
+| Design State      : Routed
+| Temperature Grade : E
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+  Inter-SLR Compensation                     :  Conservative
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (35)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (1)
+4. checking unconstrained_internal_endpoints (11)
+5. checking no_input_delay (0)
+6. checking no_output_delay (0)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (35)
+-------------------------
+ There are 34 register/latch pins with no clock driven by root clock pin: SL/UC_PCIE4_BRIDGE/inst/pcie4_ip_i/inst/bufg_gt_sysclk/O (HIGH)
+
+ There is 1 register/latch pin with no clock driven by root clock pin: WRAPPER/RL/HOST_PCIE4C/inst/bufg_gt_sysclk/O (HIGH)
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (1)
+---------------------------------
+ There is 1 register/latch pin which need pulse_width check. (LOW)
+
+
+4. checking unconstrained_internal_endpoints (11)
+-------------------------------------------------
+ There are 0 pins that are not constrained for maximum delay.
+
+ There are 11 pins that are not constrained for maximum delay due to constant clock. (MEDIUM)
+
+
+5. checking no_input_delay (0)
+------------------------------
+ There are 0 input ports with no input delay specified.
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (0)
+-------------------------------
+ There are 0 ports with no output delay specified.
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      0.033        0.000                      0               341811        0.005        0.000                      0               340787        0.000        0.000                       0                136988  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock                                                                                                       Waveform(ns)           Period(ns)      Frequency(MHz)
+-----                                                                                                       ------------           ----------      --------------
+CLK_DIMM_DP                                                                                                 {0.000 5.003}          10.005          99.950          
+  mmcm_clkout0                                                                                              {0.000 1.876}          3.752           266.533         
+    pll_clk[0]                                                                                              {0.000 0.234}          0.469           2132.267        
+      pll_clk[0]_DIV                                                                                        {0.000 1.876}          3.752           266.533         
+    pll_clk[1]                                                                                              {0.000 0.234}          0.469           2132.267        
+      pll_clk[1]_DIV                                                                                        {0.000 1.876}          3.752           266.533         
+    pll_clk[2]                                                                                              {0.000 0.234}          0.469           2132.267        
+      pll_clk[2]_DIV                                                                                        {0.000 1.876}          3.752           266.533         
+  mmcm_clkout6                                                                                              {0.000 3.752}          7.504           133.267         
+clk_fpga                                                                                                    {0.000 4.000}          8.000           125.000         
+  clk_125                                                                                                   {0.000 4.000}          8.000           125.000         
+  clk_core                                                                                                  {0.000 2.000}          4.000           250.000         
+    WRAPPER/RL/RL_DEBUG_BRIDGE/inst/axi_jtag/inst/u_jtag_proc/tck_i_reg/Q                                   {0.000 16.000}         32.000          31.250          
+      WRAPPER/RL/RL_DEBUG_BRIDGE/inst/bsip/inst/USE_SOFTBSCAN.U_BSCAN_TAP/U_BASETAP/U_TAP/UPDATEDR_O_reg/Q  {16.000 32.000}        32.000          31.250          
+  clk_hbm_ref                                                                                               {0.000 5.000}          10.000          100.000         
+    clk_out1_clk_mmcm_hbm                                                                                   {0.000 2.000}          4.000           250.000         
+    clk_out2_clk_mmcm_b                                                                                     {0.000 5.000}          10.000          100.000         
+  clk_main_a0                                                                                               {0.000 2.000}          4.000           250.000         
+clk_spi                                                                                                     {0.000 20.000}         40.000          25.000          
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock                                                                          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----                                                                          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+CLK_DIMM_DP                                                                      8.036        0.000                      0                   23        0.048        0.000                      0                   23        2.001        0.000                       0                    19  
+  mmcm_clkout0                                                                   0.051        0.000                      0                64071        0.010        0.000                      0                64071        0.291        0.000                       0                 30790  
+    pll_clk[0]                                                                                                                                                                                                               0.065        0.000                       0                     9  
+      pll_clk[0]_DIV                                                                                                                                                                                                         0.676        0.000                       0                    40  
+    pll_clk[1]                                                                                                                                                                                                               0.065        0.000                       0                     9  
+      pll_clk[1]_DIV                                                                                                                                                                                                         0.676        0.000                       0                    44  
+    pll_clk[2]                                                                                                                                                                                                               0.065        0.000                       0                     9  
+      pll_clk[2]_DIV                                                                                                                                                                                                         0.676        0.000                       0                    40  
+  mmcm_clkout6                                                                   1.909        0.000                      0                 5950        0.011        0.000                      0                 5422        1.199        0.000                       0                  2024  
+clk_fpga                                                                                                                                                                                                                     1.200        0.000                       0                     4  
+  clk_125                                                                                                                                                                                                                    3.725        0.000                       0                     6  
+  clk_core                                                                                                                                                                                                                   0.000        0.000                       0                  1637  
+    WRAPPER/RL/RL_DEBUG_BRIDGE/inst/axi_jtag/inst/u_jtag_proc/tck_i_reg/Q       13.157        0.000                      0                    2        0.215        0.000                      0                    2       15.725        0.000                       0                    22  
+  clk_hbm_ref                                                                    4.691        0.000                      0                20509        0.012        0.000                      0                20509        0.000        0.000                       0                  8681  
+    clk_out1_clk_mmcm_hbm                                                        0.120        0.000                      0                11114        0.014        0.000                      0                11114        0.890        0.000                       0                  3633  
+    clk_out2_clk_mmcm_b                                                          0.336        0.000                      0                90496        0.005        0.000                      0                90496        4.458        0.000                       0                 40632  
+  clk_main_a0                                                                    0.033        0.000                      0               122479        0.010        0.000                      0               122479        1.458        0.000                       0                 49386  
+clk_spi                                                                         10.520        0.000                      0                    1        8.585        0.000                      0                    1       19.725        0.000                       0                     3  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock             To Clock                   WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------             --------                   -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+mmcm_clkout6           mmcm_clkout0                 1.489        0.000                      0                  133                                                                        
+mmcm_clkout0           pll_clk[0]_DIV               0.646        0.000                      0                  448        0.782        0.000                      0                  448  
+mmcm_clkout0           pll_clk[1]_DIV               0.891        0.000                      0                  392        0.706        0.000                      0                  392  
+mmcm_clkout0           pll_clk[2]_DIV               0.565        0.000                      0                  448        0.633        0.000                      0                  448  
+mmcm_clkout0           mmcm_clkout6                 1.339        0.000                      0                   36        0.589        0.000                      0                    1  
+clk_main_a0            clk_hbm_ref                 19.067        0.000                      0                   98                                                                        
+clk_main_a0            clk_out1_clk_mmcm_hbm        2.907        0.000                      0                  693                                                                        
+clk_main_a0            clk_out2_clk_mmcm_b          3.593        0.000                      0                   72                                                                        
+clk_hbm_ref            clk_main_a0                  6.891        0.000                      0                   36                                                                        
+clk_out1_clk_mmcm_hbm  clk_main_a0                  1.181        0.000                      0                  547                                                                        
+clk_out2_clk_mmcm_b    clk_main_a0                  3.875        0.000                      0                   52                                                                        
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group             From Clock             To Clock                   WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------             ----------             --------                   -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+**async_default**      clk_hbm_ref            clk_hbm_ref                  4.204        0.000                      0                  886        0.525        0.000                      0                  886  
+**async_default**      clk_main_a0            clk_main_a0                  0.105        0.000                      0                 1407        0.104        0.000                      0                 1407  
+**async_default**      clk_out1_clk_mmcm_hbm  clk_out1_clk_mmcm_hbm        0.318        0.000                      0                   32        0.230        0.000                      0                   32  
+**async_default**      clk_out2_clk_mmcm_b    clk_out2_clk_mmcm_b          2.746        0.000                      0                22898        0.032        0.000                      0                22898  
+**async_default**      mmcm_clkout0           mmcm_clkout0                 2.204        0.000                      0                  157        0.108        0.000                      0                  157  
+**default**            mmcm_clkout0                                       11.508        0.000                      0                   11       53.426        0.000                      0                    1  
+
+
