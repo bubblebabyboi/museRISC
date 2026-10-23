@@ -391,9 +391,9 @@
     int16 <-> f32 widening/narrowing conversions are legal, every form
     with a 16-bit FP operand and every FP form at SEW=8 is reserved. 16
     iterations x 6 vtypes (e16 mf4..m4, e8 m1), random data, mask, frm,
-    ta/ma and AVL. Fails on the RTL as of 65a48ae (pre-existing): the core
-    treats every FP vector instruction at SEW < 32 as reserved, including
-    the six int16 <-> f32 conversions, which Spike executes.
+    ta/ma and AVL. Failed on the RTL up to 4958c3f (pre-existing): the
+    core treated every FP vector instruction at SEW < 32 as reserved,
+    including the six int16 <-> f32 conversions, which Spike executes.
   asm: directed/sigil_vfcvt_sew16_test.S
   march: rv64gcv_zcb
   spike_max_instr: 20000000

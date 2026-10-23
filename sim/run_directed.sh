@@ -81,6 +81,9 @@ run vecsw vec_directed.bin 4000000
 run fpvecsw fpvec_directed.bin 4000000
 # .vf scalar NaN-boxing in every .vf class (issue #8).
 run fpvecnanbox fpvec_nanbox_directed.bin 4000000
+# int16 <-> f32 conversions at SEW=16 (Zve32f), the reserved forms
+# around them (issue #8).
+run vfcvt16 vfcvt_sew16_directed.bin 1000000
 run vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
 # viota.m (issue #8): vs2 is one mask register at any LMUL; random
 # vtype/AVL/policies/masks, plus the encodings that must trap.

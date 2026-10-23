@@ -882,10 +882,19 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
        (4'(signed'({1'b0, csr_vtype[5:3]})) <
         (4'sd4 - 4'(signed'({2'b00, idex_imm_q[2:1]})))));
   // FP vector legality (stage 9): FS must be enabled, SEW
-  // must name a supported FP width (32/64; no Zfh), and
-  // rounding forms need a legal dynamic frm. FPU op codes
-  // ride in imm[4:0]: ADD/SUB/MUL/DIV are 0..3.
-  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad;
+  // must name a supported FP width (32/64; no Zvfh/Zvfhmin),
+  // and rounding forms need a legal dynamic frm. FPU op codes
+  // ride in imm[4:0]: ADD/SUB/MUL/DIV are 0..3. At SEW=16 the
+  // int16 <-> f32 conversions are defined by Zve32f/Zve64d
+  // (their FP operand is EEW=32): vfwcvt.f.xu.v / f.x.v (sub-op
+  // 10/11) and vfncvt.xu.f.w / x.f.w / rtz.xu.f.w / rtz.x.f.w
+  // (16/17/22/23).
+  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad, ex_fp_cvt16;
+  assign ex_fp_cvt16 = (csr_vtype[5:3] == 3'd1) &&
+      (idex_ctrl_q.bext_op == VOP_FCVT) &&
+      ((idex_imm_q[4:1] == 4'b0101) ||
+       (idex_imm_q[4:1] == 4'b1000) ||
+       (idex_imm_q[4:1] == 4'b1011));
   assign ex_fp_vec =
       ((idex_ctrl_q.bext_op >= VOP_FBIN) &&
        (idex_ctrl_q.bext_op <= VOP_FMVFS)) ||
@@ -905,7 +914,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       ((idex_ctrl_q.bext_op == VOP_FCVT) &&
        (idex_imm_q[2:0] < 3'd6));
   assign ex_fp_bad = ex_fp_vec &&
-      ((csr_fs == 2'b00) || (csr_vtype[5:3] < 3'd2) ||
+      ((csr_fs == 2'b00) || ((csr_vtype[5:3] < 3'd2) && !ex_fp_cvt16) ||
        (ex_fp_rounds && (csr_frm > 3'd4)));
   // vmv<nr>r.v register count (log2) for the vector unit.
   assign vec_wlmul = (idex_instr_q[19:15] == 5'd1) ? 3'd1 :
