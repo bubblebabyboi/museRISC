@@ -11,7 +11,9 @@
 #    an 8 GiB ext4 file system, stored sparse).
 # 3. Loads the Sigil AFI if the FPGA does not already have it.
 # 4. Boots OpenSBI + Linux with the disk in the pmem window and your
-#    terminal as the console. Log in as sigil / sigil.
+#    terminal as the console, with the device tree for the AFI's core
+#    clock (sigil_host --info: sigil-f2.dtb at 62.5 MHz, sigil-f2-100.dtb
+#    at 100 MHz). Log in as sigil / sigil.
 # 5. After `sudo poweroff` in Debian, copies the pmem window back into
 #    the disk file, so the next run continues where you left off.
 #    Ctrl-] leaves without saving: the disk file stays as it was, and the
@@ -39,6 +41,7 @@ PMEM=0xC80000000                 # pmem disk window (docs/LINUX_PLATFORM.md)
 PMEM_BYTES=$((16 << 30))         # 16 GiB
 IMAGE=sigil-debian-13-riscv64.ext4.zst
 FILES=(fw_jump.bin Image sigil-f2.dtb "$IMAGE")
+DTB_100=sigil-f2-100.dtb         # 100 MHz AFIs; releases since #53 have it
 
 say() { printf '[sigil-linux] %s\n' "$*" >&2; }
 die() {
@@ -112,7 +115,7 @@ HOST=$SIGIL/fpga/host/sigil_host
 [ -x "$HOST" ] || die "$HOST not found: run fpga/scripts/f2_playground_setup.sh, or
   make -C $SIGIL/fpga/host SDK_DIR=\$HOME/aws-fpga/sdk"
 help=$("$HOST" --help 2>&1 || true)
-grep -q -- '--on-reboot' <<<"$help" || die "$HOST is too old for Sigil Linux: update it with
+grep -q -- '--info' <<<"$help" || die "$HOST is too old for Sigil Linux: update it with
   git -C $SIGIL pull && make -C $SIGIL/fpga/host SDK_DIR=\$HOME/aws-fpga/sdk"
 for c in curl sha256sum zstd od dd truncate flock; do
   command -v "$c" > /dev/null || die "$c not found (Ubuntu: sudo apt-get install -y zstd curl)"
@@ -142,6 +145,9 @@ verify() {  # check FILES against SHA256SUMS
   return "${PIPESTATUS[0]}"
 }
 fetch SHA256SUMS
+if awk -v f="$DTB_100" '$2 == f || $2 == "*" f { ok = 1 } END { exit !ok }' "$DL/SHA256SUMS"; then
+  FILES+=("$DTB_100")
+fi
 for f in "${FILES[@]}"; do fetch "$f"; done
 if ! verify; then
   say "checksum mismatch: downloading $TAG again"
@@ -178,6 +184,18 @@ if ! sudo fpga-describe-local-image -S 0 -H 2> /dev/null | grep -q "$AGFI.*loade
   sudo fpga-load-local-image -S 0 -I "$AGFI" -H > /dev/null
   say "(the first boot after an AFI load also zeroes the 64 GiB of DDR4: about 17 s)"
 fi
+# mtime ticks at the core clock, so the device tree's timebase-frequency
+# must be the AFI's core clock. sigil_host replaces a timebase that does
+# not match (with a warning), so sigil-f2.dtb still boots on a 100 MHz AFI
+# from a release without sigil-f2-100.dtb.
+khz=$(sudo "$HOST" --info 2> /dev/null | sed -n 's/^core_clk_khz=//p' || true)
+DTB=sigil-f2.dtb
+if [ "$khz" = 100000 ]; then DTB=$DTB_100; fi
+if [ ! -s "$DL/$DTB" ]; then
+  say "note: $TAG has no $DTB: booting sigil-f2.dtb, sigil_host sets its timebase to the core clock"
+  DTB=sigil-f2.dtb
+fi
+say "core clock ${khz:-?} kHz: device tree $DTB"
 
 # ---- 4. boot ---------------------------------------------------------------
 # The window is saved to a private temporary directory first (RAM if
@@ -200,7 +218,7 @@ if [ -z "${TMUX:-}${STY:-}" ]; then
   say "tip: run sigil-linux inside tmux: if SSH drops, the session and its unsaved changes are lost"
 fi
 set +e
-sudo "$HOST" --linux --fw "$DL/fw_jump.bin" --image "$DL/Image" --dtb "$DL/sigil-f2.dtb" \
+sudo "$HOST" --linux --fw "$DL/fw_jump.bin" --image "$DL/Image" --dtb "$DL/$DTB" \
   --load "$PMEM=$DISK" --save "$PMEM=$SAVED:$PMEM_BYTES" \
   --console --on-reboot rerun "${extra[@]}"
 rc=$?
