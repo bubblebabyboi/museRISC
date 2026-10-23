@@ -91,6 +91,30 @@ Waived (implementation-defined, kept out of the comparison or the programs):
 | speculative A-bit updates, priority of misaligned vs page/access faults, a failing SC to a no-write page, imprecise FS dirtying, WFI in U, ASIDLEN, mixed Svnapot groups | `sigil_priv_test` stays clear of them |
 | free-running counters (cycle, time, instret) | not in the generator's CSR list |
 
+## Follow-up: review of the `viota.m` fix (root cause 2)
+
+Branch `8-dvfix-viota`, RTL `65a48ae` (fixed) and the same with the
+`viota.m` hunk of `63a50a5` reverted
+([`critic/viota-review.txt`](critic/viota-review.txt)):
+
+- `sigil_viota_sweep_test` (all 1,408 combinations of the 22 legal
+  vtypes, tu/ta, mu/ma, unmasked/`v0.t`, 8 AVL classes; vs2 mostly an
+  odd register) and `sigil_viota_test`, seeds 1-16 each: 32/32 PASS
+  ([`critic/viota-flow-results-seeds1-16.csv`](critic/viota-flow-results-seeds1-16.csv));
+  the 16 sweep chunks also MATCH through Spike + `core_tb` +
+  `rdv_trace.py` directly, and every chunk fails on the reverted RTL.
+- Core tests: `viota_sweep_directed` (all 1,408), `viota_directed` and
+  `viota_cases_directed` (hand-computed results, Spike-checked) pass with
+  random bus timing, uncached and with VRF_OREG; on the reverted RTL
+  they fail.
+- Open, older than the fix and outside the rounds above (the programs
+  never write `vstart`): `vstart` != 0 does not make `viota.m`,
+  `vcpop.m`, `vfirst.m`, `vmsbf/vmsif/vmsof.m`, `vcompress.vm` or the
+  reductions illegal, as RVV 1.0 requires and Spike does;
+  `vstart_illegal_directed` and `viota_vstart_directed` fail (not in the
+  suite). `viota.m` with vs2 inside the vd group is reserved (Spike
+  traps, Sigil executes it).
+
 ## Not covered (docs/VERIFICATION.md "Limits")
 
 - Interrupts from devices at a given time (`riscv_full_interrupt_test`):

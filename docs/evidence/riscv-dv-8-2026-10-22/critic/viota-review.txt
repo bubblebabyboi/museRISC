@@ -1,0 +1,178 @@
+# Issue #8 review of 63a50a5 (viota.m vs2 is one mask register), branch 8-dvfix-viota
+# sigil-verify (c7i.8xlarge, Ubuntu 24.04), 2026-10-23 UTC. Spike 2c300cd90eb74bb79f3fcdd58596a6f8d842d01c, Verilator 5.048 2026-04-26 rev v5.048, riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0.
+# Trees: viota = 8-riscv-dv 65a48ae (fixed RTL) + the test files; viota-rev = the same with the
+# viota.m hunk of 63a50a5 reverted (3 lines in sigil_core.sv). Spike: --isa=rv64imafdcbvh_..._zvl512b_svnapot_svadu.
+
+## Sweep, 16 chunks of 88 = all 1408 combinations, through Spike + core_tb (random bus) + rdv_trace.py
+# one.sh WT sweepK K+1 "-DVIOTA_SWEEP=1 -DSWEEP_START=K*88" (RDV_SEED = K+1)
+viota chunk 0: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2987977 cycles) compare rc=0 MATCH ref=643808 dut=643808   
+viota chunk 1: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3185237 cycles) compare rc=0 MATCH ref=706165 dut=706165   
+viota chunk 2: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2987443 cycles) compare rc=0 MATCH ref=643714 dut=643714   
+viota chunk 3: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3184520 cycles) compare rc=0 MATCH ref=706010 dut=706010   
+viota chunk 4: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2995798 cycles) compare rc=0 MATCH ref=646237 dut=646237   
+viota chunk 5: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3193182 cycles) compare rc=0 MATCH ref=708809 dut=708809   
+viota chunk 6: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2991735 cycles) compare rc=0 MATCH ref=644633 dut=644633   
+viota chunk 7: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3184486 cycles) compare rc=0 MATCH ref=705995 dut=705995   
+viota chunk 8: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2989539 cycles) compare rc=0 MATCH ref=648380 dut=648380   
+viota chunk 9: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3222158 cycles) compare rc=0 MATCH ref=731997 dut=731997   
+viota chunk 10: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2981863 cycles) compare rc=0 MATCH ref=645952 dut=645952   
+viota chunk 11: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3186490 cycles) compare rc=0 MATCH ref=719710 dut=719710   
+viota chunk 12: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2992305 cycles) compare rc=0 MATCH ref=649081 dut=649081   
+viota chunk 13: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3222263 cycles) compare rc=0 MATCH ref=731913 dut=731913   
+viota chunk 14: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 2984510 cycles) compare rc=0 MATCH ref=646649 dut=646649   
+viota chunk 15: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=0 CORE TB PASS t.elf (htif, 3182934 cycles) compare rc=0 MATCH ref=720562 dut=720562   
+viota-rev chunk 0: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 53876 cycles) compare rc=1 MISMATCH ref=643808 dut=9727 #9687 pc=0x80000b50 insn=0x53782157 priv=3 (viota.m
+viota-rev chunk 1: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 56363 cycles) compare rc=1 MISMATCH ref=706165 dut=10536 #10496 pc=0x80001a70 insn=0x52982557 priv=3 (viota
+viota-rev chunk 2: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 53743 cycles) compare rc=1 MISMATCH ref=643714 dut=9735 #9695 pc=0x800007b0 insn=0x53d82057 priv=3 (viota.m
+viota-rev chunk 3: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 56885 cycles) compare rc=1 MISMATCH ref=706010 dut=10733 #10693 pc=0x80001350 insn=0x53782357 priv=3 (viota
+viota-rev chunk 4: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 54567 cycles) compare rc=1 MISMATCH ref=646237 dut=10005 #9965 pc=0x80002650 insn=0x52782857 priv=3 (viota.
+viota-rev chunk 5: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 54911 cycles) compare rc=1 MISMATCH ref=708809 dut=10094 #10054 pc=0x800043b0 insn=0x53d82f57 priv=3 (viota
+viota-rev chunk 6: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 54061 cycles) compare rc=1 MISMATCH ref=644633 dut=9825 #9785 pc=0x80004250 insn=0x52782f57 priv=3 (viota.m
+viota-rev chunk 7: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 56960 cycles) compare rc=1 MISMATCH ref=705995 dut=10720 #10680 pc=0x80002af0 insn=0x53182957 priv=3 (viota
+viota-rev chunk 8: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 53874 cycles) compare rc=1 MISMATCH ref=648380 dut=9722 #9682 pc=0x80002228 insn=0x50582757 priv=3 (viota.m
+viota-rev chunk 9: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 56322 cycles) compare rc=1 MISMATCH ref=731997 dut=10660 #10620 pc=0x80003f68 insn=0x51982e57 priv=3 (viota
+viota-rev chunk 10: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 54184 cycles) compare rc=1 MISMATCH ref=645952 dut=9859 #9819 pc=0x80000a68 insn=0x50982157 priv=3 (viota.
+viota-rev chunk 11: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 55884 cycles) compare rc=1 MISMATCH ref=719710 dut=10576 #10536 pc=0x800026a8 insn=0x50d82857 priv=3 (viot
+viota-rev chunk 12: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 54492 cycles) compare rc=1 MISMATCH ref=649081 dut=9962 #9922 pc=0x80003368 insn=0x51982b57 priv=3 (viota.
+viota-rev chunk 13: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 55252 cycles) compare rc=1 MISMATCH ref=731913 dut=10367 #10327 pc=0x80002288 insn=0x50b82757 priv=3 (viot
+viota-rev chunk 14: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 259 (htif, 53838 cycles) compare rc=1 MISMATCH ref=646649 dut=9759 #9719 pc=0x80000b28 insn=0x51582157 priv=3 (viota.
+viota-rev chunk 15: spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001 dut rc=1 CORE TB FAIL t.elf test 515 (htif, 98778 cycles) compare rc=1 MISMATCH ref=720562 dut=20722 #20682 pc=0x800026c8 insn=0x50f82857 priv=3 (viot
+
+## vs2 choices in the sweep (Spike logs): per chunk, viota.m count, odd vs2, vs2 = v0
+chunk  0: 88 viota.m, vs2 odd 68, vs2=v0 13
+chunk  1: 88 viota.m, vs2 odd 72, vs2=v0 8
+chunk  2: 88 viota.m, vs2 odd 69, vs2=v0 14
+chunk  3: 88 viota.m, vs2 odd 72, vs2=v0 12
+chunk  4: 88 viota.m, vs2 odd 66, vs2=v0 15
+chunk  5: 88 viota.m, vs2 odd 73, vs2=v0 10
+chunk  6: 88 viota.m, vs2 odd 73, vs2=v0 11
+chunk  7: 88 viota.m, vs2 odd 73, vs2=v0 14
+chunk  8: 88 viota.m, vs2 odd 72, vs2=v0 12
+chunk  9: 88 viota.m, vs2 odd 73, vs2=v0 10
+chunk 10: 88 viota.m, vs2 odd 71, vs2=v0 12
+chunk 11: 88 viota.m, vs2 odd 68, vs2=v0 14
+chunk 12: 88 viota.m, vs2 odd 75, vs2=v0 8
+chunk 13: 88 viota.m, vs2 odd 73, vs2=v0 12
+chunk 14: 88 viota.m, vs2 odd 72, vs2=v0 10
+chunk 15: 88 viota.m, vs2 odd 77, vs2=v0 9
+
+## riscv-dv flow (rdv_regress.py), fixed RTL: sigil_viota_sweep_test and sigil_viota_test seeds 1-16
+PASS        sigil_viota_test seed 2 
+PASS        sigil_viota_test seed 4 
+PASS        sigil_viota_sweep_test seed 3 
+PASS        sigil_viota_sweep_test seed 1 
+PASS        sigil_viota_test seed 3 
+PASS        sigil_viota_sweep_test seed 2 
+PASS        sigil_viota_test seed 1 
+PASS        sigil_viota_sweep_test seed 5 
+PASS        sigil_viota_test seed 5 
+PASS        sigil_viota_sweep_test seed 7 
+PASS        sigil_viota_sweep_test seed 4 
+PASS        sigil_viota_sweep_test seed 6 
+PASS        sigil_viota_test seed 6 
+PASS        sigil_viota_test seed 7 
+PASS        sigil_viota_test seed 8 
+PASS        sigil_viota_test seed 9 
+PASS        sigil_viota_sweep_test seed 9 
+PASS        sigil_viota_test seed 11 
+PASS        sigil_viota_sweep_test seed 8 
+PASS        sigil_viota_test seed 10 
+PASS        sigil_viota_sweep_test seed 10 
+PASS        sigil_viota_sweep_test seed 13 
+PASS        sigil_viota_sweep_test seed 12 
+PASS        sigil_viota_test seed 14 
+PASS        sigil_viota_sweep_test seed 14 
+PASS        sigil_viota_sweep_test seed 11 
+PASS        sigil_viota_test seed 13 
+PASS        sigil_viota_test seed 12 
+PASS        sigil_viota_sweep_test seed 15 
+PASS        sigil_viota_sweep_test seed 16 
+PASS        sigil_viota_test seed 15 
+PASS        sigil_viota_test seed 16 
+summary: PASS 32 (32 runs, 683 s) -> /home/ubuntu/dvfix/runs/flow2/results.csv
+# sweep chunk per seed = gen_seed mod 16:
+seed 1 gen_seed 1865625510 chunk 6 PASS ref_records 646979 dut_cycles 3072916
+seed 2 gen_seed 1865625511 chunk 7 PASS ref_records 706293 dut_cycles 3205236
+seed 3 gen_seed 1865625512 chunk 8 PASS ref_records 651454 dut_cycles 3099236
+seed 4 gen_seed 1865625513 chunk 9 PASS ref_records 717584 dut_cycles 3288436
+seed 5 gen_seed 1865625514 chunk 10 PASS ref_records 652023 dut_cycles 3100870
+seed 6 gen_seed 1865625515 chunk 11 PASS ref_records 718524 dut_cycles 3288336
+seed 7 gen_seed 1865625516 chunk 12 PASS ref_records 649169 dut_cycles 3094859
+seed 8 gen_seed 1865625517 chunk 13 PASS ref_records 720974 dut_cycles 3294813
+seed 9 gen_seed 1865625518 chunk 14 PASS ref_records 648420 dut_cycles 3093023
+seed 10 gen_seed 1865625519 chunk 15 PASS ref_records 720574 dut_cycles 3292152
+seed 11 gen_seed 1865625520 chunk 0 PASS ref_records 644164 dut_cycles 3065793
+seed 12 gen_seed 1865625521 chunk 1 PASS ref_records 709701 dut_cycles 3212599
+seed 13 gen_seed 1865625522 chunk 2 PASS ref_records 642016 dut_cycles 3060528
+seed 14 gen_seed 1865625523 chunk 3 PASS ref_records 708455 dut_cycles 3209974
+seed 15 gen_seed 1865625524 chunk 4 PASS ref_records 643837 dut_cycles 3066191
+seed 16 gen_seed 1865625525 chunk 5 PASS ref_records 704488 dut_cycles 3200297
+
+## Core tests (core_tb; rand = --mem-lat 1:6 --mem-gap 2 --mem-ready 70 --mem-seed 7)
+cases-vrforeg-nocache: CORE TB PASS viota/build/sim/viota_cases_directed.bin (18319 cycles)
+cases-vrforeg-rand: CORE TB PASS viota/build/sim/viota_cases_directed.bin (15832 cycles)
+sweep-fix-nocache: CORE TB PASS viota/build/sim/viota_sweep_directed.bin (81817771 cycles)
+sweep-fix-rand: CORE TB PASS viota/build/sim/viota_sweep_directed.bin (43314457 cycles)
+sweep-rev-rand: CORE TB FAIL viota-rev/build/sim/viota_sweep_directed.bin test 259 (49370 cycles)
+sweep-vrforeg-rand: CORE TB PASS viota/build/sim/viota_sweep_directed.bin (46199254 cycles)
+viota-fix-nocache: CORE TB PASS viota/build/sim/viota_directed.bin (1856899 cycles)
+viota-fix-rand: CORE TB PASS viota/build/sim/viota_directed.bin (983762 cycles)
+viota-vrforeg-rand: CORE TB PASS viota/build/sim/viota_directed.bin (1049332 cycles)
+
+## Hand-computed cases and vstart tests: vct.sh TEST (Spike -DSPIKE_HTIF, then core_tb fixed and reverted, rand and --no-cache)
+# Spike rc=0 = pass; core exit = failing test number (viota_cases), bitmap (vstart_illegal), iteration<<8|code (viota_vstart)
+== spike viota_cases_directed
+spike rc=0
+== core viota viota_cases_directed
+CORE TB PASS viota_cases_directed.bin (14816 cycles)
+CORE TB PASS viota_cases_directed.bin (17306 cycles)
+== core viota-rev viota_cases_directed
+CORE TB FAIL viota_cases_directed.bin test 2 (1036 cycles)
+CORE TB FAIL viota_cases_directed.bin test 2 (1187 cycles)
+== spike vstart_illegal_directed
+spike rc=0
+== core viota vstart_illegal_directed
+CORE TB FAIL vstart_illegal_directed.bin test 8190 (1730 cycles)
+CORE TB FAIL vstart_illegal_directed.bin test 8190 (1806 cycles)
+== core viota-rev vstart_illegal_directed
+CORE TB FAIL vstart_illegal_directed.bin test 8190 (1730 cycles)
+CORE TB FAIL vstart_illegal_directed.bin test 8190 (1806 cycles)
+== core viota viota_vstart_directed
+CORE TB FAIL viota_vstart_directed.bin test 257 (50375 cycles)
+CORE TB FAIL viota_vstart_directed.bin test 257 (89986 cycles)
+== core viota-rev viota_vstart_directed
+CORE TB FAIL viota_vstart_directed.bin test 257 (50396 cycles)
+CORE TB FAIL viota_vstart_directed.bin test 257 (89986 cycles)
+# viota_vstart_directed is SIGIL_CORE_TEST only; its riscv-dv form (-DVIOTA_VSTART=1) passes on Spike:
+spike rc=0 tohost=mem 0x0000000080005000 0x0000000000000001
+dut rc=1 CORE TB FAIL t.elf test 1 (htif, 25216 cycles)
+compare rc=1 MISMATCH ref=96324 dut=3399 #3371 trap cause=0x2 epc=0x80000650 tval=0x52b82057: kind: dut pc=0x80000650 insn=0x52b82057 priv=3 (.word	0x52b82057) vs ref trap cause=0x2 epc=0x80000650 tval=0x52b82057 
+
+## Mutations of viota_cases_directed on Spike (each must fail at the mutated case; rc = failing test)
+m1 rc=2: > CHKD 0, 0x0101010501070101 
+m2 rc=5: > vsrl.vi v8, v8, 0 
+m3 rc=3: > vadd.vi v16, v16, 1 
+m4 rc=6: > CHKD 56, 4 
+m5 rc=7: > vsetivli x0, 1, e8, m8, tu, mu > vmv.v.i v8, 0 
+m6 rc=9: > VIOTA(8, 3, 1) 
+m7 rc=12: > VIOTA(8, 17, 0) 
+m8 rc=5: > addi a6, a6, 1 
+m9 rc=8: > CHKD 248, 0xfffefdfcfbfaf9f7 
+m10 rc=10: > VIOTA(3, 1, 1) 
+m11 rc=11: > VIOTA(1, 3, 0) 
+m12 rc=13: > vsetivli x0, 1, e8, m1, tu, mu 
+
+## Legality probe (min/viota_cases.S, exit = 128 | bit i set when case i trapped)
+# 0/1: vstart=2 unmasked/masked; 2: e32 m2 viota.m v8,v9 (vs2 in vd group); 3: e8 m8 v8,v15 (in group);
+# 4: v8,v8; 5: e32 m2 v8,v5 (legal); 6: e8 m1 v0,v0 unmasked (vd = vs2)
+*** FAILED *** (tohost = 223)
+spike: exit 223
+viota: CORE TB FAIL viota_cases.elf test 128 (htif, 3063 cycles)
+viota-rev: CORE TB FAIL viota_cases.elf test 172 (htif, 2621 cycles)
+# Decoded: Spike 223 = 128|0x5f, cases 0,1,2,3,4,6 trap (vstart != 0, vs2 in the vd group); fixed RTL 128,
+# none traps; reverted RTL 172 = 128|0x2c, cases 2,3,5 trap (the old vs2 alignment rule: v9 at m2, v15 at
+# m8, v5 at m2). vstart != 0 is required to trap (RVV 1.0 15.8); vs2 in the vd group is reserved (5.2).
+
+## Port to 53-100mhz-afi (866efb6): it does not contain 63a50a5. The viota.m hunk applies unchanged
+# (git apply --check: "Hunk #1 succeeded at 794 (offset 37 lines)"); the legality block has a single
+# code path there (no FPGA_TIMING variant of ex_vs2_log2 / align_bad).
