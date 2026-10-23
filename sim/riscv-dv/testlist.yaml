@@ -256,6 +256,19 @@
   asm: directed/sigil_vector_test.S
   march: rv64gcv_zcb
 
+- test: sigil_viota_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    viota.m, self-checking, 96 iterations: random legal vtype (SEW 8-64,
+    LMUL mf8-m8, ta/tu, ma/mu), AVL 0/1/2/VLMAX-1/VLMAX/above/random, masked
+    and unmasked, any LMUL-aligned vd group (v0 when unmasked) with vs2 any
+    register outside it (incl. v0 under v0.t), random/all-ones/sparse/dense
+    masks; every element of the vd group and every other register checked
+    in scalar code (and so compared). One iteration in 16 each: vd not
+    aligned, v0.t with vd = v0, vill set (must trap, change nothing).
+  asm: directed/sigil_viota_test.S
+  march: rv64gcv_zcb
+
 - test: sigil_priv_test
   source: Sigil directed (sim/riscv-dv/directed)
   description: >
