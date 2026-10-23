@@ -819,7 +819,7 @@ die").
     run    what                          wall            GRT overflow   DRT (first pass + antenna rounds)    DRC  antenna  TT setup WNS / TNS (ns)       util
     s116   3400 x 3420, 2db5230 config   3 h 26 min*     0 (46.5 %)     14 it. (65 min) + 5 rounds, 2 h 34   0    4 nets   (stopped in 6_report, PSM)    45.8 %
     s125   3400 x 3680, 2db5230 config   5 h 14 min*     0 (45.0 %)     17 it. + 5 rounds, 4 h 23 min       0    14 nets  (stopped in 6_report, PSM)    42.5 %
-    s116a  s116 + 1 antenna round        11 + 15 min     -              4 it.                               0    0        -0.939 / -79.06 (130 ep.)     46 %
+    s116a  s116 + 1 antenna round        11 + 15 min     -              5 it.                               0    0        -0.939 / -79.06 (130 ep.)     46 %
     s116b  s116a + ECO 2d0e70a           79 + 13 min     -              10 it. + 5 rounds                   0    0        -0.434 / -23.00 (116 ep.)     46 %
     s116c  s116b + ECO 2884120 round 1   31 min          -              7 it. + 3 rounds                    0    0        +0.308 (in-ECO OpenRCX)       -
     s116d  s116c + ECO 027394e           16 + 13 min     -              7 it. + 1 round                     0    0        +0.309 / 0                    46.1 %
