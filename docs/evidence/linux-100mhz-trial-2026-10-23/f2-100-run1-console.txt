@@ -493,3 +493,4 @@ GNU ld (GNU Binutils for Debian) 2.44
 ldd (Debian GLIBC 2.41-12+deb13u4) 2.41
 SIGILPS> make
 cc -O2 -Wall    hello.c   -o hello
+cc -O2 -Wall    malloc_test.c   -o malloc_test
