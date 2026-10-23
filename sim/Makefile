@@ -70,7 +70,7 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             ptw_preempt_b2b_directed ptw_preempt_trapdrop_directed ptw_preempt_hyp_directed \
             ptw_preempt_guest_directed ptw_gwidth_directed ptw_gwidth_load_directed \
             ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
-            ptw_svadu_race_hyp_directed pmp_partial_directed
+            ptw_svadu_race_hyp_directed pmp_partial_directed pmp_modes_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests riscv-dv \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \

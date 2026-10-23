@@ -84,6 +84,10 @@ run trap_pa_fetch trap_pa_fetch.bin 100000 --expect-trap 1
 run trap_pa_load trap_pa_load.bin 100000 --expect-trap 5
 # PMP: an entry matching part of an 8-byte access fails it (issue #8).
 run pmp_partial pmp_partial_directed.bin
+# The same rule as U/S (MPRV), for AMO/LR/SC, vector EEW=64 elements,
+# Sv39 PTE reads (data and fetch walks), fetches straddling into a word
+# without X, and locked entries in M.
+run pmp_modes pmp_modes_directed.bin
 # L1 cache / memory-interface directed tests
 run smc_fencei smc_fencei_directed.bin
 run amo_cache amo_cache_directed.bin
