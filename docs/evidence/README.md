@@ -2518,8 +2518,10 @@ runs).
     B5 sets `clk_extra_b1` to 100 MHz.
   - `SIGIL_FPGA_TIMING` and `SIGIL_VRF_OREG` reach CL synthesis (checked
     in the build log and the post-synth netlist).
-- Build 2 (`2026_10_22-232507`, from `cf63ab8`) is the AFI candidate. It
-  includes the #53 review round 2 fixes.
+- Build 2 (`2026_10_22-232507`, from `cf63ab8`) is the AFI
+  **`agfi-05cbbdc9f2ee7b87b`** (`afi-090769c4f8c375270`, available, still
+  private). It includes the #53 review round 2 fixes (#53 up to
+  `d8d5e92`; the later #53 commits `08c607a` and `73c52c7` change no RTL).
   - Design WNS +0.033 ns (Shell-side DDR crossbar IP on `clk_main_a0`),
     WHS +0.005 ns.
   - Core clock: WNS +0.336 ns at 10 ns.
@@ -2532,5 +2534,10 @@ runs).
   - core-test rc 0, with 74/74 directed runs per family and `fpgatop-f2-quick`;
   - riscv-tests 123/123;
   - the FPGA_TIMING=0 equivalence vs `73-oops-fix`.
-- Caveat: static timing only. No AFI has been created, and nothing has
-  run on hardware at 100 MHz.
+- Software for it: `sw/linux/dts/sigil-f2-100.dts` (`sigil-f2-100.dtb`,
+  timebase 100 MHz); `sigil_host` reports the core clock, checks the DTB
+  timebase against it and has `--info`; `sigil-linux` picks the DTB by
+  clock. Tested with the DTB helper tests, two XSIM `sigil_host`
+  co-simulations and the `sigil-linux` harness (`sw/`).
+- Caveat: static timing and simulation only. Nothing has run on hardware
+  at 100 MHz yet.

@@ -62,7 +62,7 @@ AWS FPGA: Build Time = 0:50:58.200794.
 #     worst_paths.txt (compacted), core_near_critical.txt, main_a0_near_critical.txt (first 40 lines)
 #   ../busskew.tcl on the same DCP -> bus_skew_summary.txt
 #
-# DCP tarball (not uploaded, no AFI created in this step):
+# DCP tarball (uploaded and turned into an AFI afterwards, see the end of this file):
 #   sigil-fpga-build:~/mhz100-cl/build-232507/checkpoints/2026_10_22-232507.Developer_CL.tar
 #   (also /dev/shm/mhz100-cl2/src/fpga/cl_sigil/build/checkpoints/, lost on a stop)
 #   sha256 0fe4b1ea0ddf4d40ebc04c5d5925f5bc52abdae82bb1ce24bf87c9a6150ca24c, 109,404,160 bytes
@@ -72,9 +72,26 @@ AWS FPGA: Build Time = 0:50:58.200794.
 # reports, build.log, the Vivado log and the generated clock constraints; ~/mhz100-cl/rpt-232507/
 # holds the full reports.
 #
-# AFI creation (for the lead; same bucket and form as the oops-fix AFI):
+# --- AFI (same bucket and form as the oops-fix AFI) ---
+# Upload (from the dev machine; the build instance has no AWS credentials): the tarball was copied
+# off sigil-fpga-build with scp, its sha256 checked (0fe4b1ea...50ca24c), the manifest and the
+# routed DCP inside checked (dcp_hash 3f796db4... = sha256 of to_aws/2026_10_22-232507.SH_CL_routed.dcp,
+# clock_recipe_b=B5, clock_recipe_hbm=H0, shell_version=0x10212415), then
 #   aws s3 cp 2026_10_22-232507.Developer_CL.tar s3://sigil-fpga-afi-891612553438/dcp/
+# and downloaded again from S3: sha256 0fe4b1ea0ddf4d40ebc04c5d5925f5bc52abdae82bb1ce24bf87c9a6150ca24c (same).
+# AFI (../afi.json), created 2026-10-23 00:58:39 UTC:
 #   aws ec2 create-fpga-image --region us-east-1
-#     --name sigil-100mhz-2026_10_22-232507
+#     --name sigil-linux-100mhz-2026_10_22-232507
+#     --description "Sigil RV64 SoC, Linux platform (#73, walker fix) + #53 FPGA timing
+#       (SIGIL_FPGA_TIMING, SIGIL_VRF_OREG): 64 GiB DDR4 + 16 GiB HBM, finisher, RTC;
+#       branch 53-100mhz-afi, sigil cf63ab87a166; core 100 MHz (B5), HBM AXI H0"
 #     --input-storage-location Bucket=sigil-fpga-afi-891612553438,Key=dcp/2026_10_22-232507.Developer_CL.tar
 #     --logs-storage-location Bucket=sigil-fpga-afi-891612553438,Key=logs/
+#   -> afi-090769c4f8c375270 / agfi-05cbbdc9f2ee7b87b
+#   state available 2026-10-23 01:24:22 UTC (../afi-describe.json): shell 0x10212415,
+#   PCI 0x1d0f:0xf054 (subsystem 0x5160:0x1d0f). AWS's ingest timing summary
+#   (../afi-ingest-timing-summary.rpt, from logs/afi-090769c4f8c375270/ in the bucket):
+#   WNS 0.033 ns, WHS 0.005 ns, "All user specified timing constraints are met".
+# Load permission NOT granted (private). To make it public (the lead):
+#   aws ec2 modify-fpga-image-attribute --region us-east-1 --fpga-image-id afi-090769c4f8c375270
+#     --operation-type add --user-groups all --attribute loadPermission

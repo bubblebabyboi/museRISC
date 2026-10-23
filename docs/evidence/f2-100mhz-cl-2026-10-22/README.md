@@ -18,8 +18,9 @@ Both builds use `fpga/scripts/build_cl_sigil.sh --recipe-b B5
   --no-encrypt`, Vivado 2025.2 with `general.maxThreads` 16, the same
   as the oops-fix AFI.
 
-**Both builds meet timing on every clock after route. Build 2 is the
-AFI candidate.** No AFI has been created yet.
+**Both builds meet timing on every clock after route. Build 2 is now
+the AFI `agfi-05cbbdc9f2ee7b87b` (`afi-090769c4f8c375270`), still
+private** ([AFI](#afi-from-build-2)). It has not run on an F2 yet.
 
 | | Build 1 [`b1-211218/`](b1-211218/README.md) | **Build 2 [`b2-232507/`](b2-232507/build-steps.txt)** |
 |---|---|---|
@@ -36,6 +37,80 @@ FPGA_TIMING fixes landed on `53-mem-stage-pipeline` (`d8d5e92`). Those
 fixes were merged here as `cf63ab8`, and build 2 was rebuilt from that
 source with the same flow. The mmu_tb update that followed (`08c607a`,
 merged as `0deea68`) is testbench only.
+
+## AFI from build 2
+
+| | |
+|---|---|
+| AFI / AGFI | **`afi-090769c4f8c375270`** / **`agfi-05cbbdc9f2ee7b87b`** (us-east-1), [`afi.json`](afi.json) |
+| Name | `sigil-linux-100mhz-2026_10_22-232507` |
+| Description | Sigil RV64 SoC, Linux platform (#73, walker fix) + #53 FPGA timing (SIGIL_FPGA_TIMING, SIGIL_VRF_OREG): 64 GiB DDR4 + 16 GiB HBM, finisher, RTC; branch 53-100mhz-afi, sigil cf63ab87a166; core 100 MHz (B5), HBM AXI H0 |
+| State | **available**: created 2026-10-23 00:58:40 UTC, available 01:24:22 UTC ([`afi-describe.json`](afi-describe.json)); shell `0x10212415`, PCI `0x1d0f:0xf054` (subsystem `0x5160:0x1d0f`) |
+| AWS ingest | the timing report of AWS's AFI generation agrees with build 2: WNS +0.033 ns, WHS +0.005 ns, core clock +0.336 / +0.005 ns, all constraints met ([`afi-ingest-timing-summary.rpt`](afi-ingest-timing-summary.rpt), cut before "Timing Details") |
+| Load permission | **private**: not made public here (the lead does that, [`b2-232507/build-steps.txt`](b2-232507/build-steps.txt) has the command) |
+| DCP | `s3://sigil-fpga-afi-891612553438/dcp/2026_10_22-232507.Developer_CL.tar`, sha256 `0fe4b1ea0ddf4d40ebc04c5d5925f5bc52abdae82bb1ce24bf87c9a6150ca24c` (checked again after a download from S3); create-fpga-image logs under `logs/` in the same bucket |
+| Source | `53-100mhz-afi` **`cf63ab8`**: `73-oops-fix` `31a1568` (the walker-race fix of the public 62.5 MHz AFI `agfi-0c8aa56fde1a48495`) + the #53 branch up to **`d8d5e92`** |
+| Clocks | core 100 MHz (B5, OCL `CLK_KHZ` = 100000), HBM AXI 250 MHz (H0) |
+
+**Which #53 commit is in the AFI.** Build 2 contains
+`53-mem-stage-pipeline` up to **`d8d5e92`** (review round 2 fixes).
+`origin/53-mem-stage-pipeline` **has moved since, by two commits, and
+neither changes RTL**:
+
+- **`08c607a`** "mmu_tb: drive dl_mem_i, check the EX capture of a
+  recorded walk fault": `tb/cpp/mmu_tb.cpp` only, merged here as
+  `0deea68`;
+- **`73c52c7`** "Evidence: #53 review round 2, three FPGA_TIMING fixes
+  and the review tests, gates at 08c607a": `docs/FPGA_TIMING_53.md`,
+  `docs/evidence/` only, merged here as `0505833`.
+
+`rtl/` and `fpga/cl_sigil/` at this branch's head are identical to
+`cf63ab8`, so as of 2026-10-23 01:25 UTC (tip `73c52c7`) the AFI has
+every #53 RTL change on that branch. An RTL fix landing on
+`53-mem-stage-pipeline` after `73c52c7` would need a rebuild (the lead
+decides).
+
+## Software for the 100 MHz AFI
+
+`mtime` ticks once per core clock, so the Linux device tree's
+`timebase-frequency` must be 100000000 on this AFI.
+
+- **Device tree:** `sw/linux/dts/sigil-f2-100.dts` (includes
+  `sigil-f2.dts`, overrides only `/cpus/timebase-frequency`), built by
+  `scripts/build_dtbs.sh` as **`build/linux/sigil-f2-100.dtb`**, sha256
+  **`06925c9ad6c074b1ebec945377fc821049e18cded5656b4f075baaaae0426eac`**
+  (6976 bytes, dtc 1.7.0). It differs from `sigil-f2.dtb` in the 4
+  bytes of the timebase only. The other DTBs rebuild byte-identical to
+  the `sigil-linux-f2-2026-10-22` release
+  ([`sw/build_dtbs.log`](sw/build_dtbs.log)).
+- **`sigil_host`:** prints the core clock on every run (OCL `CLK_KHZ`,
+  or the `--recipe-b` table), and with `--linux` the timebase and DTB
+  to use. `--info` prints the AFI, CL version, `core_clk_khz`,
+  `build_clk_khz`, RAM window, HBM recipe and `dtb=` as key=value lines
+  and leaves the SoC alone. A `--dtb` whose `/cpus/timebase-frequency`
+  differs from the core clock is loaded with the core clock instead,
+  with a warning naming the right DTB (`--keep-timebase` loads it
+  unchanged). `--recipe-b` also sets `RTC_INC` for the new clock.
+- **`sigil-linux`:** after loading the AFI it reads `core_clk_khz`
+  with `sigil_host --info` and boots `sigil-f2-100.dtb` at 100 MHz,
+  `sigil-f2.dtb` otherwise. It downloads `sigil-f2-100.dtb` when the
+  release lists it in `SHA256SUMS`. With the current release
+  (`sigil-linux-f2-2026-10-22`, no 100 MHz DTB) it boots `sigil-f2.dtb`,
+  and `sigil_host` fixes its timebase.
+- **Docs:** `FPGA_F2.md` (a section for this AFI, recipe table, CLK_KHZ),
+  `LINUX.md` §4.2 (the DTB for each clock), `LINUX_PLATFORM.md` (Timer),
+  `PROGRAMMING.md` (clock on F2), `sw/linux/README.md`.
+
+Tests, all on sigil-fpga-build (no F2 was used):
+
+| Test | Result |
+|---|---|
+| `sigil_host` build, `-Wall -Wextra -Werror`, aws-fpga v2.3.5 SDK; the `SV_TEST` (XSIM co-simulation) build | OK |
+| DTB helpers on the built DTBs ([`sw/fdt_tests.sh`](sw/fdt_tests.sh), [`sw/test_fdt.c`](sw/test_fdt.c)): `sigil-f2.dtb` fixed for 100 MHz = `sigil-f2-100.dtb` byte for byte and back; a matching DTB, `--keep-timebase`, an unknown clock, garbage and a truncated DTB stay unchanged; rng-seed fill plus a per-hart timebase copy | 11/11 ([`sw/fdt_tests.log`](sw/fdt_tests.log)) |
+| HDK XSIM `test_sigil_host_cosim` (the real `sigil_host.c` against the CL, B1): the stock arguments | PASS, 304 s ([`sw/cosim1_hash_recipe_b1.log`](sw/cosim1_hash_recipe_b1.log)) |
+| The same with `--linux --dtb sigil-f2-100.dtb` on the 62.5 MHz CL ([`sw/cosim2.args`](sw/cosim2.args); the "kernel" is the hash firmware, which the boot ROM runs): the DTB is loaded with 62500000 and read back fully | PASS, 346 s ([`sw/cosim2_linux_dtb100_recipe_b1.log`](sw/cosim2_linux_dtb100_recipe_b1.log)) |
+| `sigil-linux` with a fake `sigil_host` and AFI tools, the #73 session tests ([`sw/run_tests.sh`](sw/run_tests.sh); the 16 GiB `/dev/shm` save-path test left out, that code is unchanged) | 33/33 ([`sw/run_tests.log`](sw/run_tests.log)) |
+| `sigil-linux` device-tree choice ([`sw/dtb_tests.sh`](sw/dtb_tests.sh), [`sw/fake_sigil_host`](sw/fake_sigil_host)): 62.5 and 100 MHz AFIs with a release that has `sigil-f2-100.dtb`, a 100 MHz AFI with the current release, `--info` failing, a corrupted cached DTB, an old `sigil_host` | 19/19 ([`sw/dtb_tests.log`](sw/dtb_tests.log)) |
 
 ## Build 2: timing per clock (post-route)
 
@@ -159,9 +234,12 @@ Details are in `b*/post_route_util_cl.rpt` and `b*/post_route_util_hier.rpt`.
 
 ## Files
 
-- **`b2-232507/` (AFI candidate) and `b1-211218/`**, one per build:
+- [`afi.json`](afi.json): the `create-fpga-image` result for build 2;
+  [`afi-describe.json`](afi-describe.json): `describe-fpga-images` once
+  it was available.
+- **`b2-232507/` (the AFI) and `b1-211218/`**, one per build:
   - `build-steps.txt`: commands, build timeline, tarball location and
-    hash, and the AFI commands for the lead;
+    hash; for build 2 also the upload and the AFI commands;
   - `developer_cl_manifest.txt`: the tarball listing, `manifest.txt`
     (`clock_recipe_b=B5`, `clock_recipe_hbm=H0`, `dcp_hash`) and the
     tarball's sha256;
@@ -175,14 +253,23 @@ Details are in `b*/post_route_util_cl.rpt` and `b*/post_route_util_hier.rpt`.
   [`netcheck.tcl`](netcheck.tcl).
 - [`gates.log`](gates.log): the gate chains and the equivalence proof
   at `0deea68` / `cf63ab8`.
+- [`sw/`](sw/): the software tests for the 100 MHz AFI (DTB build and
+  hashes, `sigil_host` DTB helpers, XSIM co-simulation logs,
+  `sigil-linux` tests with their scripts and fakes).
 
 ## Not done here
 
-- **No AFI yet.** Nothing has been uploaded, and `create-fpga-image` has
-  not run. `b2-232507/build-steps.txt` has the commands.
-- **No hardware run at 100 MHz yet.** This is static timing only.
-  Debian and the F2 smoke tests at 100 MHz are still open.
+- **The AFI is private.** Making it public is the lead's step
+  (`b2-232507/build-steps.txt`).
+- **No hardware run at 100 MHz yet.** This is static timing and
+  simulation only. The F2 smoke tests (`fpga/scripts/f2_platform_tests.sh`)
+  and the Debian boot at 100 MHz are still open; a 100 MHz Linux release
+  needs `sigil-f2-100.dtb` among its assets.
 - **`origin/main` is not merged here.** Since `73-oops-fix`, main has
   added simulation-only performance counters (#56, under
   `ifndef SYNTHESIS`, plus two cache taps that drive nothing) and the
-  Linux release docs. None of that changes a netlist.
+  Linux release docs. None of that changes a netlist. The doc changes
+  here were made on this branch's (pre-release) `LINUX.md`,
+  `FPGA_F2.md` and `sigil-linux`; merging into main gives one small
+  conflict, in the `LINUX.md` §8 bullet on the F2 system clock, next to
+  main's new #75 bullet (keep both).
