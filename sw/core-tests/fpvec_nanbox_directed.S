@@ -10,8 +10,9 @@
 // boxed scalars (incl. a boxed sNaN, which moves must keep);
 // SEW=64 raw; vfmv.f.s boxing; f-register producers directly
 // followed by a .vf (forwarding); vtype changes right before
-// a .vf; scalar F instructions with unboxed operands; and the
-// reserved SEW 8/16 and widening forms.
+// a .vf; scalar F instructions with unboxed operands; the
+// reserved SEW 8/16 and widening forms; and vfmv.f.s /
+// vfmv.s.f at vl=0.
 // Expected values follow the spec; the same program runs on
 // Spike when assembled with -DSPIKE_HTIF (tohost exit, link
 // at 0x80000000) and passes there.
@@ -431,6 +432,23 @@ _start:
     vsetvli a0, x0, e32, m8, tu, mu
     TRAPS vfwsub.wf v16, v24, ft3
     TRAPS vfwmul.vf v16, v8, ft3
+
+    // 19: vl=0: vfmv.f.s still writes f[rd] (NaN-boxed),
+    // vfmv.s.f updates nothing.
+    li t0, 19
+    vsetivli a0, 4, e32, m1, tu, mu
+    la a1, sbuf
+    vle32.v v8, (a1)
+    vmv.v.i v16, 0
+    vsetivli a0, 0, e32, m1, tu, mu
+    fmv.d.x ft1, x0
+    vfmv.f.s ft1, v8
+    fmv.x.d a0, ft1
+    li a2, 0xffffffff3f800000
+    bne a0, a2, fail
+    vfmv.s.f v16, ft4
+    vsetivli a0, 4, e32, m1, tu, mu
+    CHK32 v16, 0, 0
 
     j pass
 
