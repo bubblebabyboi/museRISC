@@ -3457,3 +3457,33 @@ A-AE, Verilator 5.048 (CI replays: 5.020), GCC 16.1.0, Python 3.12.3.
   [`act-full.log`](riscv-dv-8-2026-10-22/act-full.log),
   [`act-full-8-riscv-dv-65a48ae.csv`](riscv-dv-8-2026-10-22/act-full-8-riscv-dv-65a48ae.csv),
   [`act-full-main-9da0006.csv`](riscv-dv-8-2026-10-22/act-full-main-9da0006.csv).
+
+## #8: review round 2 and merge-ready gates (2026-10-23)
+
+Ready-to-merge report:
+[`riscv-dv-8-2026-10-22/final/merge-ready.txt`](riscv-dv-8-2026-10-22/final/merge-ready.txt).
+The reviews of the three first fixes (branches `8-dvfix-viota`,
+`8-dvfix-nanbox`, `8-dvfix-pmp`, `8-dvfix-pmp-w64`, merged into
+`8-riscv-dv`) proved four more core defects, all fixed with directed
+tests: `vstart` != 0 not illegal for reductions, `vcpop`/`vfirst`,
+`vmsbf/sif/sof`, `viota`, `vcompress` (`fd22878`); `viota.m` with vs2
+inside the vd group (reserved) not trapped as on Spike (`913bc0a`); the
+int16 <-> f32 conversions trapped at SEW=16 (`1eac727`); `vl<n>re64.v`
+elements PMP-checked byte by byte (`9bdd552`). Issues: #76, #77, #78.
+
+- **Gates** on RTL `1eac727`: lint (Verilator 5.044, 5.048, 5.020),
+  `make test`, `make core-test`, `make riscv-tests`, full ACT
+  (2,577/2,578, every ELF's verdict and cycle count as on main), riscv-dv
+  vs Spike, Linux RTL boot:
+  [`final/gates/`](riscv-dv-8-2026-10-22/final/gates/),
+  [`final/act/`](riscv-dv-8-2026-10-22/final/act/),
+  [`final/rdv/`](riscv-dv-8-2026-10-22/final/rdv/).
+- **New tests on Spike and mutants** of each new fix (each mutant fails
+  its test; why the EX hold behind a vector load/store is needed):
+  [`final/mutation/mutation.txt`](riscv-dv-8-2026-10-22/final/mutation/mutation.txt).
+- **Synthesized logic** vs `f239397` and main: only `sigil_core` and
+  `sigil_vec` change, at the new fixes' signals, proven by Yosys in the
+  five synthesis define sets:
+  [`final/synth/synth-equiv-round2.log`](riscv-dv-8-2026-10-22/final/synth/synth-equiv-round2.log).
+- **Port to `53-100mhz-afi`** (FPGA_TIMING parallel PMP): file:line list in
+  the report.

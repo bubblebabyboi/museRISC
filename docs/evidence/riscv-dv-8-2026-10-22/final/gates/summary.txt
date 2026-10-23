@@ -1,0 +1,8 @@
+lint-5.048 rc=0 18s
+lint-5.020 rc=0 14s
+test rc=0 23s
+core-test rc=0 2714s
+riscv-tests rc=0 21s
+core-test TB PASS lines: 333, FAIL lines: 10
+end 2026-10-23T09:01:57Z
+DONE

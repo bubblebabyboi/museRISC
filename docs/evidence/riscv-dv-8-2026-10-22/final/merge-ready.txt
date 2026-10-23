@@ -1,0 +1,139 @@
+# 8-riscv-dv: ready-to-merge report (issue #8), 2026-10-23 UTC
+
+Branch head: the commit that adds this report (see git log; code head 1eac727). RTL and testbench as at 1eac727 (the last code change); the commits after
+it are documentation and evidence. main 9da0006 is an ancestor of the branch (it was merged in
+adf4c97), so the merge is conflict-free. Nothing on main was changed.
+Issues filed (open, not closed): #76 (viota.m and the vstart=0 class), #77 (vector FP: .vf NaN-box, SEW=16 conversions), #78 (PMP 8-byte accesses, vl<n>re64.v).
+
+== What the branch carries
+- The riscv-dv vs Spike regression (#8): pygen target, driver, trace comparator, 18 generated
+  tests and 12 directed programs (sim/riscv-dv/testlist.yaml), the nightly/manual CI workflow,
+  the pinned Spike build, and the sim-only commit-trace probe (`ifndef SYNTHESIS, +sigil_trace).
+- Core fixes, each with a directed test that fails without it:
+    63a50a5  viota.m: vs2 is one mask register (was checked as an LMUL group)
+    63a50a5  .vf moves/merge/slides at SEW=32: NaN-box check of the f-register scalar
+    3ae351d  PMP decides on all bytes of an 8-byte access (NA4/TOR splits fail, also in M)
+    9bdd552  PMP: vl<n>re64.v elements checked as 8-byte accesses
+    fd22878  vstart != 0 illegal for reductions, vcpop, vfirst, vmsbf/sif/sof, viota,
+             vcompress (with an EX hold behind a vector load/store that consumes vstart)
+    913bc0a  viota.m with vs2 inside the vd group traps (reserved; as Spike)
+    1eac727  int16 <-> f32 vector conversions at SEW=16 (Zve32f)
+- Directed suite additions (sim/Makefile TESTS, sim/run_directed.sh): fpvec_nanbox_directed,
+  vfcvt_sew16_directed, viota_directed, viota_cases_directed, viota_vstart_directed,
+  viota_overlap_directed, vstart_illegal_directed, pmp_modes_directed, pmp_whole64_directed
+  (pmp_partial_directed came with 3ae351d); vec_trap_directed tests 11 (37aa1d7) and 13
+  (9bdd552) corrected, both had encoded the old PMP behaviour. viota_sweep_directed (1,408
+  viota.m cases, about 43M cycles) is in sw/core-tests but not in the suite.
+- riscv-dv list additions: sigil_viota_test, sigil_viota_sweep_test, sigil_viota_vstart_test,
+  sigil_viota_overlap_test, sigil_vf_nanbox_test, sigil_vfcvt_sew16_test, sigil_pmp_test,
+  sigil_pmp_whole64_test (directed entries may carry asm_defs).
+
+== Gates (RTL 1eac727)
+| Gate | Where | Result |
+|---|---|---|
+| make lint, Verilator 5.044 | Mac (macOS 26.6.2) | rc=0, no warning (gates/lint-5.044.log) |
+| make lint, Verilator 5.048 (deps/) | sigil-fpga-build | rc=0, no warning (gates/lint-5.048.log) |
+| make lint, Verilator 5.020 (Ubuntu apt) | sigil-fpga-build | rc=0, no warning (gates/lint-5.020.log) |
+| make test | sigil-fpga-build | rc=0, ALL PHASE-0 KATs PASS (gates/test.log) |
+| make core-test | sigil-fpga-build, VJOBS=6 | rc=0, 333 "TB PASS" lines (main's 293 + the branch's 10 directed tests x 4 memory configurations), 0 FAIL, 2,714 s (gates/core-test.log) |
+| make riscv-tests | sigil-fpga-build | rc=0, 123/123 PASS (gates/riscv-tests.log) |
+| Full ACT, 2,578 ELFs | sigil-verify, 12 jobs, 301 s | 2,577/2,578; only PMPSm_cfg_A_tor_zero-00 (PA0 waiver) fails, at 18,024 cycles as on main (act/) |
+| riscv-dv vs Spike | sigil-verify, 12 jobs | 208/208 PASS, 69,840,382 records: the whole list (30 tests) x seeds 1-3, the vector programs x 4-16, the PMP/privileged programs x 4-12 (rdv/) |
+| Synthesized logic | Mac, Yosys 0.69 + sv2v | only the intended signals change (synth/synth-equiv-round2.log) |
+| Linux RTL boot | sigil-fpga-build | SIGIL_LINUX_BOOT_OK at 261,247,447 cycles, UART log identical to main's (sha256 a14fee2d..., 890 lines) (linux-boot.txt) |
+| New tests on Spike, mutants of each new fix | sigil-verify | all pass on Spike and the core; every mutant fails its test (mutation/mutation.txt) |
+The fpga-build gate worktree (~/dv8final at 1eac727) shows dirty=[2] in gates/info.txt: the gate
+script gates/gates_fb.sh and its output, both untracked; tracked files were unmodified.
+Per-test core-test lines: each of the branch's directed tests passes in the rand, nocache,
+xinit1 and xinit3 runs (4 each), and the SRAM-macro runs (fakeram45, sky130, oreg, vrforeg) pass
+60/60 directed runs each.
+
+== ACT result
+2,577/2,578 PASS at 1eac727 (core_tb default config, Verilator 5.048, sim/run_act_core_par.sh,
+12 jobs, 301 s), on the 2,578-ELF set of main's gates, copied unchanged from sigil-fpga-build
+(~/oops/fixgates/act-elfs/elfs, already on sigil-verify in ~/act8/act-elfs), fingerprint
+839ba8be12d65bc82e64cfce1dd157f38d3e2c7f41c9bdd9fd64249d2515ae7f (= main's 31a15689 run).
+Vx 821/821, Vls 1051/1051, Vf 162/162. Every ELF has the same verdict and the same cycle count
+as main 9da0006 and as the branch at 65a48ae, run earlier on the same ELFs and machine (total
+372,965,025 cycles on all three). The one failure is the known PA0 platform waiver: Sail has no
+memory at PA 0 and expects three access faults there, core_tb has RAM at PA 0
+(../act-full.log). So no ACT test reaches any of the seven fixes; the directed tests and the
+riscv-dv programs are what cover them.
+
+== Synthesis diff
+Relative to f239397 (whose diff to main was proven to be only the three first fixes,
+../synth-equiv/synth-equiv.log), 1eac727 changes sigil_core and sigil_vec and nothing else, in
+all five synthesis define sets (SYNTHESIS, +FAKERAM45, +SKY130, +SRAM_OREG, +VRF_OREG); the 64
+changed preprocessed lines are the same in every set and in the simulation view (no new
+sim-only code). Yosys equivalence: with the new fixes reverted, sigil_core (11,035 points) and
+sigil_vec (4,954-4,992 points) are proven equal to f239397's in all five sets. Unreverted,
+sigil_core differs only at vec_illegal, vec_ex_stall, ex_fp_bad and the PMP input
+pmp_wide_b_i, and each fix kept alone shows up only at its own signal; sigil_vec differs only
+at the FPU operand fp_a/fpu_a_o (int16 sign extension) and fp_res (int16/uint16 saturation and
+NV). sigil_csr is unchanged since f239397. No flip-flop added; sigil_core's own logic +281
+generic gates (21,449 -> 21,730). Not measured: timing on the FPGA flow.
+Against main 9da0006: sigil_core, sigil_csr and sigil_vec differ, at exactly the seven fixes.
+
+== Review findings and what was done
+1. viota.m with vstart != 0 executed (whole vstart=0 class): FIXED fd22878; vstart_illegal_directed
+   (23 instructions + EX-hold cases), viota_vstart_directed in the suite; sigil_viota_vstart_test.
+2. viota.m vs2 inside the vd group (reserved) ran: now traps as on Spike (913bc0a);
+   viota_overlap_directed in the suite; sigil_viota_overlap_test.
+3. int16 <-> f32 conversions trapped at SEW=16: FIXED 1eac727; vfcvt_sew16_directed in the
+   suite; sigil_vfcvt_sew16_test passes (16/16; seeds 1-4 failed before).
+4. vfmv.s.f and the NaN-box rule: no change (correct as is; fpvec_nanbox_directed covers it).
+5. Invalid frm: no change (reserved either way, RVV 1.0 norm:V_inv_frm_rsv); documented.
+6. vl<n>re64.v PMP per byte: FIXED 9bdd552 (the review's candidate, taken as is);
+   pmp_whole64_directed in the suite; sigil_pmp_whole64_test.
+7. vec_trap_directed test 13 expected the per-byte mtval: corrected to the element address (9bdd552).
+Useful passing review tests brought in: viota_directed, viota_cases_directed,
+fpvec_nanbox_directed, pmp_modes_directed (suite); sigil_viota_test, sigil_viota_sweep_test,
+sigil_vf_nanbox_test, sigil_pmp_test (riscv-dv list); viota_sweep_directed (file only).
+Still reserved and not changed: vmsbf/vmsif/vmsof.m with vd overlapping vs2 (or v0 when
+masked), RVV 1.0 norm:vmsbf_vreg_constr etc.; Spike traps them, Sigil was not changed (not
+proven by the review, allowed either way).
+
+== Port to 53-100mhz-afi (origin 866efb6) for FPGA_TIMING=1 (read only; that branch was not edited)
+`git apply --check` of the branch's whole RTL diff against main on 866efb6: every sigil_core.sv
+hunk (trace probe, viota, NaN-box, PMP wiring, w64, vstart, overlap, cvt16) and every
+sigil_vec.sv hunk applies with offsets; in sigil_csr.sv the port and pmp_match/pmp_check hunks
+apply, and only the final hunk fails, because there the three pmp_allow assigns live in an
+FPGA_TIMING generate. Changes needed in rtl/core/sigil_csr.sv:
+  a. lines 108-115 (ports): add `input wire pmp_wide_b_i` after pmp_priv_b_i (110) and
+     `input wire pmp_wide_c_i` after pmp_priv_c_i (114) (3ae351d, applies).
+  b. lines 702-744 (serial pmp_match / pmp_check): the 3ae351d versions (pmp_match returns
+     {second word, first word}; pmp_check(..., wide) fails a split match) (applies).
+  c. lines 755-784, pmp_check_par (used only with FPGA_TIMING=1): has the same first-word-only
+     flaw. Add `input logic wide` and the two-word rule as in par_new of
+     ../pmp-review/pmp_forms.sv (proven equal to the 3ae351d serial pmp_check, FORM 1 == FORM 3):
+       a54o = {addr[55:3], 1'b1}; per entry eqo[i] = (pmpaddr_q[i][53:0] == a54o);
+       ge_prev_o[0] = 1, ge_prev_o[i] = !lt[i-1] || eqo[i-1];
+       hit_o: TOR ge_prev_o[i] && lt[i] && !eqo[i]; NA4 eqo[i]; NAPOT hit[i]; OFF 0;
+       any = hit | (wide ? hit_o : 0); part = wide ? (hit ^ hit_o) : 0;
+       first[i] = any[i] && no lower any; allow = (M && any == 0) || |(first & perm & ~part).
+     No new magnitude comparator (one 54-bit equality per entry); the review measured about
+     +290 LUTs per port and an unchanged longest path (23 cells) for this form.
+  d. lines 787-799, g_pmp_par: line 788 pmp_check_par(pmp_addr_a_i, ..., 1'b0); 789 add
+     pmp_wide_b_i; 790 add pmp_wide_c_i; and the simulation cross-check 794-796 must pass the
+     same third argument to pmp_check (1'b0 / pmp_wide_b_i / pmp_wide_c_i), else its $error
+     fires on the first split access.
+  e. lines 800-803, g_pmp_par_off: the three assigns of 3ae351d (pmp_check with 1'b0,
+     pmp_wide_b_i, pmp_wide_c_i).
+rtl/core/sigil_core.sv (applies):
+  f. line 1790, the data-port size case: name the select mem_size_code (3ae351d), and add
+     pmp_wide_data (9bdd552) next to it. With FPGA_TIMING=1 port B starts from the registered
+     translation (g_dl, line 2036): use mmu_d_pa[2:0] == 0 in place of mem_va[2:0] == 0 in
+     pmp_wide_data (the same bits whenever the translation is valid; a flop instead of the
+     vls_addr adder), so the PMP check keeps starting from flops; exmem_addr_q, vls_whole,
+     vls_idx_eew and mem_size_code are flops/vtype already.
+  g. lines 2002-2010, u_csr: `.pmp_wide_b_i (pmp_wide_data)` after .pmp_priv_b_i (2005) and
+     `.pmp_wide_c_i (1'b1)` after .pmp_priv_c_i (2009).
+Tests to take along: pmp_partial_directed, pmp_modes_directed, pmp_whole64_directed,
+vec_trap_directed tests 11/13; rerun them with the FPGA_TIMING core_tb build, which also runs
+the g_pmp_par cross-check against the serial form. The other fixes (viota, NaN-box, vstart,
+overlap, cvt16) apply unchanged; vec_illegal / ex_fp_bad gain a 64-bit OR of vstart and small
+compares, whose effect at 100 MHz has not been measured.
+
+== Not done
+- Sail was not run on vstart_illegal_directed and vfcvt_sew16_directed (Spike only).
+- Timing of the new logic on the FPGA flow (#53) was not measured.

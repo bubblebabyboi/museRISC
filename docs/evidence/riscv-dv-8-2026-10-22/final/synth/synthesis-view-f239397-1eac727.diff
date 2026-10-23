@@ -1,0 +1,139 @@
+--- unit_old_new/SYNTHESIS.A.pp	2026-10-23 01:21:56
++++ unit_old_new/SYNTHESIS.B.pp	2026-10-23 01:21:56
+@@ -945,6 +945,7 @@
+   logic [63:0]   csr_vl, csr_vstart, csr_vset_vl;
+   logic [63:0]   vec_scalar;
+   logic          vec_illegal, vec_align_bad;
++  logic          ex_vstart0_op;   
+   logic [2:0]    vec_wlmul;
+   logic [63:0]   vset_avl, vset_vtype_raw, vec_vlmax;
+   logic [1:0]    csr_vxrm;
+@@ -960,7 +961,8 @@
+                      !mem_exc && !mem_stall && !vls_is;
+   assign vec_ex_stall = (vec_unit_op && !vec_done) ||
+                         (idex_valid_q && !idex_exc_q && vls_is &&
+-                         (idex_ctrl_q.csr || idex_ctrl_q.vset));
++                         (idex_ctrl_q.csr || idex_ctrl_q.vset ||
++                          (idex_ctrl_q.vec && ex_vstart0_op)));
+   assign vec_commit = vec_unit_op && vec_done && !trap_fire &&
+                       !mem_exc && !mem_stall;
+   assign vec_fflags_we = vec_commit &&
+@@ -1055,14 +1057,27 @@
+   assign vec_frs1 = ((csr_vtype[5:3] == 3'd2) &&
+                      (ex_frs1[63:32] != 32'hffff_ffff))
+                     ? 64'hffff_ffff_7fc0_0000 : ex_frs1;
++  function automatic logic [4:0] grp_mask(input logic signed [3:0] log2n);
++    grp_mask = (log2n == 4'sd1) ? 5'b00001 :
++               (log2n == 4'sd2) ? 5'b00011 :
++               (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
++  endfunction
+   function automatic logic align_bad(
+       input logic [4:0] regno, input logic signed [3:0] log2n);
+-    logic [4:0] mask;
+-    mask = (log2n == 4'sd1) ? 5'b00001 :
+-           (log2n == 4'sd2) ? 5'b00011 :
+-           (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
+-    align_bad = |(regno & mask);
++    align_bad = |(regno & grp_mask(log2n));
+   endfunction
++  logic ex_iota_overlap;
++  assign ex_iota_overlap = (idex_ctrl_q.bext_op == VOP_IOTA) &&
++      (((idex_instr_q[24:20] ^ idex_rd_q) & ~grp_mask(ex_lmul_log2)) == 5'd0);
++  assign ex_vstart0_op = (idex_ctrl_q.bext_op == VOP_RED) ||
++      (idex_ctrl_q.bext_op == VOP_WRED) ||
++      (idex_ctrl_q.bext_op == VOP_FRED) ||
++      (idex_ctrl_q.bext_op == VOP_FWRED) ||
++      (idex_ctrl_q.bext_op == VOP_CPOP) ||
++      (idex_ctrl_q.bext_op == VOP_FIRST) ||
++      (idex_ctrl_q.bext_op == VOP_MSBIT) ||
++      (idex_ctrl_q.bext_op == VOP_IOTA) ||
++      (idex_ctrl_q.bext_op == VOP_COMPRESS);
+   assign vec_align_bad =
+       (idex_ctrl_q.bext_op != VOP_MVSX) &&
+       (idex_ctrl_q.bext_op != VOP_MVXS) &&
+@@ -1112,7 +1127,12 @@
+       ((idex_ctrl_q.bext_op == VOP_EXT) &&
+        (4'(signed'({1'b0, csr_vtype[5:3]})) <
+         (4'sd4 - 4'(signed'({2'b00, idex_imm_q[2:1]})))));
+-  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad;
++  logic ex_fp_vec, ex_fp_rounds, ex_fp_bad, ex_fp_cvt16;
++  assign ex_fp_cvt16 = (csr_vtype[5:3] == 3'd1) &&
++      (idex_ctrl_q.bext_op == VOP_FCVT) &&
++      ((idex_imm_q[4:1] == 4'b0101) ||
++       (idex_imm_q[4:1] == 4'b1000) ||
++       (idex_imm_q[4:1] == 4'b1011));
+   assign ex_fp_vec =
+       ((idex_ctrl_q.bext_op >= VOP_FBIN) &&
+        (idex_ctrl_q.bext_op <= VOP_FMVFS)) ||
+@@ -1132,7 +1152,7 @@
+       ((idex_ctrl_q.bext_op == VOP_FCVT) &&
+        (idex_imm_q[2:0] < 3'd6));
+   assign ex_fp_bad = ex_fp_vec &&
+-      ((csr_fs == 2'b00) || (csr_vtype[5:3] < 3'd2) ||
++      ((csr_fs == 2'b00) || ((csr_vtype[5:3] < 3'd2) && !ex_fp_cvt16) ||
+        (ex_fp_rounds && (csr_frm > 3'd4)));
+   assign vec_wlmul = (idex_instr_q[19:15] == 5'd1) ? 3'd1 :
+                      (idex_instr_q[19:15] == 5'd3) ? 3'd2 :
+@@ -1186,6 +1206,8 @@
+        (!idex_ctrl_q.vset && vec_align_bad) ||
+        (!idex_ctrl_q.vset && ex_vec_bad) ||
+        (!idex_ctrl_q.vset && ex_fp_bad) ||
++       (!idex_ctrl_q.vset && ex_iota_overlap) ||
++       (!idex_ctrl_q.vset && ex_vstart0_op && (csr_vstart != 64'd0)) ||
+        ((idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) && ex_vls_bad));
+   assign vset_avl = (idex_ctrl_q.fpu_aux == 2'd1)
+       ? {59'd0, idex_instr_q[19:15]} : ex_rs1;
+@@ -1780,6 +1802,10 @@
+                       (res_is_d_q || (exmem_ctrl_q.funct3 == 3'b010));
+   logic [1:0] mem_size_code;
+   assign mem_size_code = vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0];
++  logic pmp_wide_data;
++  assign pmp_wide_data = (mem_size_code == 2'b11) ||
++      (vls_is && vls_whole && (vls_idx_eew == 3'd3) &&
++       (exmem_addr_q[2:0] == 3'd0) && (mem_va[2:0] == 3'd0));
+   always_comb begin
+     logic [7:0]  be;
+     logic [63:0] wdata;
+@@ -1984,7 +2010,7 @@
+       .pmp_acc_b_i   (exmem_ctrl_q.hlvx ? 2'd3 :
+                       exmem_ctrl_q.mem_write ? 2'd1 : 2'd0),
+       .pmp_priv_b_i  (eff_priv_mem),
+-      .pmp_wide_b_i  (mem_size_code == 2'b11),
++      .pmp_wide_b_i  (pmp_wide_data),
+       .pmp_allow_b_o (pmp_allow_data),
+       .pmp_addr_c_i  (walk_addr),
+       .pmp_acc_c_i   (walk_acc),
+@@ -8853,7 +8879,7 @@
+           3'd2, 3'd3: begin   
+             fp_op = FPU_I2F;
+             fp_dbl = (dw_q == 3'd3);
+-            fp_a = a;
++            fp_a = ((aw_q == 3'd1) && imm_q[0]) ? a_s : a;
+             fp_aux = {(aw_q == 3'd3), (imm_q[2:0] == 3'd2)};
+           end
+           default: begin   
+@@ -8885,7 +8911,23 @@
+   assign fp_need = s2_v_q && (s2_kind_q == K_ELEM) && is_fp && src_act;
+   assign fp_wait = fp_need && !fr_v_q;
+   assign fp_ok = fr_v_q && fp_last;
+-  assign fp_res = fr_q;
++  always_comb begin
++    logic [16:0] ih;   
++    logic        cvt16, pos_ovf, neg_ovf;
++    ih = fr_q.result[31:15];
++    cvt16 = (op_q == VOP_FCVT) && (dw_q == 3'd1) &&
++            ((imm_q[2:1] == 2'b00) || (imm_q[2:1] == 2'b11));
++    pos_ovf = imm_q[0] ? (!ih[16] && (ih[15:0] != 16'h0000))
++                       : (ih[16:1] != 16'h0000);
++    neg_ovf = imm_q[0] && ih[16] && (ih[15:0] != 16'hffff);
++    fp_res = fr_q;
++    if (cvt16 && (pos_ovf || neg_ovf)) begin
++      fp_res.result = neg_ovf ? 64'h0000_0000_0000_8000 :
++                      imm_q[0] ? 64'h0000_0000_0000_7fff
++                               : 64'h0000_0000_0000_ffff;
++      fp_res.flags = 5'b10000;
++    end
++  end
+   assign fpu_req_o = fp_wait && !fp_est;
+   assign fpu_op_o = fp_op;
+   assign fpu_fmt_d_o = fp_dbl;

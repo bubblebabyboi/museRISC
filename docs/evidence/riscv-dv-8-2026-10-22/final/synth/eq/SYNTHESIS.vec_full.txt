@@ -1,0 +1,7 @@
+defines=[SYNTHESIS] module=sigil_vec gold=old gate=new
+Found 4954 $equiv cells in equiv:
+  Of those cells 4789 are proven and 165 are unproven.
+   48 bit(s), matched wire: gold wire fp_a | gate wire fp_a
+   69 bit(s), matched wire: gold wire fp_res | gate wire fp_res
+   48 bit(s), matched wire: gold wire fpu_a_o | gate wire fpu_a_o
+yosys rc=0 340s (Yosys 0.69+post, sv2v 0.0.13)

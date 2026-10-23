@@ -1,0 +1,7 @@
+Verilator 5.044 2026-01-01 rev vUNKNOWN-built20260101
+defines=[SYNTHESIS] units=48 differing: sigil_core sigil_csr sigil_vec 
+defines=[SYNTHESIS SIGIL_SRAM_FAKERAM45] units=48 differing: sigil_core sigil_csr sigil_vec 
+defines=[SYNTHESIS SIGIL_SRAM_SKY130] units=48 differing: sigil_core sigil_csr sigil_vec 
+defines=[SYNTHESIS SIGIL_SRAM_OREG] units=48 differing: sigil_core sigil_csr sigil_vec 
+defines=[SYNTHESIS SIGIL_VRF_OREG] units=48 differing: sigil_core sigil_csr sigil_vec 
+defines=[none, simulation view] units=48 differing: sigil_core sigil_csr sigil_vec 

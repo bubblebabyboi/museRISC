@@ -1,0 +1,6 @@
+host ip-172-31-66-228 (sigil-fpga-build, 32 vCPU) start 2026-10-23T08:15:27Z
+head 1eac72779c89ab1cf5d0615e0899292f2e4ba2b3 dirty=[2]
+verilator(deps) Verilator 5.048 2026-04-26 rev v5.048
+verilator(5.020) Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+riscv-gcc riscv64-unknown-elf-gcc (g6afcc4f6d) 16.1.0
+VJOBS=6

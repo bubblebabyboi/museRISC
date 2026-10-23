@@ -1,0 +1,4 @@
+defines=[SYNTHESIS] module=sigil_vec gold=old gate=neutral
+Found 4954 $equiv cells in equiv:
+  Of those cells 4954 are proven and 0 are unproven.
+yosys rc=0 186s (Yosys 0.69+post, sv2v 0.0.13)
