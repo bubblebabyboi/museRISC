@@ -49,7 +49,9 @@ SIGIL_BLOCKS = sigil_cpu sigil_crypto_top
 # Block results are read from results/sky130hd/sigil_hier_<block>/
 # <variant>; the variant is the top's FLOW_VARIANT unless
 # SIGIL_CPU_VARIANT / SIGIL_CRYPTO_VARIANT name another (the blocks are
-# built as separate runs, e.g. two CPU size variants).
+# built as separate runs, e.g. two CPU size variants). The final
+# blocks (docs/evidence/w7-sky130-hier-2026-10-22.log) are
+# SIGIL_CPU_VARIANT=s116d and SIGIL_CRYPTO_VARIANT=w34m.
 SIGIL_VARIANT_sigil_cpu = $(or $(SIGIL_CPU_VARIANT),$(FLOW_VARIANT))
 SIGIL_VARIANT_sigil_crypto_top = $(or $(SIGIL_CRYPTO_VARIANT),$(FLOW_VARIANT))
 SIGIL_BLOCK_DIR = $(WORK_HOME)/results/$(PLATFORM)/sigil_hier_$(1)/$(SIGIL_VARIANT_$(1))
@@ -85,4 +87,11 @@ export IO_CONSTRAINTS = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/io.tcl
 export PDN_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/pdn.tcl
 export PLACE_DENSITY ?= 0.30
 export GLOBAL_ROUTE_ARGS ?= -congestion_iterations 30 -congestion_report_iter_step 5 -allow_congestion -verbose
+# As the blocks: repair slew / cap with margins (routed slew was up to
+# 1.64x the global-route estimate in the crypto block; the top's nets
+# to the crypto pins run up to ~3.4 mm through the 40 um gap) and
+# allow more post-route antenna rounds than the platform's 5.
+export SLEW_MARGIN ?= 30
+export CAP_MARGIN ?= 30
+export MAX_REPAIR_ANTENNAS_ITER_DRT ?= 10
 export SYNTH_CANONICALIZE_TCL = $(DESIGN_HOME)/$(PLATFORM)/sigil_hier/stubs/strip_params.tcl
