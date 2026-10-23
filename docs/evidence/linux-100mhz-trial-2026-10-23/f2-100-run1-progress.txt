@@ -1,0 +1,13 @@
+[     3.8 s] SoC released (host: SoC released)
+[   233.6 s] boot marker: SIGIL_LINUX_BOOT_OK Debian GNU/Linux 13 (trixie) up, login prompt next (kernel u
+[   241.3 s] login prompt
+[   256.9 s] logged in as sigil
+[   257.4 s] clock after login: guest 1792736210.468 host 1792736210.821 offset -0.353 s
+[   257.8 s] PASS: kernel 6.12 + Debian 13
+[   258.3 s] PASS: cpu isa has zve64d
+[   260.6 s] PASS: systemd running, no failed units
+[   261.7 s] PASS: root on /dev/pmem0 (ext4, rw)
+[   262.4 s] PASS: nodes 0-1 online
+[   262.6 s] PASS: numactl --hardware: 2 nodes, node 1 = 16 GiB
+[   278.3 s] PASS: gcc hello.c && ./a.out
+[   279.7 s] PASS: gcc 14 / binutils / glibc versions
