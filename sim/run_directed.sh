@@ -88,6 +88,12 @@ run viota viota_directed.bin 4000000
 # viota.m cases with hand-computed results: LMUL 1-8, vl 0/VLMAX, mu/ma,
 # vs2 = v0, back-to-back producers/consumers, illegal encodings.
 run viotacases viota_cases_directed.bin 1000000
+# viota.m with vstart != 0 must trap.
+run viotavstart viota_vstart_directed.bin 4000000
+# Reductions, vcpop/vfirst, vmsbf/sif/sof, viota, vcompress trap on
+# vstart != 0; one right behind a load/store that consumes vstart
+# does not.
+run vstartill vstart_illegal_directed.bin
 run trap_pa_fetch trap_pa_fetch.bin 100000 --expect-trap 1
 run trap_pa_load trap_pa_load.bin 100000 --expect-trap 5
 # PMP: an entry matching part of an 8-byte access fails it (issue #8).

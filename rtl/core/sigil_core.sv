@@ -598,6 +598,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic [63:0]   csr_vl, csr_vstart, csr_vset_vl;
   logic [63:0]   vec_scalar;
   logic          vec_illegal, vec_align_bad;
+  logic          ex_vstart0_op;  // illegal when vstart != 0
   logic [2:0]    vec_wlmul;
   logic [63:0]   vset_avl, vset_vtype_raw, vec_vlmax;
   logic [1:0]    csr_vxrm;
@@ -616,10 +617,14 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // vector load/store occupies MEM (the whole pipeline is
   // frozen by mem_stall until its last cycle anyway; this
   // adds that last cycle), so it observes the vstart/vl
-  // updates that commit on the load/store's final edge.
+  // updates that commit on the load/store's final edge. So is
+  // an op whose legality depends on vstart (ex_vstart0_op): a
+  // legal one waits for vec_start anyway, but one judged
+  // illegal on the old vstart must not trap on it.
   assign vec_ex_stall = (vec_unit_op && !vec_done) ||
                         (idex_valid_q && !idex_exc_q && vls_is &&
-                         (idex_ctrl_q.csr || idex_ctrl_q.vset));
+                         (idex_ctrl_q.csr || idex_ctrl_q.vset ||
+                          (idex_ctrl_q.vec && ex_vstart0_op)));
   assign vec_commit = vec_unit_op && vec_done && !trap_fire &&
                       !mem_exc && !mem_stall;
 `ifndef SYNTHESIS
@@ -791,6 +796,20 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
            (log2n >= 4'sd3) ? 5'b00111 : 5'b00000;
     align_bad = |(regno & mask);
   endfunction
+  // Instructions that raise illegal-instruction when vstart != 0
+  // (RVV 1.0): reductions (sec. 14), vcpop.m, vfirst.m, vmsbf.m,
+  // vmsif.m, vmsof.m (15.2-15.6), viota.m (15.8), vcompress.vm
+  // (16.5). Held in EX while a vector load/store is in MEM (see
+  // vec_ex_stall) so the check sees the vstart it leaves behind.
+  assign ex_vstart0_op = (idex_ctrl_q.bext_op == VOP_RED) ||
+      (idex_ctrl_q.bext_op == VOP_WRED) ||
+      (idex_ctrl_q.bext_op == VOP_FRED) ||
+      (idex_ctrl_q.bext_op == VOP_FWRED) ||
+      (idex_ctrl_q.bext_op == VOP_CPOP) ||
+      (idex_ctrl_q.bext_op == VOP_FIRST) ||
+      (idex_ctrl_q.bext_op == VOP_MSBIT) ||
+      (idex_ctrl_q.bext_op == VOP_IOTA) ||
+      (idex_ctrl_q.bext_op == VOP_COMPRESS);
   assign vec_align_bad =
       (idex_ctrl_q.bext_op != VOP_MVSX) &&
       (idex_ctrl_q.bext_op != VOP_MVXS) &&
@@ -939,6 +958,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
        (!idex_ctrl_q.vset && vec_align_bad) ||
        (!idex_ctrl_q.vset && ex_vec_bad) ||
        (!idex_ctrl_q.vset && ex_fp_bad) ||
+       (!idex_ctrl_q.vset && ex_vstart0_op && (csr_vstart != 64'd0)) ||
        ((idex_ctrl_q.mem_read || idex_ctrl_q.mem_write) && ex_vls_bad));
   assign vset_avl = (idex_ctrl_q.fpu_aux == 2'd1)
       ? {59'd0, idex_instr_q[19:15]} : ex_rs1;

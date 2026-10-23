@@ -286,6 +286,17 @@
   asm_defs: [VIOTA_SWEEP=1]
   march: rv64gcv_zcb
 
+- test: sigil_viota_vstart_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    sigil_viota_test with VIOTA_VSTART: half the iterations run viota.m
+    after csrw vstart (1..64), which RVV 1.0 sec. 15.8 makes an
+    illegal-instruction exception (no register changed, vstart kept).
+    Failed before the core's vstart check (RTL up to 4958c3f).
+  asm: directed/sigil_viota_test.S
+  asm_defs: [VIOTA_VSTART=1]
+  march: rv64gcv_zcb
+
 - test: sigil_priv_test
   source: Sigil directed (sim/riscv-dv/directed)
   description: >
@@ -341,7 +352,7 @@
     vl2re64.v): Spike (and Sail) performs their 8-byte elements as single
     accesses, so an NA4 entry or a TOR boundary splitting an element
     fails it (also in M). Failed before the core checked the first byte
-    of each such element as the whole element (8-dvfix-pmp-w64).
+    of each such element as the whole element (9bdd552).
   asm: directed/sigil_pmp_test.S
   asm_defs: [PMP_WHOLE64]
   march: rv64gcvh_zcb
