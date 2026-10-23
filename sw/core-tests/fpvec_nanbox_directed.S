@@ -11,8 +11,11 @@
 // SEW=64 raw; vfmv.f.s boxing; f-register producers directly
 // followed by a .vf (forwarding); vtype changes right before
 // a .vf; scalar F instructions with unboxed operands; the
-// reserved SEW 8/16 and widening forms; and vfmv.f.s /
-// vfmv.s.f at vl=0.
+// reserved SEW 8/16 and widening forms; vfmv.f.s /
+// vfmv.s.f at vl=0; an unboxed sNaN low word (quiet, no NV);
+// the remaining FMA and widening FMA forms; LMUL=8 operations
+// with the f register and vtype changed right after issue;
+// mstatus.FS = Off; fractional LMUL.
 // Expected values follow the spec; the same program runs on
 // Spike when assembled with -DSPIKE_HTIF (tohost exit, link
 // at 0x80000000) and passes there.
@@ -449,6 +452,197 @@ _start:
     vfmv.s.f v16, ft4
     vsetivli a0, 4, e32, m1, tu, mu
     CHK32 v16, 0, 0
+
+    // 20: an unboxed register whose low word is a signaling NaN
+    // is the canonical (quiet) NaN at SEW=32: no NV flag, and its
+    // sign is +; the same low word boxed is an sNaN (NV). At
+    // SEW=64 the register is a subnormal double.
+    li t0, 20
+    la a1, sbuf
+    vle32.v v8, (a1)
+    csrw fflags, x0
+    SETF fa3, 0x000000007f800001
+    vfmv.v.f v16, fa3
+    CHK32 v16, 0, CNAN
+    vfadd.vf v16, v8, fa3
+    CHK32 v16, 1, CNAN
+    vmfeq.vf v4, v8, fa3
+    CHKM v4, 0
+    vfmin.vf v16, v8, fa3
+    CHK32 v16, 1, 0xc0000000
+    vfmax.vf v16, v8, fa3
+    CHK32 v16, 2, 0x40400000
+    vmv.v.v v16, v8
+    vfmacc.vf v16, fa3, v8
+    CHK32 v16, 3, CNAN
+    CHKFLAGS 0
+    SETF fa3, 0x12345678ff800001  // low word a negative sNaN
+    vfsgnj.vf v16, v8, fa3        // canonical NaN sign: +
+    CHK32 v16, 1, 0x40000000
+    vfsgnjn.vf v16, v8, fa3
+    CHK32 v16, 0, 0xbf800000
+    vfsgnjx.vf v16, v8, fa3
+    CHK32 v16, 3, 0xc0800000
+    vfslide1down.vf v16, v8, fa3
+    CHK32 v16, 3, CNAN
+    CHKFLAGS 0
+    SETF fa4, 0xffffffff7f800001  // boxed sNaN
+    vmfeq.vf v4, v8, fa4
+    CHKM v4, 0
+    CHKFLAGS 0x10
+    csrw fflags, x0
+    vfmin.vf v16, v8, fa4
+    CHK32 v16, 1, 0xc0000000
+    CHKFLAGS 0x10
+    csrw fflags, x0
+    vfmax.vf v16, v8, fa4
+    CHK32 v16, 0, 0x3f800000
+    CHKFLAGS 0x10
+    csrw fflags, x0
+    li a1, 4
+    vsetvli a0, a1, e64, m1, tu, mu
+    vmv.v.i v24, 0
+    SETF fa3, 0x000000007f800001
+    vfadd.vf v16, v24, fa3        // +0.0 + subnormal: exact
+    CHK64 v16, 2, 0x000000007f800001
+    vmfeq.vf v4, v24, fa3
+    CHKM v4, 0
+    vfmv.v.f v16, fa3
+    CHK64 v16, 3, 0x000000007f800001
+    CHKFLAGS 0
+
+    // 21: the remaining FMA forms and widening forms: the
+    // canonical NaN, never negated by the vfn* forms.
+    li t0, 21
+    li a1, 4
+    vsetvli a0, a1, e32, m1, tu, mu
+    la a1, sbuf
+    vle32.v v8, (a1)
+    SETF fa0, UNBOXED
+    csrw fflags, x0
+    vmv.v.v v16, v8
+    vfmsac.vf v16, fa0, v8
+    CHK32 v16, 0, CNAN
+    vmv.v.v v16, v8
+    vfnmacc.vf v16, fa0, v8
+    CHK32 v16, 1, CNAN
+    vmv.v.v v16, v8
+    vfmsub.vf v16, fa0, v8
+    CHK32 v16, 2, CNAN
+    vmv.v.v v16, v8
+    vfnmadd.vf v16, fa0, v8
+    CHK32 v16, 3, CNAN
+    vmv.v.v v16, v8
+    vfmadd.vf v16, fa0, v8, v0.t
+    CHK32 v16, 2, CNAN
+    CHK32 v16, 3, 0xc0800000      // inactive: undisturbed
+    vfwsub.vf v16, v8, fa0
+    CHK64 v16, 0, DNAN
+    CHK64 v16, 3, DNAN
+    la a1, dbuf
+    vl2re64.v v24, (a1)
+    vmv2r.v v16, v24
+    vfwnmacc.vf v16, fa0, v8
+    CHK64 v16, 0, DNAN
+    CHK64 v16, 3, DNAN
+    vmv2r.v v16, v24
+    vfwmsac.vf v16, fa0, v8, v0.t
+    CHK64 v16, 2, DNAN
+    CHK64 v16, 1, 0x4004000000000000  // inactive: undisturbed
+    CHKFLAGS 0
+
+    // 22: long operations (LMUL=8, vl=VLMAX) use the scalar and
+    // the SEW of their own issue: the f register is rewritten
+    // and vtype changed right after; the last element (written
+    // last by vfslide1down.vf) must still follow the rule.
+    li t0, 22
+    vsetvli a0, x0, e32, m8, ta, ma   // vl = 128
+    vmv.v.i v8, 0
+    SETF ft5, UNBOXED
+    vfslide1down.vf v16, v8, ft5
+    li a2, 0x40000000
+    fmv.w.x ft5, a2                   // boxed 2.0f
+    vsetivli a0, 4, e64, m1, tu, mu
+    CHK32 v23, 15, CNAN               // element 127
+    CHK32 v23, 14, 0
+    vsetvli a0, x0, e32, m8, ta, ma
+    SETF ft5, UNBOXED
+    vfmv.v.f v16, ft5
+    fmv.w.x ft5, a2
+    vsetivli a0, 4, e64, m1, tu, mu
+    CHK32 v16, 0, CNAN
+    CHK32 v23, 15, CNAN
+    vsetvli a0, x0, e32, m8, ta, ma
+    SETF ft5, 0xffffffff40000000      // boxed 2.0f
+    vfslide1down.vf v16, v8, ft5
+    SETF ft5, UNBOXED
+    vsetivli a0, 4, e64, m1, tu, mu
+    CHK32 v23, 15, 0x40000000
+    vsetvli a0, x0, e64, m8, ta, ma   // vl = 64
+    vmv.v.i v8, 0
+    SETF ft5, UNBOXED
+    vfslide1down.vf v16, v8, ft5
+    fmv.w.x ft5, a2
+    vsetivli a0, 4, e32, m1, tu, mu
+    CHK64 v23, 7, UNBOXED             // element 63, raw
+    CHK64 v23, 6, 0
+
+    // 23: with mstatus.FS = Off every .vf class, the moves that
+    // bypass the FPU included, and vfmv.f.s trap and write
+    // nothing; FS = Initial is enough to run them.
+    li t0, 23
+    vsetivli a0, 4, e32, m1, tu, mu
+    la a1, sbuf
+    vle32.v v8, (a1)
+    vmv.v.i v16, 0
+    SETF fa0, UNBOXED
+    li t1, 3 << 13
+    csrc mstatus, t1                  // FS = Off
+    TRAPS vfmv.v.f v16, fa0
+    TRAPS vfmv.s.f v16, fa0
+    TRAPS vfmerge.vfm v16, v8, fa0, v0
+    TRAPS vfslide1up.vf v16, v8, fa0
+    TRAPS vfslide1down.vf v16, v8, fa0
+    TRAPS vfadd.vf v16, v8, fa0
+    TRAPS vfsgnj.vf v16, v8, fa0
+    TRAPS vfmin.vf v16, v8, fa0
+    TRAPS vmfeq.vf v4, v8, fa0
+    TRAPS vfmacc.vf v16, fa0, v8
+    TRAPS vfwadd.vf v16, v8, fa0
+    TRAPS vfmv.f.s ft1, v8
+    CHK32 v16, 0, 0
+    CHK32 v16, 3, 0
+    vsetivli a0, 4, e64, m1, tu, mu
+    TRAPS vfmv.v.f v16, fa0
+    TRAPS vfmv.s.f v16, fa0
+    CHK64 v16, 0, 0
+    li t1, 1 << 13
+    csrs mstatus, t1                  // FS = Initial
+    vsetivli a0, 4, e32, m1, tu, mu
+    vfmv.v.f v16, fa0
+    CHK32 v16, 3, CNAN
+    li t1, 3 << 13
+    csrs mstatus, t1                  // FS = Dirty
+
+    // 24: fractional LMUL (e32 mf2, VLMAX 8): the canonical NaN
+    // in the body, the tail past VLMAX undisturbed (tu); a
+    // widening .vf from mf2 into an e64 m1 group.
+    li t0, 24
+    vsetivli a0, 16, e32, m1, tu, mu
+    vmv.v.i v16, 5
+    vmv.v.i v8, 0
+    vsetivli a0, 8, e32, mf2, tu, mu
+    vfmv.v.f v16, fa0
+    vsetivli a0, 16, e32, m1, tu, mu
+    CHK32 v16, 0, CNAN
+    CHK32 v16, 7, CNAN
+    CHK32 v16, 8, 5
+    vsetivli a0, 8, e32, mf2, tu, mu
+    csrw fflags, x0
+    vfwadd.vf v24, v8, fa0
+    CHK64 v24, 0, DNAN
+    CHK64 v24, 7, DNAN
+    CHKFLAGS 0
 
     j pass
 
