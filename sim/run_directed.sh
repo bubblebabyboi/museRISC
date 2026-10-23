@@ -79,6 +79,8 @@ run counter_time counter_time_directed.bin
 run hyp hyp_directed.bin
 run vecsw vec_directed.bin 4000000
 run fpvecsw fpvec_directed.bin 4000000
+# .vf scalar NaN-boxing in every .vf class (issue #8).
+run fpvecnanbox fpvec_nanbox_directed.bin 4000000
 run vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
 # viota.m (issue #8): vs2 is one mask register at any LMUL; random
 # vtype/AVL/policies/masks, plus the encodings that must trap.

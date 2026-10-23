@@ -347,6 +347,35 @@
   march: rv64gcvh_zcb
   spike_max_instr: 100000000
 
+- test: sigil_vf_nanbox_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    The f-register scalar of every .vf instruction (NaN-boxing at SEW=32,
+    raw at SEW=64, reserved at SEW 8/16): 28 scalars (boxed/unboxed
+    singles, NaN payloads, doubles, near-boxed patterns, PRNG) x 12 vtypes
+    with random ta/ma, AVL, frm, mask and data; every f-register producer
+    followed by a .vf consumer after 0-3 instructions; vtype changes right
+    before a .vf; scalar F with unboxed operands; self-checked spec values.
+  asm: directed/sigil_vf_nanbox_test.S
+  march: rv64gcv_zcb
+  # About 5,500 illegal-instruction traps (FP at SEW 8/16, widening at
+  # SEW=64 or LMUL=8); Spike charges up to 5,000 instructions per trap.
+  spike_max_instr: 60000000
+
+- test: sigil_vfcvt_sew16_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    FP vector conversions at SEW 16 and 8 without Zvfh/Zvfhmin: the
+    int16 <-> f32 widening/narrowing conversions are legal, every form
+    with a 16-bit FP operand and every FP form at SEW=8 is reserved. 16
+    iterations x 6 vtypes (e16 mf4..m4, e8 m1), random data, mask, frm,
+    ta/ma and AVL. Fails on the RTL as of 65a48ae (pre-existing): the core
+    treats every FP vector instruction at SEW < 32 as reserved, including
+    the six int16 <-> f32 conversions, which Spike executes.
+  asm: directed/sigil_vfcvt_sew16_test.S
+  march: rv64gcv_zcb
+  spike_max_instr: 20000000
+
 # ---------------------------------------------------------------------
 # Excluded
 # ---------------------------------------------------------------------
