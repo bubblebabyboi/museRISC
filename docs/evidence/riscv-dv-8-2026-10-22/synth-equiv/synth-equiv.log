@@ -1,0 +1,240 @@
+# Synthesized-logic review of 8-riscv-dv against main, and a Linux RTL boot (issue #8)
+# 2026-10-23 UTC. Question: does the branch change the synthesized logic only where its
+# three core fixes say it does, and does the simulation-only commit-trace probe disappear
+# from every synthesis view?
+#   A = main 9da0006 (the sigil-linux-f2-2026-10-22 release)
+#   B = origin/8-riscv-dv f2393973 (rtl/ identical to 37aa1d7, the last code change, and to 65a48ae)
+# The fixes: 63a50a5 viota.m vs2 is one mask register; 63a50a5 .vf scalars NaN-box checked at
+# SEW=32; 3ae351d PMP decides on all bytes of an 8-byte access. Trace probe: d9067a9, b4bb704,
+# 862868c, e1c4338 (`ifndef SYNTHESIS in sigil_core.sv and sigil_csr.sv).
+# Define sets, the five of scripts/synth_view_diff.sh: SYNTHESIS (FPGA CL build
+# synth_cl_sigil.tcl, f0 OOC, the unit flows), +SIGIL_SRAM_FAKERAM45 (ORFS nangate45),
+# +SIGIL_SRAM_SKY130 (ORFS sky130hd), +SIGIL_SRAM_OREG, +SIGIL_VRF_OREG (f0 option, #53).
+# Every synthesis flow in the tree passes SYNTHESIS.
+# Tools: Mac (Apple M3, macOS 26.6.2): Verilator 5.044, sv2v 0.0.13, Yosys 0.69+post and its
+# yosys-abc. Linux boot: sigil-verify (32 vCPU c7i.8xlarge, Ubuntu 24.04), Verilator 5.048 (deps/).
+# Scripts: tools/ (tools/make_trees.sh makes the compared trees; every result below reruns from them).
+
+== Result
+
+Two modules differ in synthesized logic, sigil_core and sigil_csr, identically in all five
+define sets. The other 41 modules (46 design units) are byte-identical after preprocessing.
+Every difference is one of the three fixes:
+  sigil_core  viota.m: ex_vs2_log2 (4 bits, the vs2 alignment check of the illegal-
+              instruction logic)
+              .vf NaN-box: the vector unit's scalar_i (64 bits)
+              PMP: the two new sigil_csr inputs pmp_wide_b_i = (mem_size_code == 3) (the
+              data port) and pmp_wide_c_i = 1 (the page-table walker)
+  sigil_csr   PMP: pmp_allow_b_o (data) and pmp_allow_c_o (walker); nothing else, and not the
+              fetch port pmp_allow_a_o
+With the three fixes reverted, the branch's sigil_core is proven equivalent to main's (all
+10,968 $equiv points). That covers the trace probe, the mem_size_code rewrite of the
+byte-enable case select, and the vec_frs1 wire. The trace probe leaves nothing in any
+synthesis view: no trace identifier remains after preprocessing or sv2v, and the flip-flop
+counts match main's. The PMP difference is characterized by SAT for all register contents:
+same verdict for every access except an aligned 8-byte one whose deciding entry (the lowest-
+numbered entry matching either 4-byte word) matches only one word, and such an access is
+denied.
+Linux RTL boot on the branch: SIGIL_LINUX_BOOT_OK at 261,247,447 cycles, the same as main
+(the release gates' figure, and main rerun here beside the branch). The UART logs are byte-
+identical: 890 lines, sha256 a14fee2d...
+
+== 1. Synthesis views: scripts/synth_view_diff.sh 9da0006 origin/8-riscv-dv   (synth_view_diff.txt)
+
+defines=[SYNTHESIS] lines=12924 A=b4f7f38ac29da054 B=e2d85f519b14b8f1 DIFFERENT (57 lines)
+defines=[SYNTHESIS SIGIL_SRAM_FAKERAM45] lines=12961 A=f0ef6463699a8e91 B=1eda5f933972ad82 DIFFERENT (57 lines)
+defines=[SYNTHESIS SIGIL_SRAM_SKY130] lines=12979 A=5dfbb25c4669aa07 B=516586bf43e4a262 DIFFERENT (57 lines)
+defines=[SYNTHESIS SIGIL_SRAM_OREG] lines=12924 A=436c7b1e93b4365a B=33dede8321e2f7a2 DIFFERENT (57 lines)
+defines=[SYNTHESIS SIGIL_VRF_OREG] lines=12924 A=86fe6b7af702e896 B=dc8a009100c54cd3 DIFFERENT (57 lines)
+defines=[none, simulation view] lines=13743 A=c3d56f6af73a1953 B=098c4dd1bbf9df01 DIFFERENT (301 lines)
+
+The script exits 1 (synthesis views differ), as it should for a change to the logic. The
+changed lines (+/-) are the same 57 in all five define sets, and the four other sets'
+diffs match the SYNTHESIS one line for line. They are in synthesis-view.diff, in seven
+hunks:
+  1. sigil_core  +3   viota.m: `else if (bext_op == VOP_IOTA) {vd: LMUL group; vs2: -3,
+                      one register}` inserted before the VOP_EXT arm of the operand-
+                      alignment chain
+  2. sigil_core  +4   NaN-box: vec_frs1 = (vtype.vsew == 32 && frs1[63:32] != '1) ?
+                      64'hffffffff_7fc00000 : frs1
+  3. sigil_core  -1+1 NaN-box: vector unit .scalar_i(fp_rs1 ? vec_frs1 : ex_rs1)
+  4. sigil_core  +2-1+1  mem_size_code = vls_is ? vls_eew_code[1:0] : funct3[1:0], now
+                      also the select of the byte-enable case (the same expression,
+                      named)
+  5. sigil_core  +2   PMP: .pmp_wide_b_i(mem_size_code == 2'b11), .pmp_wide_c_i(1'b1)
+  6. sigil_csr   +2   PMP: input ports pmp_wide_b_i, pmp_wide_c_i
+  7. sigil_csr   rest PMP: pmp_match returns {second word, first word}; pmp_check takes
+                      `wide` and fails a split match; fetch passes wide = 0
+The simulation view also differs in the trace probe. Its diff holds the same 57 lines plus
+244 added lines that exist only without SYNTHESIS, i.e. inside `ifndef SYNTHESIS: the
+sigil_core retire trace and the sigil_csr trace read mux with its cross-check. None of them
+is a removed line.
+
+== 2. Which modules differ   (unit_diff.txt, sv2v_views.txt)
+
+Preprocessed text split into design units (tools/unit_diff.sh, Verilator 5.044), and sv2v
+output split into modules (tools/sv2v_views.sh, sv2v 0.0.13):
+  every define set: 48 units, differing: sigil_core sigil_csr (Verilator -E)
+  every define set: 43 modules, differing: sigil_core sigil_csr (sv2v; packages fold away)
+  simulation view: differing: sigil_core sigil_csr
+sigil_csr is instantiated only in sigil_core, and sigil_core's port list did not change.
+Every module above sigil_core (sigil_cpu, sigil_soc_top, sigil_fpga_top, sigil_fpga_ocl) and
+every other unit is byte-identical, so those modules can differ only through sigil_core's
+outputs. Section 3 covers those.
+
+Trace probe under SYNTHESIS: lines matching tr_* / trace_* / $fwrite / $fopen / sigil_trace /
+$value$plusargs in the branch's units:
+  SYNTHESIS        sigil_core 0, sigil_csr 0     (simulation view: 92 and 93)
+  sv2v, all five define sets: sigil_core 0, sigil_csr 0
+
+== 3. Logic equivalence (Yosys)   (eq/<define set>.<run>.txt; tools/run_all_equiv.sh)
+
+tools/equiv_core.sh converts both trees with sv2v under the define set. It reads every child
+of sigil_core as a port-only blackbox (12 of 12; equiv_make merges each child instance pair,
+so every signal sigil_core hands a child becomes an $equiv point). Then it runs
+equiv_make / equiv_simple -seq 2 / equiv_induct -seq 2. tools/equiv_csr.sh does the same for
+sigil_csr. Main is gold. The gates are the branch and the variants of tools/make_trees.sh:
+the branch's own sigil_core.sv with the named hunks reverted (neutralize_core.py; each
+variant is 4-7 lines from the branch file, and every other file is the branch's).
+
+                                    $equiv points: proven / unproven, in each of the 5 define sets
+  run           gate                         SYNTHESIS  +OREG  +SKY130  +FAKERAM45  +VRF_OREG
+  core_neutral  all three fixes reverted     10968/0    same   same     same        same
+  core_full     branch                       10900/70   same   same     same        same
+  ctl_iota      only the viota.m hunk        10964/4    same   same     same        same
+  ctl_nanbox    only the NaN-box hunk        10904/64   same   same     same        same
+  ctl_pmpwide   only the pmp_wide hunk       10968/2    same   same     same        same
+  csr_tie       sigil_csr, pmp_wide_b/c = 0  5866/0     same   same     same        same
+  csr_free      sigil_csr, pmp_wide free     5864/2     same   same     same        same
+(The core_full and ctl_pmpwide gates take the children's stubs from the branch, so u_csr
+has the two new ports; main's u_csr instance gets them tied to 0. In csr_free, main's
+sigil_csr gets the same two inputs, unused.)
+
+Unproven points, named (identical in all five define sets except one sv2v line number):
+  core_full:   4 bit(s) wire ex_vs2_log2                                   <- viota.m
+              64 bit(s) u_vec .scalar_i: gold (fp_rs1 ? ex_frs1 : ex_rs1)
+                                         gate (fp_rs1 ? vec_frs1 : ex_rs1)  <- NaN-box
+               1 bit    u_csr .pmp_wide_b_i: gold 0 | gate mem_size_code == 2'b11  <- PMP
+               1 bit    u_csr .pmp_wide_c_i: gold 0 | gate 1                       <- PMP
+  ctl_iota:    the 4 ex_vs2_log2 bits only; ex_vd_log2 is proven: the hunk's vd line
+               matches what VOP_IOTA got before
+  ctl_nanbox:  the 64 scalar_i bits only
+  ctl_pmpwide: the two pmp_wide bits only
+  csr_free:    pmp_allow_b_o, pmp_allow_c_o. pmp_allow_a_o (fetch), the CSR read data,
+               trap/xRET logic and every register are proven
+How to read this:
+- core_neutral: with only the three intended hunks reverted, the branch's sigil_core is
+  equivalent to main's. Every other change to the file is logic-neutral in synthesis: the
+  trace probe, the mem_size_code rewrite, and the vec_frs1 wire (unread once its use is
+  reverted). The fixes are therefore the only logic change in sigil_core.
+- core_full and ctl_*: each fix shows up at its own signal and at no other. None of them
+  disturbs anything else in sigil_core (all other points are proven).
+- csr_tie: with pmp_wide_b/c tied to 0 (every access checked as one 4-byte word, the old
+  rule), the branch's sigil_csr is equivalent to main's. Nothing else in sigil_csr changed.
+- csr_free: the only sigil_csr outputs that can change are the data and walker PMP verdicts.
+"Unproven" here means "not shown equal". Section 4 shows that the PMP difference is real and
+exactly the fix. The directed tests show the other two: vec_directed test 25 (viota.m) and
+fpvec_directed test 11 (.vf NaN-box), both from 63a50a5, and pmp_partial_directed, which
+fails on main's RTL (3ae351d; critic/pmp-partial-match.txt).
+
+== 4. The PMP difference, characterized   (pmp_char.txt; tools/pmp_char.sh, pmp_char.py; wrapper pmp_char_wrapper.sv)
+
+pmp_match and pmp_check are copied verbatim from each tree's preprocessed (SYNTHESIS)
+sigil_csr.sv, with main's renamed *_old. The wrapper makes the 16 pmpcfg/pmpaddr registers,
+the address, access type, privilege and `wide` free inputs. Yosys maps the negation of each
+property to an AIG, and ABC iprove decides it for every input (UNSATISFIABLE = the property
+holds):
+  ok_match         aligned address: the branch's pmp_match equals main's pmp_match applied
+                   to the two words, {match(addr+4), match(addr)}, for OFF/TOR/NA4/NAPOT
+                   and every pmpaddr/prev. This proves the TOR shortcut (a54o compares
+                   derived from the a54 ones).                             PROVEN
+  ok_narrow        !wide: same verdict as main                             PROVEN
+  ok_wide_nosplit  wide, aligned, and the lowest-numbered entry matching either word
+                   (main's matcher) matches both: same verdict as main     PROVEN
+  ok_wide_split    wide, aligned, and that entry matches only one word: denied, whatever
+                   the privilege, L, R, W, X                               PROVEN
+  diff_wide        some wide aligned access gets a different verdict       SATISFIABLE
+    witness (Yosys sat): entry 0 NA4 over PA 0x8000_1004..7 (no R/W/X, unlocked), entries
+    1-15 OFF, M-mode 8-byte read at addr=0x80001000: main allows it, the branch denies it.
+    This is the case the riscv-dv privileged program found (an M-mode ld of a PTE whose
+    second word an NA4 entry covers).
+  mutant check: the branch with the TOR second-word bound `&& (enc != a54o)` deleted
+    breaks ok_match, ok_wide_nosplit and ok_wide_split (all SATISFIABLE), so the
+    properties are not vacuous.
+So, for the inputs sigil_core drives: a data access that is not 8 bytes (pmp_wide_b_i = 0)
+and every fetch get main's verdict. An 8-byte data access (scalar/FP/AMO doubleword, or a
+vector element of EEW 64) and every walker PTE read or A/D write-back (pmp_wide_c_i = 1)
+get main's verdict unless the deciding entry splits the doubleword, and then they fault.
+That is the rule of the privileged spec ("Priority and Matching Logic") for the 4-byte
+grain. The `aligned` premise holds for every 8-byte access that reaches the verdict:
+scalar misaligned accesses trap in EX (ex_misalign), the vector misaligned fault comes
+before translation and PMP in MEM (vls_misalign), and PTE addresses are 8-byte aligned.
+Run time 10 s (ABC proves each property in under 1 s; Yosys's own `sat -prove` did not
+finish ok_wide_nosplit in 30 min).
+
+== 5. Size (generic gates, SYNTHESIS)   (area.txt; tools/area.sh)
+
+Yosys synth -flatten; abc -g AND,NAND,OR,NOR,XOR,XNOR,MUX; technology-independent, so this
+indicates size and is not a PPA result:
+  sigil_csr     main 36,620 cells -> branch 37,315 (+695, +1.9%); flip-flops 3,058 = 3,058
+  sigil_core    own logic, children blackboxed: main 21,620, neutral 21,331, branch 21,449;
+                flip-flops 2,730 in all three
+main and neutral are proven equivalent but differ by 289 cells, so ABC's structural noise on
+sigil_core is larger than the two fixes' cost. The flip-flop counts show no state was added
+(the trace probe's registers are gone).
+
+== 6. Linux RTL boot (soc_rtl_tb)   (linux-boot-8-riscv-dv-f239397.txt, linux-boot-main-9da0006.txt; tools/linux_boot.sh)
+
+sigil-verify, 2026-10-23 06:11 UTC. Branch and main side by side, each in a fresh git
+archive tree (~/wt/synx-br at f2393973, ~/wt/synx-main at 9da0006, deps/ -> ~/sigil/deps):
+  make -C sim ../build/sim/soc_rtl_tb VJOBS=4   (sim/Makefile default flags: -O3 --assert)
+  build/sim/soc_rtl_tb 6000000000 --load 0x80000000=fw_jump.bin --load 0x80200000=Image-initramfs \
+    --load 0x83000000=sigil-sim.dtb --uart-log linux-boot-uart.log --exit-string SIGIL_LINUX_BOOT_OK
+Images: sha256 as in sigil-fpga-build:~/os-artifacts (checked there today) and in the release gates:
+  d98908b4ce2187b3a7e26b27f78747b03eb9bd2ee457e4e974d05a49649cacbf  fw_jump.bin
+  2f059b6cd7f944d3d2dbdb5b48f837da6351be917f981e15523212e0e4226a48  Image-initramfs
+  f144da91e67f7ca63cb2189255deac0ad37ad59e00ba3eb4808e8f2ced8c3677  sigil-sim.dtb
+                 result                                      cycles        wall      UART log
+  8-riscv-dv     SIGIL_LINUX_BOOT_OK, SOC RTL TB PASS, rc 0  261,247,447   21:57     890 lines, sha256 a14fee2d...
+  main 9da0006   SIGIL_LINUX_BOOT_OK, SOC RTL TB PASS, rc 0  261,247,447   21:02     890 lines, sha256 a14fee2d...
+  main, release gates (linux-release-73-final-gates-2026-10-22.log)  261,247,447     UART sha256 a14fee2d...
+The two UART logs are byte-identical. The two linux_boot.log files (896 lines) differ only in
+the wall-time line. Neither has an %Error, %Warning or assertion line, so the sigil_csr
+trace-read-mux cross-check (simulation only, branch) never fired in 261 M cycles.
+0 console lines match Oops|BUG:|Unable to handle|WARNING:|Kernel panic. The boot does not
+reach any changed path: same cycle count, same console. That matches the full ACT result
+(act-full.log: every ELF has the same verdict and cycle count).
+
+== 7. Porting note: 53-100mhz-afi (#53 FPGA_TIMING; not edited)
+
+origin/53-100mhz-afi (866efb6) forks from main at 2968b6d, 103 commits before 9da0006,
+and has none of the three fixes. When 8-riscv-dv reaches main and main is merged into #53,
+these places need the fixes (line numbers at 866efb6):
+  sigil_csr.sv  pmp_match (l. 702) and pmp_check (l. 721): the fix as on 8-riscv-dv;
+                pmp_check_par (l. 755, the parallel FPGA_TIMING form): it needs the wide
+                rule too. Per entry, a second-word hit (NA4 a54o == enc; TOR:
+                lt1[i] = lt[i] && (enc != a54o), ge_prev1[i] = !lt1[i-1]; NAPOT same as
+                the first word). Pick the first entry over hit0 | (wide & hit1), and fail it
+                if hit0 != hit1.
+                g_pmp_par / g_pmp_par_off (l. 787-803): pass wide (fetch 0, data
+                pmp_wide_b_i, walker pmp_wide_c_i) in both arms and in the `ifndef
+                SYNTHESIS cross-check that compares pmp_check_par with pmp_check;
+                ports: pmp_wide_b_i, pmp_wide_c_i.
+  sigil_core.sv viota.m: the VOP_IOTA arm before VOP_EXT (l. 795); NaN-box: vec_frs1 and
+                scalar_i (l. 1049); mem_size_code (l. 1790) and the u_csr connections
+                (l. 1998-2010: pmp_wide_b_i = mem_size_code == 3, pmp_wide_c_i = 1).
+                sigil_mmu.sv on that branch is reworked (registered dl_* port), but the
+                walker's PMP check still comes from u_csr port c (walk_pmp_allow_i =
+                pmp_allow_walk), so pmp_wide_c_i = 1 carries over unchanged.
+A synth-view/equivalence pass like this one, with FPGA_TIMING=1 added, would then check
+the port.
+
+== Reproduce
+
+  tools/make_trees.sh <repo> 9da0006 origin/8-riscv-dv <dir>
+  tools/unit_diff.sh <dir>/main/rtl <dir>/br/rtl <dir>/ud     > unit_diff.txt
+  tools/sv2v_views.sh <dir>/main/rtl <dir>/br/rtl <dir>/sv    > sv2v_views.txt
+  cp -R tools <dir>/tools && <dir>/tools/run_all_equiv.sh <dir> 4   # 35 runs, ~9 min on 8 cores
+  tools/pmp_char.sh <dir>/main/rtl <dir>/br/rtl <dir>/pmpchar  > pmp_char.txt
+  tools/area.sh <dir>/eq/SYNTHESIS <dir>/area                   > area.txt
+  tools/linux_boot.sh <tree>   (on sigil-verify; images in ~/wt/dvfix-os)

@@ -1,0 +1,10 @@
+ok_match: PROVEN  [ABC iprove on !ok_match: UNSATISFIABLE; and = 1617 AIG nodes]
+ok_narrow: PROVEN  [ABC iprove on !ok_narrow: UNSATISFIABLE; and = 17930 AIG nodes]
+ok_wide_nosplit: PROVEN  [ABC iprove on !ok_wide_nosplit: UNSATISFIABLE; and = 18468 AIG nodes]
+ok_wide_split: PROVEN  [ABC iprove on !ok_wide_split: UNSATISFIABLE; and = 18209 AIG nodes]
+diff_wide: SATISFIABLE (expected SATISFIABLE: some 8-byte access gets a different verdict)
+    witness: model found: addr=0x80001000 n_new=0x0 n_old=0x1 (n_old: main's verdict, n_new: the branch's; 1 = allowed)
+mutant (TOR 'enc != a54o' dropped) !ok_match: SATISFIABLE (expected SATISFIABLE)
+mutant (TOR 'enc != a54o' dropped) !ok_wide_nosplit: SATISFIABLE (expected SATISFIABLE)
+mutant (TOR 'enc != a54o' dropped) !ok_wide_split: SATISFIABLE (expected SATISFIABLE)
+10s (Yosys 0.69+post, yosys-abc, sv2v 0.0.13, Verilator 5.044)

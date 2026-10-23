@@ -1,0 +1,4 @@
+defines=[SYNTHESIS SIGIL_VRF_OREG] module=sigil_csr gold=main gate=br mode=tie
+Found 5866 $equiv cells in equiv:
+  Of those cells 5866 are proven and 0 are unproven.
+yosys rc=0 39s (Yosys 0.69+post, sv2v 0.0.13)

@@ -1,0 +1,8 @@
+defines=[SYNTHESIS SIGIL_SRAM_OREG] gold=main gate=ctl_pmpwide stubs=gate tie=[u_csr pmp_wide_b_i 1'b0;u_csr pmp_wide_c_i 1'b0]
+blackboxed children (merged): 12 of 12: sigil_alu sigil_bext sigil_csr sigil_decoder sigil_fpregfile sigil_fpu sigil_mmu sigil_muldiv_mc sigil_regfile sigil_rvc sigil_vec sigil_vregfile 
+Found 10970 $equiv cells in equiv:
+  Of those cells 10968 are proven and 2 are unproven.
+unproven: 2
+    1 bit(s), merged-child input: gold 1'0 | gate 1'1
+    1 bit(s), merged-child input: gold 1'0 | gate gate_core.v:1479 `.pmp_wide_b_i(mem_size_code == 2'b11),`
+yosys rc=0 36s (Yosys 0.69+post, sv2v 0.0.13)

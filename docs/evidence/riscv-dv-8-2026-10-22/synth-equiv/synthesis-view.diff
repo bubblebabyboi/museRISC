@@ -1,0 +1,144 @@
+--- main 9da0006: rtl/{core,crypto,soc,fpga}/*.sv, verilator -E -P +define+SYNTHESIS -Icore
++++ origin/8-riscv-dv f239397 (rtl/ = 37aa1d7): same files, same command
+@@ -1035,6 +1035,9 @@
+       ex_vs2_log2 = ((idex_ctrl_q.bext_op == VOP_MLOG) ||
+                      (idex_ctrl_q.bext_op == VOP_MSBIT))
+                     ? -4'sd3 : ex_lmul_log2;
++    end else if (idex_ctrl_q.bext_op == VOP_IOTA) begin
++      ex_vd_log2 = ex_lmul_log2;
++      ex_vs2_log2 = -4'sd3;   
+     end else if (idex_ctrl_q.bext_op == VOP_EXT) begin
+       ex_vd_log2 = ex_lmul_log2;
+       ex_vs2_log2 = ex_lmul_log2 -
+@@ -1048,6 +1051,10 @@
+            4'(signed'({1'b0, csr_vtype[5:3]})))
+         : ex_lmul_log2;
+   end
++  logic [63:0] vec_frs1;
++  assign vec_frs1 = ((csr_vtype[5:3] == 3'd2) &&
++                     (ex_frs1[63:32] != 32'hffff_ffff))
++                    ? 64'hffff_ffff_7fc0_0000 : ex_frs1;
+   function automatic logic align_bad(
+       input logic [4:0] regno, input logic signed [3:0] log2n);
+     logic [4:0] mask;
+@@ -1249,7 +1256,7 @@
+       .vs1_i     (idex_instr_q[19:15]),
+       .vd_i      (idex_rd_q),
+       .nreg_i    (4'd1 << vec_wlmul),
+-      .scalar_i  (idex_ctrl_q.fp_rs1 ? ex_frs1 : ex_rs1),
++      .scalar_i  (idex_ctrl_q.fp_rs1 ? vec_frs1 : ex_rs1),
+       .imm_i     (idex_imm_q),
+       .vxrm_i    (csr_vxrm),
+       .frm_i     (csr_frm),
+@@ -1771,10 +1778,12 @@
+   end
+   assign sc_success = res_valid_q && (res_pa_q == mmu_d_pa) &&
+                       (res_is_d_q || (exmem_ctrl_q.funct3 == 3'b010));
++  logic [1:0] mem_size_code;
++  assign mem_size_code = vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0];
+   always_comb begin
+     logic [7:0]  be;
+     logic [63:0] wdata;
+-    unique case (vls_is ? vls_eew_code[1:0] : exmem_ctrl_q.funct3[1:0])
++    unique case (mem_size_code)
+       2'b00: begin
+         be = 8'h01 << mem_va[2:0];
+         wdata = {8{eff_store_data[7:0]}};
+@@ -1975,10 +1984,12 @@
+       .pmp_acc_b_i   (exmem_ctrl_q.hlvx ? 2'd3 :
+                       exmem_ctrl_q.mem_write ? 2'd1 : 2'd0),
+       .pmp_priv_b_i  (eff_priv_mem),
++      .pmp_wide_b_i  (mem_size_code == 2'b11),
+       .pmp_allow_b_o (pmp_allow_data),
+       .pmp_addr_c_i  (walk_addr),
+       .pmp_acc_c_i   (walk_acc),
+       .pmp_priv_c_i  (2'b01),   
++      .pmp_wide_c_i  (1'b1),    
+       .pmp_allow_c_o (pmp_allow_walk)
+   );
+   sigil_mmu u_mmu (
+@@ -2484,10 +2495,12 @@
+     input  wire [63:0] pmp_addr_b_i,
+     input  wire [1:0]  pmp_acc_b_i,
+     input  wire [1:0]  pmp_priv_b_i,
++    input  wire        pmp_wide_b_i,   
+     output logic       pmp_allow_b_o,
+     input  wire [63:0] pmp_addr_c_i,
+     input  wire [1:0]  pmp_acc_c_i,
+     input  wire [1:0]  pmp_priv_c_i,
++    input  wire        pmp_wide_c_i,
+     output logic       pmp_allow_c_o
+ );
+   localparam logic [1:0] PRIV_U = 2'b00, PRIV_S = 2'b01, PRIV_M = 2'b11;
+@@ -2984,34 +2997,48 @@
+     end
+   end
+   /*verilator lint_off UNUSEDSIGNAL*/
+-  function automatic logic pmp_match(
++  function automatic logic [1:0] pmp_match(
+       input logic [63:0] addr,
+       input logic [7:0]  cfg,
+       input logic [63:0] pmpaddr,
+       input logic [63:0] prev_pmpaddr);
+-    logic [53:0] a54, enc, prev, napot_mask;
++    logic [53:0] a54, a54o, enc, prev, napot_mask;
++    logic lo, hi, m;
+     a54 = addr[55:2];
++    a54o = {addr[55:3], 1'b1};
+     enc = pmpaddr[53:0];
+     prev = prev_pmpaddr[53:0];
+     napot_mask = enc ^ (enc + 54'd1);   
+     unique case (cfg[4:3])
+-      2'b00:   pmp_match = 1'b0;                                     
+-      2'b01:   pmp_match = (a54 >= prev) && (a54 < enc);             
+-      2'b10:   pmp_match = (a54 == enc);                             
+-      default: pmp_match = ((a54 ^ enc) & ~napot_mask) == 54'd0;     
++      2'b00:   pmp_match = 2'b00;                                    
++      2'b01: begin                                                   
++        lo = (a54 >= prev);
++        hi = (a54 < enc);
++        pmp_match = {(lo || (prev == a54o)) && hi && (enc != a54o), lo && hi};
++      end
++      2'b10:   pmp_match = {a54o == enc, a54 == enc};                
++      default: begin                                                 
++        m = ((a54 ^ enc) & ~napot_mask) == 54'd0;
++        pmp_match = {m, m};
++      end
+     endcase
+   endfunction
+   /*verilator lint_on UNUSEDSIGNAL*/
+   function automatic logic pmp_check(
+       input logic [63:0] addr,
+       input logic [1:0]  acc,
+-      input logic [1:0]  priv);
++      input logic [1:0]  priv,
++      input logic        wide);
+     logic allow;
++    logic [1:0] m;
+     allow = (priv == PRIV_M);
+     for (int i = 15; i >= 0; i--) begin
+-      if (pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
+-                    (i == 0) ? 64'd0 : pmpaddr_q[i-1])) begin
+-        if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
++      m = pmp_match(addr, pmpcfg_q[i], pmpaddr_q[i],
++                    (i == 0) ? 64'd0 : pmpaddr_q[i-1]);
++      if (m[0] || (wide && m[1])) begin
++        if (wide && (m[0] != m[1])) begin
++          allow = 1'b0;
++        end else if ((priv == PRIV_M) && !pmpcfg_q[i][7]) begin
+           allow = 1'b1;
+         end else if (acc == 2'd0) begin
+           allow = pmpcfg_q[i][0];
+@@ -3026,9 +3053,9 @@
+     end
+     return allow;
+   endfunction
+-  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i);
+-  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i);
+-  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i);
++  assign pmp_allow_a_o = pmp_check(pmp_addr_a_i, pmp_acc_a_i, pmp_priv_a_i, 1'b0);
++  assign pmp_allow_b_o = pmp_check(pmp_addr_b_i, pmp_acc_b_i, pmp_priv_b_i, pmp_wide_b_i);
++  assign pmp_allow_c_o = pmp_check(pmp_addr_c_i, pmp_acc_c_i, pmp_priv_c_i, pmp_wide_c_i);
+   function automatic logic pmp_locked(input int idx);
+     pmp_locked = pmpcfg_q[idx][7] ||
+         ((idx < 15) && pmpcfg_q[idx+1][7] &&
