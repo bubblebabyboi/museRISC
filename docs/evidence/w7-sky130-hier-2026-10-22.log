@@ -742,3 +742,91 @@ die").
     5_2_route_eco1.spef (OpenRCX of exactly this layout),
     SIGIL_NET_MAX_LEN=150, SIGIL_SETUP_MARGIN=0.3, slew/cap margins
     20 %, up to 3 rounds. Started 00:03Z.
+  s116d ECO (00:03-00:19Z, 16 min, 1 round): timed from s116c's
+    OpenRCX SPEF (WNS +0.308, 34 slew / 1 cap pins); repair_design 6
+    resized, 6 buffers on 36 nets; still violating: net50365, net35000,
+    _175894_, net34993 -> rsz::repair_net_cmd with 150 um maximum wire
+    length: 7 + 5 + 2 + 3 buffers (estimated 0 slew / 0 cap);
+    repair_timing (margin 0.3) no change needed; detailed route 1,863 /
+    441 / 327 / 10 / 9 / 9 / 0; antenna 1 -> 0 nets (one round, re-route
+    127 / 32 / 11 / 0). OpenRCX of the routed result: setup WNS +0.309,
+    hold +0.247, 0 max-slew, 0 max-cap, 0 antenna nets -> done.
+  s116d finish + abstract (00:20-00:33Z, 12.6 min): 5_route_drc.rpt
+    empty (0 DRC violations), drt_antennas.log empty (0 antenna nets),
+    final LEC (kepler-formal, 1_synth_lec.v vs 6_final_lec.v): "Circuits
+    are IDENTICAL"; GDS merge "All LEF cells have matching GDS/OAS
+    cells", "No orphan cells". 6_finish.rpt: setup WNS +0.31 / TNS 0,
+    hold WNS +0.25, 0 hold violations, max-slew and max-cap slack
+    positive (+0.137 ns; +0.0002 pF), fmax 25.19 MHz.
+
+  CPU block result (chosen: s116d, 3400 x 3420 um = 11.63 mm^2)
+    instances  1,275,233: 364,223 std cells (2.411 mm^2: 168,702 logic,
+               19,979 flops, 23,936 timing-repair buffers, 4,839 clock
+               buffers, 981 clock inverters, 4,914 inverters, 25,743
+               antenna diodes, 115,129 tap cells), 7 OpenRAM macros
+               (2.914 mm^2), 911,003 fill cells
+    area       5,324,914 um^2 cells + macros = 46.1 % of the 3390 x 3410
+               core (std cells alone 27.9 %)
+    routing    met1-met4 (met5 free for the top), 23.20 m wire,
+               2,223,433 vias; OpenROAD DRC 0, antenna 0
+    timing, routed, OpenRCX SPEF (corner_sta.tcl, all corners on the
+    same typical-RC extraction; the OpenRAM macros keep TT timing):
+      corner          setup WNS / TNS (ns), viol. ep.   by endpoint:            hold WNS  slew / cap viol.
+                                                         outputs | internal
+      tt (platform)   +0.309 / 0, 0                     +0.309 | +6.921        +0.247    0 / 0
+      tt (PDK lib)    +0.309 / 0, 0                     +0.309 | +6.921        +0.247    0 / 0
+      ss_100C_1v60    -24.797 / -174,357, 12,728        -24.797 (182) |        +0.609    21,490 / 3,567
+                                                        -23.757 (12,546)
+      ff_n40C_1v95    +9.922 / 0, 0                     +9.922 | +16.842       +0.118    0 / 0
+      ("outputs" = block output ports against the 12 ns boundary budget
+      of constraint.sdc, worst dbg_st_addr_o[48] / dbg_st_wdata_o[13];
+      "internal" = register and macro pins, worst TT path
+      u_core.boot_q -> u_icache.r_addr_q[49]). The block meets 25 MHz
+      in TT and FF; in SS (100 C, 1.60 V) internal paths need ~64 ns
+      (~16 MHz) and the ss library's slew limits are exceeded on 21,490
+      pins; ss / ff are reported, not closed (the flow optimizes the
+      platform's TT library only).
+    TT power 0.1505 W (sequential 23.9 mW, combinational 59.6, clock
+      33.2, OpenRAM macros 33.8); clock skew (setup) 0.937 ns.
+    Artifacts on sigil-sky130, ~/sb/build/results/sky130hd/
+    sigil_hier_sigil_cpu/s116d (sha256):
+      6_final.gds          430,498,172 B  d71ee9c6d44d8df6d76dce438cedc5ae90dff1497498b5910cdb42df1c9b6eed
+      sigil_cpu.lef        3400 x 3420, 618 signal pins (met3, left
+                           edge) + VDD/VSS met4 straps, OBS li1-met4
+                                          233e9cf0fad1b7c54cc89a473842b8b316473c45475b6b3a78430007c8fdcdc4
+                           (identical to s116a's: same pins, the
+                           abstract obstructs whole layers)
+      sigil_cpu_typ.lib    TT model (flow) 6d21f02533180a34cc6c4ea9e334049a53df9e5427766cb9c84dbff1cd90e6d4
+      6_final.v / .sdc / .spef / .odb  8a651a73... / c2908d93... /
+                           eed6f4cf... / 7bac7ae8...
+    per-corner timing models (corner_sta.tcl MODEL=1), ~/sb/sta/cpu-s116d:
+      sigil_cpu_tt.lib     = sigil_cpu_typ.lib (6d21f025...)
+      sigil_cpu_ss.lib     f7ebdc8dc6c07b031b7111aa15a8ebb202a7ffe3fabc9a473aec5bfdd4cd5238
+      sigil_cpu_ff.lib     a8e087029a5393477441eac55e5887caa3a50aea5bcffc8613075683e5149917
+    Abstract read-back (OpenROAD + parse): the LEF macro and the 4
+    liberty models have the same 620 pins (618 signals + VDD/VSS), same
+    directions, 560 timing arcs each, liberty area 5,179,528.5.
+    Reproduce: make generate_abstract FLOW_VARIANT=s116 (2db5230
+    config, PWR_NETS_VOLTAGES= GND_NETS_VOLTAGES=), then on copies of
+    the results: drt_antenna_fix.tcl (s116a), drt_eco_repair.tcl
+    2d0e70a (s116b, SIGIL_ECO_SPEF = s116a 6_final.spef), 2884120
+    round 1 (s116c, s116b SPEF, SIGIL_SETUP_MARGIN=0.8), 027394e
+    (s116d, s116c 5_2_route_eco1.spef, SIGIL_NET_MAX_LEN=150,
+    SIGIL_SETUP_MARGIN=0.3), each `make run RUN_SCRIPT=...` followed by
+    `make generate_abstract`; the scripts are in sigil_hier/.
+
+  CPU block runs on the non-Caravel die (sigil-sky130, 16 threads each)
+    run    what                          wall            GRT overflow   DRT (first pass + antenna rounds)    DRC  antenna  TT setup WNS / TNS (ns)       util
+    s116   3400 x 3420, 2db5230 config   3 h 26 min*     0 (46.5 %)     14 it. (65 min) + 5 rounds, 2 h 34   0    4 nets   (stopped in 6_report, PSM)    45.8 %
+    s125   3400 x 3680, 2db5230 config   5 h 14 min*     0 (45.0 %)     17 it. + 5 rounds, 4 h 23 min       0    14 nets  (stopped in 6_report, PSM)    42.5 %
+    s116a  s116 + 1 antenna round        11 + 15 min     -              4 it.                               0    0        -0.939 / -79.06 (130 ep.)     46 %
+    s116b  s116a + ECO 2d0e70a           79 + 13 min     -              10 it. + 5 rounds                   0    0        -0.434 / -23.00 (116 ep.)     46 %
+    s116c  s116b + ECO 2884120 round 1   31 min          -              7 it. + 3 rounds                    0    0        +0.308 (in-ECO OpenRCX)       -
+    s116d  s116c + ECO 027394e           16 + 13 min     -              7 it. + 1 round                     0    0        +0.309 / 0                    46.1 %
+    (* to the stop in 6_report.) Launch to final abstract: 16:45Z ->
+    00:33Z, 7 h 47 min wall.
+  KLayout DRC: the ORFS deck in its own deep mode spent 66 min on the
+    first BEOL rule (li.1 width, 1 thread busy) on the s116b GDS;
+    stopped at 00:39Z. Re-run on the s116d GDS with the same deck in
+    flat tiled mode, 16 threads (only the `deep` and threads(4) lines
+    changed; ~/sb/build/objects/sky130hd_tiled.lydrc), from 00:41Z.
