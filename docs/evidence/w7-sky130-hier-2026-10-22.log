@@ -830,3 +830,12 @@ die").
     stopped at 00:39Z. Re-run on the s116d GDS with the same deck in
     flat tiled mode, 16 threads (only the `deep` and threads(4) lines
     changed; ~/sb/build/objects/sky130hd_tiled.lydrc), from 00:41Z.
+    Tiled run (container sky-cpu-s116d-drc, 8-16 threads, ~48 GB): li.1
+    width 14 min, li.3 spacing still running after 25 min (01:06Z); the
+    whole BEOL deck (122 checks) is likely several hours. Its result:
+    ~/sb/build/reports/sky130hd/sigil_hier_sigil_cpu/s116d/6_drc.lyrdb
+    and 6_drc_count.rpt (END cpu-s116d-drc in ~/sb/STATUS; log
+    ~/sb/runlogs/cpu-s116d-drc.log). Note: the OpenRAM macros' GDS is
+    checked with the same generic rules (no SRAM-core exemptions in
+    this deck), so violations inside the macros are expected and have
+    to be separated from the routing before reading the count.
