@@ -286,6 +286,21 @@
   asm: directed/sigil_hint_test.S
   march: rv64gc
 
+- test: sigil_vf_nanbox_test
+  source: Sigil directed (sim/riscv-dv/directed)
+  description: >
+    The f-register scalar of every .vf instruction (NaN-boxing at SEW=32,
+    raw at SEW=64, reserved at SEW 8/16): 28 scalars (boxed/unboxed
+    singles, NaN payloads, doubles, near-boxed patterns, PRNG) x 12 vtypes
+    with random ta/ma, AVL, frm, mask and data; every f-register producer
+    followed by a .vf consumer after 0-3 instructions; vtype changes right
+    before a .vf; scalar F with unboxed operands; self-checked spec values.
+  asm: directed/sigil_vf_nanbox_test.S
+  march: rv64gcv_zcb
+  # About 5,500 illegal-instruction traps (FP at SEW 8/16, widening at
+  # SEW=64 or LMUL=8); Spike charges up to 5,000 instructions per trap.
+  spike_max_instr: 60000000
+
 # ---------------------------------------------------------------------
 # Excluded
 # ---------------------------------------------------------------------
