@@ -477,6 +477,34 @@ module sigil_mmu #(
     end
   end
 
+  // Walk abandonment. An older data miss preempts a fetch walk in
+  // W_VS_READ/W_G_READ, and a G-stage step on a GPA wider than 41
+  // bits ends the walk at once; neither consumes its PTE read.
+  // That read may already be on the port (preemption), or be
+  // issued in this very cycle (a data miss in MEM leaves the port
+  // to the walker), and its response would otherwise be taken as
+  // the next walk's PTE (issue #73: the preempting data walk took
+  // the fetch walk's root entry). walk_abandon_o makes the core
+  // drop that response.
+  logic walk_preempt;
+  assign walk_preempt = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
+                        !req_is_data_q && miss_d;
+  assign walk_abandon_o = walk_preempt ||
+                          ((state_q == W_G_READ) && g_width_fault);
+
+  // A/D update atomicity. A leaf PTE that needs A/D was read in
+  // the walker's last port access; MEM going before the write-back
+  // could store to that PTE (an older store, under a fetch walk)
+  // and then be overwritten by the stale pte_q|A. walk_lock_o
+  // gives the walker the port from that read to the write-back:
+  // in W_VS_UPD / W_G_UPD, and for a VS leaf under two-stage
+  // translation also across the G-stage walk of the PTE's own GPA
+  // (g_purpose_q == 2) that comes before W_VS_UPD. The port is
+  // free when the lock starts (the leaf read just completed), so
+  // nothing gets in between.
+  assign walk_lock_o = (state_q == W_VS_UPD) || (state_q == W_G_UPD) ||
+                       ((state_q == W_G_READ) && (g_purpose_q == 2'd2));
+
 `ifndef SYNTHESIS
   // Simulation checks are armed by the first reset edge (pre-reset
   // state is arbitrary under +verilator+rand+reset+2).
@@ -752,34 +780,6 @@ module sigil_mmu #(
     end
     assign miss_d = d_valid_i && d_trans && !d_ok_o && !d_fault_o;
   end
-
-  // Walk abandonment. An older data miss preempts a fetch walk in
-  // W_VS_READ/W_G_READ, and a G-stage step on a GPA wider than 41
-  // bits ends the walk at once; neither consumes its PTE read.
-  // That read may already be on the port (preemption), or be
-  // issued in this very cycle (a data miss in MEM leaves the port
-  // to the walker), and its response would otherwise be taken as
-  // the next walk's PTE (issue #73: the preempting data walk took
-  // the fetch walk's root entry). walk_abandon_o makes the core
-  // drop that response.
-  logic walk_preempt;
-  assign walk_preempt = ((state_q == W_VS_READ) || (state_q == W_G_READ)) &&
-                        !req_is_data_q && miss_d;
-  assign walk_abandon_o = walk_preempt ||
-                          ((state_q == W_G_READ) && g_width_fault);
-
-  // A/D update atomicity. A leaf PTE that needs A/D was read in
-  // the walker's last port access; MEM going before the write-back
-  // could store to that PTE (an older store, under a fetch walk)
-  // and then be overwritten by the stale pte_q|A. walk_lock_o
-  // gives the walker the port from that read to the write-back:
-  // in W_VS_UPD / W_G_UPD, and for a VS leaf under two-stage
-  // translation also across the G-stage walk of the PTE's own GPA
-  // (g_purpose_q == 2) that comes before W_VS_UPD. The port is
-  // free when the lock starts (the leaf read just completed), so
-  // nothing gets in between.
-  assign walk_lock_o = (state_q == W_VS_UPD) || (state_q == W_G_UPD) ||
-                       ((state_q == W_G_READ) && (g_purpose_q == 2'd2));
 
   // Fill target: reuse an existing (A/D-stale) entry for this VA
   // so a re-walk never leaves a duplicate for lookups to find.

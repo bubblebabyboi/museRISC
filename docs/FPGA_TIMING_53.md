@@ -859,9 +859,10 @@ setting (`SIGIL_VRF_OREG` + `SIGIL_FPGA_TIMING`).
 - **System:** crypto SoC firmware; the OpenSBI + Linux RTL boot to
   `SIGIL_LINUX_BOOT_OK`; KVM smoke.
 - **ASIC invariance:** `scripts/fpga_timing_equiv.sh` clean for
-  default, FAKERAM45 and SKY130. The perf-harness default, sky130,
-  oreg and vrforeg cycle counts must be bit-identical to the `main`
-  baseline.
+  default, FAKERAM45 and SKY130, and `scripts/fpga_timing_stat.sh`
+  (canonical netlists and cell counts identical to `main`'s). The
+  perf-harness default, sky130, oreg and vrforeg cycle counts must be
+  bit-identical to the `main` baseline.
 - **Bare-metal CPI gate** (once #56 lands) [P3, J-perf]: perf-harness
   cycle counts in `fpga` equal `vrforeg`, except for +1 per active
   indexed vector element, which is counted from the harness counters.
@@ -889,6 +890,16 @@ setting (`SIGIL_VRF_OREG` + `SIGIL_FPGA_TIMING`).
   - Tests: the review's directed tests that pass on `main` (21
     programs; `vm_irq_directed` at 152 timer-IRQ offsets) run in
     `sim/run_directed.sh`.
+- **Main merge (`9da0006`: #73, walker-race fix #74).** `sigil_mmu`
+  gains `walk_abandon_o` (the core drops the PTE read of a walk that
+  a data miss preempts or a G-stage width fault ends) and
+  `walk_lock_o` (the walker keeps the data port from a leaf read to
+  its A/D write-back). Both come from the walker FSM, which
+  FPGA_TIMING does not change, so they apply in both settings; with
+  FPGA_TIMING the payload select `mem_port_sel` also leaves the port
+  to the walker under `walk_lock`, as `mem_issue` does. The #74
+  directed tests (`ptw_*`) run before the #53 review tests in
+  `sim/run_directed.sh`, so `main`'s seeds are unchanged.
 
 ### Step 16 (optional, after closure): redirect port for translated fetch
 
@@ -984,10 +995,18 @@ this model), so it was stopped.
 **ASIC impact.** None, by construction. The step-0 equivalence check
 runs at every RTL step; since step 15 it covers `sigil_core` too
 (hierarchical, both the default and SRAM_OREG configs). Generic Yosys
-cell counts are not used as the identity test: they differ for
-byte-identical RTL depending on what else is read. The flow changes
-touch only `fpga/f0`. Nothing needs to rerun on the sky130 or nangate45
-flows.
+cell counts of the source text are not an identity test: they differ
+for byte-identical RTL depending on what else is read. Since gates
+round 3, `scripts/fpga_timing_stat.sh` compares the elaborated
+netlists in canonical form (`scripts/netlist_canon.py` removes names
+and order) for `sigil_core` (default, SRAM_OREG) and `sigil_soc_top`
+(default, SRAM_OREG, and the nangate45 and sky130 macro configs): they
+are identical to `main`'s, and so are the synthesized cell counts.
+It found one difference of structure but not of function, which the
+proofs accept: the VLS clear condition re-associated (fixed in round
+3). The flow
+changes touch only `fpga/f0`. Nothing needs to rerun on the sky130 or
+nangate45 flows.
 
 **Promotion candidates.** These are refactors that would also help
 ASIC timing. Making any of them unconditional needs an owner decision

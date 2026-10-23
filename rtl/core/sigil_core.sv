@@ -1512,12 +1512,15 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // looked up (mmu_d_* registered); a misalignment fault or trim seen
   // then ends the sequence only once the translation resolves and MEM
   // moves on (main's sequencer would restart at element 0 meanwhile).
-  logic vls_end;
+  // Off: main's condition as written (same netlist as main).
+  logic vls_clear;
   if (FPGA_TIMING) begin : g_vls_end
+    logic vls_end;
     assign vls_end = (vls_done || vls_fault) &&
                      !(data_access && !mmu_d_ok && !mmu_d_fault);
+    assign vls_clear = !vls_is || vls_end || trap_fire;
   end else begin : g_vls_end_off
-    assign vls_end = vls_done || vls_fault;
+    assign vls_clear = !vls_is || vls_done || vls_fault || trap_fire;
   end
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
@@ -1526,7 +1529,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       vls_f_q <= 3'd0;
       vls_i_q <= 10'd0;
       vls_ea_q <= 64'd0;
-    end else if (!vls_is || vls_end || trap_fire) begin
+    end else if (vls_clear) begin
       vls_started_q <= 1'b0;
       vls_ph_q <= VLS_RD;
       vls_f_q <= 3'd0;
