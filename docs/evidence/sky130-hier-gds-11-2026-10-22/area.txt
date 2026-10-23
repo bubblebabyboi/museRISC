@@ -1,0 +1,64 @@
+# flow/designs/sky130hd/sigil_hier/signoff/area.tcl (+ io.tcl for the top) on 6_final.odb:
+# sigil_soc_top t2e, sigil_cpu s116d, sigil_crypto_top w34m. Std-cell kinds by master
+# name: fill = *__fill_*, tap = *__tap*, diode = *__diode*, other = everything else.
+
+== sigil_soc_top
+die 0 0 3715 4260 area_um2 15825900
+core 2 2 3712 4256 area_um2 15784168
+block u_cpu sigil_cpu 305000 10000 11628000
+block u_crypto_bridge.u_crypto sigil_crypto_top 305000 3470000 2652000
+insts block 2 area_um2 14280000
+insts fill 166682 area_um2 1324854
+insts tap 18317 area_um2 22918
+insts decap 0 area_um2 0
+insts diode 423 area_um2 1059
+insts other 7023 area_um2 72874
+std_cells_excl_fill 25763 area_um2 96850
+std_cells_excl_fill_decap 25763 area_um2 96850
+wire met1 278165 um
+wire met2 290807 um
+wire met3 119356 um
+wire met4 79461 um
+wire met5 2765 um
+wire total 770554 um
+signal bterms 464, power/ground bterms 2, signal pin shapes by layer: met3 464
+clock buffers/inverters (clkbuf/clkinv masters) 167
+== sigil_cpu
+die 0 0 3400 3420 area_um2 11628000
+core 5 5 3394 3413 area_um2 11552776
+block u_core.u_vregfile.g_port\[0\].u_bank.u_ram sky130_sram_1rw1r_64x256_8 2314100 1011510 419463
+block u_core.u_vregfile.g_port\[1\].u_bank.u_ram sky130_sram_1rw1r_64x256_8 2314100 931540 419463
+block u_core.u_vregfile.g_port\[2\].u_bank.u_ram sky130_sram_1rw1r_64x256_8 2314100 448740 419463
+block u_dcache.g_way\[0\].u_data.g_macro.g_data.u_ram sky130_sram_1rw1r_128x256_8 1688040 2741250 722109
+block u_dcache.g_way\[0\].u_tag.g_macro.g_tag.u_ram sky130_sram_1rw1r_44x64_8 2909800 3136210 105707
+block u_icache.g_way\[0\].u_data.g_macro.g_data.u_ram sky130_sram_1rw1r_128x256_8 466280 2741250 722109
+block u_icache.g_way\[0\].u_tag.g_macro.g_tag.u_ram sky130_sram_1rw1r_44x64_8 2909800 2707130 105707
+insts block 7 area_um2 2914020
+insts fill 911003 area_um2 6174910
+insts tap 115129 area_um2 144049
+insts decap 0 area_um2 0
+insts diode 25743 area_um2 64419
+insts other 223351 area_um2 2202425
+std_cells_excl_fill 364223 area_um2 2410893
+std_cells_excl_fill_decap 364223 area_um2 2410893
+wire met1 8856283 um
+wire met2 8614340 um
+wire met3 3352824 um
+wire met4 2381396 um
+wire total 23204842 um
+== sigil_crypto_top
+die 0 0 3400 780 area_um2 2652000
+core 5 5 3394 772 area_um2 2600066
+insts block 0 area_um2 0
+insts fill 234965 area_um2 1383482
+insts tap 34790 area_um2 43529
+insts decap 0 area_um2 0
+insts diode 4263 area_um2 10668
+insts other 100964 area_um2 1162387
+std_cells_excl_fill 140017 area_um2 1216584
+std_cells_excl_fill_decap 140017 area_um2 1216584
+wire met1 2873713 um
+wire met2 2538265 um
+wire met3 1632711 um
+wire met4 522846 um
+wire total 7567535 um

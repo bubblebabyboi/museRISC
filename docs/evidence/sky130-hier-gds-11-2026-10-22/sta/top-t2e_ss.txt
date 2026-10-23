@@ -1,0 +1,18 @@
+corner ss stage 6_final design sigil_soc_top
+setup ws 10.226 ns tns 0.000 ns violating_endpoints 0
+hold  ws 0.620 ns tns 0.000 ns violating_endpoints 0
+max_slew_violations 540 max_cap_violations 86 max_fanout_violations 0
+setup to outputs ws 15.456 ns tns 0.000 ns violating_endpoints 0
+setup to internal ws 10.226 ns tns 0.000 ns violating_endpoints 0
+
+Group                  Internal  Switching    Leakage      Total
+                          Power      Power      Power      Power (Watts)
+----------------------------------------------------------------
+Sequential             6.78e-04   1.83e-05   1.51e-05   7.11e-04  40.1%
+Combinational          4.19e-05   1.10e-04   2.61e-05   1.78e-04  10.0%
+Clock                  4.70e-04   4.11e-04   2.59e-06   8.83e-04  49.8%
+Macro                  0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
+Pad                    0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
+----------------------------------------------------------------
+Total                  1.19e-03   5.39e-04   4.37e-05   1.77e-03 100.0%
+                          67.1%      30.4%       2.5%

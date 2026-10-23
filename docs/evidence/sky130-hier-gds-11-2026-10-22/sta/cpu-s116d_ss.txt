@@ -1,0 +1,18 @@
+corner ss stage 6_final design sigil_cpu
+setup ws -24.797 ns tns -174356.562 ns violating_endpoints 12728
+hold  ws 0.609 ns tns 0.000 ns violating_endpoints 0
+max_slew_violations 21490 max_cap_violations 3567 max_fanout_violations 0
+setup to outputs ws -24.797 ns tns -3734.052 ns violating_endpoints 182
+setup to internal ws -23.757 ns tns -170622.508 ns violating_endpoints 12546
+
+Group                  Internal  Switching    Leakage      Total
+                          Power      Power      Power      Power (Watts)
+----------------------------------------------------------------
+Sequential             1.73e-02   9.35e-04   3.49e-04   1.86e-02  14.6%
+Combinational          1.09e-02   3.63e-02   8.31e-04   4.80e-02  37.8%
+Clock                  1.59e-02   1.08e-02   9.07e-05   2.68e-02  21.0%
+Macro                  3.37e-02   0.00e+00   1.48e-04   3.38e-02  26.6%
+Pad                    0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
+----------------------------------------------------------------
+Total                  7.78e-02   4.80e-02   1.42e-03   1.27e-01 100.0%
+                          61.2%      37.7%       1.1%

@@ -1,0 +1,136 @@
+# KLayout DRC, signoff/sky130hd_sigil.lydrc (ORFS sky130hd deck, FEOL + BEOL + OFFGRID), marker summary (signoff/lyrdb_sum.py --soc)
+# run t2e-nosram: merged final GDS, OpenRAM macro cells excluded (-rd exclude=sky130_sram_*), tiled 200 um / 5 um border, 16 threads
+2026-10-23T06:54:48Z START drc-t2e-nosram gds=/results/sky130hd/sigil_hier/t2e/6_final.gds args=[-rd exclude=sky130_sram_* -rd tile=200 -rd threads=16]
+2026-10-23T08:36:41Z END drc-t2e-nosram rc=0 wall=6113s markers=8
+KLayout 0.30.12
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:41:52
+	Maximum resident set size (kbytes): 24386428
+markers 8 in 1 categories (381 categories in the report)
+         8  m2.1                   m2.1 : min. m2 width : 0.14um  [cpu 8]
+
+marker coordinates (die um):
+  
+  edge-pair: (947.85,2754.019;947.85,2754.07)|(947.92,2754.191;947.92,2754.14)
+  
+  edge-pair: (947.85,2754.07;947.799,2754.07)|(947.92,2754.14;947.971,2754.14)
+  
+  edge-pair: (2864.001,938.72;2863.95,938.72)|(2863.829,938.79;2863.88,938.79)
+  
+  edge-pair: (2863.95,938.72;2863.95,938.669)|(2863.88,938.79;2863.88,938.841)
+  
+  edge-pair: (2805.601,938.72;2805.55,938.72)|(2805.429,938.79;2805.48,938.79)
+  
+  edge-pair: (2805.55,938.72;2805.55,938.669)|(2805.48,938.79;2805.48,938.841)
+  
+  edge-pair: (2793.76,938.599;2793.76,938.65)|(2793.83,938.771;2793.83,938.72)
+  
+  edge-pair: (2793.76,938.65;2793.709,938.65)|(2793.83,938.72;2793.881,938.72)
+
+# runs t2e-m2win1 / t2e-m2win2: the same deck, flat, OpenRAM content INCLUDED, clipped to windows around the 4 m2.1 sites (clipping makes artificial slivers on the window border)
+2026-10-23T08:38:10Z START drc-t2e-m2win1 gds=/results/sky130hd/sigil_hier/t2e/6_final.gds args=[-rd mode=flat -rd clip=946.5,2752.5,949.5,2755.5]
+2026-10-23T08:38:26Z END drc-t2e-m2win1 rc=0 wall=16s markers=84
+markers 84 in 20 categories (381 categories in the report)
+        11  difftap.2              difftap.2: min. gate inside areaid.sc width : 0.36um  [cpu 11]
+        11  li.6                   li.6 : min. li area : 0.0561um²  [cpu 11]
+        10  licon.1                licon.1 : minimum/maximum width of licon : 0.17um  [cpu 10]
+         6  ct.1                   ct.1 : minimum/maximum width of mcon : 0.17um  [cpu 6]
+         6  li.1                   li.1 : min. li width : 0.17um  [cpu 6]
+         6  m1.1                   m1.1 : min. m1 width : 0.14um  [cpu 6]
+         5  licon.5                licon.5 : min. diff enclosure of licon : 0.04um  [cpu 5]
+         4  difftap.8              difftap.8 : min. p+diff enclosure by nwell : 0.18um  [cpu 4]
+         4  poly.10                poly.10 : poly must not overlap diff corner  [cpu 4]
+         3  licon.15               licon.15 : min. npc enclosure of poly-licon : 0.1um  [cpu 3]
+         3  m1.4                   m1.4 : min. m1 enclosure of mcon : 0.03um  [cpu 3]
+         3  m1.4a                  m1.4a : min. m1 enclosure of mcon for specific cells : 0.005um  [cpu 3]
+         2  li.5                   li.5 : min. li enclosure of licon of 2 opposite edges : 0.08um  [cpu 2]
+         2  licon.8                licon.8 : min. poly enclosure of licon : 0.05um  [cpu 2]
+         2  licon.8a               licon.8a : min. poly enclosure of licon by one of 2 opposite edges : 0.08um  [cpu 2]
+         2  m3.2                   m3.2 : min. m3 spacing : 0.3um  [cpu 2]
+         1  licon.18               licon.18 : npc mut enclosed one poly-licon  [cpu 1]
+         1  m2.2                   m2.2 : min. m2 spacing : 0.14um  [cpu 1]
+         1  npc.1                  npc.1 : min. npc width : 0.27um  [cpu 1]
+         1  poly.1a                poly.1a : min. poly width : 0.15um  [cpu 1]
+2026-10-23T08:38:10Z START drc-t2e-m2win2 gds=/results/sky130hd/sigil_hier/t2e/6_final.gds args=[-rd mode=flat -rd clip=2792.5,937.5,2865.5,940.0]
+2026-10-23T08:38:30Z END drc-t2e-m2win2 rc=0 wall=20s markers=2485
+markers 2485 in 56 categories (381 categories in the report)
+       917  difftap.2              difftap.2: min. gate inside areaid.sc width : 0.36um  [cpu 917]
+       176  li.1                   li.1 : min. li width : 0.17um  [cpu 176]
+       138  ct.1                   ct.1 : minimum/maximum width of mcon : 0.17um  [cpu 138]
+       129  m1.1                   m1.1 : min. m1 width : 0.14um  [cpu 129]
+       105  varac.5                varac.5: min. nwell enclosure of poly overlapping varac channel : 0.15um  [cpu 105]
+        85  li.3                   li.3 : min. li spacing : 0.17um  [cpu 85]
+        80  li.6                   li.6 : min. li area : 0.0561um²  [cpu 80]
+        74  poly.7                 poly.7 : min. source/drain length : 0.25um  [cpu 74]
+        69  m1.4                   m1.4 : min. m1 enclosure of mcon : 0.03um  [cpu 69]
+        69  m1.4a                  m1.4a : min. m1 enclosure of mcon for specific cells : 0.005um  [cpu 69]
+        57  poly.1a                poly.1a : min. poly width : 0.15um  [cpu 57]
+        55  difftap.8              difftap.8 : min. p+diff enclosure by nwell : 0.18um  [cpu 55]
+        49  licon.1                licon.1 : minimum/maximum width of licon : 0.17um  [cpu 49]
+        40  npc.4                  npc.4 : min. npc spacing to gate : 0.09um  [cpu 40]
+        37  licon.8                licon.8 : min. poly enclosure of licon : 0.05um  [cpu 37]
+        29  m1.2                   m1.2 : min. m1 spacing : 0.14um  [cpu 29]
+        29  poly.8                 poly.8 : min. poly extention gate (endcap) : 0.13um  [cpu 29]
+        27  m3.1                   m3.1 : min. m3 width : 0.3um  [cpu 27]
+        26  via2.1a                via2.1a : minimum/maximum width of via2 : 0.2um  [cpu 26]
+        26  via2.4                 via2.4 : min. m2 enclosure of via2 : 0.04um  [cpu 26]
+        22  licon.15               licon.15 : min. npc enclosure of poly-licon : 0.1um  [cpu 22]
+        21  licon.2                licon.2 : min. licon spacing : 0.17um  [cpu 21]
+        19  n/psdm.8               n/psdm.8 : tap should be the same type of well/substrate underneath  [cpu 19]
+        18  poly.10                poly.10 : poly must not overlap diff corner  [cpu 18]
+        18  varac.7                varac.7:  nwell overlapping varac channel must not overlap p+diff  [cpu 18]
+        16  ct.2                   ct.2 : min. mcon spacing : 0.19um  [cpu 16]
+        16  licon.17               licon.17 : tap must not straddle poly  [cpu 16]
+        16  licon.5                licon.5 : min. diff enclosure of licon : 0.04um  [cpu 16]
+        13  m3.4                   m3.4 : min. m3 enclosure of via2 : 0.065um  [cpu 13]
+        13  via2.5                 via2.5 : min. m2 enclosure of via2 of 2 opposite edges : 0.085um  [cpu 13]
+        11  licon.13               licon.13 : min. difftap licon spacing to npc : 0.09um  [cpu 11]
+         9  licon.14               licon.14 : min. poly licon spacing to difftap : 0.19um  [cpu 9]
+         7  poly.6                 poly.6 : min. gate spacing to tap : 0.3um  [cpu 7]
+         6  licon.11a              licon.11a : min. licon spacing to gate inside areaid.sc : 0.05um  [cpu 6]
+         6  licon.11c              licon.11c : min. licon spacing to gate for specific cells: 0.04um  [cpu 6]
+         6  poly.4                 poly.4 : min. poly on field spacing to diff : 0.075um  [cpu 6]
+         6  tap and diff           tap and diff must not overlap  [cpu 6]
+         5  npc.2                  npc.2 : min. npc spacing, should be mnually merge if less : 0.27um  [cpu 5]
+         5  nsdm.1                 nsdm.1 : min. nsdm width : 0.38um  [cpu 5]
+         4  difftap.3              difftap.3 : min. difftap spacing : 0.27um  [cpu 4]
+         4  m1.7                   m1.7 : min. m1 holes area : 0.14um²  [cpu 4]
+         4  poly.2                 poly.2 : min. poly spacing : 0.21um  [cpu 4]
+         3  nwell.1                nwell.1 : min. nwell width : 0.84um  [cpu 3]
+         3  poly.12                poly.12 : poly must not overlap tap  [cpu 3]
+         2  licon.8a               licon.8a : min. poly enclosure of licon by one of 2 opposite edges : 0.08um  [cpu 2]
+         2  n/psdm.10a             n/psdm.10a : min. nsdm area : 0.265um²  [cpu 2]
+         2  npc.1                  npc.1 : min. npc width : 0.27um  [cpu 2]
+         2  poly.5                 poly.5 : min. poly on field spacing to tap : 0.055um  [cpu 2]
+         2  varac.1                varac.1: min. varac channel length : 0.18um  [cpu 2]
+         1  licon.10               licon.10 : min. licon spacing to varac channel : 0.25um  [cpu 1]
+         1  m1.6                   m1.6 : min. m1 area : 0.083um²  [cpu 1]
+         1  m2.1                   m2.1 : min. m2 width : 0.14um  [cpu 1]
+         1  m2.6                   m2.6 : min. m2 area : 0.0676um²  [cpu 1]
+         1  m3.6                   m3.6 : min. m3 area : 0.24um²  [cpu 1]
+         1  n/psdm.1               n/psdm.1 : min. psdm spacing, should be mnually merge if less : 0.38um  [cpu 1]
+         1  varac.4                varac.4: min. varac channel space to licon on tap : 0.25um  [cpu 1]
+
+m2 markers in the windows:
+  win1 m2.2 edge-pair: (949.16,2752.518;949.16,2753.062)|(949.05,2752.975;949.05,2752.605)
+  win2 m2.1 edge-pair: (2792.5,938.99;2792.5,939.25)|(2792.53,939.25;2792.53,938.99)
+  win2 m2.6 polygon: (2792.5,938.99;2792.5,939.25;2792.53,939.25;2792.53,938.99)
+
+# m2 shapes at the sites (KLayout, merged GDS; path = cell hierarchy below sigil_soc_top): the router m2 jog of sigil_cpu lands on an OpenRAM dff pin pad
+== box 947.5,2753.7,948.3,2754.5
+sigil_cpu [sigil_cpu] (947.78,2754.07;947.78,2755.74;947.92,2755.74;947.92,2754.07)
+sigil_cpu [sigil_cpu] (947.85,2754;947.85,2754.14;949.3,2754.14;949.3,2754)
+sky130_sram_1rw1r_128x256_8 [sigil_cpu/sky130_sram_1rw1r_128x256_8] (947.615,2753.94;947.615,2754.2;947.945,2754.2;947.945,2753.94)
+== box 2863.5,938.3,2864.3,939.1
+sigil_cpu [sigil_cpu] (2863.68,936.26;2863.68,938.79;2863.82,938.79;2863.82,936.26)
+sigil_cpu [sigil_cpu] (2863.68,938.65;2863.68,938.79;2863.95,938.79;2863.95,938.65)
+sigil_cpu [sigil_cpu] (2863.88,938.72;2863.88,939.29;2864.02,939.29;2864.02,938.72)
+sky130_sram_1rw1r_64x256_8 [sigil_cpu/sky130_sram_1rw1r_64x256_8] (2863.785,938.59;2863.785,938.85;2864.115,938.85;2864.115,938.59)
+== box 2805.1,938.3,2805.9,939.1
+sigil_cpu [sigil_cpu] (2805.26,919.6;2805.26,938.79;2805.4,938.79;2805.4,919.6)
+sigil_cpu [sigil_cpu] (2805.26,938.65;2805.26,938.79;2805.55,938.79;2805.55,938.65)
+sigil_cpu [sigil_cpu] (2805.48,938.72;2805.48,939.29;2805.62,939.29;2805.62,938.72)
+sky130_sram_1rw1r_64x256_8 [sigil_cpu/sky130_sram_1rw1r_64x256_8] (2805.385,938.59;2805.385,938.85;2805.715,938.85;2805.715,938.59)
+== box 2793.4,938.3,2794.2,939.1
+sigil_cpu [sigil_cpu] (2791.92,938.65;2791.92,938.79;2793.83,938.79;2793.83,938.65)
+sigil_cpu [sigil_cpu] (2793.76,883.39;2793.76,938.72;2793.9,938.72;2793.9,883.39)
+sky130_sram_1rw1r_64x256_8 [sigil_cpu/sky130_sram_1rw1r_64x256_8] (2793.705,938.59;2793.705,938.85;2794.035,938.85;2794.035,938.59)
