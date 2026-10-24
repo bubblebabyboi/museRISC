@@ -1046,6 +1046,13 @@ module sigil_decoder import sigil_pkg::*; (
       end
     endcase
 
+    // Without the vector unit (sigil_pkg::HAS_VECTOR = 0) every
+    // vector encoding is reserved: OP-V (vset{i}vl{i} included)
+    // and the vector loads/stores in the LOAD-FP/STORE-FP space
+    // (widths 000/101/110/111) raise illegal-instruction, as on a
+    // core without V. Scalar FP loads/stores are unaffected.
+    if (!HAS_VECTOR && ctrl_o.vec) ctrl_o.valid = 1'b0;
+
     // Contract: an illegal encoding asserts no side-effecting
     // control at all, regardless of which guard rejected it. The
     // core also gates writes on the trap, but the decoder output

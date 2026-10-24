@@ -50,6 +50,10 @@ SRAM_MODELS_FAKERAM45 := $(addprefix flow/designs/nangate45/sigil_soc/sram/,\
   fakeram45_256x64_1r1w.v fakeram45_512x64.v fakeram45_64x44.v)
 SRAM_MODELS_SKY130 := $(addprefix flow/designs/sky130hd/sigil_soc/sram/,\
   sky130_sram_1rw1r_64x256_8.v sky130_sram_1rw1r_128x256_8.v sky130_sram_1rw1r_44x64_8.v)
+# No-vector (MPW, issue #13) builds: without the VRF macro models.
+SRAM_MODELS_SKY130_NOVEC := $(addprefix flow/designs/sky130hd/sigil_soc/sram/,\
+  $(addsuffix .v,$(SIGIL_SKY130_L1_MACROS)))
+SRAM_MODELS_FAKERAM45_NOVEC := $(filter-out %/$(SIGIL_FAKERAM45_VRF_MACROS).v,$(SRAM_MODELS_FAKERAM45))
 
 lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top $(CORE_RTL) $(CACHE_RTL) $(RTL)
@@ -65,6 +69,12 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_VRF_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_core $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) +define+SIGIL_COMMIT_TRACE $(CORE_RTL) $(CACHE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(SRAM_MODELS_FAKERAM45_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv

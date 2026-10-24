@@ -12,7 +12,13 @@
 //   privilege of every instruction currently in flight.
 // - satp is stored here; translation itself lives in the MMU.
 `default_nettype none
-module sigil_csr (
+module sigil_csr #(
+    // Vector state present (sigil_pkg::HAS_VECTOR, set by the core).
+    // Without it the vector CSRs do not exist (illegal-instruction),
+    // misa.V is 0, mstatus.VS / vsstatus.VS read zero and ignore
+    // writes, and the vector state outputs are constants.
+    parameter bit HAS_VECTOR = 1'b1
+) (
     input  wire        clk_i,
     input  wire        rst_ni,
     // CSR read/write port (EX)
@@ -108,6 +114,9 @@ module sigil_csr (
     output logic       pmp_allow_c_o
 );
   localparam logic [1:0] PRIV_U = 2'b00, PRIV_S = 2'b01, PRIV_M = 2'b11;
+  // misa: RV64 IMABC FDHV SU (V only with the vector unit).
+  localparam logic [63:0] MISA = HAS_VECTOR ? 64'h8000_0000_0034_11AF
+                                            : 64'h8000_0000_0014_11AF;
 
   // ------------------------------------------------------------
   // Architectural state
@@ -150,6 +159,10 @@ module sigil_csr (
   logic [63:0] vstval_q, vsatp_q;
   logic [7:0]  pmpcfg_q [0:15];
   logic [63:0] pmpaddr_q [0:15];
+  // Effective VS fields: read-only zero without the vector unit.
+  logic [1:0]  mstatus_vs, vs_vs;
+  assign mstatus_vs = HAS_VECTOR ? mstatus_vs_q : 2'd0;
+  assign vs_vs = HAS_VECTOR ? vs_vs_q : 2'd0;
 
   assign priv_o = priv_q;
   assign virt_o = virt_q;
@@ -184,12 +197,12 @@ module sigil_csr (
     vsstatus_val[1] = vs_sie_q;
     vsstatus_val[5] = vs_spie_q;
     vsstatus_val[8] = vs_spp_q;
-    vsstatus_val[10:9] = vs_vs_q;
+    vsstatus_val[10:9] = vs_vs;
     vsstatus_val[14:13] = vs_fs_q;
     vsstatus_val[18] = vs_sum_q;
     vsstatus_val[19] = vs_mxr_q;
     vsstatus_val[33:32] = 2'd2;  // UXL = 64
-    vsstatus_val[63] = (vs_fs_q == 2'b11) || (vs_vs_q == 2'b11);
+    vsstatus_val[63] = (vs_fs_q == 2'b11) || (vs_vs == 2'b11);
   end
 
   // mstatus assembly (unlisted fields read zero).
@@ -209,10 +222,10 @@ module sigil_csr (
     mstatus_o[22]    = mstatus_tsr_q;
     mstatus_o[38]    = mstatus_gva_q;
     mstatus_o[39]    = mstatus_mpv_q;
-    mstatus_o[10:9]  = mstatus_vs_q;
+    mstatus_o[10:9]  = mstatus_vs;
     mstatus_o[14:13] = mstatus_fs_q;
     mstatus_o[63]    = (mstatus_fs_q == 2'b11) ||
-                       (mstatus_vs_q == 2'b11);  // SD
+                       (mstatus_vs == 2'b11);  // SD
     mstatus_o[35:34] = 2'b10;  // SXL = 64-bit
     mstatus_o[33:32] = 2'b10;  // UXL = 64-bit
   end
@@ -227,14 +240,18 @@ module sigil_csr (
   assign fs_o = virt_q ? ((mstatus_fs_q == 2'd0 || vs_fs_q == 2'd0)
                               ? 2'd0 : vs_fs_q)
                        : mstatus_fs_q;
-  assign vec_vs_o = virt_q ? ((mstatus_vs_q == 2'd0 || vs_vs_q == 2'd0)
-                                  ? 2'd0 : vs_vs_q)
-                           : mstatus_vs_q;
-  assign vtype_o = {vtype_vill_q, 55'd0, vtype_vma_q, vtype_vta_q,
-                    vtype_vsew_q, vtype_vlmul_q};
-  assign vl_o = vl_q;
-  assign vstart_o = vstart_q;
-  assign vxrm_o = vxrm_q;
+  assign vec_vs_o = virt_q ? ((mstatus_vs == 2'd0 || vs_vs == 2'd0)
+                                  ? 2'd0 : vs_vs)
+                           : mstatus_vs;
+  // Without the vector unit the vector state is constant (vtype
+  // reads as vill, everything else zero) and its registers are
+  // left without readers.
+  assign vtype_o = HAS_VECTOR ? {vtype_vill_q, 55'd0, vtype_vma_q, vtype_vta_q,
+                                 vtype_vsew_q, vtype_vlmul_q}
+                              : {1'b1, 63'd0};
+  assign vl_o = HAS_VECTOR ? vl_q : 64'd0;
+  assign vstart_o = HAS_VECTOR ? vstart_q : 64'd0;
+  assign vxrm_o = HAS_VECTOR ? vxrm_q : 2'd0;
 
   // vsetvl* next-state computation (combinational; committed
   // in EX like other CSR writes). VLEN=512, ELEN=64.
@@ -364,7 +381,7 @@ module sigil_csr (
       12'h680: csr_rdata = hgatp_q;                               // hgatp
       12'hE12: csr_rdata = 64'd0;                                 // hgeip
       12'h300: csr_rdata = mstatus_o;                             // mstatus
-      12'h301: csr_rdata = 64'h8000_0000_0034_11AF;               // misa: RV64 IMABC FDHV SU
+      12'h301: csr_rdata = MISA;                                  // misa
       12'h302: csr_rdata = medeleg_q;                             // medeleg
       12'h303: csr_rdata = mideleg_q | 64'h444;  // VS ints always delegated                             // mideleg
       12'h304: csr_rdata = mie_q;                                 // mie
@@ -413,6 +430,16 @@ module sigil_csr (
         end
       end
     endcase
+    // Without the vector unit vstart, vxsat, vxrm, vcsr, vl, vtype
+    // and vlenb do not exist: any access is illegal-instruction.
+    if (!HAS_VECTOR &&
+        ((addr_i == 12'h008) || (addr_i == 12'h009) ||
+         (addr_i == 12'h00A) || (addr_i == 12'h00F) ||
+         (addr_i == 12'hC20) || (addr_i == 12'hC21) ||
+         (addr_i == 12'hC22))) begin
+      csr_exists = 1'b0;
+      csr_rdata = 64'd0;
+    end
   end
 
   logic csr_priv_ok, csr_write_attempt;
@@ -555,7 +582,7 @@ module sigil_csr (
       12'h680: trace_wval = hgatp_q;                               // hgatp
       12'hE12: trace_wval = 64'd0;                                 // hgeip
       12'h300: trace_wval = mstatus_o;                             // mstatus
-      12'h301: trace_wval = 64'h8000_0000_0034_11AF;               // misa: RV64 IMABC FDHV SU
+      12'h301: trace_wval = MISA;                                  // misa
       12'h302: trace_wval = medeleg_q;                             // medeleg
       12'h303: trace_wval = mideleg_q | 64'h444;  // VS ints always delegated                             // mideleg
       12'h304: trace_wval = mie_q;                                 // mie

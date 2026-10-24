@@ -3,7 +3,8 @@
 #   openroad -exit -no_init sta_synth.tcl
 # Env: STA_LIBS (liberty files), STA_ODB (1_synth.odb), STA_SDC,
 #      STA_PREFIXES (hierarchical instance prefixes to report the
-#      worst path into, e.g. "u_core/u_vec u_core/u_fpu").
+#      worst path into, e.g. "u_core/g_vec/u_vec u_core/u_fpu";
+#      the vector unit and VRF sit in the g_vec generate block).
 # No placement yet: delays use the liberty wire-load model (no
 # parasitics), and no timing repair has been applied, so this is
 # the raw synthesized logic depth, not a closure result.
@@ -77,10 +78,10 @@ foreach p $::env(STA_PREFIXES) {
 # Next tier once the vector unit (combinational fp_eval element
 # step) is set aside.
 report_block "(all but vec)" \
-  [endpoints {*} {u_cpu/u_core/u_vec/*}]
+  [endpoints {*} {u_cpu/u_core/g_vec/u_vec/*}]
 
 puts "==== worst path outside the vector unit"
-report_checks -to [endpoints {*} {u_cpu/u_core/u_vec/*}] -path_delay max -digits 3
+report_checks -to [endpoints {*} {u_cpu/u_core/g_vec/u_vec/*}] -path_delay max -digits 3
 
 # Fmax by bisection on the clock period. `period - WNS` is only right
 # when every critical path is a full-cycle path; macros with

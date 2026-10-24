@@ -607,7 +607,12 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic          vec_unit_op, vec_done, vec_start, vec_commit;
   logic          vls_is;  // MEM holds a vector load/store
   // EX holds an instruction the vector unit executes.
-  assign vec_unit_op = idex_valid_q && idex_ctrl_q.vec &&
+  // HAS_VECTOR (sigil_pkg) = 0: no vector unit, no VRF and no
+  // vector LS sequencer. The decoder already marks every vector
+  // encoding illegal; vec_unit_op, vset_en and vls_is are tied
+  // off here as well, so all vector logic folds away by constant
+  // propagation.
+  assign vec_unit_op = HAS_VECTOR && idex_valid_q && idex_ctrl_q.vec &&
                        !idex_ctrl_q.vset &&
                        !idex_ctrl_q.mem_read && !idex_ctrl_q.mem_write &&
                        !idex_exc_q && !vec_illegal;
@@ -986,7 +991,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       ? {53'd0, idex_instr_q[30:20]} :
       (idex_ctrl_q.fpu_aux == 2'd1)
       ? {54'd0, idex_instr_q[29:20]} : ex_rs2;
-  assign vset_en = idex_valid_q && idex_ctrl_q.vset && !idex_exc_q &&
+  assign vset_en = HAS_VECTOR && idex_valid_q && idex_ctrl_q.vset && !idex_exc_q &&
                    !vec_illegal && !trap_fire && !mem_exc && !mem_stall &&
                    !vec_ex_stall;
 
@@ -1019,87 +1024,120 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // stalls a word in flight (it waits in VLS_RW), so it loads every
   // cycle; the vector unit drives its own.
 
-  sigil_vregfile u_vregfile (
-      .clk_i     (clk_i),
-      .re_a_i    (vrf_re_a),
-      .raddr_a_i (vrf_ra_a),
-      .rdata_a_o (vrf_rd_a),
-      .re_b_i    (vrf_re_b),
-      .raddr_b_i (vrf_ra_b),
-      .rdata_b_o (vrf_rd_b),
-      .re_c_i    (vrf_re_c),
-      .raddr_c_i (vrf_ra_c),
-      .rdata_c_o (vrf_rd_c),
-      .ld_a_i    (vls_is || vu_ld_a),
-      .ld_b_i    (vls_is || vu_ld_b),
-      .ld_c_i    (vls_is || vu_ld_c),
-      .v0_o      (vec_v0),
-      .we_i      (vrf_we),
-      .waddr_i   (vrf_wa),
-      .wbe_i     (vrf_wbe),
-      .wdata_i   (vrf_wd)
-  );
+  // Vector register file and element-serial vector unit, only
+  // with HAS_VECTOR (the no-vector configuration instantiates
+  // neither, so no VRF SRAM macros either).
+  if (HAS_VECTOR) begin : g_vec
+    sigil_vregfile u_vregfile (
+        .clk_i     (clk_i),
+        .re_a_i    (vrf_re_a),
+        .raddr_a_i (vrf_ra_a),
+        .rdata_a_o (vrf_rd_a),
+        .re_b_i    (vrf_re_b),
+        .raddr_b_i (vrf_ra_b),
+        .rdata_b_o (vrf_rd_b),
+        .re_c_i    (vrf_re_c),
+        .raddr_c_i (vrf_ra_c),
+        .rdata_c_o (vrf_rd_c),
+        .ld_a_i    (vls_is || vu_ld_a),
+        .ld_b_i    (vls_is || vu_ld_b),
+        .ld_c_i    (vls_is || vu_ld_c),
+        .v0_o      (vec_v0),
+        .we_i      (vrf_we),
+        .waddr_i   (vrf_wa),
+        .wbe_i     (vrf_wbe),
+        .wdata_i   (vrf_wd)
+    );
 
-  sigil_vec u_vec (
-      .clk_i     (clk_i),
-      .rst_ni    (rst_ni),
-      .kill_i    (trap_take),
-      .start_i   (vec_start),
-      .ack_i     (!freeze && !mem_stall),
-      .op_i      (idex_ctrl_q.bext_op),
-      .form_i    (idex_ctrl_q.fpu_aux),
-      .sew_i     (csr_vtype[5:3]),
-      .vl_i      (csr_vl),
-      .vstart_i  (csr_vstart),
-      .vlmax_i   (vec_vlmax),
-      .vta_i     (csr_vtype[6]),
-      .vma_i     (csr_vtype[7]),
-      .vm_i      (idex_instr_q[25]),
-      .vs2_i     (idex_instr_q[24:20]),
-      .vs1_i     (idex_instr_q[19:15]),
-      .vd_i      (idex_rd_q),
-      .nreg_i    (4'd1 << vec_wlmul),
-      // FP vector .vf forms read the scalar from the FP
-      // register file (NaN-box checked, vec_frs1); integer
-      // .vx forms use the GPR value.
-      .scalar_i  (idex_ctrl_q.fp_rs1 ? vec_frs1 : ex_rs1),
-      .imm_i     (idex_imm_q),
-      .vxrm_i    (csr_vxrm),
-      .frm_i     (csr_frm),
-      .ld_a_o    (vu_ld_a),
-      .ld_b_o    (vu_ld_b),
-      .ld_c_o    (vu_ld_c),
-      .re_a_o    (vu_re_a),
-      .raddr_a_o (vu_ra_a),
-      .rdata_a_i (vrf_rd_a),
-      .re_b_o    (vu_re_b),
-      .raddr_b_o (vu_ra_b),
-      .rdata_b_i (vrf_rd_b),
-      .re_c_o    (vu_re_c),
-      .raddr_c_o (vu_ra_c),
-      .rdata_c_i (vrf_rd_c),
-      .v0_i      (vec_v0),
-      .we_o      (vu_we),
-      .waddr_o   (vu_wa),
-      .wbe_o     (vu_wbe),
-      .wdata_o   (vu_wd),
-      .busy_o    (vec_busy),
-      .done_o    (vec_done),
-      .scalar_o  (vec_scalar),
-      .sat_o     (vec_sat),
-      .fflags_o  (vec_fflags),
-      .fpu_req_o    (vfpu_req),
-      .fpu_op_o     (vfpu_op),
-      .fpu_fmt_d_o  (vfpu_fmt_d),
-      .fpu_rm_o     (vfpu_rm),
-      .fpu_a_o      (vfpu_a),
-      .fpu_b_o      (vfpu_b),
-      .fpu_c_o      (vfpu_c),
-      .fpu_aux_o    (vfpu_aux),
-      .fpu_done_i   (fpu_done),
-      .fpu_result_i (fpu_result),
-      .fpu_flags_i  (fpu_flags)
-  );
+    sigil_vec u_vec (
+        .clk_i     (clk_i),
+        .rst_ni    (rst_ni),
+        .kill_i    (trap_take),
+        .start_i   (vec_start),
+        .ack_i     (!freeze && !mem_stall),
+        .op_i      (idex_ctrl_q.bext_op),
+        .form_i    (idex_ctrl_q.fpu_aux),
+        .sew_i     (csr_vtype[5:3]),
+        .vl_i      (csr_vl),
+        .vstart_i  (csr_vstart),
+        .vlmax_i   (vec_vlmax),
+        .vta_i     (csr_vtype[6]),
+        .vma_i     (csr_vtype[7]),
+        .vm_i      (idex_instr_q[25]),
+        .vs2_i     (idex_instr_q[24:20]),
+        .vs1_i     (idex_instr_q[19:15]),
+        .vd_i      (idex_rd_q),
+        .nreg_i    (4'd1 << vec_wlmul),
+        // FP vector .vf forms read the scalar from the FP
+        // register file (NaN-box checked, vec_frs1); integer
+        // .vx forms use the GPR value.
+        .scalar_i  (idex_ctrl_q.fp_rs1 ? vec_frs1 : ex_rs1),
+        .imm_i     (idex_imm_q),
+        .vxrm_i    (csr_vxrm),
+        .frm_i     (csr_frm),
+        .ld_a_o    (vu_ld_a),
+        .ld_b_o    (vu_ld_b),
+        .ld_c_o    (vu_ld_c),
+        .re_a_o    (vu_re_a),
+        .raddr_a_o (vu_ra_a),
+        .rdata_a_i (vrf_rd_a),
+        .re_b_o    (vu_re_b),
+        .raddr_b_o (vu_ra_b),
+        .rdata_b_i (vrf_rd_b),
+        .re_c_o    (vu_re_c),
+        .raddr_c_o (vu_ra_c),
+        .rdata_c_i (vrf_rd_c),
+        .v0_i      (vec_v0),
+        .we_o      (vu_we),
+        .waddr_o   (vu_wa),
+        .wbe_o     (vu_wbe),
+        .wdata_o   (vu_wd),
+        .busy_o    (vec_busy),
+        .done_o    (vec_done),
+        .scalar_o  (vec_scalar),
+        .sat_o     (vec_sat),
+        .fflags_o  (vec_fflags),
+        .fpu_req_o    (vfpu_req),
+        .fpu_op_o     (vfpu_op),
+        .fpu_fmt_d_o  (vfpu_fmt_d),
+        .fpu_rm_o     (vfpu_rm),
+        .fpu_a_o      (vfpu_a),
+        .fpu_b_o      (vfpu_b),
+        .fpu_c_o      (vfpu_c),
+        .fpu_aux_o    (vfpu_aux),
+        .fpu_done_i   (fpu_done),
+        .fpu_result_i (fpu_result),
+        .fpu_flags_i  (fpu_flags)
+    );
+  end else begin : g_novec
+    assign vrf_rd_a = 64'd0;
+    assign vrf_rd_b = 64'd0;
+    assign vrf_rd_c = 64'd0;
+    assign vec_v0 = 512'd0;
+    assign {vu_ld_a, vu_ld_b, vu_ld_c} = 3'd0;
+    assign {vu_re_a, vu_re_b, vu_re_c, vu_we} = 4'd0;
+    assign {vu_ra_a, vu_ra_b, vu_ra_c, vu_wa, vu_wbe} = 40'd0;
+    assign vu_wd = 64'd0;
+    assign vec_busy = 1'b0;
+    assign vec_done = 1'b0;
+    assign vec_scalar = 64'd0;
+    assign vec_sat = 1'b0;
+    assign vec_fflags = 5'd0;
+    assign vfpu_req = 1'b0;
+    assign vfpu_op = 5'd0;
+    assign vfpu_fmt_d = 1'b0;
+    assign vfpu_rm = 3'd0;
+    assign {vfpu_a, vfpu_b, vfpu_c} = 192'd0;
+    assign vfpu_aux = 2'd0;
+    // The unit's and the VRF's inputs have no reader here.
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic unused_novec;
+    assign unused_novec = ^{vec_start, vec_wlmul, vec_vlmax, csr_vxrm, vec_frs1,
+                            vrf_re_a, vrf_re_b, vrf_re_c, vrf_ra_a, vrf_ra_b,
+                            vrf_ra_c, vrf_rd_b, vrf_we, vrf_wa, vrf_wbe, vrf_wd,
+                            vu_ld_a, vu_ld_b, vu_ld_c};
+    /* verilator lint_on UNUSEDSIGNAL */
+  end
 
   logic [63:0] bext_result;
   sigil_bext u_bext (
@@ -1321,7 +1359,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   logic        vls_in_range, vls_act, vls_last_field;
   logic [2:0]  vls_eew_code, vls_idx_eew;
   logic [63:0] vls_seg_q [8];
-  assign vls_is = exmem_valid_q && !exmem_exc_q && exmem_ctrl_q.vec &&
+  assign vls_is = HAS_VECTOR && exmem_valid_q && !exmem_exc_q && exmem_ctrl_q.vec &&
                   (exmem_ctrl_q.mem_read || exmem_ctrl_q.mem_write);
   assign vls_whole = exmem_ctrl_q.bext_op == VLS_WHOLE;
   assign vls_strided = exmem_ctrl_q.bext_op == VLS_STRIDED;
@@ -1908,7 +1946,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   // CSR / privileged unit
   // ------------------------------------------------------------
-  sigil_csr u_csr (
+  sigil_csr #(.HAS_VECTOR(HAS_VECTOR)) u_csr (
       .clk_i         (clk_i),
       .rst_ni        (rst_ni),
       .addr_i        (csr_addr),

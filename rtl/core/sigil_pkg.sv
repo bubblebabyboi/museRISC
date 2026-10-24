@@ -8,6 +8,22 @@ package sigil_pkg;
   /* verilator lint_off UNUSEDPARAM */
   localparam int unsigned XLEN = 64;
 
+  // Vector unit present (RVV 1.0 Zve64d, VLEN=512). The one
+  // place SIGIL_NO_VECTOR is read: with it defined the core is
+  // built without V (the cut-down MPW configuration, issue #13).
+  // Every use is a constant condition (generate-if or a constant
+  // operand), so both configurations always elaborate and lint:
+  // sigil_core leaves out sigil_vec, sigil_vregfile (and with it
+  // the VRF SRAM macros) and the vector LS sequencer; the decoder
+  // marks every vector encoding illegal; sigil_csr drops the
+  // vector CSRs, clears misa.V and makes mstatus.VS / vsstatus.VS
+  // read-only zero, as on a core without V.
+`ifdef SIGIL_NO_VECTOR
+  localparam bit HAS_VECTOR = 1'b0;
+`else
+  localparam bit HAS_VECTOR = 1'b1;
+`endif
+
   // ALU operations. Word (W-variant) behavior is selected separately.
   typedef enum logic [3:0] {
     ALU_ADD,

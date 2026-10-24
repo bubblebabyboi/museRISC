@@ -12,22 +12,27 @@
 #   L1 tag ways, 2x 64x44: sky130_sram_1rw1r_44x64_8
 # The .v models (sram/gen_openram_models.py) give slang the ports;
 # the .libs blackbox them.
+# MPW cut-down configuration (issue #13): SIGIL_NO_VECTOR=1 on the
+# make command line builds the SoC without the vector unit
+# (-DSIGIL_NO_VECTOR, SIGIL_SOC_DEFINES in rtl/sigil_soc_files.mk)
+# and drops the 3 VRF macros (4 macros: L1 data + tag ways only);
+# give it its own FLOW_VARIANT (e.g. FLOW_VARIANT=novec).
 export DESIGN_NAME = sigil_soc_top
 export PLATFORM    = sky130hd
 export SYNTH_HDL_FRONTEND = slang
+# SoC RTL list, configuration defines and macro lists shared with the
+# other platform's config (located relative to this file: DESIGN_HOME
+# is not yet set while ORFS reads the design config).
+include $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../src/sigil_soc/sigil_soc_files.mk)
 # -DSYNTHESIS: see nangate45/sigil_soc/config.mk (ORFS also passes it).
 export SYNTH_SLANG_ARGS = --unroll-limit=200000 -DSYNTHESIS -DSIGIL_SRAM_SKY130 \
+  $(foreach d,$(SIGIL_SOC_DEFINES),-D$(d)) \
   $(foreach p,$(SIGIL_SOC_PARAMS_SKY130),-G $(p))
 SKY130_RAM = $(FLOW_HOME)/platforms/sky130ram
-SKY130_MACROS = sky130_sram_1rw1r_64x256_8 sky130_sram_1rw1r_128x256_8 \
-                sky130_sram_1rw1r_44x64_8
+SKY130_MACROS = $(SIGIL_SKY130_MACROS)
 export ADDITIONAL_LEFS = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m).lef)
 export ADDITIONAL_LIBS = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m)_TT_1p8V_25C.lib)
 export ADDITIONAL_GDS  = $(foreach m,$(SKY130_MACROS),$(SKY130_RAM)/$(m)/$(m).gds)
-# SoC RTL list shared with the other platform's config (located
-# relative to this file: DESIGN_HOME is not yet set while ORFS reads
-# the design config).
-include $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../src/sigil_soc/sigil_soc_files.mk)
 export VERILOG_FILES = \
   $(foreach m,$(SKY130_MACROS),$(DESIGN_HOME)/$(PLATFORM)/sigil_soc/sram/$(m).v) \
   $(addprefix $(DESIGN_HOME)/src/sigil_soc/,$(SIGIL_SOC_RTL))

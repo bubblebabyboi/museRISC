@@ -53,3 +53,24 @@ SIGIL_SOC_RTL = \
 # instead of 15. Delete the overrides to get the default 8 KiB
 # 2-way I$ / 16 KiB 4-way D$ back.
 SIGIL_SOC_PARAMS_SKY130 = IC_WAYS=1 DC_WAYS=1
+
+# MPW cut-down configuration (issue #13, owner decision 2026-10-24):
+# the SoC without the vector unit. The define sets
+# sigil_pkg::HAS_VECTOR = 0, which leaves out sigil_vec,
+# sigil_vregfile and with it the 3 VRF SRAM macros (RV64GC + B + K +
+# H, FPU, MMU, caches and the crypto engine are unchanged; misa.V = 0
+# and every vector instruction or vector CSR access raises
+# illegal-instruction). SIGIL_NO_VECTOR=1 on the ORFS make command
+# line selects it in the sky130hd and nangate45 sigil_soc configs:
+# the defines go to slang as -D and the VRF macro leaves the macro
+# list. Simulation (sim/Makefile novec / sky130novec families) and
+# `make lint` use the same lists. Unset, every list below is the
+# default (vector) configuration.
+SIGIL_SOC_DEFINES_NOVEC = SIGIL_NO_VECTOR
+SIGIL_SOC_DEFINES = $(if $(filter 1,$(SIGIL_NO_VECTOR)),$(SIGIL_SOC_DEFINES_NOVEC))
+# SRAM macros by role: VRF banks (3 instances) and L1 data + tag ways.
+SIGIL_SKY130_VRF_MACROS = sky130_sram_1rw1r_64x256_8
+SIGIL_SKY130_L1_MACROS = sky130_sram_1rw1r_128x256_8 sky130_sram_1rw1r_44x64_8
+SIGIL_SKY130_MACROS = $(if $(filter 1,$(SIGIL_NO_VECTOR)),,$(SIGIL_SKY130_VRF_MACROS)) \
+  $(SIGIL_SKY130_L1_MACROS)
+SIGIL_FAKERAM45_VRF_MACROS = fakeram45_256x64_1r1w
