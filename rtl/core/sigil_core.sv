@@ -1301,7 +1301,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   // ------------------------------------------------------------
   logic [63:0] load_data;
   logic [63:0] mem_result;
-  logic        data_access, mem_uses_port;
+  logic        data_access, data_xlate, mem_uses_port;
   logic        mem_pmp_fault, mem_trans_fault;
   logic        mem_gva;
   logic [63:0] mem_cause, mem_tval, mem_gpa;
@@ -1509,15 +1509,15 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
 
   // The sequence ends with the instruction leaving MEM. FPGA_TIMING
   // (#53): an element can be held in ACC while its translation is
-  // looked up (mmu_d_* registered); a misalignment fault or trim seen
-  // then ends the sequence only once the translation resolves and MEM
-  // moves on (main's sequencer would restart at element 0 meanwhile).
+  // looked up (mmu_d_* registered); a fault or trim seen then ends the
+  // sequence only once the translation resolves and MEM moves on
+  // (main's sequencer would restart at element 0 meanwhile).
   // Off: main's condition as written (same netlist as main).
   logic vls_clear;
   if (FPGA_TIMING) begin : g_vls_end
     logic vls_end;
     assign vls_end = (vls_done || vls_fault) &&
-                     !(data_access && !mmu_d_ok && !mmu_d_fault);
+                     !(data_xlate && !mmu_d_ok && !mmu_d_fault);
     assign vls_clear = !vls_is || vls_end || trap_fire;
   end else begin : g_vls_end_off
     assign vls_clear = !vls_is || vls_done || vls_fault || trap_fire;
@@ -1590,6 +1590,12 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
   assign data_access = exmem_valid_q && !exmem_exc_q &&
                        (exmem_ctrl_q.mem_read || exmem_ctrl_q.mem_write) &&
                        (!vls_is || vls_acc);
+  // Accesses that need their translation. A misaligned vector element
+  // traps without it (misaligned ranks above page and access faults):
+  // it neither waits for a walk (the off sequencer would restart at
+  // element 0 meanwhile and never get there, #79) nor starts one, whose
+  // A/D update would mark a page for a store never performed (#80).
+  assign data_xlate = data_access && !vls_misalign;
   assign mem_trans_fault = data_access && mmu_d_fault;
   // PMP denial, or a physical address outside the 56-bit map.
   assign mem_pmp_fault = data_access && mmu_d_ok &&
@@ -1665,7 +1671,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
 
   // MEM stalls on a translation miss, on its own port access
   // until the final response, and while a vector LS sequences.
-  assign mem_stall = (data_access && !mmu_d_ok && !mmu_d_fault) ||
+  assign mem_stall = (data_xlate && !mmu_d_ok && !mmu_d_fault) ||
                      (mem_needs_port && !vls_is && !mem_port_done) ||
                      (vls_is && !vls_done && !vls_fault);
 
@@ -2126,7 +2132,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
     logic        dl_hlv;
     logic [63:0] agu;
     assign agu = ex_rs1 + idex_imm_q;
-    assign dl_mem = (data_access && !mmu_d_ok && !mmu_d_fault) ||
+    assign dl_mem = (data_xlate && !mmu_d_ok && !mmu_d_fault) ||
                     (vls_is && (((vls_ph == VLS_RD) && vls_in_range) ||
                                 (vls_ph == VLS_RW)));
     assign dl_hlv = dl_mem ? exmem_ctrl_q.hlv : idex_ctrl_q.hlv;
@@ -2189,7 +2195,7 @@ module sigil_core import sigil_pkg::*, sigil_cache_pkg::*; (
       .d_exec_i         (exmem_ctrl_q.hlvx),
       .d_priv_i         (eff_priv_mem),
       .d_virt_i         (eff_virt_mem),
-      .d_valid_i        (data_access),
+      .d_valid_i        (data_xlate),
       .d_pa_o           (mmu_d_pa),
       .d_ok_o           (mmu_d_ok),
       .d_fault_o        (mmu_d_fault),

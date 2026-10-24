@@ -182,3 +182,8 @@ for o in $(seq 300 37 5900); do
 done
 echo "CORE TB PASS vm_irq_directed.bin [$TAG] ($n IRQ offsets 300..5900)"
 seed=$((seed + 1))
+# A misaligned vector element k > 0 traps (vstart = k) without its
+# translation: no hang while it misses (issue #79) and no walk that
+# would set the page's D bit for a store not performed (#80).
+run mem53r_vmisal_fault mem53r_vmisal_fault_directed.bin 4000000
+run mem53r_vmisal_dbit mem53r_vmisal_dbit_directed.bin 4000000
