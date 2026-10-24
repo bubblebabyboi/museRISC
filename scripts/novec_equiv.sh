@@ -255,16 +255,18 @@ EOF
   for cfg in sky130hd nangate45 soc fpga; do
     for nv in 0 1; do
       f=$d/${cfg}_nv$nv; bb=""; incs="-I/D/src/sigil_soc/core"
+      local nvd="" nvm=""
+      if [ $nv = 1 ]; then nvd=" -DSIGIL_NO_VECTOR"; nvm="SIGIL_NO_VECTOR=1"; fi
       case $cfg in
         sky130hd|nangate45)
           mkdir -p "$d/designs/$cfg"; [ -e "$d/designs/$cfg/sigil_soc" ] || ln -s "$PWD/flow/designs/$cfg/sigil_soc" "$d/designs/$cfg/sigil_soc"
           { read -r files; read -r args; read -r v; } < <(make -s -f "$d/print.mk" CONFIG="$d/designs/$cfg/sigil_soc/config.mk" \
-              VARS="VERILOG_FILES SYNTH_SLANG_ARGS VERILOG_INCLUDE_DIRS" $( [ $nv = 1 ] && echo SIGIL_NO_VECTOR=1 ))
+              VARS="VERILOG_FILES SYNTH_SLANG_ARGS VERILOG_INCLUDE_DIRS" $nvm)
           incs=$(for i in $v; do printf ' -I%s' "$i"; done)
           for m in $files; do case $m in */sram/*.v) bb+=" --blackboxed-module $(basename "$m" .v)" ;; esac; done
           top=sigil_soc_top ;;
-        soc)  files=$soc; args="-DSYNTHESIS$( [ $nv = 1 ] && echo ' -DSIGIL_NO_VECTOR')"; top=sigil_soc_top ;;
-        fpga) files="$soc $fpga"; args="-DSYNTHESIS$( [ $nv = 1 ] && echo ' -DSIGIL_NO_VECTOR')"; top=sigil_fpga_top ;;
+        soc)  files=$soc; args="-DSYNTHESIS$nvd"; top=sigil_soc_top ;;
+        fpga) files="$soc $fpga"; args="-DSYNTHESIS$nvd"; top=sigil_fpga_top ;;
       esac
       cat > "$f.ys" <<YS
 read_slang -D SYNTHESIS --keep-hierarchy --compat=vcs --ignore-assertions --top $top $incs $files $bb $args$xd
