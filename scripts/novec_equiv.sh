@@ -295,7 +295,8 @@ YS
       nchk[$nv]=$(grep -oE 'Found and reported [0-9]+ problems' "$f.check.txt" 2>/dev/null | grep -oE '[0-9]+' || echo 0)
       i=$((i + 1))
     done
-    vrf=$(grep -cE 'sky130_sram_1rw1r_64x256_8|fakeram45_256x64_1r1w' "$d/${cfg}_nv1.macros.txt" "$d/${cfg}_nv1.log" 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}')
+    vrf=$( { grep -cE 'sky130_sram_1rw1r_64x256_8|fakeram45_256x64_1r1w' "$d/${cfg}_nv1.macros.txt" \
+             "$d/${cfg}_nv1.log" 2> /dev/null || true; } | awk -F: '{s+=$NF} END {print s+0}')
     ok=1
     [ $bad = 0 ] || ok=0
     [ "${nvec[0]:-0}" -gt 0 ] && [ "${nvec[1]:-1}" -eq 0 ] || ok=0
