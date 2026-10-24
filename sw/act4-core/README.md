@@ -56,6 +56,18 @@ Generation (as run for the evidence in
    `tests/rv64i/` first, or one Sail failure blocks every link.
 5. `bash sim/run_act_core.sh <out.csv>`
 
+No-vector core (SIGIL_NO_VECTOR, issue #13): `ACT_CONFIG=novec`
+on any of the generation steps above uses the `sigil-core-novec`
+config, which `scripts/act4_novec_config.py` derives from the files
+here on every run (no Zve*/Zvl* extensions and no vector
+parameters in the UDB config, `MSTATUS_VS_LEGAL_VALUES: [0]`, Sail
+V `support_level` `Disabled`). ELFs land in
+`work/sigil-core-novec/elfs/`; run them on the no-vector harness:
+`make -C sim ../build/sim/core_tb_novec`, then
+`CORE_TB=build/sim/core_tb_novec bash sim/run_act_core.sh <out.csv>
+third_party/riscv-arch-test/work/sigil-core-novec/elfs`. Only the
+non-vector suites (steps 1-4) apply.
+
 Warning: the ACT make does not track DUT config files as
 dependencies. After changing `sigil-core.yaml`/`sail.json`
 in a way that alters architectural parameters (e.g. adding

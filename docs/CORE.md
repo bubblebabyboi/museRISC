@@ -587,3 +587,34 @@ exactly these cycles. MEM vector loads/stores take 2 cycles
 per active element (or field), 1 per skipped (masked-off or
 below `vstart`) element, plus *nf* write-out cycles per
 element for segment loads and 1 final cycle.
+
+### No-vector configuration (`SIGIL_NO_VECTOR`, #13)
+
+The MPW cut-down core leaves the vector unit out. `SIGIL_NO_VECTOR`
+is read in one place, `sigil_pkg::HAS_VECTOR` (1 by default), and
+every use is a constant condition, so both configurations elaborate
+and lint:
+
+- `sigil_core`: `sigil_vregfile` and `sigil_vec` sit in the `g_vec`
+  generate block (instance paths `u_core.g_vec.u_vregfile`,
+  `u_core.g_vec.u_vec`); `g_novec` ties their outputs to zero.
+  `vec_unit_op`, `vset_en` and `vls_is` (MEM vector LS sequencer)
+  are gated with `HAS_VECTOR`, so the vector legality logic, the
+  sequencer and the shared-FPU muxing fold away.
+- `sigil_decoder`: every vector encoding (OP-V, including
+  `vset{i}vl{i}`, and the vector loads/stores in the LOAD-FP /
+  STORE-FP space) is invalid, so it raises illegal-instruction with
+  the encoding in `xtval`, from any mode (cause 2, also with V=1).
+  Scalar FP loads/stores (widths 010/011) are unchanged.
+- `sigil_csr` (parameter `HAS_VECTOR`, from the package):
+  `vstart`, `vxsat`, `vxrm`, `vcsr`, `vl`, `vtype` and `vlenb` do not
+  exist (illegal-instruction on any access), `misa` reads
+  `0x8000_0000_0014_11AF` (no V), and `mstatus.VS` / `sstatus.VS` /
+  `vsstatus.VS` read zero, ignore writes and do not feed SD.
+
+With the define undefined the logic is unchanged
+(`scripts/novec_equiv.sh`, docs/SOC_AREA.md MPW section). Tests:
+`make -C sim core-novec` (directed suite without the vector tests,
+`novec_trap_directed`, the sky130 MPW build and the SoC crypto
+firmware), `make -C sim riscv-tests-novec`, and ACT with
+`ACT_CONFIG=novec` (`sw/act4-core/README.md`).

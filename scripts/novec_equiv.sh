@@ -27,7 +27,9 @@
 #              VERILOG_FILES and macro LEF/LIB/GDS lists as REF's
 #              (whitespace-normalized); the SIGIL_NO_VECTOR=1 values
 #              are printed for the record.
-# EXTRA_DEFS (e.g. SIGIL_FPGA_TIMING) is added to every sv2v run.
+# EXTRA_DEFS (e.g. SIGIL_FPGA_TIMING) is added to every sv2v run;
+# MOD_CHPARAM ("NAME=VALUE ...", e.g. FPGA_TIMING=1) sets parameters of
+# the module proofs on both sides (as the core would pass them).
 # SystemVerilog is converted with sv2v (SV2V=/path/to/sv2v).
 #   scripts/novec_equiv.sh [static|sigil_decoder|sigil_csr|sigil_core|flow ...]
 #   (default: all five). Logs: build/novec_equiv/<step>/.
@@ -35,6 +37,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 SV2V=${SV2V:-sv2v}
 REF=${REF:-origin/main}
+MOD_CHPARAM=${MOD_CHPARAM:-}
 CORE_CFGS=${CORE_CFGS:-"default SIGIL_SRAM_OREG SIGIL_SRAM_SKY130 SIGIL_SRAM_FAKERAM45 SIGIL_VRF_OREG SIGIL_MULDIV_COMB"}
 EXTRA_DEFS=${EXTRA_DEFS:-}
 OUT=build/novec_equiv
@@ -81,13 +84,18 @@ mod_eq() { # module, pkg?
     echo "rename $mod gold"
     echo "read_verilog -mem2reg $d/gate.v"
     echo "rename $mod gate"
+    for kv in $MOD_CHPARAM; do
+      if grep -qE "parameter[^;]*\b${kv%%=*}\b" "$d/gold.v"; then
+        echo "chparam -set ${kv%%=*} ${kv#*=} gold gate"
+      fi
+    done
     echo "hierarchy -check; proc; memory; opt -purge; async2sync"
     echo "equiv_make gold gate equiv; hierarchy -top equiv"
     echo "equiv_struct; equiv_simple; equiv_induct; equiv_status -assert"
   } > "$d/eq.ys"
   t0=$(date +%s)
   if yosys -q -l "$d/eq.log" "$d/eq.ys" > /dev/null 2>&1; then r=EQUIVALENT; else r=FAILED; rc=1; fi
-  echo "$mod vs $REF ($refsha)${EXTRA_DEFS:+ [$EXTRA_DEFS]}, HAS_VECTOR=1: $r," \
+  echo "$mod vs $REF ($refsha)${EXTRA_DEFS:+ [$EXTRA_DEFS]}${MOD_CHPARAM:+ [$MOD_CHPARAM]}, HAS_VECTOR=1: $r," \
        "$(grep -oE '[0-9]+ are proven and [0-9]+ are unproven' "$d/eq.log" | tail -1)," \
        "$(( $(date +%s) - t0 )) s"
 }
@@ -113,7 +121,8 @@ core_eq() {
       $(sed 's|^|rtl/|' <<< "$srcs") > "$d/gate_$cfg.v"
     perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$d/gold_$cfg.v" "$d/gate_$cfg.v"
     # sigil_csr's HAS_VECTOR override is its default value (1) here.
-    perl -0pi -e 's/sigil_csr\s*#\(\s*\.HAS_VECTOR\([^()]*\)\s*\)\s*u_csr/sigil_csr u_csr/' "$d/gate_$cfg.v"
+    perl -0pi -e 's/sigil_csr\s*#\(\s*\.HAS_VECTOR\([^()]*\)\s*\)\s*u_csr/sigil_csr u_csr/;
+                  s/(sigil_csr\s*#\([^;]*?),\s*\.HAS_VECTOR\([^()]*\)(\s*\)\s*u_csr)/$1$2/' "$d/gate_$cfg.v"
     if grep -q 'HAS_VECTOR' "$d/gate_$cfg.v" && ! grep -qE 'HAS_VECTOR *= *1' "$d/gate_$cfg.v"; then
       echo "sigil_core ($cfg): HAS_VECTOR is not 1 in the gate"; rc=1; continue
     fi
