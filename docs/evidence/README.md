@@ -3,6 +3,16 @@
 Committed, reproducible evidence for completed gates. A claim in
 `docs/COMPLIANCE.md` should point here (or to a GitHub Actions run).
 
+## Final 100 MHz branch: full gates (2026-10-24)
+
+[`fpga-100mhz-final-gates-2026-10-24.log`](fpga-100mhz-final-gates-2026-10-24.log):
+`53-100mhz-afi` @ 759c066 in both settings (define unset and
+`SIGIL_FPGA_TIMING` + `SIGIL_VRF_OREG`): lint on 3 Verilator versions,
+make test, walker race matrix, core-test, riscv-tests 123/123, full ACT
+2,577/2,578 (same waiver as main), riscv-dv vs Spike 208/208, Linux RTL
+boot to `SIGIL_LINUX_BOOT_OK`, and Yosys equivalence of the
+`FPGA_TIMING=0` modules to `main`.
+
 ## B1 — CVA6 host smoke (2026-10-12)
 
 - Artifact: [`b1-cva6-2026-10-12.log`](b1-cva6-2026-10-12.log) (extract of the full local Docker log)

@@ -1,0 +1,46 @@
+Final 100 MHz branch (53-100mhz-afi): full gates, 2026-10-24 UTC
+RTL head 759c066 (integration: main 3b7ed1b with the 7 riscv-dv core fixes,
+#53 FPGA_TIMING at 4421934, sigil_host path checks, PMP two-word rule in the
+FPGA_TIMING parallel PMP). Two settings: define unset (default/ASIC) and
+S = SIGIL_FPGA_TIMING + SIGIL_VRF_OREG (the F2 build). Every gate passed.
+
+| Gate | Where | define unset | S |
+|---|---|---|---|
+| lint + lintx, Verilator 5.048 / 5.020 | sigil-fpga-build | PASS | PASS |
+| lint, Verilator 5.044 | Mac | PASS | PASS |
+| make test (incl. fpga/host test) | sigil-fpga-build | PASS (28 s) | PASS (28 s) |
+| oops-ptw-walker (walker race matrix) | sigil-fpga-build | PASS (115 s) | PASS (299 s) |
+| make core-test | sigil-fpga-build | PASS (4139 s) | PASS (4558 s) |
+| riscv-tests | sigil-fpga-build | 123/123 | 123/123 |
+| full ACT, ~/act8 set (fingerprint 839ba8be...ae7f) | sigil-verify | 2577/2578 | 2577/2578 |
+| riscv-dv vs Spike, FPGA-config core_tb | sigil-verify | n/a | 208/208 (full 90, vector 91, PMP/priv 27) |
+| Linux RTL boot, soc_rtl_tb | sigil-fpga-build | n/a | PASS, SIGIL_LINUX_BOOT_OK (3572 s), UART 890 lines, 0 bad |
+| Yosys equivalence vs origin/main 3b7ed1b, FPGA_TIMING=0 | Mac, Yosys 0.69 | EQUIVALENT | n/a |
+| Vivado F0 OOC at 10 ns | sigil-fpga-build2 | n/a | WNS +0.782 ns, TNS 0 (fpga-100mhz-final-f0-2026-10-24.log) |
+
+ACT: the only failure in both settings is PMPSm_cfg_A_tor_zero-00, the
+documented address-0 harness waiver; main 3b7ed1b gives the same 2577/2578
+on the same ELF set.
+
+Equivalence (scripts/fpga_timing_equiv.sh, REF=origin/main 3b7ed1b):
+  sigil_core default        EQUIVALENT, 10607 proven, 0 unproven
+  sigil_core SIGIL_SRAM_OREG EQUIVALENT, 10607 proven, 0 unproven
+  sigil_csr                 EQUIVALENT, 3936 proven, 0 unproven
+  sigil_mmu                 EQUIVALENT, 5128 proven, 0 unproven
+  sigil_dcache              EQUIVALENT, 2076 proven, 0 unproven
+  sigil_icache              EQUIVALENT, 768 proven, 0 unproven
+
+riscv-dv (docs/VERIFICATION.md flow): whole test list x seeds 1-3 (90 runs),
+viota / vf_nanbox / vfcvt_sew16 / vector programs x seeds 4-16 (91 runs),
+sigil_pmp_test / sigil_pmp_whole64_test / sigil_priv_test x seeds 4-12
+(27 runs); every run's retired-instruction trace matches Spike. The first
+attempt (07:24Z) did not start (riscv-dv checkout path in the fresh
+worktree); the retry with third_party/riscv-dv -> the 8-riscv-dv checkout at
+0d71c2b ran all 208.
+
+Not in this log: the canonical-netlist cell-count identity
+(scripts/fpga_timing_stat.sh) was still running when the session paused;
+the Yosys equivalence above is the stronger check.
+
+Logs: sigil-fpga-build ~/mhz100final/logsfull/{lint,off,fpga,boot}/,
+sigil-verify ~/fg100/logs/{act,rdv}/.
