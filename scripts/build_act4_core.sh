@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Generate ACT4 (riscv-arch-test) self-checking ELFs for the
 # Sigil in-house core DUT config in sw/act4-core/ (stage 3d).
+# ACT_CONFIG=novec: the no-vector core (SIGIL_NO_VECTOR, issue
+# #13), config sigil-core-novec derived from sw/act4-core/ by
+# scripts/act4_novec_config.py (V removed); ELFs in
+# work/sigil-core-novec/elfs/, run on build/sim/core_tb_novec.
 # Generation only: ELFs land in
 # third_party/riscv-arch-test/work/sigil-core/elfs/ and are
 # then run on the core by sim/run_act_core.sh. The Sail
@@ -39,17 +43,26 @@ fi
 
 # Canonical config lives in sw/act4-core/ (committed); sync a
 # copy into the (uncommitted) third_party tree on every run.
-DST="$ACT/config/cores/sigil-core"
+case "${ACT_CONFIG:-default}" in
+  default) NAME=sigil-core ;;
+  novec) NAME=sigil-core-novec ;;
+  *) echo "ACT_CONFIG must be default or novec" >&2; exit 2 ;;
+esac
+DST="$ACT/config/cores/$NAME"
 mkdir -p "$DST"
-cp sw/act4-core/sigil-core.yaml sw/act4-core/sail.json \
-   sw/act4-core/link.ld sw/act4-core/rvmodel_macros.h \
-   sw/act4-core/test_config.yaml sw/act4-core/run_cmd.txt "$DST/"
+if [ "$NAME" = sigil-core-novec ]; then
+  python3 -I scripts/act4_novec_config.py sw/act4-core "$DST"
+else
+  cp sw/act4-core/sigil-core.yaml sw/act4-core/sail.json \
+     sw/act4-core/link.ld sw/act4-core/rvmodel_macros.h \
+     sw/act4-core/test_config.yaml sw/act4-core/run_cmd.txt "$DST/"
+fi
 echo "Synced DUT config to $DST"
 
 cd "$ACT"
 mise trust >/dev/null 2>&1 || true
 PATH="$PWD/../../build/riscv-alias/bin:$PATH" \
   mise exec -- make elfs \
-  CONFIG_FILES=config/cores/sigil-core/test_config.yaml \
+  CONFIG_FILES=config/cores/$NAME/test_config.yaml \
   EXTENSIONS="${EXTENSIONS:-I,M}" FAST=1
-echo "ELFs: $ACT/work/sigil-core/elfs/"
+echo "ELFs: $ACT/work/$NAME/elfs/"
