@@ -1,0 +1,15 @@
+start 2026-10-24T07:04:03Z strategy=iter defines=SIGIL_VRF_OREG SIGIL_FPGA_TIMING
+create_clock: Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 4285
+create_clock: Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 5219
+synth_design: Time (s): cpu = 00:20:05 ; elapsed = 00:16:15 . Memory (MB): peak = 5219
+report_timing_summary: Time (s): cpu = 00:00:52 ; elapsed = 00:00:35 . Memory (MB): peak = 5611
+opt_design: Time (s): cpu = 00:01:08 ; elapsed = 00:00:34 . Memory (MB): peak = 5747
+place_design: Time (s): cpu = 00:16:52 ; elapsed = 00:08:14 . Memory (MB): peak = 6838
+phys_opt_design: Time (s): cpu = 00:00:35 ; elapsed = 00:00:12 . Memory (MB): peak = 6838
+route_design: Time (s): cpu = 00:12:56 ; elapsed = 00:04:57 . Memory (MB): peak = 7036
+report_utilization: Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 7036
+report_timing_summary: Time (s): cpu = 00:00:39 ; elapsed = 00:00:10 . Memory (MB): peak = 7036
+report_drc: Time (s): cpu = 00:00:18 ; elapsed = 00:00:08 . Memory (MB): peak = 7036
+write_checkpoint: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 7036
+F0_RESULT strategy=iter defines=SYNTHESIS SIGIL_VRF_OREG SIGIL_FPGA_TIMING period=10 wns=0.782 fmax_est=108.5MHz
+end 2026-10-24T07:35:39Z rc=0

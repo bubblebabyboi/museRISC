@@ -1,0 +1,50 @@
+== r5.tsv: endpoints with slack < 1.5 ns: 3380; worst 0.690
+   PMP-through endpoints: 0, worst 99.000
+   vstart-through endpoints: 0, worst 99.000
+    0.690    42  vls_started_q_reg -> u_mmu/g_dreg.mt_q_reg[pa]/D
+    1.026    18  memwb_valid_q_reg -> exmem_result_q_reg/D
+    1.030  1600  u_fabric/a_q_reg -> u_crypto_bridge/u_crypto/u_hash/u_keccak/st_reg/CE
+    1.048    37  u_fpu/rnd_q_reg[exp] -> exmem_result_q_reg/D
+    1.137     5  u_fabric/a_q_reg -> u_crypto_bridge/u_crypto/u_hash/u_keccak/round_reg/CE
+    1.250    14  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg -> u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg/D
+    1.269  1600  u_fabric/a_q_reg -> u_crypto_bridge/u_crypto/u_hash/u_keccak/state_out_reg/CE
+    1.307    12  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg -> u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg/D
+    1.328    15  boot_q_reg -> pc_r_reg/D
+    1.330     1  vls_started_q_reg -> u_mmu/g_dreg.mt_q_reg[ok]/D
+    1.344     1  exmem_exc_q_reg -> exmem_result_q_reg/D
+    1.354    13  boot_q_reg -> ifid_tval_q_reg/CE
+    1.407    10  boot_q_reg -> ifid_pc_q_reg/CE
+    1.439     1  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg -> u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg/D
+   worst PMP-through pairs:
+   worst vstart-through pairs:
+== new.tsv: endpoints with slack < 1.5 ns: 1956; worst 0.782
+   PMP-through endpoints: 1599, worst 0.803
+   vstart-through endpoints: 305, worst 0.869
+    0.782    72  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg -> u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg/D
+    0.787    76  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg -> u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg/D
+    0.803    56  u_csr/pmpaddr_q_reg -> u_csr/vsscratch_q_reg/CE
+    0.869    50  u_csr/pmpaddr_q_reg -> u_csr/scause_q_reg/CE
+    0.900    64  u_csr/pmpaddr_q_reg -> u_csr/mtinst_q_reg/CE
+    0.916    64  u_csr/pmpaddr_q_reg -> u_csr/sscratch_q_reg/CE
+    0.923    49  u_csr/pmpaddr_q_reg -> u_csr/vstval_q_reg/CE
+    0.960    43  u_csr/pmpaddr_q_reg -> u_csr/mscratch_q_reg/CE
+    0.963    50  u_csr/pmpaddr_q_reg -> u_csr/menvcfg_q_reg/CE
+    0.980    63  u_csr/pmpaddr_q_reg -> u_csr/senvcfg_q_reg/CE
+    0.981    49  u_csr/pmpaddr_q_reg -> u_csr/stval_q_reg/CE
+    0.983    41  u_csr/pmpaddr_q_reg -> u_csr/mtval_q_reg/CE
+    1.001    38  u_csr/pmpaddr_q_reg -> u_csr/mtval2_q_reg/CE
+    1.003    45  u_csr/pmpaddr_q_reg -> u_csr/henvcfg_q_reg/CE
+   worst PMP-through pairs:
+    0.803    56  u_csr/pmpaddr_q_reg -> u_csr/vsscratch_q_reg/CE
+    0.869    50  u_csr/pmpaddr_q_reg -> u_csr/scause_q_reg/CE
+    0.900    64  u_csr/pmpaddr_q_reg -> u_csr/mtinst_q_reg/CE
+    0.916    64  u_csr/pmpaddr_q_reg -> u_csr/sscratch_q_reg/CE
+    0.923    49  u_csr/pmpaddr_q_reg -> u_csr/vstval_q_reg/CE
+    0.960    43  u_csr/pmpaddr_q_reg -> u_csr/mscratch_q_reg/CE
+   worst vstart-through pairs:
+    0.869    50  u_csr/pmpaddr_q_reg -> u_csr/scause_q_reg/CE
+    0.900    64  u_csr/pmpaddr_q_reg -> u_csr/mtinst_q_reg/CE
+    1.001    38  u_csr/pmpaddr_q_reg -> u_csr/mtval2_q_reg/CE
+    1.081    51  u_csr/pmpaddr_q_reg -> u_csr/htinst_q_reg/CE
+    1.099    52  u_csr/pmpaddr_q_reg -> u_csr/satp_q_reg/CE
+    1.158    44  u_csr/pmpaddr_q_reg -> u_csr/vsatp_q_reg/CE

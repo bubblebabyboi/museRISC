@@ -1,0 +1,72 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Sat Oct 24 07:35:08 2026
+| Host         : ip-172-31-72-220 running 64-bit Ubuntu 24.04.1 LTS
+| Command      : report_utilization -hierarchical -hierarchical_depth 4 -file build/f0-100f-iter-10ns/impl_util_hier.rpt
+| Design       : sigil_soc_top
+| Device       : xcvu47p-fsvh2892-2-e
+| Speed File   : -2
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++--------------------------+---------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+|         Instance         |              Module             | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs  | RAMB36 | RAMB18 | URAM | DSP Blocks |
++--------------------------+---------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+| sigil_soc_top            |                           (top) |      78428 |      77924 |     504 |    0 | 33355 |      9 |      0 |    0 |         29 |
+|   (sigil_soc_top)        |                           (top) |        420 |        420 |       0 |    0 |     3 |      0 |      0 |    0 |          0 |
+|   u_clint                |                     sigil_clint |         85 |         85 |       0 |    0 |   160 |      0 |      0 |    0 |          0 |
+|   u_cpu                  |                       sigil_cpu |      54031 |      53535 |     496 |    0 | 16114 |      9 |      0 |    0 |         29 |
+|     u_core               |                      sigil_core |      50639 |      50407 |     232 |    0 | 14275 |      3 |      0 |    0 |         29 |
+|       (u_core)           |                      sigil_core |       6780 |       6748 |      32 |    0 |  2049 |      0 |      0 |    0 |          0 |
+|       u_alu              |                       sigil_alu |        564 |        564 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_bext             |                      sigil_bext |       1671 |       1671 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_csr              |                       sigil_csr |      10672 |      10672 |       0 |    0 |  3064 |      0 |      0 |    0 |          0 |
+|       u_decoder          |                   sigil_decoder |        500 |        500 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_fpregfile        |                 sigil_fpregfile |        121 |          1 |     120 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_fpu              |                       sigil_fpu |       5417 |       5417 |       0 |    0 |  1349 |      0 |      0 |    0 |          9 |
+|       u_mmu              |                       sigil_mmu |       9248 |       9248 |       0 |    0 |  5007 |      0 |      0 |    0 |          0 |
+|       u_muldiv           |                 sigil_muldiv_mc |       2278 |       2278 |       0 |    0 |   278 |      0 |      0 |    0 |         16 |
+|       u_regfile          |                   sigil_regfile |         84 |          4 |      80 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_rvc              |                       sigil_rvc |        118 |        118 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       u_vec              |                       sigil_vec |      12810 |      12810 |       0 |    0 |  1629 |      0 |      0 |    0 |          4 |
+|       u_vregfile         |                  sigil_vregfile |        977 |        977 |       0 |    0 |   899 |      3 |      0 |    0 |          0 |
+|         (u_vregfile)     |                  sigil_vregfile |        777 |        777 |       0 |    0 |   899 |      0 |      0 |    0 |          0 |
+|         g_port[0].u_bank |                  sigil_vrf_bank |        169 |        169 |       0 |    0 |     0 |      1 |      0 |    0 |          0 |
+|     u_dcache             |                    sigil_dcache |       2915 |       2739 |     176 |    0 |  1481 |      4 |      0 |    0 |          0 |
+|       (u_dcache)         |                    sigil_dcache |       1220 |       1220 |       0 |    0 |  1305 |      0 |      0 |    0 |          0 |
+|       g_way[0].u_tag     |                 sigil_sram_sp_3 |        110 |         66 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|       g_way[1].u_tag     |                 sigil_sram_sp_5 |        185 |        141 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|       g_way[2].u_tag     |                 sigil_sram_sp_7 |        726 |        682 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|       g_way[3].u_data    | sigil_sram_sp__parameterized0_8 |        221 |        221 |       0 |    0 |     0 |      1 |      0 |    0 |          0 |
+|       g_way[3].u_tag     |                 sigil_sram_sp_9 |        379 |        335 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|     u_icache             |                    sigil_icache |        473 |        385 |      88 |    0 |   354 |      2 |      0 |    0 |          0 |
+|       (u_icache)         |                    sigil_icache |        259 |        259 |       0 |    0 |   266 |      0 |      0 |    0 |          0 |
+|       g_way[0].u_tag     |                   sigil_sram_sp |         72 |         28 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|       g_way[1].u_tag     |                 sigil_sram_sp_1 |        136 |         92 |      44 |    0 |    44 |      0 |      0 |    0 |          0 |
+|   u_crypto_bridge        |             sigil_crypto_bridge |      21129 |      21129 |       0 |    0 | 16197 |      0 |      0 |    0 |          0 |
+|     u_crypto             |                sigil_crypto_top |      21128 |      21128 |       0 |    0 | 16194 |      0 |      0 |    0 |          0 |
+|       (u_crypto)         |                sigil_crypto_top |        116 |        116 |       0 |    0 |  1130 |      0 |      0 |    0 |          0 |
+|       u_fld              |                        ec_field |       4689 |       4689 |       0 |    0 |  1292 |      0 |      0 |    0 |          0 |
+|       u_hash             |               sigil_hash_stream |      13647 |      13647 |       0 |    0 | 11164 |      0 |      0 |    0 |          0 |
+|         (u_hash)         |               sigil_hash_stream |       1208 |       1208 |       0 |    0 |  1195 |      0 |      0 |    0 |          0 |
+|         u_keccak         |                    keccak_f1600 |       4377 |       4377 |       0 |    0 |  3207 |      0 |      0 |    0 |          0 |
+|         u_sha512         |                    sha512_block |       8063 |       8063 |       0 |    0 |  6762 |      0 |      0 |    0 |          0 |
+|       u_sha              |                    sha256_block |       2677 |       2677 |       0 |    0 |  2608 |      0 |      0 |    0 |          0 |
+|   u_fabric               |                sigil_soc_fabric |       1854 |       1854 |       0 |    0 |   213 |      0 |      0 |    0 |          0 |
+|   u_plic                 |                      sigil_plic |        628 |        628 |       0 |    0 |   198 |      0 |      0 |    0 |          0 |
+|   u_rtc                  |              sigil_rtc_goldfish |         99 |         99 |       0 |    0 |   163 |      0 |      0 |    0 |          0 |
+|   u_uart                 |                 sigil_uart16550 |        185 |        177 |       8 |    0 |   274 |      0 |      0 |    0 |          0 |
++--------------------------+---------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

@@ -1,0 +1,862 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date              : Sat Oct 24 07:35:22 2026
+| Host              : ip-172-31-72-220 running 64-bit Ubuntu 24.04.1 LTS
+| Command           : report_timing -max_paths 30 -nworst 1 -unique_pins -sort_by group -file build/f0-100f-iter-10ns/impl_top_paths.rpt
+| Design            : sigil_soc_top
+| Device            : xcvu47p-fsvh2892
+| Speed File        : -2  PRODUCTION 1.30 05-01-2022
+| Design State      : Routed
+| Temperature Grade : E
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             0.782ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]/D
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.197ns  (logic 2.596ns (28.226%)  route 6.601ns (71.774%))
+  Logic Levels:           24  (CARRY8=10 LUT2=2 LUT3=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.010ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.020ns = ( 10.020 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     8.354 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[0]
+                         net (fo=4, routed)           0.341     8.695    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[40]
+    SLICE_X148Y303       LUT2 (Prop_A6LUT_SLICEL_I1_O)
+                                                      0.124     8.819 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9/O
+                         net (fo=1, routed)           0.009     8.828    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9_n_0
+    SLICE_X148Y303       CARRY8 (Prop_CARRY8_SLICEL_S[0]_CO[7])
+                                                      0.190     9.018 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.044    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1_n_0
+    SLICE_X148Y304       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     9.059 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.085    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1_n_0
+    SLICE_X148Y305       CARRY8 (Prop_CARRY8_SLICEL_CI_O[7])
+                                                      0.116     9.201 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]_i_2/O[7]
+                         net (fo=1, routed)           0.026     9.227    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out012_out[63]
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.020    10.020    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]/C
+                         clock pessimism              0.000    10.020    
+                         clock uncertainty           -0.035     9.985    
+    SLICE_X148Y305       FDCE (Setup_HFF_SLICEL_C_D)
+                                                      0.025    10.010    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]
+  -------------------------------------------------------------------
+                         required time                         10.010    
+                         arrival time                          -9.227    
+  -------------------------------------------------------------------
+                         slack                                  0.782    
+
+Slack (MET) :             0.783ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[509]/D
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.196ns  (logic 2.596ns (28.229%)  route 6.600ns (71.771%))
+  Logic Levels:           24  (CARRY8=10 LUT2=2 LUT3=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.010ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.020ns = ( 10.020 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     8.354 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[0]
+                         net (fo=4, routed)           0.341     8.695    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[40]
+    SLICE_X148Y303       LUT2 (Prop_A6LUT_SLICEL_I1_O)
+                                                      0.124     8.819 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9/O
+                         net (fo=1, routed)           0.009     8.828    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9_n_0
+    SLICE_X148Y303       CARRY8 (Prop_CARRY8_SLICEL_S[0]_CO[7])
+                                                      0.190     9.018 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.044    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1_n_0
+    SLICE_X148Y304       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     9.059 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.085    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1_n_0
+    SLICE_X148Y305       CARRY8 (Prop_CARRY8_SLICEL_CI_O[5])
+                                                      0.116     9.201 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]_i_2/O[5]
+                         net (fo=1, routed)           0.025     9.226    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out012_out[61]
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[509]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.020    10.020    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[509]/C
+                         clock pessimism              0.000    10.020    
+                         clock uncertainty           -0.035     9.985    
+    SLICE_X148Y305       FDCE (Setup_FFF_SLICEL_C_D)
+                                                      0.025    10.010    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[509]
+  -------------------------------------------------------------------
+                         required time                         10.010    
+                         arrival time                          -9.226    
+  -------------------------------------------------------------------
+                         slack                                  0.783    
+
+Slack (MET) :             0.787ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]/D
+                            (rising edge-triggered cell FDRE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.194ns  (logic 2.649ns (28.812%)  route 6.545ns (71.188%))
+  Logic Levels:           24  (CARRY8=10 LUT2=1 LUT3=1 LUT4=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.009ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.021ns = ( 10.021 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[5])
+                                                      0.116     8.414 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[5]
+                         net (fo=4, routed)           0.272     8.686    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[45]
+    SLICE_X146Y303       LUT4 (Prop_F6LUT_SLICEM_I1_O)
+                                                      0.148     8.834 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12/O
+                         net (fo=1, routed)           0.022     8.856    u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12_n_0
+    SLICE_X146Y303       CARRY8 (Prop_CARRY8_SLICEM_S[5]_CO[7])
+                                                      0.159     9.015 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.041    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1_n_0
+    SLICE_X146Y304       CARRY8 (Prop_CARRY8_SLICEM_CI_CO[7])
+                                                      0.015     9.056 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.082    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1_n_0
+    SLICE_X146Y305       CARRY8 (Prop_CARRY8_SLICEM_CI_O[7])
+                                                      0.116     9.198 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1/O[7]
+                         net (fo=1, routed)           0.026     9.224    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1_n_8
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.021    10.021    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]/C
+                         clock pessimism              0.000    10.021    
+                         clock uncertainty           -0.035     9.986    
+    SLICE_X146Y305       FDRE (Setup_HFF_SLICEM_C_D)
+                                                      0.025    10.011    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]
+  -------------------------------------------------------------------
+                         required time                         10.011    
+                         arrival time                          -9.224    
+  -------------------------------------------------------------------
+                         slack                                  0.787    
+
+Slack (MET) :             0.788ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][61]/D
+                            (rising edge-triggered cell FDRE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.193ns  (logic 2.649ns (28.815%)  route 6.544ns (71.185%))
+  Logic Levels:           24  (CARRY8=10 LUT2=1 LUT3=1 LUT4=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.009ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.021ns = ( 10.021 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[5])
+                                                      0.116     8.414 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[5]
+                         net (fo=4, routed)           0.272     8.686    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[45]
+    SLICE_X146Y303       LUT4 (Prop_F6LUT_SLICEM_I1_O)
+                                                      0.148     8.834 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12/O
+                         net (fo=1, routed)           0.022     8.856    u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12_n_0
+    SLICE_X146Y303       CARRY8 (Prop_CARRY8_SLICEM_S[5]_CO[7])
+                                                      0.159     9.015 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.041    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1_n_0
+    SLICE_X146Y304       CARRY8 (Prop_CARRY8_SLICEM_CI_CO[7])
+                                                      0.015     9.056 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.082    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1_n_0
+    SLICE_X146Y305       CARRY8 (Prop_CARRY8_SLICEM_CI_O[5])
+                                                      0.116     9.198 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1/O[5]
+                         net (fo=1, routed)           0.025     9.223    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1_n_10
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][61]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.021    10.021    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][61]/C
+                         clock pessimism              0.000    10.021    
+                         clock uncertainty           -0.035     9.986    
+    SLICE_X146Y305       FDRE (Setup_FFF_SLICEM_C_D)
+                                                      0.025    10.011    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][61]
+  -------------------------------------------------------------------
+                         required time                         10.011    
+                         arrival time                          -9.223    
+  -------------------------------------------------------------------
+                         slack                                  0.788    
+
+Slack (MET) :             0.795ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[510]/D
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.184ns  (logic 2.583ns (28.124%)  route 6.601ns (71.876%))
+  Logic Levels:           24  (CARRY8=10 LUT2=2 LUT3=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.010ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.020ns = ( 10.020 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     8.354 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[0]
+                         net (fo=4, routed)           0.341     8.695    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[40]
+    SLICE_X148Y303       LUT2 (Prop_A6LUT_SLICEL_I1_O)
+                                                      0.124     8.819 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9/O
+                         net (fo=1, routed)           0.009     8.828    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out[495]_i_9_n_0
+    SLICE_X148Y303       CARRY8 (Prop_CARRY8_SLICEL_S[0]_CO[7])
+                                                      0.190     9.018 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.044    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[495]_i_1_n_0
+    SLICE_X148Y304       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     9.059 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.085    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[503]_i_1_n_0
+    SLICE_X148Y305       CARRY8 (Prop_CARRY8_SLICEL_CI_O[6])
+                                                      0.103     9.188 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[511]_i_2/O[6]
+                         net (fo=1, routed)           0.026     9.214    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out012_out[62]
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[510]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.020    10.020    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X148Y305       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[510]/C
+                         clock pessimism              0.000    10.020    
+                         clock uncertainty           -0.035     9.985    
+    SLICE_X148Y305       FDCE (Setup_GFF_SLICEL_C_D)
+                                                      0.025    10.010    u_crypto_bridge/u_crypto/u_hash/u_sha512/digest_out_reg[510]
+  -------------------------------------------------------------------
+                         required time                         10.010    
+                         arrival time                          -9.214    
+  -------------------------------------------------------------------
+                         slack                                  0.795    
+
+Slack (MET) :             0.800ns  (required time - arrival time)
+  Source:                 u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][62]/D
+                            (rising edge-triggered cell FDRE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.181ns  (logic 2.636ns (28.711%)  route 6.545ns (71.289%))
+  Logic Levels:           24  (CARRY8=10 LUT2=1 LUT3=1 LUT4=1 LUT5=5 LUT6=5 MUXF7=1)
+  Clock Path Skew:        -0.009ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.021ns = ( 10.021 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X150Y286       FDCE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X150Y286       FDCE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 f  u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8/Q
+                         net (fo=174, routed)         0.526     0.632    u_crypto_bridge/u_crypto/u_hash/u_sha512/round_reg[2]_rep__8_n_0
+    SLICE_X157Y286       LUT2 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.152     0.784 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358/O
+                         net (fo=64, routed)          1.034     1.818    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][63]_i_358_n_0
+    SLICE_X126Y266       LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.943 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145/O
+                         net (fo=2, routed)           0.492     2.434    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_145_n_0
+    SLICE_X130Y270       LUT6 (Prop_C6LUT_SLICEL_I1_O)
+                                                      0.088     2.522 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160/O
+                         net (fo=1, routed)           0.010     2.532    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][23]_i_160_n_0
+    SLICE_X130Y270       MUXF7 (Prop_F7MUX_CD_SLICEL_I1_O)
+                                                      0.064     2.596 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][23]_i_65/O
+                         net (fo=6, routed)           0.739     3.335    u_crypto_bridge/u_crypto/u_hash/u_sha512/rotr12_return[7]
+    SLICE_X161Y276       LUT5 (Prop_C5LUT_SLICEM_I4_O)
+                                                      0.159     3.494 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30/O
+                         net (fo=2, routed)           0.293     3.787    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_30_n_0
+    SLICE_X161Y286       LUT5 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.037     3.824 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8/O
+                         net (fo=2, routed)           0.146     3.970    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_8_n_0
+    SLICE_X160Y286       LUT6 (Prop_B6LUT_SLICEL_I3_O)
+                                                      0.036     4.006 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16/O
+                         net (fo=1, routed)           0.009     4.015    u_crypto_bridge/u_crypto/u_hash/u_sha512/w[16][15]_i_16_n_0
+    SLICE_X160Y286       CARRY8 (Prop_CARRY8_SLICEL_S[1]_O[7])
+                                                      0.248     4.263 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/w_reg[16][15]_i_1/O[7]
+                         net (fo=81, routed)          0.522     4.785    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_exp[15]
+    SLICE_X154Y280       LUT3 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.101     4.886 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_67/O
+                         net (fo=2, routed)           0.454     5.340    u_crypto_bridge/u_crypto/u_hash/u_sha512/w_cur[15]
+    SLICE_X157Y287       LUT5 (Prop_E6LUT_SLICEM_I4_O)
+                                                      0.052     5.392 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51/O
+                         net (fo=2, routed)           0.363     5.755    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[31]_i_51_n_0
+    SLICE_X158Y290       CARRY8 (Prop_CARRY8_SLICEL_DI[0]_O[5])
+                                                      0.207     5.962 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42/O[5]
+                         net (fo=2, routed)           0.459     6.421    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_42_n_10
+    SLICE_X153Y294       LUT5 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.150     6.571 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20/O
+                         net (fo=2, routed)           0.326     6.897    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_20_n_0
+    SLICE_X155Y294       LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.050     6.947 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28/O
+                         net (fo=1, routed)           0.008     6.955    u_crypto_bridge/u_crypto/u_hash/u_sha512/e[23]_i_28_n_0
+    SLICE_X155Y294       CARRY8 (Prop_CARRY8_SLICEL_S[6]_CO[7])
+                                                      0.115     7.070 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.096    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[23]_i_18_n_0
+    SLICE_X155Y295       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     7.111 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18/CO[7]
+                         net (fo=1, routed)           0.026     7.137    u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[31]_i_18_n_0
+    SLICE_X155Y296       CARRY8 (Prop_CARRY8_SLICEL_CI_O[0])
+                                                      0.056     7.193 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/e_reg[39]_i_18/O[0]
+                         net (fo=5, routed)           0.478     7.671    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_9_in[32]
+    SLICE_X146Y296       LUT5 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.088     7.759 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9/O
+                         net (fo=2, routed)           0.228     7.987    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_9_n_0
+    SLICE_X147Y296       LUT6 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.090     8.077 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17/O
+                         net (fo=1, routed)           0.009     8.086    u_crypto_bridge/u_crypto/u_hash/u_sha512/a[39]_i_17_n_0
+    SLICE_X147Y296       CARRY8 (Prop_CARRY8_SLICEL_S[1]_CO[7])
+                                                      0.186     8.272 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2/CO[7]
+                         net (fo=1, routed)           0.026     8.298    u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[39]_i_2_n_0
+    SLICE_X147Y297       CARRY8 (Prop_CARRY8_SLICEL_CI_O[5])
+                                                      0.116     8.414 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/a_reg[47]_i_2/O[5]
+                         net (fo=4, routed)           0.272     8.686    u_crypto_bridge/u_crypto/u_hash/u_sha512/p_11_in[45]
+    SLICE_X146Y303       LUT4 (Prop_F6LUT_SLICEM_I1_O)
+                                                      0.148     8.834 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12/O
+                         net (fo=1, routed)           0.022     8.856    u_crypto_bridge/u_crypto/u_hash/u_sha512/h[0][47]_i_12_n_0
+    SLICE_X146Y303       CARRY8 (Prop_CARRY8_SLICEM_S[5]_CO[7])
+                                                      0.159     9.015 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.041    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][47]_i_1_n_0
+    SLICE_X146Y304       CARRY8 (Prop_CARRY8_SLICEM_CI_CO[7])
+                                                      0.015     9.056 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1/CO[7]
+                         net (fo=1, routed)           0.026     9.082    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][55]_i_1_n_0
+    SLICE_X146Y305       CARRY8 (Prop_CARRY8_SLICEM_CI_O[6])
+                                                      0.103     9.185 r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1/O[6]
+                         net (fo=1, routed)           0.026     9.211    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][63]_i_1_n_9
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][62]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.021    10.021    u_crypto_bridge/u_crypto/u_hash/u_sha512/clk_i
+    SLICE_X146Y305       FDRE                                         r  u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][62]/C
+                         clock pessimism              0.000    10.021    
+                         clock uncertainty           -0.035     9.986    
+    SLICE_X146Y305       FDRE (Setup_GFF_SLICEM_C_D)
+                                                      0.025    10.011    u_crypto_bridge/u_crypto/u_hash/u_sha512/h_reg[0][62]
+  -------------------------------------------------------------------
+                         required time                         10.011    
+                         arrival time                          -9.211    
+  -------------------------------------------------------------------
+                         slack                                  0.800    
+
+Slack (MET) :             0.803ns  (required time - arrival time)
+  Source:                 u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_cpu/u_core/u_csr/vsscratch_q_reg[28]/CE
+                            (rising edge-triggered cell FDCE clocked by core_clock  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             core_clock
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (core_clock rise@10.000ns - core_clock rise@0.000ns)
+  Data Path Delay:        9.091ns  (logic 2.420ns (26.618%)  route 6.671ns (73.382%))
+  Logic Levels:           24  (CARRY8=5 LUT2=4 LUT3=2 LUT4=3 LUT5=2 LUT6=8)
+  Clock Path Skew:        -0.010ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.020ns = ( 10.020 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.030ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock core_clock rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.030     0.030    u_cpu/u_core/u_csr/clk_i
+    SLICE_X94Y370        FDCE                                         r  u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X94Y370        FDCE (Prop_HFF2_SLICEM_C_Q)
+                                                      0.078     0.108 r  u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/Q
+                         net (fo=16, routed)          0.370     0.478    u_cpu/u_core/u_csr/pmpaddr_q_reg[0][53]_0[1]
+    SLICE_X96Y369        CARRY8 (Prop_CARRY8_SLICEL_S[0]_CO[7])
+                                                      0.190     0.668 r  u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1296/CO[7]
+                         net (fo=1, routed)           0.026     0.694    u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1296_n_0
+    SLICE_X96Y370        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     0.709 r  u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1292/CO[7]
+                         net (fo=1, routed)           0.026     0.735    u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1292_n_0
+    SLICE_X96Y371        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     0.750 r  u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1286/CO[7]
+                         net (fo=1, routed)           0.026     0.776    u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1286_n_0
+    SLICE_X96Y372        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
+                                                      0.015     0.791 r  u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1288/CO[7]
+                         net (fo=1, routed)           0.026     0.817    u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1288_n_0
+    SLICE_X96Y373        CARRY8 (Prop_CARRY8_SLICEL_CI_O[5])
+                                                      0.116     0.933 r  u_cpu/u_core/u_csr/FSM_sequential_state_q_reg[2]_i_1302/O[5]
+                         net (fo=3, routed)           0.249     1.182    u_cpu/u_core/u_csr/g_pmp_par.hit4[38]
+    SLICE_X95Y375        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.125     1.307 f  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_788/O
+                         net (fo=1, routed)           0.337     1.644    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_788_n_0
+    SLICE_X96Y383        LUT6 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.090     1.734 f  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_306/O
+                         net (fo=1, routed)           0.245     1.979    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_306_n_0
+    SLICE_X96Y386        LUT4 (Prop_G6LUT_SLICEL_I1_O)
+                                                      0.097     2.076 r  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_127/O
+                         net (fo=2, routed)           0.400     2.475    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_127_n_0
+    SLICE_X89Y380        LUT6 (Prop_H6LUT_SLICEL_I1_O)
+                                                      0.090     2.565 f  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_50/O
+                         net (fo=3, routed)           0.350     2.915    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_50_n_0
+    SLICE_X86Y385        LUT5 (Prop_D5LUT_SLICEL_I2_O)
+                                                      0.157     3.072 f  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_58/O
+                         net (fo=1, routed)           0.248     3.320    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_58_n_0
+    SLICE_X88Y385        LUT6 (Prop_H6LUT_SLICEM_I0_O)
+                                                      0.152     3.472 r  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_23/O
+                         net (fo=2, routed)           0.386     3.858    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_23_n_0
+    SLICE_X90Y392        LUT6 (Prop_D6LUT_SLICEL_I0_O)
+                                                      0.122     3.980 r  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_15/O
+                         net (fo=1, routed)           0.328     4.308    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_15_n_0
+    SLICE_X85Y394        LUT6 (Prop_H6LUT_SLICEM_I3_O)
+                                                      0.053     4.361 r  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_9/O
+                         net (fo=2, routed)           0.152     4.513    u_cpu/u_core/u_mmu/pmp_allow_data
+    SLICE_X85Y395        LUT6 (Prop_G6LUT_SLICEM_I0_O)
+                                                      0.052     4.565 r  u_cpu/u_core/u_mmu/memwb_cause_q[0]_i_7/O
+                         net (fo=3, routed)           0.268     4.832    u_cpu/u_core/u_mmu/memwb_cause_q[0]_i_7_n_0
+    SLICE_X76Y395        LUT4 (Prop_B6LUT_SLICEM_I0_O)
+                                                      0.125     4.957 f  u_cpu/u_core/u_mmu/memwb_cause_q[0]_i_4/O
+                         net (fo=3, routed)           0.176     5.133    u_cpu/u_core/u_csr/memwb_cause_q_reg[0]
+    SLICE_X72Y395        LUT2 (Prop_D5LUT_SLICEM_I1_O)
+                                                      0.158     5.291 r  u_cpu/u_core/u_csr/memwb_cause_q[2]_i_3/O
+                         net (fo=5, routed)           0.204     5.495    u_cpu/u_core/u_csr/memwb_cause_q[2]_i_3_n_0
+    SLICE_X70Y395        LUT3 (Prop_D6LUT_SLICEL_I2_O)
+                                                      0.089     5.584 f  u_cpu/u_core/u_csr/memwb_cause_q[0]_i_2/O
+                         net (fo=5, routed)           0.142     5.727    u_cpu/u_core/u_csr/memwb_cause_q[0]_i_2_n_0
+    SLICE_X70Y395        LUT2 (Prop_B6LUT_SLICEL_I1_O)
+                                                      0.098     5.825 r  u_cpu/u_core/u_csr/memwb_cause_q[2]_i_2/O
+                         net (fo=68, routed)          0.311     6.136    u_cpu/u_core/u_mmu/vs_fs_q[1]_i_3_0
+    SLICE_X71Y389        LUT4 (Prop_A5LUT_SLICEM_I1_O)
+                                                      0.100     6.236 f  u_cpu/u_core/u_mmu/vs_fs_q[1]_i_9/O
+                         net (fo=3, routed)           0.361     6.597    u_cpu/u_core/u_mmu/vs_fs_q[1]_i_9_n_0
+    SLICE_X70Y378        LUT2 (Prop_C5LUT_SLICEL_I0_O)
+                                                      0.098     6.695 f  u_cpu/u_core/u_mmu/vtype_vta_q_i_3/O
+                         net (fo=7, routed)           0.214     6.909    u_cpu/u_core/u_mmu/exmem_exc_q_reg_rep
+    SLICE_X70Y378        LUT2 (Prop_B6LUT_SLICEL_I0_O)
+                                                      0.098     7.007 f  u_cpu/u_core/u_mmu/priv_q[1]_i_3/O
+                         net (fo=25, routed)          0.122     7.129    u_cpu/u_core/u_mmu/ret_en_i0
+    SLICE_X70Y376        LUT3 (Prop_C6LUT_SLICEL_I0_O)
+                                                      0.146     7.275 r  u_cpu/u_core/u_mmu/h_hu_q_i_4/O
+                         net (fo=21, routed)          0.328     7.603    u_cpu/u_core/u_mmu/memwb_valid_q_reg_0
+    SLICE_X72Y381        LUT5 (Prop_B6LUT_SLICEM_I2_O)
+                                                      0.052     7.655 r  u_cpu/u_core/u_mmu/vs_sie_q_i_6/O
+                         net (fo=12, routed)          0.353     8.008    u_cpu/u_core/u_mmu/idex_imm_q_reg[4]_2
+    SLICE_X68Y373        LUT6 (Prop_G6LUT_SLICEL_I0_O)
+                                                      0.089     8.097 r  u_cpu/u_core/u_mmu/vsscratch_q[63]_i_1/O
+                         net (fo=64, routed)          1.024     9.121    u_cpu/u_core/u_csr/vsscratch_q_reg[63]_0[0]
+    SLICE_X54Y407        FDCE                                         r  u_cpu/u_core/u_csr/vsscratch_q_reg[28]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock core_clock rise edge)
+                                                     10.000    10.000 r  
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=34290, unset)        0.020    10.020    u_cpu/u_core/u_csr/clk_i
+    SLICE_X54Y407        FDCE                                         r  u_cpu/u_core/u_csr/vsscratch_q_reg[28]/C
+                         clock pessimism              0.000    10.020    
+                         clock uncertainty           -0.035     9.985    
+    SLICE_X54Y407        FDCE (Setup_AFF_SLICEL_C_CE)
+                                                     -0.060     9.925    u_cpu/u_core/u_csr/vsscratch_q_reg[28]
+  -------------------------------------------------------------------
+                         required time                          9.925    
+                         arrival time                          -9.121    
+  -------------------------------------------------------------------
+                         slack                                  0.803    
+

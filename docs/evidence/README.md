@@ -3662,3 +3662,10 @@ trial tooling). Details: [`fpga-100mhz-final-2026-10-24/`](fpga-100mhz-final-202
   -k core-test` (375 / 372 `CORE TB PASS`, 0 FAIL, all new #8 directed
   tests included), riscv-tests 123/123. All pass:
   [`gates/GATES.txt`](fpga-100mhz-final-2026-10-24/gates/GATES.txt).
+- **Vivado F0 at 10 ns on `759c066`** (iter strategy, `SIGIL_VRF_OREG`
+  `SIGIL_FPGA_TIMING`): WNS +0.782 ns, TNS 0, 0 failing endpoints, WHS
+  +0.019 ns (871b2dd: +0.690 ns). The #78 two-word data PMP costs ~0.7 ns on
+  `pmpaddr -> pmp_allow_data -> trap -> CSR CE` (+1.517 -> +0.803 ns, now
+  the worst family after SHA-512); the vstart EX hold stays above +2.3 ns.
+  No fix needed:
+  [`fpga-100mhz-final-2026-10-24.log`](fpga-100mhz-final-2026-10-24.log).

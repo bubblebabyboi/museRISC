@@ -1,0 +1,20 @@
+== r5
+FAM from pmpaddr/pmpcfg (PMP data/fetch/walker check): slack 1.517 levels 24 from u_cpu/u_core/u_csr/pmpaddr_q_reg[12][2]/C to u_cpu/u_core/u_csr/vstart_q_reg[6]/D
+FAM through pmp_allow_data: slack 1.517 levels 24 from u_cpu/u_core/u_csr/pmpaddr_q_reg[12][2]/C to u_cpu/u_core/u_csr/vstart_q_reg[6]/D
+FAM through PMP walker allow: slack 2.150 levels 18 from u_cpu/u_core/u_csr/pmpaddr_q_reg[3][2]/C to u_cpu/u_core/u_mmu/tlb_q_reg[20][ppn][7]/CE
+FAM PMP fetch check -> fetch side: slack 3.084 levels 20 from u_cpu/u_core/u_csr/pmpaddr_q_reg[3][2]/C to u_cpu/u_core/pc_r_reg[63]/D
+FAM from vstart_q (vstart EX hold / VLS start): slack 2.032 levels 18 from u_cpu/u_core/u_csr/vstart_q_reg[8]/C to u_cpu/u_core/u_vregfile/g_port[0].u_bank/mem_q_reg/ENARDEN
+FAM from vl_q: slack 1.127 levels 26 from u_cpu/u_core/u_csr/vl_q_reg[1]/C to u_cpu/u_core/u_mmu/g_dreg.mt_q_reg[pa][12]/D
+FAM to vstart_q: slack 1.517 levels 24 from u_cpu/u_core/u_csr/pmpaddr_q_reg[12][2]/C to u_cpu/u_core/u_csr/vstart_q_reg[6]/D
+FAM from idex (EX) to pc/ifid/idex CE (EX hold): slack 3.006 levels 13 from u_cpu/u_core/idex_ctrl_q_reg[sfence]/C to u_cpu/u_core/idex_tval_q_reg[33]/CE
+FAM_DONE
+== new
+FAM from pmpaddr/pmpcfg (PMP data/fetch/walker check): slack 0.803 levels 24 from u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C to u_cpu/u_core/u_csr/vsscratch_q_reg[28]/CE
+FAM through pmp_allow_data: slack 0.803 levels 24 from u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C to u_cpu/u_core/u_csr/vsscratch_q_reg[28]/CE
+FAM through PMP walker allow: slack 2.639 levels 18 from u_cpu/u_core/u_csr/pmpaddr_q_reg[5][20]/C to u_cpu/u_core/u_mmu/tlb_q_reg[24][ppn][15]/CE
+FAM PMP fetch check -> fetch side: slack 2.621 levels 20 from u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C to u_cpu/u_core/ifid_gpa_q_reg[46]/CE
+FAM from vstart_q (vstart EX hold / VLS start): slack 2.376 levels 17 from u_cpu/u_core/u_csr/vstart_q_reg[18]/C to u_cpu/u_core/u_vregfile/g_port[2].u_bank/mem_q_reg/ENARDEN
+FAM from vl_q: slack 1.032 levels 25 from u_cpu/u_core/u_csr/vl_q_reg[8]/C to u_cpu/u_core/u_mmu/g_dreg.mt_q_reg[pa][44]/D
+FAM to vstart_q: slack 1.480 levels 23 from u_cpu/u_core/u_csr/pmpaddr_q_reg[0][1]/C to u_cpu/u_core/u_csr/vstart_q_reg[16]/CE
+FAM from idex (EX) to pc/ifid/idex CE (EX hold): slack 3.668 levels 14 from u_cpu/u_core/idex_ctrl_q_reg[bext_op][5]/C to u_cpu/u_core/ifid_gpa_q_reg[46]/CE
+FAM_DONE
