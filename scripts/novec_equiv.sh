@@ -139,9 +139,11 @@ core_eq() {
     "$SV2V" -DSYNTHESIS ${def[@]+"${def[@]}"} ${xdefs[@]+"${xdefs[@]}"} -Irtl/core \
       $(sed 's|^|rtl/|' <<< "$srcs") > "$d/gate_$cfg.v"
     perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$d/gold_$cfg.v" "$d/gate_$cfg.v"
-    # sigil_csr's HAS_VECTOR override is its default value (1) here.
+    # sigil_csr's HAS_VECTOR override is its default value (1) here
+    # (alone, or anywhere in a longer override list after a merge).
     perl -0pi -e 's/sigil_csr\s*#\(\s*\.HAS_VECTOR\([^()]*\)\s*\)\s*u_csr/sigil_csr u_csr/;
-                  s/(sigil_csr\s*#\([^;]*?),\s*\.HAS_VECTOR\([^()]*\)(\s*\)\s*u_csr)/$1$2/' "$d/gate_$cfg.v"
+                  s/(sigil_csr\s*#\([^;]*?),\s*\.HAS_VECTOR\([^()]*\)/$1/;
+                  s/(sigil_csr\s*#\(\s*)\.HAS_VECTOR\([^()]*\)\s*,\s*/$1/' "$d/gate_$cfg.v"
     if grep -q 'HAS_VECTOR' "$d/gate_$cfg.v" && ! grep -qE 'HAS_VECTOR *= *1' "$d/gate_$cfg.v"; then
       echo "sigil_core ($cfg): HAS_VECTOR is not 1 in the gate"; rc=1; continue
     fi
