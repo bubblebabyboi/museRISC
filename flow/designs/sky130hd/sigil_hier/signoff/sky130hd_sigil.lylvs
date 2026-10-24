@@ -211,6 +211,32 @@ connect(MET5, MET5TXT)
 # Global
 connect_global(SUB, "VNB")
 
+# sigil: -rd ptap_vnb=1 ties the p-taps to the global "VNB" net
+# geometrically (connect_global; makes the extraction ~3x slower here:
+# crypto block > 30 min instead of 9 min). Default: VNB and VSS are joined
+# by name in every circuit that has both (see below).
+if $ptap_vnb == "1"
+  connect_global(PTAP, "VNB")
+end
+
+# sigil: pin-abstract cells (-rd abstract="cell,cell"; the OpenRAM macros
+# in the LVS copy written by lvs_abstract.rb: pin shapes + pin labels
+# only). The pieces of a multi-shape pin (the ~1000 met3 vdd / gnd pads of
+# a macro: one pin in its LEF / .lvs.sp, joined by the macro's own metal)
+# carry private join layers there: a copy of each piece on 200+L / k
+# (L = 67..72: li1, met1..met5) and one bar per pin name on 213 / k.
+# Nothing else in the layout uses these layers.
+if $abstract &amp;&amp; $abstract != ""
+  join_bars = (1..4).map { |k| polygons(213, k) }
+  [[LI, 207], [MET1, 208], [MET2, 209], [MET3, 210], [MET4, 211], [MET5, 212]].each do |m, ln|
+    (1..4).each do |k|
+      jc = polygons(ln, k)
+      connect(m, jc)
+      connect(jc, join_bars[k - 1])
+    end
+  end
+end
+
 # Merge 0-ohm tie resistors in the schematic into direct net shorts,
 # so their structure matches the physical layout (which has no discrete
 # device for these ties, just a metal/contact short).
@@ -476,11 +502,62 @@ def find_net_by_name_component(circuit, component)
   end
 end
 
-netlist.each_circuit do |c|
-  next unless c.name == $top_cell
+# sigil: in every circuit that has both (stock: the top cell only), so
+# that a hard block (VNB = global bulk net, VSS = its ground grid; the tap
+# cells tie them, which this deck does not extract) has one ground net as
+# its schematic (write_cdl: VNB pins on VSS). The block's VNB pin is then
+# a second pin on that net and is removed; its parent joins its own VNB
+# and VSS the same way (bottom-up).
+netlist.each_circuit_bottom_up do |c|
+  next unless c.name == $top_cell || $vnb_join_all != "0"
   n_vnb = find_net_by_name_component(c, "VNB")
   n_vss = find_net_by_name_component(c, "VSS")
-  c.join_nets(n_vnb, n_vss) if n_vnb &amp;&amp; n_vss &amp;&amp; n_vnb.name != n_vss.name
+  next unless n_vnb &amp;&amp; n_vss &amp;&amp; n_vnb.name != n_vss.name
+  keep = n_vss.each_pin.map { |pr| pr.pin_id }
+  c.join_nets(n_vss, n_vnb)
+  if !keep.empty? &amp;&amp; c.name != $top_cell
+    extra = n_vss.each_pin.map { |pr| pr.pin_id } - keep
+    extra.each { |id| c.remove_pin(id) }
+    puts "sigil: #{c.name}: VNB joined to VSS, #{extra.size} VNB pin(s) removed"
+  end
+end
+
+# sigil: the pin-abstract cells (-rd abstract) become black boxes in both
+# netlists: their schematic is a pin-only stub, their layout circuit has
+# only pin nets (lvs_abstract.rb). Each layout pin is first named after its
+# net (= the macro's pin label; extracted pins carry no name), then both
+# sides are blanked (Circuit#blank: contents removed, pins kept,
+# dont_purge set) so that the compare matches their pins by name. Without
+# this, simplify purges the pin-only nets together with their pins (and the
+# stub circuits with their instances), and the macro connections would not
+# be compared at all. (The stock blank_circuit glob is case-sensitive and
+# did not match the upper-cased CDL names: the SKY130_SRAM_* stubs were
+# purged, the blanked layout macros had unnamed pins, and the CPU compare
+# was skipped.) Checked on a synthetic layout (synth_gen.rb: two
+# inverters on pins of an abstract macro): match as wired, "Netlists don't
+# match" with two macro pin labels swapped.
+if $abstract &amp;&amp; $abstract != ""
+  pats = $abstract.split(",")
+  abs = lambda { |c| pats.any? { |p| File.fnmatch(p, c.name, File::FNM_CASEFOLD) } }
+  netlist.each_circuit do |c|
+    next unless abs.call(c)
+    unnamed = 0
+    c.each_pin do |p|
+      n = c.net_for_pin(p.id)
+      if n &amp;&amp; n.name &amp;&amp; n.name != ""
+        c.rename_pin(p.id, n.name)
+      else
+        unnamed += 1
+      end
+    end
+    puts "sigil abstract layout #{c.name}: #{c.pin_count} pins (#{unnamed} unnamed)"
+    $abstract_mode == "keep" ? (c.dont_purge = true) : c.blank
+  end
+  schematic.each_circuit do |c|
+    next unless abs.call(c)
+    puts "sigil abstract schematic #{c.name}: #{c.pin_count} pins"
+    $abstract_mode == "keep" ? (c.dont_purge = true) : c.blank
+  end
 end
 
 # sigil: optional black boxes (-rd blank="pattern,pattern"): contents of
@@ -506,8 +583,19 @@ align
 #netlist.combine_devices
 #netlist.purge
 #netlist.purge_nets
-netlist.simplify
-schematic.simplify
+if $abstract &amp;&amp; $abstract != "" &amp;&amp; $abstract_mode == "keep"
+  # sigil: -rd abstract_mode=keep (test alternative to the default blank):
+  # abstract cells keep their pin nets (matched by name as ambiguous nets)
+  [netlist, schematic].each do |nl|
+    nl.make_top_level_pins
+    nl.each_circuit { |c| c.purge_nets unless abs.call(c) }
+    nl.combine_devices
+    nl.each_circuit { |c| c.purge_nets unless abs.call(c) }
+  end
+else
+  netlist.simplify
+  schematic.simplify
+end
 
 # Tolerances for the devices extracted parameters
 #  tolerance(device_class_name, parameter_name [, :absolute =&gt; absolute_tolerance] [, :relative =&gt; relative_tolerance])
