@@ -39,10 +39,10 @@ side_run() { # side(ref|head) root cfg top
   srcs=$(sed -n '/^SIGIL_SOC_RTL/,/^$/p' "$root/rtl/sigil_soc_files.mk" |
          grep -oE '[a-z_0-9]+/[a-z_0-9]+\.sv' | sed "s|^|$root/rtl/|")
   # shellcheck disable=SC2086
-  "$SV2V" -DSYNTHESIS "${defs[@]}" -I"$root/rtl/core" $srcs > "$o.v"
+  "$SV2V" -DSYNTHESIS ${defs[@]+"${defs[@]}"} -I"$root/rtl/core" $srcs > "$o.v"
   # Yosys rejects the unpacked arrays sv2v lists in sensitivity lists.
   perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$o.v"
-  for l in "${macros[@]}"; do libs="$libs $root/flow/designs/$l"; done
+  for l in ${macros[@]+"${macros[@]}"}; do libs="$libs $root/flow/designs/$l"; done
   yosys -q -l "$o.elab.log" -p "${libs:+read_verilog -sv -lib$libs; }read_verilog $o.v; hierarchy -check -top $top $chparam; proc; flatten; opt_clean -purge; memory_collect; write_json $o.raw.json" \
     > /dev/null 2>&1 || { echo "yosys failed, see $o.elab.log" >&2; return 1; }
   python3 scripts/netlist_canon.py "$o.raw.json" "$o.canon.json" --labels "$o.labels.tsv" 2> "$o.canon.log"
@@ -51,6 +51,10 @@ side_run() { # side(ref|head) root cfg top
   yosys -q -l "$o.$var.log" -p "read_json $o.canon.json; hierarchy -check -top $top; $s; tee -q -o $o.$var.stat stat -width" \
     > /dev/null 2>&1 || { echo "yosys failed, see $o.$var.log" >&2; return 1; }
 }
+
+# Total cell count of a stat report: "Number of cells: N" (Yosys 0.33)
+# or "N cells" (newer Yosys, e.g. 0.69); no match must not end the run.
+ncells() { awk '/Number of cells/ {print $NF; exit} $2 == "cells" {print $1; exit}' "$1"; }
 
 for cfg in "${cfgs[@]}"; do
   top=sigil_soc_top; defs=(); macros=(); chparam=""
@@ -78,8 +82,7 @@ for cfg in "${cfgs[@]}"; do
   b=$(sha256sum < "$O/head-$cfg.canon.json" | cut -c1-16)
   if [ "$a" = "$b" ]; then r="netlists IDENTICAL ($a)"; else r="netlists DIFFER (ref $a, head $b)"; rc=1; fi
   if [ "$var" != none ]; then
-    na=$(grep -m1 'Number of cells' "$O/ref-$cfg.$var.stat" | awk '{print $NF}')
-    nb=$(grep -m1 'Number of cells' "$O/head-$cfg.$var.stat" | awk '{print $NF}')
+    na=$(ncells "$O/ref-$cfg.$var.stat"); nb=$(ncells "$O/head-$cfg.$var.stat")
     if diff <(sed '1,/Printing/d' "$O/ref-$cfg.$var.stat") <(sed '1,/Printing/d' "$O/head-$cfg.$var.stat") > "$O/$cfg.$var.diff"; then
       r="$r, $var stat IDENTICAL ($na cells)"
     else r="$r, $var stat DIFFERS (ref $na, head $nb cells; $O/$cfg.$var.diff)"; rc=1; fi
