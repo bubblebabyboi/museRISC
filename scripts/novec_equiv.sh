@@ -106,10 +106,10 @@ core_eq() {
   for cfg in $CORE_CFGS; do
     local def=(); [ "$cfg" = default ] || def=("-D$cfg")
     # shellcheck disable=SC2046
-    "$SV2V" -DSYNTHESIS "${def[@]}" ${xdefs[@]+"${xdefs[@]}"} -I"$d/gold/rtl/core" \
+    "$SV2V" -DSYNTHESIS ${def[@]+"${def[@]}"} ${xdefs[@]+"${xdefs[@]}"} -I"$d/gold/rtl/core" \
       $(sed "s|^|$d/gold/rtl/|" <<< "$srcs") > "$d/gold_$cfg.v"
     # shellcheck disable=SC2046
-    "$SV2V" -DSYNTHESIS "${def[@]}" ${xdefs[@]+"${xdefs[@]}"} -Irtl/core \
+    "$SV2V" -DSYNTHESIS ${def[@]+"${def[@]}"} ${xdefs[@]+"${xdefs[@]}"} -Irtl/core \
       $(sed 's|^|rtl/|' <<< "$srcs") > "$d/gate_$cfg.v"
     perl -pi -e 's/always \@\((?!posedge|negedge)[^)]*\)/always \@*/' "$d/gold_$cfg.v" "$d/gate_$cfg.v"
     # sigil_csr's HAS_VECTOR override is its default value (1) here.
@@ -123,7 +123,7 @@ core_eq() {
         echo "hierarchy -check -top sigil_core"
         echo "blackbox *sigil_regfile* *sigil_fpregfile* *sigil_alu* *sigil_muldiv* *sigil_fpu*" \
              "*sigil_bext* *sigil_vregfile* *sigil_vec* *sigil_rvc* *sigil_decoder* sigil_csr sigil_mmu"
-        if [ $side = gate ]; then
+        if grep -q 'begin : g_vec' "$d/${side}_$cfg.v"; then
           echo "cd sigil_core"
           echo "rename g_vec.u_vregfile u_vregfile"
           echo "rename g_vec.u_vec u_vec"
