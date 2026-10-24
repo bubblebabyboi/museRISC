@@ -21,7 +21,10 @@
 //  9: fault priority: misaligned load of an unmapped VA is cause 4,
 //     misaligned store to an R-only page is cause 6.
 // 10: (M, MPRV=1 MPP=S) a PMP write right before a translated load
-//     takes effect for it: deny -> cause 5, allow -> loads.
+//     takes effect for it: deny -> cause 5, allow -> loads. The entry
+//     is NAPOT 8 bytes so it matches every byte of the ld (an NA4
+//     entry matches half of it, and a partial match fails whatever
+//     the permissions, #78).
     .option norvc
     .text
     .globl _start
@@ -299,24 +302,24 @@ m_ecall:
 3:  j 3b
 m_test10:
     // MPRV=1, MPP=S: M's data accesses translate as S. Entry 0 is
-    // NA4 over PA 0x187000 (VA_P) with no permissions when denying.
-    // The nested trap overwrites mepc: keep the ECALL's.
+    // NAPOT 8 bytes over PA 0x187000 (VA_P) with no permissions when
+    // denying. The nested trap overwrites mepc: keep the ECALL's.
     csrr s4, mepc
-    li t1, 0x187000 >> 2
+    li t1, 0x187000 >> 2           // NAPOT, 8 bytes (pmpaddr[0] = 0)
     csrw pmpaddr0, t1
     li a1, VA_P
     li t1, (3 << 11)
     csrc mstatus, t1
     li t1, (1 << 17) | (1 << 11)
     csrs mstatus, t1
-    li t2, 0x10                    // NA4, no R/W/X
+    li t2, 0x18                    // NAPOT, no R/W/X
     csrw pmpcfg0, t2
     ld a3, 0(a1)                   // access fault (5)
     li t1, (3 << 11)               // the trap left MPRV off, MPP = U
     csrc mstatus, t1
     li t1, (1 << 17) | (1 << 11)
     csrs mstatus, t1
-    li t2, 0x13                    // NA4, R W
+    li t2, 0x1b                    // NAPOT, R W
     csrw pmpcfg0, t2
     ld a4, 0(a1)                   // loads
     li t1, (1 << 17)
