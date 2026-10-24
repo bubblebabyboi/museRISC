@@ -3487,3 +3487,33 @@ elements PMP-checked byte by byte (`9bdd552`). Issues: #76, #77, #78.
   [`final/synth/synth-equiv-round2.log`](riscv-dv-8-2026-10-22/final/synth/synth-equiv-round2.log).
 - **Port to `53-100mhz-afi`** (FPGA_TIMING parallel PMP): file:line list in
   the report.
+
+## #13: MPW cut-down configuration without the vector unit (2026-10-24, branch `13-mpw-novec`)
+
+`SIGIL_NO_VECTOR` (`sigil_pkg::HAS_VECTOR = 0`): RV64GC + B + K + H with
+the FPU, MMU, caches and crypto engine; no vector unit, no VRF and none of
+the 3 VRF SRAM macros, `misa.V = 0`, `mstatus.VS` read-only zero, every
+vector instruction and vector CSR access illegal-instruction. Log with the
+gate table: [`mpw-novec-13-2026-10-24.log`](mpw-novec-13-2026-10-24.log).
+
+- **Default configurations unchanged:** `scripts/novec_equiv.sh` (Yosys
+  0.33) proves `sigil_decoder`, `sigil_csr` and `sigil_core` (default,
+  SRAM_OREG, SRAM_SKY130, SRAM_FAKERAM45, VRF_OREG, MULDIV_COMB) equivalent
+  to main `3b7ed1b` and the ORFS configs identical; five mutants are all
+  caught; the same proof holds on `53-mem-stage-pipeline` with
+  `SIGIL_FPGA_TIMING`.
+- **No-vector configuration:** lint (Verilator 5.048, 5.044, 5.020), `make
+  core-test` with the new `core-novec` (directed suite without the vector
+  tests, random bus and uncached, the sky130 MPW build, SoC crypto
+  firmware), riscv-tests 123/123, ACT non-V 543/544 (the PA0 waiver):
+  [`act-core-novec.csv`](mpw-novec-13-2026-10-24/act-core-novec.csv),
+  [`riscv-tests-novec.csv`](mpw-novec-13-2026-10-24/riscv-tests-novec.csv).
+  `novec_trap_directed` (mcause / mepc / mtval / source mode for every
+  vector class and vector CSR, in M/S/U/VS/VU) passes on the RTL and on
+  Spike without V.
+- **Area (flat sky130hd synthesis of the whole SoC):** 7 → 4 macros
+  (−1.258 mm²), std cells 3.041 → 2.662 mm² (−0.379 mm²):
+  [`synth_stat_sky130_default.txt`](mpw-novec-13-2026-10-24/synth_stat_sky130_default.txt),
+  [`synth_stat_sky130_novec.txt`](mpw-novec-13-2026-10-24/synth_stat_sky130_novec.txt).
+  Place-and-route of the cut-down CPU block is the next step
+  ([`../SOC_AREA.md`](../SOC_AREA.md), MPW section).

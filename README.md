@@ -262,6 +262,7 @@ MPW section).
 | MMU walker race ([#74](https://github.com/bubblebabyboi/sigil/issues/74)), the cause of the kernel oopses in the first F2 Debian boots: fixed in the core, in the current AFI | race tests 0/39 → 39/39; core-test, riscv-tests, ACT rerun | [`linux-oops-fix-73-2026-10-22/`](docs/evidence/linux-oops-fix-73-2026-10-22/README.md) |
 | FPGA utilization (Vivado, VU47P), current AFI: full CL / SoC + OCL block | 131,259 (10.08%) / 82,201 LUTs | [`f2-platform-73-oopsfix-2026-10-22/vivado/`](docs/evidence/f2-platform-73-oopsfix-2026-10-22/vivado/) |
 | **Whole-SoC GDS, nangate45**: 100 MHz met, route DRC 0, antenna 0 | GDS generated | [`soc-pnr-nangate45-11-2026-10-21/`](docs/evidence/soc-pnr-nangate45-11-2026-10-21/summary.log) |
+| No-vector (MPW cut-down, [#13](https://github.com/bubblebabyboi/sigil/issues/13)) configuration: directed suites, riscv-tests, ACT non-V; default configurations proven unchanged (Yosys) | PASS; 123/123; 543/544, 1 waiver | [`mpw-novec-13-2026-10-24.log`](docs/evidence/mpw-novec-13-2026-10-24.log) |
 | Whole-SoC sky130 (Caravel area) | in progress (hierarchical) | [`w7-sky130-pnr-2026-10-21.log`](docs/evidence/w7-sky130-pnr-2026-10-21.log), [#11](https://github.com/bubblebabyboi/sigil/issues/11) |
 
 The ACT waiver (`PMPSm_cfg_A_tor_zero-00`) is a harness/platform

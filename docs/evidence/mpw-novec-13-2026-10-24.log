@@ -1,0 +1,217 @@
+#13 MPW readiness: cut-down configuration without the vector unit (SIGIL_NO_VECTOR)
+Date: 2026-10-24 (UTC). Branch 13-mpw-novec, from main 3b7ed1b.
+Last RTL change: 6eb9727 (every RTL-dependent gate below ran at or after it;
+later commits touch scripts, Makefiles' comments, CI and docs only).
+
+Owner decision (2026-10-24): the MPW version may drop the vector unit and keep
+everything else (RV64GC + B + K + H, FPU, MMU, caches, crypto engine).
+
+== What changed
+- rtl/core/sigil_pkg.sv: SIGIL_NO_VECTOR is read once -> localparam
+  HAS_VECTOR (1 by default). Every use is a constant condition.
+- rtl/core/sigil_core.sv: sigil_vregfile + sigil_vec in generate block g_vec
+  (paths u_core.g_vec.u_vregfile / u_core.g_vec.u_vec), outputs tied to 0 in
+  g_novec; vec_unit_op, vset_en and vls_is gated with HAS_VECTOR;
+  sigil_csr #(.HAS_VECTOR(HAS_VECTOR)).
+- rtl/core/sigil_decoder.sv: !HAS_VECTOR -> every vector encoding invalid
+  (OP-V incl. vset{i}vl{i}, vector LS in LOAD-FP/STORE-FP widths
+  000/101/110/111) -> illegal-instruction, mtval = encoding.
+- rtl/core/sigil_csr.sv: parameter HAS_VECTOR; without it vstart, vxsat, vxrm,
+  vcsr, vl, vtype, vlenb do not exist, misa = 0x8000_0000_0014_11AF (no V),
+  mstatus.VS / sstatus.VS / vsstatus.VS read 0 (writes ignored, not in SD).
+- rtl/sigil_soc_files.mk: SIGIL_SOC_DEFINES_NOVEC / SIGIL_SOC_DEFINES,
+  SIGIL_SKY130_{VRF,L1}_MACROS, SIGIL_SKY130_MACROS (VRF macro dropped with
+  SIGIL_NO_VECTOR=1), SIGIL_FAKERAM45_VRF_MACROS.
+- flow/designs/{sky130hd,nangate45}/sigil_soc/config.mk: SIGIL_NO_VECTOR=1
+  adds -DSIGIL_NO_VECTOR and drops the VRF macro LEF/LIB/GDS/model.
+  nangate45 sta_synth.tcl: vector-unit path u_cpu/u_core/g_vec/u_vec.
+- Makefile lint: + sigil_core, sigil_cpu (+COMMIT_TRACE), sigil_soc_top
+  (default, sky130 MPW without the VRF model, nangate45 without the VRF
+  model) and sigil_fpga_top, all with SIGIL_NO_VECTOR (26 invocations).
+- sim/Makefile: families novec / sky130novec (core_tb_*, soc_rtl_tb_*),
+  soc_tb_novec, core-novec (in `all` = make core-test), core-novec-quick
+  (CI), riscv-tests-novec, novec-bins (build/sim/novec/*.bin with
+  -DSIGIL_NO_VECTOR); VEC_TESTS / NOVEC_TESTS / NOVEC_RUN_TESTS.
+- sim/run_directed.sh: NOVEC=1 -> novec/ binaries, VEC_TESTS skipped,
+  novec_trap_directed added. (irq_exc_race coverage file now honours
+  COV_PREFIX like the other loops.)
+- sw/core-tests/novec_trap_directed.S (new); md_directed, md_kill_directed,
+  fp_stall_directed, mmio_bypass_directed, pmp_modes_directed and
+  priv_directed guard their vector sections / misa value with
+  #ifdef SIGIL_NO_VECTOR (md_kill: a scalar faulting load replaces the vector
+  one). Default builds of the six edited tests are byte-identical to
+  origin/main's (riscv64-elf-gcc 16.2.0, Mac); their -DSIGIL_NO_VECTOR builds
+  contain 0 vector instructions / vector CSR accesses (objdump scan).
+- ACT: scripts/act4_novec_config.py derives sigil-core-novec from
+  sw/act4-core (no Zve*/Zvl*, vector params dropped incl. VSSTATUS_VS_EXISTS,
+  MSTATUS_VS_LEGAL_VALUES [0], Sail V support_level Disabled);
+  scripts/build_act4_core.sh ACT_CONFIG=novec.
+- scripts/novec_equiv.sh: invariance proof (below).
+- CI: core-regression.yml job core-novec (make -C sim core-novec-quick).
+- Docs: README (build configurations), docs/CORE.md (no-vector section),
+  docs/SOC_AREA.md (MPW section), sw/act4-core/README.md.
+
+== Hosts and tools
+- sigil-mpw: r7iz.8xlarge, 32 vCPU, 247 GiB, Ubuntu 24.04.5 LTS; Verilator
+  5.048 (deps/), riscv64-unknown-elf-gcc 16.1.0 (deps/, --gcc15),
+  Yosys 0.33 (apt) + sv2v v0.0.13, Sail 0.15, riscv-arch-test 6af53584a,
+  ORFS image openroad/orfs@sha256:63981d1ac8990a9bee8bf874c95ee2c1ee3fe7b99f57d459282ab8c31a8ed663,
+  docker ubuntu:24.04 for the CI Verilator (5.020).
+- Mac: Verilator 5.044, Yosys 0.69, sv2v, riscv64-elf-gcc 16.2.0.
+- sigil-verify: Spike 1.1.1-dev (~/opt/spike), one short run.
+
+== Gate table
+| Gate | Config | Result | Where / time |
+|---|---|---|---|
+| make lint, Verilator 5.048 | both (26 invocations, 6 no-vector) | PASS rc=0 | sigil-mpw @2f0096c, 24 s |
+| make lint, Verilator 5.044 | both | PASS rc=0 | Mac @753c5ed (RTL = final), 14 s |
+| make lint, Verilator 5.020 (CI apt version) | both | PASS rc=0 | docker ubuntu:24.04 @c3146d7 |
+| make -C sim core-novec-quick, Verilator 5.020, VJOBS=1 (the new CI job) | no-vector | PASS (50 CORE TB PASS lines) | docker ubuntu:24.04 @c3146d7 |
+| make test | (crypto KATs) | PASS (ALL PHASE-0 KATs PASS) | sigil-mpw @6eb9727, 23 s |
+| make core-test (make -C sim, incl. core-novec) | default + every existing family + no-vector | PASS rc=0, no FAIL line | sigil-mpw @6eb9727, 3321 s |
+| riscv-tests (rv64ui/um/ua/uf/ud/uc/mi/si) | default (core_tb) | 123/123 PASS | sigil-mpw @7f5228c, 22 s |
+| riscv-tests | no-vector (core_tb_novec) | 123/123 PASS | sigil-mpw @7f5228c, 19 s |
+| ACT non-V suites, generated for sigil-core-novec | no-vector (core_tb_novec) | 543/544 PASS; only PMPSm_cfg_A_tor_zero-00 (the documented PA0 waiver) | sigil-mpw @7f5228c, 15 s (24 jobs) |
+| novec_trap_directed on Spike without V | ISA minus V | PASS (tohost 1) | sigil-verify |
+| Yosys invariance proof vs origin/main 3b7ed1b | default, SRAM_OREG, SRAM_SKY130, SRAM_FAKERAM45, VRF_OREG, MULDIV_COMB + flow configs | all EQUIVALENT / identical | sigil-mpw @2f0096c (below) |
+| Same proof on 53-mem-stage-pipeline + this change | SIGIL_FPGA_TIMING (default, VRF_OREG) | EQUIVALENT | sigil-mpw (below) |
+| ORFS synthesis sky130hd sigil_soc_top | default vs SIGIL_NO_VECTOR=1 | both complete; 7 -> 4 macros | sigil-mpw @4163fb1 RTL = 6eb9727, 41 / 33 min |
+
+== make core-test (make -C sim, all), sigil-mpw, 6eb9727, rc=0, 3321 s
+Every existing target as on main (unit TBs, directed suites rand/nocache,
+core-ds1, core-mdcomb, core-xinit seeds 1+3, srammacro: 60 directed runs
+0 FAIL on each of fakeram45 / sky130 / oreg / vrforeg + vec TB + SoC crypto
+firmware, fpgatop-quick, fpgatop-f2-quick, F2 examples, fpgaocl-quick,
+7 SDK examples on soc_rtl_tb incl. vector_dot, coverage) plus core-novec:
+  [novec]          core_tb_novec, random bus: 47 directed programs + IRQ
+                   sweeps md_irq 72/72, fp_irq 48/48, irq_exc_race 101/101;
+                   the 11 VEC_TESTS skipped; novec_trap_directed PASS
+  [novec-nocache]  same, caches off: all PASS
+  [sky130novec]    core_tb_sky130novec (sky130 L1 macro models, SRAM_OREG,
+                   4 KiB direct-mapped L1): "CORE TB PASS: 50 directed runs,
+                   0 FAIL [sky130novec]"
+  SoC crypto firmware (secp256k1 ECDSA + Ed25519 verify):
+                   SOC RTL TB PASS (exit string at 27689639 cycles) [novec]
+                   SOC RTL TB PASS (exit string at 40649754 cycles) [sky130novec]
+  soc_tb_novec (platform harness) builds.
+VEC_TESTS (default configuration only): vec_directed fpvec_directed
+fpvec_nanbox_directed vfcvt_sew16_directed vec_trap_directed viota_directed
+viota_cases_directed viota_vstart_directed viota_overlap_directed
+vstart_illegal_directed pmp_whole64_directed.
+
+== novec_trap_directed (sw/core-tests/, no-vector configuration only)
+Self-checking; for each trapping case: exactly one trap, mcause 2,
+mepc = the instruction's address, mtval = its 32-bit encoding (read back
+from memory), and the source mode recorded from mstatus.MPP/MPV.
+  1-8     misa = 0x8000_0000_0014_11AF; mstatus.VS, sstatus.VS (csrs and csrw),
+          vsstatus.VS read 0 after writing 3; mstatus.SD / vsstatus.SD = 0
+          with FS = Off; SD = 1 with FS = Dirty
+  10-30   vector CSRs vstart, vxsat, vxrm, vcsr, vl, vtype, vlenb: csrr,
+          csrw, csrrs/csrrc, immediate forms, write-only (rd = x0) forms
+  31-55   vsetvli (two forms), vsetivli, vsetvl; OPIVV, OPFVV, OPMVV, OPIVI,
+          OPIVX, OPFVF, OPMVX; vmv.x.s, vfmv.f.s, vmv1r.v, vredsum, vcpop,
+          viota, vmseq, masked op, vfwcvt, vmv.v.i, vid, vslideup, vrgather,
+          vcompress
+  60-93   vle8/16/32/64 (widths 000/101/110/111), masked, vlse, vluxei,
+          vloxei, vl1re8, vl8re64, vlm, vle8ff, vlseg2, vlsseg3, vluxseg2;
+          vse8/16/32/64, masked, vsse, vsuxei, vsoxei, vs1r, vs8r, vsm,
+          vsseg3, vssseg2, vsoxseg2
+  100-119 from S, U, VS (V=1) and VU (V=1): cause 2 (not 22), taken to M
+  120-127 fld/flw/fsd/fsw + fadd.d/fadd.s exact results, no traps,
+          FS = Dirty, VS = 0, SD = 1, fflags 0
+RTL: core_tb_novec PASS (rand 18065 cycles, uncached 26141 cycles; sky130novec
+and the CI 5.020 build too).
+Spike (sigil-verify, -DSPIKE_HTIF -DSIGIL_NO_VECTOR, linked at 0x80000000):
+  spike --isa=rv64imafdcbh_zicsr_zifencei_zicntr_zbc_zbkb_zbkc_zbkx_zkne_zknd_zknh_zicond_zcb_svnapot_svadu
+        --priv=msu --pmpregions=16 --pmpgranularity=4 novec_trap_directed.spike.elf
+  -> exit 0 (all 127 checks pass: same mcause / mepc / mtval / mode as the RTL)
+  Control, same ELF with V (...bvh..._zvl512b...): *** FAILED *** (tohost = 1),
+  i.e. case 1 (misa.V) catches a core with V.
+The first uncached RTL run found a bug in this branch, fixed in 6eb9727: the
+simulation-only commit-trace copy of the CSR read mux still read vtype for
+the absent CSR (its cross-check fired on csrwi vtype then csrr vtype).
+
+== ACT, no-vector configuration (sigil-mpw)
+Generation: ACT_CONFIG=novec EXTENSIONS=I,M,ExceptionsSv,ExceptionsSvSm,PMPS,
+PMPSm,PMPU,PMPF,Sv,SvPMP,SvSm,SvbareSm,SvaduPMP,Sv39,Svbare,Svnapot,Svadu,
+Zaamo,Zalrsc,F,D,Zba,Zbb,Zbc,Zbs,Zbkb,Zbkc,Zbkx,Zicond,Zkne,Zknd,Zknh,
+ExceptionsSvZaamo,ExceptionsSvZaamoSm,ExceptionsSvZalrsc,ExceptionsSvZalrscSm,
+PMPZaamo,PMPZalrsc,Zca,Zcb,Zcd scripts/build_act4_core.sh -> 544 ELFs in
+work/sigil-core-novec/elfs (UDB validation and Sail with V disabled).
+The 544 test names are exactly the non-V rows of main's full ACT set
+(docs/evidence/act-core-perf-56-2026-10-22.csv minus Vls/Vx/Vf).
+Run: sim/run_act_core_par.sh build/sim/core_tb_novec ... 24 jobs:
+  ACT (sigil-core): 543/544 PASS, 1 FAIL; rows=544 unique=544 elfs=544
+  FAIL: PMPSm_cfg_A_tor_zero-00 (the PA0 harness waiver, fails on main too)
+  -> mpw-novec-13-2026-10-24/act-core-novec.csv
+Control: the same ELFs on the default core_tb (with V): 543/544, same waiver
+(mpw-novec-13-2026-10-24/act-core-novec-elfs-on-default-core.csv); the non-V
+ACT suites do not observe V, so novec_trap_directed is the test that does.
+
+== riscv-tests (sigil-mpw, run_riscv_tests.sh, random bus timing)
+  no-vector (make -C sim riscv-tests-novec): rv64ui+um+ua+uf+ud+uc+mi+si:
+            123/123 PASS, 0 FAIL -> mpw-novec-13-2026-10-24/riscv-tests-novec.csv
+  default   (make -C sim riscv-tests):       123/123 PASS, 0 FAIL
+
+== Invariance proof: scripts/novec_equiv.sh (sigil-mpw, Yosys 0.33, sv2v v0.0.13)
+REF = origin/main 3b7ed1b, tree 2f0096c, SV2V=~/opt/sv2v-Linux/sv2v:
+  static vs origin/main (3b7ed1b): changed RTL = rtl/core/sigil_core.sv rtl/core/sigil_csr.sv rtl/core/sigil_decoder.sv rtl/core/sigil_pkg.sv rtl/sigil_soc_files.mk ; sigil_pkg only adds lines; SIGIL_SOC_RTL unchanged; HAS_VECTOR used in: rtl/core/sigil_core.sv rtl/core/sigil_csr.sv rtl/core/sigil_decoder.sv rtl/core/sigil_pkg.sv -> OK
+  sigil_decoder vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 142 are proven and 0 are unproven, 2 s
+  sigil_csr vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 4128 are proven and 0 are unproven, 185 s
+  sigil_core (default) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 104 s
+  sigil_core (SIGIL_SRAM_OREG) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 87 s
+  sigil_core (SIGIL_SRAM_SKY130) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 84 s
+  sigil_core (SIGIL_SRAM_FAKERAM45) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 98 s
+  sigil_core (SIGIL_VRF_OREG) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 87 s
+  sigil_core (SIGIL_MULDIV_COMB) vs origin/main (3b7ed1b), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10607 are proven and 0 are unproven, 101 s
+  flow sky130hd/sigil_soc vs origin/main (3b7ed1b): SYNTH_SLANG_ARGS VERILOG_FILES VERILOG_INCLUDE_DIRS ADDITIONAL_LEFS ADDITIONAL_LIBS ADDITIONAL_GDS identical
+    SIGIL_NO_VECTOR=1: SYNTH_SLANG_ARGS = --unroll-limit=200000 -DSYNTHESIS -DSIGIL_SRAM_SKY130 -DSIGIL_NO_VECTOR -G IC_WAYS=1 -G DC_WAYS=1
+    SIGIL_NO_VECTOR=1: ADDITIONAL_LIBS = sky130_sram_1rw1r_128x256_8_TT_1p8V_25C.lib sky130_sram_1rw1r_44x64_8_TT_1p8V_25C.lib
+  flow nangate45/sigil_soc vs origin/main (3b7ed1b): SYNTH_SLANG_ARGS VERILOG_FILES VERILOG_INCLUDE_DIRS ADDITIONAL_LEFS ADDITIONAL_LIBS ADDITIONAL_GDS identical
+    SIGIL_NO_VECTOR=1: SYNTH_SLANG_ARGS = --unroll-limit=200000 -DSYNTHESIS -DSIGIL_SRAM_FAKERAM45 -DSIGIL_NO_VECTOR
+    SIGIL_NO_VECTOR=1: ADDITIONAL_LIBS = fakeram45_512x64.lib fakeram45_64x44.lib
+  novec_equiv rc=0 765 s
+  lint 5.048 rc=0 Verilator 5.048 2026-04-26 rev v5.048 26 invocations 24 s
+Method (as scripts/fpga_timing_equiv.sh on 53-mem-stage-pipeline): module
+proofs with equiv_make / equiv_struct / equiv_simple / equiv_induct /
+equiv_status -assert; sigil_core flattened with its 12 submodule instances
+as black boxes paired by equiv_make (sigil_decoder and sigil_csr proven
+above, the rest byte-identical to REF, checked by the script). Two renames,
+no logic: g_vec.u_vregfile / g_vec.u_vec -> u_vregfile / u_vec, and the
+sigil_csr HAS_VECTOR override (= its default, 1) dropped. SRAM-macro configs
+read the unchanged macro models as black boxes.
+Control (main vs main, same flow): sigil_core default EQUIVALENT, 10607
+proven. Yosys 0.69 (Mac) cannot run this flow (equiv_induct errors "No SAT
+model available" on the black boxes even for identical designs), hence 0.33.
+Mutants (each must be detected; tree 6ba052d):
+  M1 decoder: if (!HAS_VECTOR && vec) -> if (HAS_VECTOR && vec): sigil_decoder FAILED, 19 unproven
+  M2 csr: MISA with V -> without V when HAS_VECTOR:                sigil_csr FAILED, 1 unproven
+  M3 csr: mstatus_vs = HAS_VECTOR ? 0 : mstatus_vs_q:               sigil_csr FAILED, 2 unproven
+  M4 core: vls_is = !HAS_VECTOR && ...:                             sigil_core FAILED, 566 unproven
+  M5 core: if (!HAS_VECTOR) begin : g_vec:                          sigil_core FAILED (no vector instances to pair)
+FPGA_TIMING (53-mem-stage-pipeline 4421934, behind main): the RTL diff of
+this branch applied to it (conflicts resolved: sigil_csr takes both
+parameters, `#(.FPGA_TIMING(FPGA_TIMING), .HAS_VECTOR(HAS_VECTOR))`; the
+53 base's own vector-unit connections and no commit-trace block), lint
+clean with and without SIGIL_NO_VECTOR (+SIGIL_FPGA_TIMING +SIGIL_VRF_OREG),
+then REF=4421934 EXTRA_DEFS=SIGIL_FPGA_TIMING MOD_CHPARAM=FPGA_TIMING=1:
+  static: changed RTL = sigil_core, sigil_csr, sigil_decoder, sigil_pkg, sigil_soc_files.mk -> OK
+  sigil_decoder [SIGIL_FPGA_TIMING] [FPGA_TIMING=1]: EQUIVALENT, 142 proven, 0 unproven
+  sigil_csr [SIGIL_FPGA_TIMING] [FPGA_TIMING=1]: EQUIVALENT, 4128 proven, 0 unproven, 166 s
+  sigil_core (default + SIGIL_FPGA_TIMING) vs HEAD (4421934), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10744 are proven and 0 are unproven, 127 s
+  sigil_core (SIGIL_VRF_OREG + SIGIL_FPGA_TIMING) vs HEAD (4421934), HAS_VECTOR=1: EQUIVALENT, 12 paired submodules, 10744 are proven and 0 are unproven, 129 s
+(Not committed anywhere; the merge with 53 is the lead's.)
+
+== ORFS synthesis, sky130hd sigil_soc_top, flat (sigil-mpw, pinned image)
+make DESIGN_CONFIG=designs/sky130hd/sigil_soc/config.mk FLOW_VARIANT=base synth
+make DESIGN_CONFIG=designs/sky130hd/sigil_soc/config.mk FLOW_VARIANT=novec SIGIL_NO_VECTOR=1 synth
+| | cells | flops | Yosys area | macros | macro area (lib) | std cells |
+|---|---:|---:|---:|---|---:|---:|
+| base  | 317,249 | 37,163 | 5.955 mm2 | 2x128x256, 2x44x64, 3x64x256 | 2.914 mm2 | 3.041 mm2 |
+| novec | 272,742 | 33,668 | 4.317 mm2 | 2x128x256, 2x44x64            | 1.656 mm2 | 2.662 mm2 |
+| saved | 44,507 | 3,495 | 1.637 mm2 | 3 VRF macros | 1.258 mm2 | 0.379 mm2 (12.5 %) |
+1_2_yosys: 2467 s / 1980 s. Stats: mpw-novec-13-2026-10-24/synth_stat_sky130_{default,novec}.txt.
+The no-vector run confirms the flow switch: slang accepts -DSIGIL_NO_VECTOR,
+the VRF macro is neither in the netlist nor in the macro lists.
+Not done: floorplan / place / route of the cut-down CPU block (see
+docs/SOC_AREA.md, MPW section, for the estimate).
