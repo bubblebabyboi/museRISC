@@ -221,6 +221,29 @@ The programmer's guide — toolchain, memory map, SDK API, running in
 simulation and on F2, interrupts, vector, performance counters and
 gotchas — is [`docs/PROGRAMMING.md`](docs/PROGRAMMING.md).
 
+## Build configurations
+
+One RTL tree, selected by Verilog defines (each read once, in a
+package) and `sigil_soc_top` / `sigil_cpu` parameters:
+
+| Configuration | Selected by | Used for |
+|---|---|---|
+| Default: RV64GCV, behavioural arrays, 8 KiB 2-way I$ + 16 KiB 4-way D$ | (none) | simulation, `make core-test` |
+| FPGA (AWS F2) | default + `SIGIL_VRF_OREG` (registered VRF reads) | `fpga/cl_sigil/`, `make -C sim srammacro` (`vrforeg`) |
+| nangate45 | `SIGIL_SRAM_FAKERAM45` (fakeram45 macros) | `flow/designs/nangate45/sigil_soc/` |
+| sky130 | `SIGIL_SRAM_SKY130` (OpenRAM macros, registered SRAM reads) + `SIGIL_SOC_PARAMS_SKY130` (4 KiB direct-mapped I$ / D$) | `flow/designs/sky130hd/sigil_soc/` |
+| **MPW cut-down, no vector unit** ([#13](https://github.com/bubblebabyboi/sigil/issues/13)) | `SIGIL_NO_VECTOR` (`sigil_pkg::HAS_VECTOR = 0`); with the sky130 settings for the MPW build | `SIGIL_NO_VECTOR=1` on the ORFS make line; `make -C sim core-novec` |
+| Simulation-only variants | `SIGIL_SRAM_OREG`, `SIGIL_MULDIV_COMB`, `SIGIL_FPU_DS_BITS=1`, `SIGIL_COMMIT_TRACE` | `make -C sim` sub-targets |
+
+The no-vector configuration is RV64GC + B + K + H with the FPU, MMU,
+caches and crypto engine unchanged: no vector unit, no vector register
+file (and so none of the 3 VRF SRAM macros), `misa.V = 0`,
+`mstatus.VS` read-only zero, and every vector instruction or vector CSR
+access raises illegal-instruction, as on a core without V. Without
+the define every other configuration is unchanged; that is proven with
+Yosys against the previous `main` ([`docs/SOC_AREA.md`](docs/SOC_AREA.md),
+MPW section).
+
 ## Status and evidence
 
 | Gate | Result | Evidence |
