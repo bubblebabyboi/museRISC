@@ -1,0 +1,23 @@
+
+host: Ubuntu 24.04.1 LTS, kernel 6.8.0-1021-aws, bash 5.2.21(1)-release
+aws-fpga: v2.3.5 (c34f88e)
+data dir: /home/ubuntu/integ24/sdkrepro/data (not inside a git checkout)
+
+== 1. as the trial driver: cd data; source sdk_setup.sh (same shell)
+source rc=1; pwd after: /home/ubuntu/integ24/sdkrepro/aws-fpga
+   sdk_setup.sh| INFO: Setting up environment variables
+   sdk_setup.sh| fatal: not a git repository (or any of the parent directories): .git
+   sdk_setup.sh| bash: /sdk/sdk_install.sh: No such file or directory
+   sdk_setup.sh| Error: AWS SDK install was unsuccessful, sdk_install.sh returned 0
+
+== 2. in a subshell: cd data; (source sdk_setup.sh)
+subshell rc=1; pwd after: /home/ubuntu/integ24/sdkrepro/data
+
+== the lines responsible (aws-fpga v2.3.5)
+   shared/bin/set_common_env_vars.sh:19:repo_root=$(git rev-parse --show-toplevel)
+   shared/bin/set_common_env_vars.sh:51:export SDK_DIR=$AWS_FPGA_REPO_DIR/sdk
+   sdk_setup.sh:44:cd $script_dir
+   sdk_setup.sh:45:if ! bash $SDK_DIR/sdk_install.sh; then
+   sdk_setup.sh:47:    return 1
+   sdk_setup.sh:50:cd sdk/userspace/cython_bindings
+   sdk_setup.sh:64:cd $current_dir

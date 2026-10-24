@@ -1,0 +1,37 @@
+$ make -C fpga/host test   # new sigil_host.c (this commit) with this test; Ubuntu 24.04.1 LTS x86_64, gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, Linux host build
+make: Entering directory '<tree>/fpga/host'
+python3 test/test_sigil_host.py <tree>/build/sigil_host_mock
+sigil_host host test: <tree>/build/sigil_host_mock (Linux host build)
+1 relative paths, fresh AFI (trial run 1)
+  ok   exit 0 (got 0, 0.3 s)
+  ok   DDR4 scrubbed, then the relative --load loaded
+  ok   working directory reported
+  ok   scrub = 16 x 4 GiB engine fills
+  ok   fw, Image and disk intact in SoC memory at release
+  ok   relative --save wrote the disk with the guest's stamp
+  ok   DTB timebase 100 MHz kept
+  ok   /chosen/rng-seed filled
+2 relative paths, saved disk, DDR4 already scrubbed (trial run 2)
+  ok   exit 0 (got 0, 0.3 s)
+  ok   no second scrub
+  ok   guest finds the stamp of run 1
+  ok   second save has the new stamp
+3 ../ paths from a subdirectory, 62.5 MHz DTB on the 100 MHz AFI
+  ok   exit 0 (got 0, 0.3 s)
+  ok   images intact
+  ok   timebase-frequency rewritten to 100 MHz in memory (got [100000000, 100000000])
+  ok   the DTB file is unchanged
+4 absolute paths from another directory (the trial's workaround)
+  ok   exit 0 (got 0, 0.3 s)
+  ok   images intact, no relative paths
+5 relative paths from the wrong directory (trial attempt 0)
+  ok   exit 3 (got 3)
+  ok   error names the file and the working directory
+  ok   nothing touched: no SDK call, no scrub
+6 --save into a missing directory
+  ok   exit 3 naming the path (got 3)
+  ok   nothing touched
+
+23/23 checks passed
+SIGIL HOST TESTS PASS
+make: Leaving directory '<tree>/fpga/host'
