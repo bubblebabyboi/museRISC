@@ -10,9 +10,9 @@
 # A pin with several shapes (the ~1000 met3 vdd / gnd pads of a macro,
 # joined inside the macro by its own metal) is kept as one net by private
 # join layers that only the sigil LVS deck reads (-rd abstract=...): a
-# copy of each piece on 200+L / k (L = its layer, 207..212) and one bar
+# copy of each piece on (L+140) / k (L = its layer 67..72 -> 207..212) and one bar
 # over the cell on 213 / k, k = 1, 2, ... per multi-shape pin; the deck
-# connects metal L <-> 200+L / k <-> 213 / k. (KLayout's connect_implicit /
+# connects metal L <-> (L+140) / k <-> 213 / k. (KLayout's connect_implicit /
 # connect_explicit in a non-top cell are "must-connect" nets: they require
 # the parent to join every piece.)
 # Shorts between parent routing and macro metal other than the pins are not
@@ -77,13 +77,36 @@ $lefs.split(",").each do |lef|
     cell.clear_shapes
     skipped = 0
     byname = Hash.new { |h, k| h[k] = [] }
-    pins.each do |name, lname, pts|
+    # LEF pin shapes that overlap / touch a shape of another pin on the same
+    # layer (the stock OpenRAM macros' "mixed" vdd / gnd columns: a vdd and a
+    # gnd 0.49 um square offset by 0.06 um) are left out unless -rd
+    # keep_mixed=1: drawn as metal they would join the two pins in the
+    # abstract. The parent must not connect to them (mixed_pads.rb counts
+    # its vias on them); the macro's own metal there is the upstream macro's.
+    polys = pins.map { |name, lname, pts| [name, lname, LEFLAYER[lname] && RBA::Polygon::new(pts.map { |x, y| RBA::Point::new((x / dbu).round, (y / dbu).round) })] }
+    mixed = {}
+    if $keep_mixed != "1"
+      polys.group_by { |_, l, _| l }.each do |l, ps|
+        ps = ps.select { |_, _, pg| pg }
+        byn = ps.group_by(&:first)
+        byn.each do |n, own|
+          others = RBA::Region::new
+          ps.each { |n2, _, pg| others.insert(pg) if n2 != n }
+          own.each { |_, _, pg| mixed[pg.object_id] = true unless others.interacting(RBA::Region::new(pg)).is_empty? } if byn.size > 1
+        end
+      end
+    end
+    nmixed = 0
+    polys.each do |name, lname, pg|
       ln = LEFLAYER[lname]
       unless ln
         skipped += 1
         next
       end
-      pg = RBA::Polygon::new(pts.map { |x, y| RBA::Point::new((x / dbu).round, (y / dbu).round) })
+      if mixed[pg.object_id]
+        nmixed += 1
+        next
+      end
       cell.shapes(ly.layer(ln, 20)).insert(pg)
       c = pg.bbox.center
       cell.shapes(ly.layer(ln, 5)).insert(RBA::Text::new(name, c.x, c.y))
@@ -93,12 +116,12 @@ $lefs.split(",").each do |lef|
     raise "#{cn}: #{multi.size} multi-shape pins > #{MAXJOIN}" if multi.size > MAXJOIN
     multi.each_with_index do |(name, ps), i|
       k = i + 1
-      ps.each { |ln, pg| cell.shapes(ly.layer(200 + ln, k)).insert(pg) }
+      ps.each { |ln, pg| cell.shapes(ly.layer(ln + 140, k)).insert(pg) }
       cell.shapes(ly.layer(213, k)).insert(bbox)
       puts "  #{cn}: join #{k} = #{name}: #{ps.size} shapes on layer(s) #{ps.map(&:first).uniq.sort.join('/')}"
     end
     puts "#{cn}: #{nsub} child cells pruned; abstract from #{File.basename(lef)}: #{byname.size} pins, " \
-         "#{pins.size - skipped} shapes (#{skipped} on non-metal layers skipped), #{multi.size} multi-shape pins"
+         "#{pins.size - skipped - nmixed} shapes (#{skipped} on non-metal layers, #{nmixed} overlapping another pin's shape left out), #{multi.size} multi-shape pins"
   end
 end
 ly.cleanup

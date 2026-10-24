@@ -75,8 +75,21 @@ File.open($out_tcl, "w") do |f|
       li = ly.find_layer(ln, dt)
       metal = li ? RBA::Region::new(mc.begin_shapes_rec(li)).merged : RBA::Region::new
       lef = RBA::Region::new
-      geo[mc.name].each { |_, l, pts| lef.insert(topoly.call(pts)) if l == lname }
+      sigpins = RBA::Region::new
+      geo[mc.name].each do |pin, l, pts|
+        next unless l == lname
+        lef.insert(topoly.call(pts))
+        sigpins.insert(topoly.call(pts)) if pin && !%w[vdd gnd].include?(pin)
+      end
       r = metal - lef
+      # missing metal touching a signal pin on the same layer is that pin's
+      # own wire (e.g. the clk0 / clk1 stubs): not an obstruction, the router
+      # reaches the pin through it (DRT reported its access as shorts with
+      # the obstruction). Pieces touching vdd / gnd pins stay obstructions
+      # (they are the macros' supply rails).
+      own = r.interacting(sigpins)
+      r -= own
+      puts "#{mc.name} #{lname}: #{own.count} missing pieces (#{(own.area * dbu * dbu).round(3)} um^2) touch a signal pin: not obstructed" if own.count > 0
       rects = []
       r.decompose_trapezoids(RBA::Polygon::TD_htrapezoids).each do |p|
         raise "#{mc.name} #{lname}: non-rectangular piece #{p}" unless p.area == p.bbox.area

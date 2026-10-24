@@ -1,5 +1,6 @@
 # synthetic LVS test of the pin-abstract black-box handling (two sky130hd
-# inverters: inv1 drives pin a, inv2 pins b and c of an abstract macro; vdd pad 1
+# inverters: inv1 drives pin a, inv2 pins b and c of an abstract macro;
+# inv2's VPWR reaches VDD only through the macro's two vdd pads; vdd pad 1
 # on VDD, pad 2 open). -rd dir=<out dir> -rd bad=0|1 (1: a/c labels swapped)
 # -rd stdgds=<sky130_fd_sc_hd.gds> -rd stdcdl=<sky130hd.cdl>; then lvs_abstract.rb -rd lefs=synth.lef on synth.gds before LVS
 ly = RBA::Layout::new
@@ -37,7 +38,9 @@ s.insert(b.call(20.82, 10.9, 23.2, 11.1)); s.insert(b.call(23.0, 1.5, 23.2, 11.1
 s.insert(b.call(13.1, 1.5, 23.2, 1.7)); s.insert(b.call(14.1, 1.5, 14.4, 3.2)); s.insert(b.call(13.1, 1.5, 13.4, 3.2))
 top.shapes(lit).insert(t.call("IN1", 10.45, 11.2)); top.shapes(lit).insert(t.call("IN2", 20.45, 11.2))
 s = top.shapes(m1)
-s.insert(b.call(10, 12.5, 21.38, 12.9)); s.insert(b.call(10, 9.8, 21.38, 10.2))
+s.insert(b.call(10, 9.8, 21.38, 10.2))
+# inv2's VPWR gets VDD only through the macro's vdd pin (pad 2 <-> pad 1 inside the macro)
+s.insert(b.call(14, 6.0, 22.3, 6.3)); s.insert(b.call(22.0, 6.0, 22.3, 12.9)); s.insert(b.call(20, 12.5, 22.3, 12.9))
 s.insert(b.call(8, 6.0, 8.3, 12.9)); s.insert(b.call(8, 12.5, 10, 12.9)); s.insert(b.call(8, 6.0, 12.5, 6.3))
 top.shapes(m1t).insert(t.call("VDD", 10.5, 12.72)); top.shapes(m1t).insert(t.call("VSS", 10.5, 10.0))
 keep = [top.cell_index]
