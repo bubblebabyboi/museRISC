@@ -135,7 +135,7 @@ core_eq() {
     esac
     {
       for side in gold gate; do
-        for f in $lib; do echo "read_verilog -lib $f"; done
+        for f in $lib; do echo "read_verilog -sv -lib $f"; done
         echo "read_verilog -mem2reg $d/${side}_$cfg.v"
         echo "hierarchy -check -top sigil_core"
         echo "blackbox *sigil_regfile* *sigil_fpregfile* *sigil_alu* *sigil_muldiv* *sigil_fpu*" \
