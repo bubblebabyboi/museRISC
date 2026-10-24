@@ -629,6 +629,13 @@ module sigil_csr #(
         end
       end
     endcase
+    if (!HAS_VECTOR &&
+        ((trace_waddr_q == 12'h008) || (trace_waddr_q == 12'h009) ||
+         (trace_waddr_q == 12'h00A) || (trace_waddr_q == 12'h00F) ||
+         (trace_waddr_q == 12'hC20) || (trace_waddr_q == 12'hC21) ||
+         (trace_waddr_q == 12'hC22))) begin
+      trace_wval = 64'd0;                                         // no V
+    end
   end
   logic trace_chk_q;
   initial trace_chk_q = 1'b0;
