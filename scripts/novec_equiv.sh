@@ -126,8 +126,16 @@ core_eq() {
     if grep -q 'HAS_VECTOR' "$d/gate_$cfg.v" && ! grep -qE 'HAS_VECTOR *= *1' "$d/gate_$cfg.v"; then
       echo "sigil_core ($cfg): HAS_VECTOR is not 1 in the gate"; rc=1; continue
     fi
+    # SRAM-macro configurations: the macro models (unchanged files,
+    # read as black boxes) satisfy the VRF banks' references.
+    local lib=""
+    case $cfg in
+      SIGIL_SRAM_SKY130) lib="flow/designs/sky130hd/sigil_soc/sram/sky130_sram_1rw1r_*.v" ;;
+      SIGIL_SRAM_FAKERAM45) lib="flow/designs/nangate45/sigil_soc/sram/fakeram45_*.v" ;;
+    esac
     {
       for side in gold gate; do
+        for f in $lib; do echo "read_verilog -lib $f"; done
         echo "read_verilog -mem2reg $d/${side}_$cfg.v"
         echo "hierarchy -check -top sigil_core"
         echo "blackbox *sigil_regfile* *sigil_fpregfile* *sigil_alu* *sigil_muldiv* *sigil_fpu*" \
