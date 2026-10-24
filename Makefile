@@ -36,11 +36,12 @@ CACHE_RTL := rtl/core/sigil_sram_sp.sv \
              rtl/core/sigil_bus_arb.sv rtl/core/sigil_cpu.sv
 
 .PHONY: test lint core-test riscv-tests openroad compliance clean
-test: ## Python golden self-check + Verilator C++ crypto KATs (needs python3, verilator)
+test: ## Python golden self-check + Verilator C++ crypto KATs + sigil_host host test (needs python3, verilator, cc)
 	python3 sw/golden.py
 	python3 sw/ec_ops.py
 	python3 sw/hash_kat.py --self-check
 	$(MAKE) -C sim crypto
+	$(MAKE) -C fpga/host test
 	@echo "ALL PHASE-0 KATs PASS"
 
 # sky130 SoC parameter overrides (SIGIL_SOC_PARAMS_SKY130).

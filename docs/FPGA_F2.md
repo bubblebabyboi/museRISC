@@ -386,7 +386,14 @@ cycles, then `SOC HASH PASS` (105,056 cycles), `FPGA SMOKE PASS`
 `make -C fpga/host SDK_DIR=<aws-fpga>/sdk` (after building the SDK
 once: `sdk/userspace/mkall_fpga_mgmt_tools.sh`, or `source
 sdk_setup.sh`); links `libfpga_mgmt.a` statically. Run as root on the
-F2 instance:
+F2 instance. Image paths may be relative to the working directory;
+every image is opened, and every `--save`/`--log` directory checked,
+before the FPGA is touched, and a path error names the directory a
+relative path was resolved against. `make -C fpga/host test` (also
+part of `make test`) runs the host flow without an FPGA or the SDK:
+`sigil_host.c` against a mock of the SDK and the CL
+(`fpga/host/test/`), the F2 Linux invocation with relative, `../` and
+absolute paths, scrub, loads, release, finisher and `--save`.
 
 ```
 sudo ./sigil_host --afi agfi-XXXX --bin crypto_soc_test.bin            # baremetal
@@ -700,6 +707,13 @@ Earlier AFIs, kept as history:
    git clone -b v2.3.5 https://github.com/aws/aws-fpga ~/aws-fpga
    cd ~/aws-fpga && source sdk_setup.sh
    ```
+   Source `sdk_setup.sh` from inside the `aws-fpga` checkout: it finds
+   the checkout with `git rev-parse` in the current directory, so
+   sourced from anywhere else it fails after `cd`-ing into the checkout
+   and leaves the shell there. A script that sources it and then passes
+   relative image paths to `sigil_host` names files in `~/aws-fpga`
+   (#75); in scripts use a subshell, `(cd ~/aws-fpga && source
+   sdk_setup.sh)`.
 3. Load the public Sigil AFI and check it:
    ```sh
    sudo fpga-load-local-image -S 0 -I agfi-0c8aa56fde1a48495 -H

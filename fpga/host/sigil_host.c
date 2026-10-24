@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <poll.h>
 #include <pthread.h>
 #include <signal.h>
@@ -148,6 +149,16 @@ static void die(int code, const char *fmt, ...) {
   fputc('\n', stderr);
   va_end(ap);
   sigil_exit(code);
+}
+// File errors name the working directory a relative path was resolved
+// against (#75: a driver that had sourced aws-fpga's sdk_setup.sh from
+// outside the aws-fpga checkout was left in that checkout, so its
+// relative image paths named files that were not there).
+static void die_path(const char *what, const char *path, int err) {
+  char cwd[PATH_MAX];
+  if (path[0] != '/' && getcwd(cwd, sizeof cwd))
+    die(3, "%s %s: %s (relative to the working directory %s)", what, path, strerror(err), cwd);
+  die(3, "%s %s: %s", what, path, strerror(err));
 }
 
 static uint32_t rd(uint64_t off) {
@@ -447,11 +458,41 @@ static void fdt_check_timebase(const char *path, uint8_t *fdt, size_t len) {
 }
 struct save { uint64_t addr; uint64_t size; const char *path; };
 
+// Every image is opened, and every --save / --log directory checked for
+// write access, before the FPGA is touched: a bad path used to surface
+// only after the AFI setup and the DDR4 scrub (10-17 s). A run with
+// relative paths reports the directory they resolve against.
+static void check_dir_writable(const char *path) {
+  char dir[PATH_MAX];
+  const char *slash = strrchr(path, '/');
+  if (!slash) snprintf(dir, sizeof dir, ".");
+  else if (slash == path) snprintf(dir, sizeof dir, "/");
+  else snprintf(dir, sizeof dir, "%.*s", (int)(slash - path), path);
+  if (access(dir, W_OK) != 0) die_path("cannot create", path, errno);
+}
+static void check_paths(const struct load *loads, int nloads, const struct save *saves, int nsaves,
+                        const char *log_path) {
+  bool relative = log_path && log_path[0] != '/';
+  for (int k = 0; k < nloads; k++) {
+    const int fd = open(loads[k].path, O_RDONLY);
+    if (fd < 0) die_path("cannot open", loads[k].path, errno);
+    close(fd);
+    relative |= loads[k].path[0] != '/';
+  }
+  for (int k = 0; k < nsaves; k++) {
+    check_dir_writable(saves[k].path);
+    relative |= saves[k].path[0] != '/';
+  }
+  if (log_path) check_dir_writable(log_path);
+  char cwd[PATH_MAX];
+  if (relative && getcwd(cwd, sizeof cwd)) info("relative paths resolve against %s", cwd);
+}
+
 // Map (or read) a file; length rounded up to whole 64-byte lines with
 // zero padding (no partial PCIe writes into ECC-protected DDR4).
 static uint8_t *map_file(const char *path, size_t *len, size_t *maplen, bool *mapped) {
   int fd = open(path, O_RDONLY);
-  if (fd < 0) die(3, "cannot open %s: %s", path, strerror(errno));
+  if (fd < 0) die_path("cannot open", path, errno);
   struct stat st;
   if (fstat(fd, &st) != 0) die(3, "cannot stat %s", path);
   *len = (size_t)st.st_size;
@@ -535,7 +576,7 @@ static void save_range(const struct save *s) {
   check_range(s->path, s->addr, s->size);
   const uint64_t off = s->addr - RAM_BASE;
   int fd = open(s->path, O_RDWR | O_CREAT | O_TRUNC, 0644);
-  if (fd < 0) die(3, "cannot create %s: %s", s->path, strerror(errno));
+  if (fd < 0) die_path("cannot create", s->path, errno);
   uint8_t *dst;
   bool mapped = false;
 #ifndef SV_TEST
@@ -815,6 +856,7 @@ int main(int argc, char **argv) {
     fails[nfail++] = "Kernel panic";
   }
   if (no_markers) nexit = nfail = 0;
+  check_paths(loads, nloads, saves, nsaves, log_path);
 
   // ---- FPGA / AFI / clocks ------------------------------------------
   if (fpga_mgmt_init() != 0) die(3, "fpga_mgmt_init failed (run as root on an F2 instance?)");
