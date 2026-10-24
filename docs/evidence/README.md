@@ -3628,3 +3628,37 @@ both runs, `sigil_host --info`, instance and artifact sha256s).
   paths work. F2: 0.62 h (`i-07522c9e3abec4345`, terminated); the earlier
   attempt `i-0285371bffa2b1270` was cut off by the network outage and ended
   by its cost guard (~2.0 h).
+
+## 100 MHz integration: relative-path root cause, PMP port proof, gates (2026-10-24, branch `53-100mhz-afi`)
+
+Integration step on `53-100mhz-afi` (main 3b7ed1b + #53 4421934 + the 100 MHz
+trial tooling). Details: [`fpga-100mhz-final-2026-10-24/`](fpga-100mhz-final-2026-10-24/).
+
+- **Relative `--load` failure of the 100 MHz trial (#75): not `sigil_host`.**
+  The trial driver sourced aws-fpga's `sdk_setup.sh` from outside the
+  aws-fpga checkout. That fails (it finds the checkout with `git rev-parse`
+  in the caller's directory) after `cd`-ing into the checkout, and returns
+  without `cd`-ing back, so the driver's relative paths named files in
+  `~/aws-fpga`. Replayed on sigil-fpga-build against aws-fpga v2.3.5. Since
+  then, `sigil_host` checks every image and `--save`/`--log` directory
+  before it touches the FPGA, and its path errors name the working
+  directory. `docs/FPGA_F2.md` explains how to source `sdk_setup.sh`.
+  New host-side test without an FPGA (`fpga/host/test/`: a mock of the
+  SDK and the CL, six cases on the trial's invocation), run by `make -C
+  fpga/host test` and `make test`:
+  [`host-relative-paths/README.txt`](fpga-100mhz-final-2026-10-24/host-relative-paths/README.txt).
+- **`pmp_check_par == pmp_check`** (the FPGA_TIMING port of #78) is proven
+  by a Yosys SAT miter generated from `sigil_csr.sv`'s functions; three
+  mutants are refuted:
+  [`pmp-par-proof/README.txt`](fpga-100mhz-final-2026-10-24/pmp-par-proof/README.txt).
+- **Test fix**: on 1892e0e, core-test stopped at `mem53_ctx_directed`
+  test 10 in both settings. Its NA4 PMP entry under an 8-byte `ld` now
+  fails by #78's partial-match rule. The entry is now NAPOT 8 bytes
+  (`ade85a9`).
+- **Gates** (RTL at `ade85a9`, `make test` again at `b1a505f`; the RTL,
+  sim, sw and tb trees are identical between the two). Both settings
+  (define unset; `SIGIL_FPGA_TIMING` + `SIGIL_VRF_OREG`): lint on
+  Verilator 5.048, 5.020 and 5.044, `make test`, the oops walker set, `make
+  -k core-test` (375 / 372 `CORE TB PASS`, 0 FAIL, all new #8 directed
+  tests included), riscv-tests 123/123. All pass:
+  [`gates/GATES.txt`](fpga-100mhz-final-2026-10-24/gates/GATES.txt).

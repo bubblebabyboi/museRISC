@@ -1,0 +1,232 @@
+python3 sw/golden.py
+KECCAK_ZERO_OUT=eaf1ff7b5ceca24975f644e97f30a13b16f53526e70465c21841f924a2c509e4940c7922ae3a26148c3ee88a1ccf32c8b87c5a554fd00ecb613670957bc4661164befef28cc970f205e5635a21d9ae6101f22f1a11a5569f43b831cd0347c82681a57c16dbcf555fa9a6e6260d712103eb5aa93f2317d63530935ab7d08ffc64ad30a6f71b19059c8c5bda0cd6192e7690fee5a0a44647c4ff97a42d7f8e6fd48b284e056253d057bd1547306f80494dd598261ea65aa9ee84d5ccf933c0478af1258f7940e1dde7
+golden.py: SHA-256 KAT + Keccak/SHA3-256 sponge OK
+python3 sw/ec_ops.py
+secp256k1: 2G, n*G=inf, ECDSA verify + tamper OK
+Ed25519: RFC 8032 TEST 1+2 sign/verify + tamper OK
+EC_OPS PASS
+python3 sw/hash_kat.py --self-check
+hash_kat.py: Keccak-256 sponge matches published vectors and hashlib SHA3-256/SHAKE256; 70 stream vectors OK
+make -C sim crypto
+make[1]: Entering directory '/home/ubuntu/mhz100final/hoff/sim'
+mkdir -p ../build/sim
+mkdir -p ../build/sim/obj
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/sha256 --top-module sha256_block \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/sha256_tb ../rtl/crypto/sha256_block.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/sha256_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/sha256'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -Os  -c -o sha256_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/sha256_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+python3 /home/ubuntu/rel73/sigil/deps/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsha256_block.cpp Vsha256_block___024root__0.cpp Vsha256_block__ConstPool__0__Slow.cpp Vsha256_block___024root__Slow.cpp Vsha256_block___024root__0__Slow.cpp Vsha256_block__Syms__Slow.cpp > Vsha256_block__ALL.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o Vsha256_block__ALL.o Vsha256_block__ALL.cpp
+g++    sha256_tb.o verilated.o verilated_cov.o verilated_threads.o Vsha256_block__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/sha256_tb
+rm Vsha256_block__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/sha256'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.149 MB in 6 C++ files needing 0.001 MB
+- Verilator: Walltime 3.437 s (elab=0.001, cvt=0.008, bld=3.422); cpu 0.016 s on 10 threads; allocated 233.070 MB
+cd ../build/sim && COV_FILE=cov_sha256.dat ./sha256_tb
+PASS sha256(abc)
+PASS sha256(empty)
+TB_SHA256 PASS (8 checks)
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/sha512 --top-module sha512_block \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/sha512_tb ../rtl/crypto/sha512_block.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/sha512_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/sha512'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -Os  -c -o sha512_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/sha512_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+python3 /home/ubuntu/rel73/sigil/deps/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsha512_block.cpp Vsha512_block___024root__0.cpp Vsha512_block__ConstPool__0__Slow.cpp Vsha512_block___024root__Slow.cpp Vsha512_block___024root__0__Slow.cpp Vsha512_block__Syms__Slow.cpp > Vsha512_block__ALL.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o Vsha512_block__ALL.o Vsha512_block__ALL.cpp
+g++    sha512_tb.o verilated.o verilated_cov.o verilated_threads.o Vsha512_block__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/sha512_tb
+rm Vsha512_block__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/sha512'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.037 MB sources in 2 modules, into 0.161 MB in 6 C++ files needing 0.002 MB
+- Verilator: Walltime 3.451 s (elab=0.001, cvt=0.010, bld=3.434); cpu 0.020 s on 10 threads; allocated 361.176 MB
+cd ../build/sim && COV_FILE=cov_sha512.dat ./sha512_tb
+PASS sha512(abc)
+PASS sha512(empty)
+TB_SHA512 PASS (8 checks)
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/keccak --top-module keccak_f1600 \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/keccak_tb ../rtl/crypto/keccak_f1600.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/keccak_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/keccak'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -Os  -c -o keccak_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/keccak_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+python3 /home/ubuntu/rel73/sigil/deps/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vkeccak_f1600.cpp Vkeccak_f1600___024root__0.cpp Vkeccak_f1600__ConstPool__0__Slow.cpp Vkeccak_f1600___024root__Slow.cpp Vkeccak_f1600___024root__0__Slow.cpp Vkeccak_f1600__Syms__Slow.cpp > Vkeccak_f1600__ALL.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o Vkeccak_f1600__ALL.o Vkeccak_f1600__ALL.cpp
+g++    keccak_tb.o verilated.o verilated_cov.o verilated_threads.o Vkeccak_f1600__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/keccak_tb
+rm Vkeccak_f1600__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/keccak'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.194 MB in 6 C++ files needing 0.001 MB
+- Verilator: Walltime 3.460 s (elab=0.001, cvt=0.017, bld=3.436); cpu 0.026 s on 10 threads; allocated 362.148 MB
+cd ../build/sim && COV_FILE=cov_keccak.dat ./keccak_tb
+PASS keccak-f1600(0)
+TB_KECCAK PASS (4 checks)
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/ecfield --top-module ec_field \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/ec_field_tb ../rtl/crypto/ec_field.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/ec_field_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/ecfield'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -Os  -c -o ec_field_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/ec_field_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+python3 /home/ubuntu/rel73/sigil/deps/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vec_field.cpp Vec_field___024root__0.cpp Vec_field__ConstPool__0__Slow.cpp Vec_field___024root__Slow.cpp Vec_field___024root__0__Slow.cpp Vec_field__Syms__Slow.cpp > Vec_field__ALL.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o Vec_field__ALL.o Vec_field__ALL.cpp
+g++    ec_field_tb.o verilated.o verilated_cov.o verilated_threads.o Vec_field__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/ec_field_tb
+rm Vec_field__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/ecfield'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.031 MB sources in 2 modules, into 0.122 MB in 6 C++ files needing 0.005 MB
+- Verilator: Walltime 3.437 s (elab=0.000, cvt=0.006, bld=3.425); cpu 0.014 s on 10 threads; allocated 489.488 MB
+cd ../build/sim && COV_FILE=cov_ecfield.dat ./ec_field_tb
+PASS mul 2*3 secp
+PASS mul (p-1)^2 secp
+PASS mul (p-2)^2 c25519
+PASS mul mixed secp
+PASS add (p-1)+(p-1)
+PASS sub 2-3 secp
+TB_EC_FIELD PASS (24 checks)
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/cryptotop --top-module sigil_crypto_top \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/crypto_top_tb ../rtl/crypto/sha256_block.sv ../rtl/crypto/sha512_block.sv ../rtl/crypto/keccak_f1600.sv ../rtl/crypto/sigil_hash_stream.sv ../rtl/crypto/ec_field.sv ../rtl/crypto/sigil_crypto_top.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/crypto_top_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/cryptotop'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -Os  -c -o crypto_top_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/crypto_top_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -x c++-header Vsigil_crypto_top__pch.h -o Vsigil_crypto_top__pch.h.fast.gch
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -x c++-header Vsigil_crypto_top__pch.h -o Vsigil_crypto_top__pch.h.slow.gch
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top__ConstPool__0__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top___024root__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top___024root__0__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top__Syms__Slow.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top___024root__0.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top___024root__1.cpp
+g++    crypto_top_tb.o verilated.o verilated_cov.o verilated_threads.o Vsigil_crypto_top__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/crypto_top_tb
+rm Vsigil_crypto_top__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/cryptotop'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.210 MB sources in 7 modules, into 1.064 MB in 7 C++ files needing 0.009 MB
+- Verilator: Walltime 3.538 s (elab=0.004, cvt=0.064, bld=3.454); cpu 0.094 s on 10 threads; allocated 433.730 MB
+cd ../build/sim && COV_FILE=cov_cryptotop.dat ./crypto_top_tb
+PASS sha256(abc) via AXI
+PASS sha256(empty) via AXI
+PASS field mul mixed secp via AXI
+PASS field sub 2-3 secp via AXI
+PASS field mul (p-2)^2 c25519 via AXI
+PASS field mul 2*3 custom mod via AXI
+PASS reserved engine 1 stays idle
+TB_SIGIL_CRYPTO_TOP PASS (1857 checks)
+python3 ../sw/hash_kat.py --header ../build/sim/hash_stream_kats.h
+hash_kat.py: Keccak-256 sponge matches published vectors and hashlib SHA3-256/SHAKE256; 70 stream vectors OK
+hash_kat.py: wrote 70 vectors to ../build/sim/hash_stream_kats.h
+verilator --cc --exe --build -j 10 -Wall -Wno-DECLFILENAME --coverage-line --coverage-toggle --assert -I../rtl/core -CFLAGS "-std=c++17 -O2" --Mdir ../build/sim/obj/hashstream --top-module sigil_crypto_top \
+  -CFLAGS -I/home/ubuntu/mhz100final/hoff/build/sim \
+  -o /home/ubuntu/mhz100final/hoff/build/sim/hash_stream_tb ../rtl/crypto/sha256_block.sv ../rtl/crypto/sha512_block.sv ../rtl/crypto/keccak_f1600.sv ../rtl/crypto/sigil_hash_stream.sv ../rtl/crypto/ec_field.sv ../rtl/crypto/sigil_crypto_top.sv \
+  /home/ubuntu/mhz100final/hoff/tb/cpp/hash_stream_tb.cpp
+make[2]: Entering directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/hashstream'
+g++  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -Os  -c -o hash_stream_tb.o /home/ubuntu/mhz100final/hoff/tb/cpp/hash_stream_tb.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -c -o verilated.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -c -o verilated_cov.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_cov.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -c -o verilated_threads.o /home/ubuntu/rel73/sigil/deps/share/verilator/include/verilated_threads.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -x c++-header Vsigil_crypto_top__pch.h -o Vsigil_crypto_top__pch.h.fast.gch
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -x c++-header Vsigil_crypto_top__pch.h -o Vsigil_crypto_top__pch.h.slow.gch
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top__ConstPool__0__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top___024root__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top___024root__0__Slow.cpp
+g++   -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.slow -c Vsigil_crypto_top__Syms__Slow.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top___024root__0.cpp
+g++ -Os  -I.  -MMD -I/home/ubuntu/rel73/sigil/deps/share/verilator/include -I/home/ubuntu/rel73/sigil/deps/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-int-in-bool-context -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -std=c++17 -O2 -I/home/ubuntu/mhz100final/hoff/build/sim   -include Vsigil_crypto_top__pch.h.fast -c Vsigil_crypto_top___024root__1.cpp
+g++    hash_stream_tb.o verilated.o verilated_cov.o verilated_threads.o Vsigil_crypto_top__ALL.a    -pthread -lpthread -latomic   -o /home/ubuntu/mhz100final/hoff/build/sim/hash_stream_tb
+rm Vsigil_crypto_top__ALL.verilator_deplist.tmp
+make[2]: Leaving directory '/home/ubuntu/mhz100final/hoff/build/sim/obj/hashstream'
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev v5.048
+- Verilator: Built from 0.210 MB sources in 7 modules, into 1.064 MB in 7 C++ files needing 0.009 MB
+- Verilator: Walltime 3.570 s (elab=0.004, cvt=0.062, bld=3.489); cpu 0.093 s on 10 threads; allocated 625.750 MB
+cd ../build/sim && COV_FILE=cov_hashstream.dat ./hash_stream_tb
+PASS sha512    len=   0 out= 64 backpressure
+PASS sha512    len=   1 out= 64 poll
+PASS sha512    len=   2 out= 64 backpressure
+PASS sha512    len=   3 out= 64 poll
+PASS sha512    len=   4 out= 64 backpressure
+PASS sha512    len=   5 out= 64 poll
+PASS sha512    len=   7 out= 64 backpressure
+PASS sha512    len= 110 out= 64 poll
+PASS sha512    len= 111 out= 64 backpressure
+PASS sha512    len= 112 out= 64 poll
+PASS sha512    len= 113 out= 64 backpressure
+PASS sha512    len= 116 out= 64 poll
+PASS sha512    len= 124 out= 64 backpressure
+PASS sha512    len= 127 out= 64 poll
+PASS sha512    len= 128 out= 64 backpressure
+PASS sha512    len= 129 out= 64 poll
+PASS sha512    len= 239 out= 64 backpressure
+PASS sha512    len= 240 out= 64 poll
+PASS sha512    len= 255 out= 64 backpressure
+PASS sha512    len= 256 out= 64 poll
+PASS sha512    len= 257 out= 64 backpressure
+PASS sha512    len= 389 out= 64 poll
+PASS sha512    len=1000 out= 64 backpressure
+PASS sha3_256  len=   0 out= 32 poll
+PASS keccak256 len=   0 out= 32 backpressure
+PASS sha3_256  len=   1 out= 32 poll
+PASS keccak256 len=   1 out= 32 backpressure
+PASS sha3_256  len=   2 out= 32 poll
+PASS keccak256 len=   2 out= 32 backpressure
+PASS sha3_256  len=   3 out= 32 poll
+PASS keccak256 len=   3 out= 32 backpressure
+PASS sha3_256  len=   4 out= 32 poll
+PASS keccak256 len=   4 out= 32 backpressure
+PASS sha3_256  len=   5 out= 32 poll
+PASS keccak256 len=   5 out= 32 backpressure
+PASS sha3_256  len=   7 out= 32 poll
+PASS keccak256 len=   7 out= 32 backpressure
+PASS sha3_256  len= 132 out= 32 poll
+PASS keccak256 len= 132 out= 32 backpressure
+PASS sha3_256  len= 133 out= 32 poll
+PASS keccak256 len= 133 out= 32 backpressure
+PASS sha3_256  len= 134 out= 32 poll
+PASS keccak256 len= 134 out= 32 backpressure
+PASS sha3_256  len= 135 out= 32 poll
+PASS keccak256 len= 135 out= 32 backpressure
+PASS sha3_256  len= 136 out= 32 poll
+PASS keccak256 len= 136 out= 32 backpressure
+PASS sha3_256  len= 137 out= 32 poll
+PASS keccak256 len= 137 out= 32 backpressure
+PASS sha3_256  len= 271 out= 32 poll
+PASS keccak256 len= 271 out= 32 backpressure
+PASS sha3_256  len= 272 out= 32 poll
+PASS keccak256 len= 272 out= 32 backpressure
+PASS sha3_256  len= 273 out= 32 poll
+PASS keccak256 len= 273 out= 32 backpressure
+PASS sha3_256  len= 413 out= 32 poll
+PASS keccak256 len= 413 out= 32 backpressure
+PASS sha3_256  len=1000 out= 32 poll
+PASS keccak256 len=1000 out= 32 backpressure
+PASS sha512    len=   3 out= 64 poll
+PASS sha3_256  len=   3 out= 32 backpressure
+PASS keccak256 len=   3 out= 32 poll
+PASS sha512    len=  43 out= 64 backpressure
+PASS sha3_256  len=  43 out= 32 poll
+PASS keccak256 len=  43 out= 32 backpressure
+PASS shake256  len=   0 out= 32 poll
+PASS shake256  len=   3 out=136 backpressure
+PASS shake256  len= 137 out=137 poll
+PASS shake256  len= 300 out=300 backpressure
+PASS shake256  len= 272 out=500 poll
+PASS HOPTR/HDOUT/HCTRL/err registers
+PASS INIT aborts an in-flight message
+PASS legacy SHA-256 interleaved with a stream
+TB_HASH_STREAM PASS (70 KATs: sha512=25 sha3_256=20 keccak256=20 shake256=5; 12401 checks, 288 backpressure cycles, 17780 cycles)
+make[1]: Leaving directory '/home/ubuntu/mhz100final/hoff/sim'
+ALL PHASE-0 KATs PASS

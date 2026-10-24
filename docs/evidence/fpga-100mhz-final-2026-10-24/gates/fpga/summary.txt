@@ -1,0 +1,6 @@
+make-test-fpga rc=0 24s 05:39:13
+oops-ptw-walker-fpga rc=0 298s 05:44:11
+core-test-fpga rc=0 4556s 07:00:07
+riscv-tests-fpga rc=0 25s 07:00:32
+end 2026-10-24T07:00:32Z porcelain-after=[0]
+DONE

@@ -1,0 +1,47 @@
+53-100mhz-afi integration gates (2026-10-24)
+============================================
+RTL/tests gated at ade85a9 (= 1892e0e + the mem53_ctx_directed test 10
+fix); the final head b1a505f adds only fpga/host (sigil_host path
+checks + host test), the top-level make test line, docs and evidence:
+"git diff ade85a9 b1a505f -- rtl sim sw tb" is empty. make test was
+re-run on b1a505f (final/). Clean build per worktree (rm -rf build).
+Hosts: sigil-fpga-build (Ubuntu 24.04, Verilator 5.048 from deps and
+5.020 = CI, riscv64-unknown-elf-gcc 16.1.0), the Mac (Verilator 5.044).
+Script: gates_fb.sh (chain24.sh <off|fpga|lint> <sha>).
+
+Settings: off = SIGIL_FPGA_TIMING undefined (default/ASIC);
+          fpga = VERILATOR="verilator +define+SIGIL_FPGA_TIMING
+                 +define+SIGIL_VRF_OREG" on every Verilator build,
+                 SRAM_MACROS="vrforeg fpga", OOPS_CFG=fpga.
+
+gate                                  off (define unset)      fpga (FPGA_TIMING+VRF_OREG)
+------------------------------------  ----------------------  ---------------------------
+lint, Verilator 5.048 + lintx.sh      PASS (make lint has both define sets; lintx: FPGA tops)
+lint, Verilator 5.020 (CI) + lintx    PASS
+lint, Verilator 5.044 (Mac) + lintx   PASS
+make test (KATs; on b1a505f also the  PASS                    PASS
+  sigil_host host test, 23/23)
+oops walker set (oops-ptw-walker)     PASS, 42 runs,          PASS, 42 runs,
+                                      PTWINV violations=0     PTWINV violations=0
+make -k core-test (make -C sim all)   PASS (rc=0, 4124 s)     PASS (rc=0, 4556 s)
+  "CORE TB PASS" lines / FAIL         375 / 0                 372 / 0
+  #8 tests viota_directed, viota_cases, viota_vstart, viota_overlap,
+  vstart_illegal, vfcvt_sew16, fpvec_nanbox, pmp_partial, pmp_modes,
+  pmp_whole64: each in all 4 memory configs   PASS            PASS
+  walker/#53 tests (ptw_*, vm_*, hlv_*, mem53_* incl. mem53_ctx,
+  vm_walk_overlap, ptw_lock_fencei)    PASS                    PASS
+  SRAM-macro core runs (84 each)       fakeram45, sky130,      vrforeg, fpga: 0 FAIL
+                                       oreg, vrforeg, fpga:
+                                       0 FAIL
+  unit TBs (csr/mmu/icache/dcache also [FPGA_TIMING], vec, fpu,
+  plic, ...), soc_rtl_tb, fpgatop, fpgaocl, examples  PASS    PASS
+riscv-tests (8 suites, rand latency)  123/123 PASS            123/123 PASS
+
+Logs: lint/, mac/, off/, fpga/ (core-test logs gzipped), final/.
+
+Found and fixed on the way: core-test on 1892e0e stopped at
+mem53_ctx_directed test 10 in both settings and every memory
+configuration (a #53 test, an NA4 PMP entry under an 8-byte ld, which
+main's #78 partial-match rule makes fail whatever the permissions);
+fixed in ade85a9 (NAPOT 8-byte entry). 53-mem-stage-pipeline still has
+the NA4 form; it needs the same change when it takes main's #78 fix.
