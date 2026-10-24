@@ -18,7 +18,8 @@
 #              equiv_make pairs (inputs proven equal, outputs merged):
 #              sigil_decoder and sigil_csr, proven above, and the
 #              unchanged leaves (sigil_vregfile, sigil_vec, sigil_mmu,
-#              ...). Two renames, no logic: the VRF and vector-unit
+#              ...; also when a parameter override derives them, as
+#              FPGA_TIMING does on #53). Two renames, no logic: the VRF and vector-unit
 #              instances sit in the g_vec generate block
 #              (g_vec.u_vregfile / g_vec.u_vec) and sigil_csr's
 #              HAS_VECTOR override (= its default, 1) is dropped.
@@ -139,7 +140,7 @@ core_eq() {
         echo "read_verilog -mem2reg $d/${side}_$cfg.v"
         echo "hierarchy -check -top sigil_core"
         echo "blackbox *sigil_regfile* *sigil_fpregfile* *sigil_alu* *sigil_muldiv* *sigil_fpu*" \
-             "*sigil_bext* *sigil_vregfile* *sigil_vec* *sigil_rvc* *sigil_decoder* sigil_csr sigil_mmu"
+             "*sigil_bext* *sigil_vregfile* *sigil_vec* *sigil_rvc* *sigil_decoder* *sigil_csr* *sigil_mmu*"
         if grep -q 'begin : g_vec' "$d/${side}_$cfg.v"; then
           echo "cd sigil_core"
           echo "rename g_vec.u_vregfile u_vregfile"
