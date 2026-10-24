@@ -76,7 +76,13 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             mem53_wf_sum_directed mem53_wf_hlv_directed mem53_ifault_gpa_directed \
             mem53_itlb_remap_directed mem53_ctx_directed mem53_walk_contend_directed \
             vm_ctx_switch_directed fetch_page_directed hyp_ctx_directed hyp_fetch_directed \
-            vec_vm_directed vm_walk_overlap_directed csr_intent_directed vm_stale_fetch_directed
+            vec_vm_directed vm_walk_overlap_directed csr_intent_directed vm_stale_fetch_directed \
+            irq_csr_window_directed irq_ctl_window_directed irq_mie_sweep_directed \
+            pa56_trap_directed vm_bound_trap_directed vls_io_once_directed \
+            mem53r_pmpvec_directed mem53r_pmpwalk_directed mem53r_vmisal_directed \
+            mem53r_tlbthrash_directed mem53r_vst_ad_directed mem53r_race_directed \
+            pipe53_page_hazard_directed pipe53_page_rand_1_directed pipe53_page_rand_2_directed \
+            pipe53_page_rand_hlv_1_directed pipe53_page_rand_vu_1_directed
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
