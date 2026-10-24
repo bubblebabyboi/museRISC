@@ -522,6 +522,79 @@ are:
 On Nangate45 (for comparison, not a target) the same SoC is 0.66 mm²
 synthesized and reaches 162 MHz before repair.
 
+## MPW cut-down configuration: no vector unit (#13, 2026-10-24)
+
+**Status: RTL configuration and flow switch done; not yet placed and
+routed.** The whole SoC does not fit the Caravel user area (2920 ×
+3520 µm = 10.28 mm²): the hierarchical sky130hd flow (#11, branch
+`11-sky130-hier`) needs ~15.8 mm², of which the CPU block is
+11.63 mm² (1.896 mm² std cells synthesized + 7 OpenRAM macros,
+2.914 mm²). In a 7.42 mm² Caravel share the CPU block overflowed
+global routing; 11.22 mm² was the smallest clean size (51 % global-routing usage).
+Owner decision (2026-10-24): the MPW version may drop the vector unit
+and keep everything else (RV64GC + B + K + H, FPU, MMU, caches, crypto
+engine).
+
+**Configuration.** `SIGIL_NO_VECTOR` sets `sigil_pkg::HAS_VECTOR = 0`
+(docs/CORE.md, "No-vector configuration"): no `sigil_vec`, no
+`sigil_vregfile` and therefore no VRF macros; `misa.V = 0`; every
+vector instruction and vector CSR access is illegal-instruction. In
+the ORFS configs it is one make variable, defined in
+`rtl/sigil_soc_files.mk` (`SIGIL_SOC_DEFINES`,
+`SIGIL_SKY130_MACROS`):
+
+```sh
+# flat SoC, sky130hd (or nangate45), no vector unit
+make DESIGN_CONFIG=designs/sky130hd/sigil_soc/config.mk SIGIL_NO_VECTOR=1 FLOW_VARIANT=novec synth
+```
+
+It adds `-DSIGIL_NO_VECTOR` to `SYNTH_SLANG_ARGS` and drops the VRF
+macro (`sky130_sram_1rw1r_64x256_8`, 3 instances) from the macro
+LEF/LIB/GDS and model lists. The hierarchical `sigil_cpu` block config
+on `11-sky130-hier` takes the same two changes when that branch lands:
+`$(foreach d,$(SIGIL_SOC_DEFINES),-D$(d))` in `SYNTH_SLANG_ARGS` and
+`SKY130_MACROS = $(SIGIL_SKY130_MACROS)`.
+
+| sky130 SoC (4 KiB + 4 KiB direct-mapped L1) | Macros | Macro area (LEF) | Std cells, flat synthesis |
+|---|---:|---:|---:|
+| Default (with vector unit) | 7 | 2.914 mm² | 3.041 mm² (317,249 cells, 37,163 flops) |
+| **MPW, `SIGIL_NO_VECTOR`** | **4** (2 × 128x256 L1 data, 2 × 44x64 L1 tags) | **1.656 mm²** | **2.662 mm²** (272,742 cells, 33,668 flops) |
+| Saved | 3 × `sky130_sram_1rw1r_64x256_8` | 1.258 mm² | 0.379 mm² (12.5 %) |
+
+Both rows are flat ORFS synthesis of `sigil_soc_top` (whole SoC,
+crypto engine included) on sky130hd with the pinned ORFS image, same
+commit, `FLOW_VARIANT=base` and `novec` (`1_2_yosys` 41 and 33 min);
+std cells = Yosys chip area minus the macros' liberty area. Cells plus
+macros drop from 5.955 to 4.317 mm² (−1.64 mm², −27.5 %). The CPU
+block of the hierarchical flow should shrink by about the same
+absolute amount (its 1.896 mm² of synthesized std cells include the
+vector unit; the 0.379 mm² saved here is all CPU logic): about
+1.52 mm² of std cells plus 1.656 mm² of macros, against 4.81 mm²
+today. Placed, the default block's std cells grew 1.27× (2.411 mm²
+routed, #11), so about 1.93 + 1.656 = 3.6 mm²; at the default
+block's routed utilisation (cells + macros, ~46 %) that is a ~7.8 mm²
+block (7.2 mm² at 50 %), around the 7.42 mm² Caravel share in which
+the default block overflowed. This is an estimate from synthesis; only
+placement and routing of the no-vector block can show the fit.
+
+**Unchanged default configurations.** With the define undefined every
+configuration elaborates to the same logic as before
+(`scripts/novec_equiv.sh`, Yosys 0.33 equiv_make / equiv_struct /
+equiv_simple / equiv_induct against `main` `3b7ed1b`): `sigil_decoder`
+and `sigil_csr` module proofs, `sigil_core` in the default,
+`SIGIL_SRAM_OREG`, `SIGIL_SRAM_SKY130`, `SIGIL_SRAM_FAKERAM45`,
+`SIGIL_VRF_OREG` and `SIGIL_MULDIV_COMB` configurations, every other
+RTL source byte-identical, and the sky130hd / nangate45 ORFS configs
+evaluating to the same RTL, defines and macro lists. The same proof on
+`53-mem-stage-pipeline` with this change applied holds with
+`SIGIL_FPGA_TIMING` (the FPGA configuration). Evidence:
+[`evidence/mpw-novec-13-2026-10-24.log`](evidence/mpw-novec-13-2026-10-24.log).
+
+**Next (not done here).** Re-run the hierarchical `sigil_cpu` block
+without the vector unit and size it against the Caravel share; then
+the top level. Software for the MPW part must not assume V (device
+tree `riscv,isa` without `v`, no RVV in the kernel or user code).
+
 ## Reproduce
 
 ```sh
