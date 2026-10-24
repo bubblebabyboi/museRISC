@@ -81,6 +81,43 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  core-novec:
+    # Issue #13: the MPW cut-down core without the vector unit
+    # (SIGIL_NO_VECTOR): its directed suite (config-aware list,
+    # random bus timing; sim/Makefile core-novec-quick). The full
+    # core-novec target (also uncached, the sky130 build and the SoC
+    # crypto firmware) is part of the local make core-test.
+    name: No-vector (MPW) core TBs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out Sigil
+        uses: actions/checkout@v4
+
+      - name: Install Verilator and RISC-V toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator gcc-riscv64-unknown-elf \
+            build-essential python3
+          verilator --version
+          riscv64-unknown-elf-gcc --version
+
+      - name: Run no-vector directed core harness
+        shell: bash
+        run: |
+          set -o pipefail
+          make -C sim core-novec-quick 2>&1 | tee build-ci-core-novec.log
+          grep -E "CORE TB PASS" build-ci-core-novec.log >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload no-vector core TB logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-novec-${{ github.sha }}
+          path: build-ci-core-novec.log
+          if-no-files-found: warn
+          retention-days: 30
+
   riscv-tests-smoke:
     name: riscv-tests smoke subset on the core
     runs-on: ubuntu-24.04

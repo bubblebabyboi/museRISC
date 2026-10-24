@@ -88,7 +88,7 @@ NOVEC_RUN_TESTS := $(filter-out $(VEC_TESTS),$(TESTS)) $(NOVEC_TESTS)
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
         fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples \
-        core-novec riscv-tests-novec novec-bins
+        core-novec core-novec-quick riscv-tests-novec novec-bins
 all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro core-novec axibridge fpgatop-quick fpgatop-f2-quick fpgatop-f2-examples fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
@@ -902,7 +902,8 @@ srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/cor
 # SIGIL_SOC_PARAMS_SKY130 cache geometry). core-novec (in `all`) runs
 # NOVEC_RUN_TESTS on both (random bus; novec also uncached) and the SoC
 # crypto firmware on both RTL SoCs, and builds the platform harness
-# (soc_tb_novec). riscv-tests-novec: the riscv-tests gate on
+# (soc_tb_novec). core-novec-quick (CI): core_tb_novec, random bus
+# only. riscv-tests-novec: the riscv-tests gate on
 # core_tb_novec (not in `all`, like riscv-tests).
 NOVEC_DEF := $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC))
 SRAM_DEF_novec := $(NOVEC_DEF)
@@ -934,6 +935,11 @@ core-novec: $(addprefix $(BUILD)/core_tb_,$(NOVEC_CFGS)) $(addprefix $(BUILD)/so
 	    --exit-string "SOC CRYPTO PASS" > novec_soc.log 2>&1 || { tail -20 novec_soc.log; exit 1; }; \
 	  tail -1 novec_soc.log | sed "s/$$/ [$$m]/"; \
 	done
+
+# CI subset (core-regression.yml core-novec job): the novec core TB
+# and its directed suite with random bus timing.
+core-novec-quick: $(BUILD)/core_tb_novec $(NOVEC_BINS)
+	NOVEC=1 CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec $(CORE_RAND_ARGS)
 
 riscv-tests-novec: $(BUILD)/core_tb_novec
 	CORE_TB=build/sim/core_tb_novec CORE_TB_ARGS="$(CORE_RAND_ARGS)" bash $(ROOT)/sim/run_riscv_tests.sh $(RVTESTS_CSV)
