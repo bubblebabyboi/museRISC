@@ -1,0 +1,906 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000334)
+
+-- Running command `read_verilog pmp_csr_miter_mut2.v; hierarchy -top pmp_csr_miter; proc; flatten; memory; opt; stat; sat -prove ok 1 -verify -set-def-inputs -show-inputs -show-outputs' --
+
+1. Executing Verilog-2005 frontend: pmp_csr_miter_mut2.v
+Parsing Verilog input from `pmp_csr_miter_mut2.v' to AST representation.
+Generating RTLIL representation for module `\pmp_csr_miter'.
+Warning: Replacing memory \pmpaddr_q with list of registers. See pmp_csr_miter_mut2.v:32
+Warning: Replacing memory \pmpcfg_q with list of registers. See pmp_csr_miter_mut2.v:31
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \pmp_csr_miter
+
+2.2. Analyzing design hierarchy..
+Top module:  \pmp_csr_miter
+Removed 0 unused modules.
+
+3. Executing PROC pass (convert processes to netlists).
+
+3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+Cleaned up 1 empty switch.
+
+3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 64 switch rules as full_case in process $proc$pmp_csr_miter_mut2.v:191$841 in module pmp_csr_miter.
+Marked 96 switch rules as full_case in process $proc$pmp_csr_miter_mut2.v:190$31 in module pmp_csr_miter.
+Removed a total of 0 dead cases.
+
+3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 394 assignments to connections.
+
+3.4. Executing PROC_INIT pass (extract init attributes).
+
+3.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~192 debug messages>
+
+3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:193$1372'.
+Creating decoders for process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+     1/96: $64\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[15:15]$1310
+     2/96: $63\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[15:15]$1308
+     3/96: $62\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[15:15]$1306
+     4/96: $61\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[15:15]$1304
+     5/96: $16\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[15:15]$1291
+     6/96: $16\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[15:15]$1290
+     7/96: $60\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[14:14]$1286
+     8/96: $59\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[14:14]$1284
+     9/96: $58\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[14:14]$1282
+    10/96: $57\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[14:14]$1280
+    11/96: $15\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[14:14]$1267
+    12/96: $15\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[14:14]$1266
+    13/96: $56\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[13:13]$1262
+    14/96: $55\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[13:13]$1260
+    15/96: $54\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[13:13]$1258
+    16/96: $53\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[13:13]$1256
+    17/96: $14\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[13:13]$1243
+    18/96: $14\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[13:13]$1242
+    19/96: $52\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[12:12]$1238
+    20/96: $51\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[12:12]$1236
+    21/96: $50\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[12:12]$1234
+    22/96: $49\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[12:12]$1232
+    23/96: $13\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[12:12]$1219
+    24/96: $13\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[12:12]$1218
+    25/96: $48\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[11:11]$1214
+    26/96: $47\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[11:11]$1212
+    27/96: $46\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[11:11]$1210
+    28/96: $45\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[11:11]$1208
+    29/96: $12\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[11:11]$1195
+    30/96: $12\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[11:11]$1194
+    31/96: $44\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[10:10]$1190
+    32/96: $43\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[10:10]$1188
+    33/96: $42\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[10:10]$1186
+    34/96: $41\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[10:10]$1184
+    35/96: $11\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[10:10]$1171
+    36/96: $11\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[10:10]$1170
+    37/96: $40\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[9:9]$1166
+    38/96: $39\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[9:9]$1164
+    39/96: $38\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[9:9]$1162
+    40/96: $37\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[9:9]$1160
+    41/96: $10\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[9:9]$1147
+    42/96: $10\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[9:9]$1146
+    43/96: $36\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[8:8]$1142
+    44/96: $35\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[8:8]$1140
+    45/96: $34\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[8:8]$1138
+    46/96: $33\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[8:8]$1136
+    47/96: $9\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[8:8]$1123
+    48/96: $9\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[8:8]$1122
+    49/96: $32\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[7:7]$1118
+    50/96: $31\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[7:7]$1116
+    51/96: $30\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[7:7]$1114
+    52/96: $29\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[7:7]$1112
+    53/96: $8\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[7:7]$1099
+    54/96: $8\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[7:7]$1098
+    55/96: $28\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[6:6]$1094
+    56/96: $27\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[6:6]$1092
+    57/96: $26\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[6:6]$1090
+    58/96: $25\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[6:6]$1088
+    59/96: $7\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[6:6]$1075
+    60/96: $7\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[6:6]$1074
+    61/96: $24\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[5:5]$1070
+    62/96: $23\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[5:5]$1068
+    63/96: $22\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[5:5]$1066
+    64/96: $21\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[5:5]$1064
+    65/96: $6\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[5:5]$1051
+    66/96: $6\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[5:5]$1050
+    67/96: $20\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[4:4]$1046
+    68/96: $19\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[4:4]$1044
+    69/96: $18\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[4:4]$1042
+    70/96: $17\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[4:4]$1040
+    71/96: $5\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[4:4]$1027
+    72/96: $5\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[4:4]$1026
+    73/96: $16\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[3:3]$1022
+    74/96: $15\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[3:3]$1020
+    75/96: $14\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[3:3]$1018
+    76/96: $13\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[3:3]$1016
+    77/96: $4\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[3:3]$1003
+    78/96: $4\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[3:3]$1002
+    79/96: $12\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[2:2]$998
+    80/96: $11\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[2:2]$996
+    81/96: $10\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[2:2]$994
+    82/96: $9\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[2:2]$992
+    83/96: $3\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[2:2]$979
+    84/96: $3\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[2:2]$978
+    85/96: $8\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[1:1]$974
+    86/96: $7\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[1:1]$972
+    87/96: $6\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[1:1]$970
+    88/96: $5\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[1:1]$968
+    89/96: $2\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[1:1]$955
+    90/96: $2\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[1:1]$954
+    91/96: $4\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[0:0]$950
+    92/96: $3\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[0:0]$948
+    93/96: $2\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[0:0]$946
+    94/96: $1\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.perm[0:0]$944
+    95/96: $1\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit_o[0:0]$931
+    96/96: $1\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.hit[0:0]$930
+Creating decoders for process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:190$31'.
+     1/160: $96\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$839
+     2/160: $95\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$837
+     3/160: $94\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$835
+     4/160: $93\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$833
+     5/160: $92\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$829
+     6/160: $91\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$826
+     7/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$25.$result[1:0]$806
+     8/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$25.m[0:0]$809
+     9/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$25.hi[0:0]$808
+    10/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$25.lo[0:0]$807
+    11/160: $90\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$802
+    12/160: $89\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$800
+    13/160: $88\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$798
+    14/160: $87\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$796
+    15/160: $86\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$792
+    16/160: $85\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$789
+    17/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$24.$result[1:0]$769
+    18/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$24.m[0:0]$772
+    19/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$24.hi[0:0]$771
+    20/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$24.lo[0:0]$770
+    21/160: $84\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$765
+    22/160: $83\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$763
+    23/160: $82\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$761
+    24/160: $81\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$759
+    25/160: $80\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$755
+    26/160: $79\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$752
+    27/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$23.$result[1:0]$732
+    28/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$23.m[0:0]$735
+    29/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$23.hi[0:0]$734
+    30/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$23.lo[0:0]$733
+    31/160: $78\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$728
+    32/160: $77\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$726
+    33/160: $76\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$724
+    34/160: $75\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$722
+    35/160: $74\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$718
+    36/160: $73\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$715
+    37/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$22.$result[1:0]$695
+    38/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$22.m[0:0]$698
+    39/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$22.hi[0:0]$697
+    40/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$22.lo[0:0]$696
+    41/160: $72\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$691
+    42/160: $71\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$689
+    43/160: $70\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$687
+    44/160: $69\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$685
+    45/160: $68\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$681
+    46/160: $67\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$678
+    47/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$21.$result[1:0]$658
+    48/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$21.m[0:0]$661
+    49/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$21.hi[0:0]$660
+    50/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$21.lo[0:0]$659
+    51/160: $66\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$654
+    52/160: $65\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$652
+    53/160: $64\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$650
+    54/160: $63\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$648
+    55/160: $62\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$644
+    56/160: $61\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$641
+    57/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$20.$result[1:0]$621
+    58/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$20.m[0:0]$624
+    59/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$20.hi[0:0]$623
+    60/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$20.lo[0:0]$622
+    61/160: $60\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$617
+    62/160: $59\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$615
+    63/160: $58\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$613
+    64/160: $57\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$611
+    65/160: $56\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$607
+    66/160: $55\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$604
+    67/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$19.$result[1:0]$584
+    68/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$19.m[0:0]$587
+    69/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$19.hi[0:0]$586
+    70/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$19.lo[0:0]$585
+    71/160: $54\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$580
+    72/160: $53\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$578
+    73/160: $52\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$576
+    74/160: $51\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$574
+    75/160: $50\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$570
+    76/160: $49\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$567
+    77/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$18.$result[1:0]$547
+    78/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$18.m[0:0]$550
+    79/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$18.hi[0:0]$549
+    80/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$18.lo[0:0]$548
+    81/160: $48\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$543
+    82/160: $47\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$541
+    83/160: $46\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$539
+    84/160: $45\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$537
+    85/160: $44\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$533
+    86/160: $43\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$530
+    87/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$17.$result[1:0]$510
+    88/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$17.m[0:0]$513
+    89/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$17.hi[0:0]$512
+    90/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$17.lo[0:0]$511
+    91/160: $42\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$506
+    92/160: $41\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$504
+    93/160: $40\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$502
+    94/160: $39\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$500
+    95/160: $38\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$496
+    96/160: $37\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$493
+    97/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$16.$result[1:0]$473
+    98/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$16.m[0:0]$476
+    99/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$16.hi[0:0]$475
+   100/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$16.lo[0:0]$474
+   101/160: $36\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$469
+   102/160: $35\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$467
+   103/160: $34\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$465
+   104/160: $33\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$463
+   105/160: $32\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$459
+   106/160: $31\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$456
+   107/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$15.$result[1:0]$436
+   108/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$15.m[0:0]$439
+   109/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$15.hi[0:0]$438
+   110/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$15.lo[0:0]$437
+   111/160: $30\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$432
+   112/160: $29\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$430
+   113/160: $28\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$428
+   114/160: $27\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$426
+   115/160: $26\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$422
+   116/160: $25\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$419
+   117/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$14.$result[1:0]$399
+   118/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$14.m[0:0]$402
+   119/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$14.hi[0:0]$401
+   120/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$14.lo[0:0]$400
+   121/160: $24\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$395
+   122/160: $23\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$393
+   123/160: $22\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$391
+   124/160: $21\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$389
+   125/160: $20\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$385
+   126/160: $19\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$382
+   127/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$13.$result[1:0]$362
+   128/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$13.m[0:0]$365
+   129/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$13.hi[0:0]$364
+   130/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$13.lo[0:0]$363
+   131/160: $18\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$358
+   132/160: $17\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$356
+   133/160: $16\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$354
+   134/160: $15\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$352
+   135/160: $14\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$348
+   136/160: $13\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$345
+   137/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$12.$result[1:0]$325
+   138/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$12.m[0:0]$328
+   139/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$12.hi[0:0]$327
+   140/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$12.lo[0:0]$326
+   141/160: $12\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$321
+   142/160: $11\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$319
+   143/160: $10\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$317
+   144/160: $9\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$315
+   145/160: $8\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$311
+   146/160: $7\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$308
+   147/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$11.$result[1:0]$288
+   148/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$11.m[0:0]$291
+   149/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$11.hi[0:0]$290
+   150/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$11.lo[0:0]$289
+   151/160: $6\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$284
+   152/160: $5\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$282
+   153/160: $4\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$280
+   154/160: $3\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$278
+   155/160: $2\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$274
+   156/160: $1\pmp_check$func$pmp_csr_miter_mut2.v:190$9.allow[0:0]$271
+   157/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$10.$result[1:0]$251
+   158/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$10.m[0:0]$254
+   159/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$10.hi[0:0]$253
+   160/160: $1\pmp_match$func$pmp_csr_miter_mut2.v:83$10.lo[0:0]$252
+Creating decoders for process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+
+3.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\pmp_csr_miter.\_sv2v_0' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:193$1372'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check_par$func$pmp_csr_miter_mut2.v:191$8.$result' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.sv2v_autoblock_3.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.sv2v_autoblock_4.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.sv2v_autoblock_5.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check_par$func$pmp_csr_miter_mut2.v:191$26.sv2v_autoblock_6.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check$func$pmp_csr_miter_mut2.v:190$7.$result' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:190$31'.
+No latch inferred for signal `\pmp_csr_miter.\pmp_check$func$pmp_csr_miter_mut2.v:190$9.sv2v_autoblock_2.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:190$31'.
+No latch inferred for signal `\pmp_csr_miter.\sv2v_autoblock_1.i' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[0]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[1]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[2]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[3]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[4]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[5]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[6]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[7]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[8]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[9]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[10]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[11]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[12]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[13]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[14]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpcfg_q[15]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[0]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[1]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[2]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[3]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[4]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[5]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[6]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[7]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[8]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[9]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[10]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[11]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[12]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[13]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[14]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+No latch inferred for signal `\pmp_csr_miter.\pmpaddr_q[15]' from process `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+
+3.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Removing empty process `pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:193$1372'.
+Found and cleaned up 80 empty switches in `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+Removing empty process `pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:191$841'.
+Found and cleaned up 112 empty switches in `\pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:190$31'.
+Removing empty process `pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:190$31'.
+Removing empty process `pmp_csr_miter.$proc$pmp_csr_miter_mut2.v:25$27'.
+Cleaned up 192 empty switches.
+
+3.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pmp_csr_miter.
+<suppressed ~167 debug messages>
+
+4. Executing FLATTEN pass (flatten design).
+
+5. Executing MEMORY pass.
+
+5.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+5.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+5.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+5.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+5.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+5.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pmp_csr_miter..
+Removed 128 unused cells and 1316 unused wires.
+<suppressed ~129 debug messages>
+
+5.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+5.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+5.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pmp_csr_miter..
+
+5.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+5.11. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+6. Executing OPT pass (performing simple optimizations).
+
+6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pmp_csr_miter.
+
+6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pmp_csr_miter'.
+Computing hashes of 1512 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 1163 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 1116 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 1100 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 1084 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 1068 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+<suppressed ~1332 debug messages>
+Removed a total of 444 cells.
+
+6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \pmp_csr_miter..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 1/2 on $mux $procmux$1869.
+    dead port 1/2 on $mux $procmux$1863.
+    dead port 1/2 on $mux $procmux$1860.
+    dead port 1/2 on $mux $procmux$1857.
+    dead port 2/2 on $mux $procmux$2881.
+    dead port 1/2 on $mux $procmux$1838.
+    dead port 1/2 on $mux $procmux$1832.
+    dead port 1/2 on $mux $procmux$1829.
+    dead port 1/2 on $mux $procmux$1823.
+    dead port 1/2 on $mux $procmux$1820.
+    dead port 1/2 on $mux $procmux$1817.
+    dead port 2/2 on $mux $procmux$2875.
+    dead port 1/2 on $mux $procmux$2873.
+    dead port 2/2 on $mux $procmux$2866.
+    dead port 1/2 on $mux $procmux$2864.
+    dead port 1/2 on $mux $procmux$2861.
+    dead port 1/2 on $mux $procmux$1798.
+    dead port 1/2 on $mux $procmux$1792.
+    dead port 1/2 on $mux $procmux$1789.
+    dead port 1/2 on $mux $procmux$1783.
+    dead port 1/2 on $mux $procmux$1780.
+    dead port 1/2 on $mux $procmux$1777.
+    dead port 2/2 on $mux $procmux$2854.
+    dead port 1/2 on $mux $procmux$2852.
+    dead port 1/2 on $mux $procmux$2849.
+    dead port 1/2 on $mux $procmux$2846.
+    dead port 1/2 on $mux $procmux$1758.
+    dead port 1/2 on $mux $procmux$1752.
+    dead port 1/2 on $mux $procmux$1749.
+    dead port 1/2 on $mux $procmux$1743.
+    dead port 1/2 on $mux $procmux$1740.
+    dead port 1/2 on $mux $procmux$1737.
+    dead port 2/2 on $mux $procmux$2839.
+    dead port 1/2 on $mux $procmux$2837.
+    dead port 1/2 on $mux $procmux$2834.
+    dead port 1/2 on $mux $procmux$2831.
+    dead port 1/2 on $mux $procmux$2828.
+    dead port 1/2 on $mux $procmux$1718.
+    dead port 1/2 on $mux $procmux$1712.
+    dead port 1/2 on $mux $procmux$1709.
+    dead port 1/2 on $mux $procmux$1703.
+    dead port 1/2 on $mux $procmux$1700.
+    dead port 1/2 on $mux $procmux$1697.
+    dead port 1/2 on $mux $procmux$3011.
+    dead port 1/2 on $mux $procmux$3008.
+    dead port 1/2 on $mux $procmux$3071.
+    dead port 1/2 on $mux $procmux$3074.
+    dead port 1/2 on $mux $procmux$1678.
+    dead port 1/2 on $mux $procmux$1672.
+    dead port 1/2 on $mux $procmux$1669.
+    dead port 1/2 on $mux $procmux$1663.
+    dead port 1/2 on $mux $procmux$1660.
+    dead port 1/2 on $mux $procmux$1657.
+    dead port 1/2 on $mux $procmux$3077.
+    dead port 1/2 on $mux $procmux$3080.
+    dead port 1/2 on $mux $procmux$1638.
+    dead port 1/2 on $mux $procmux$1632.
+    dead port 1/2 on $mux $procmux$1629.
+    dead port 1/2 on $mux $procmux$1623.
+    dead port 1/2 on $mux $procmux$1620.
+    dead port 1/2 on $mux $procmux$1617.
+    dead port 2/2 on $mux $procmux$2800.
+    dead port 2/2 on $mux $procmux$2794.
+    dead port 1/2 on $mux $procmux$2792.
+    dead port 1/2 on $mux $procmux$1598.
+    dead port 1/2 on $mux $procmux$1592.
+    dead port 1/2 on $mux $procmux$1589.
+    dead port 1/2 on $mux $procmux$1583.
+    dead port 1/2 on $mux $procmux$1580.
+    dead port 1/2 on $mux $procmux$1577.
+    dead port 2/2 on $mux $procmux$2785.
+    dead port 1/2 on $mux $procmux$2783.
+    dead port 1/2 on $mux $procmux$2780.
+    dead port 2/2 on $mux $procmux$2773.
+    dead port 1/2 on $mux $procmux$1558.
+    dead port 1/2 on $mux $procmux$1552.
+    dead port 1/2 on $mux $procmux$1549.
+    dead port 1/2 on $mux $procmux$1543.
+    dead port 1/2 on $mux $procmux$1540.
+    dead port 1/2 on $mux $procmux$1537.
+    dead port 1/2 on $mux $procmux$2771.
+    dead port 1/2 on $mux $procmux$2768.
+    dead port 1/2 on $mux $procmux$2765.
+    dead port 2/2 on $mux $procmux$2758.
+    dead port 1/2 on $mux $procmux$2756.
+    dead port 1/2 on $mux $procmux$1518.
+    dead port 1/2 on $mux $procmux$1512.
+    dead port 1/2 on $mux $procmux$1509.
+    dead port 1/2 on $mux $procmux$1503.
+    dead port 1/2 on $mux $procmux$1500.
+    dead port 1/2 on $mux $procmux$1497.
+    dead port 1/2 on $mux $procmux$2753.
+    dead port 1/2 on $mux $procmux$2750.
+    dead port 1/2 on $mux $procmux$2747.
+    dead port 2/2 on $mux $procmux$3082.
+    dead port 1/2 on $mux $procmux$1478.
+    dead port 1/2 on $mux $procmux$1472.
+    dead port 1/2 on $mux $procmux$1469.
+    dead port 1/2 on $mux $procmux$1463.
+    dead port 1/2 on $mux $procmux$1460.
+    dead port 1/2 on $mux $procmux$1457.
+    dead port 1/2 on $mux $procmux$3089.
+    dead port 1/2 on $mux $procmux$3092.
+    dead port 1/2 on $mux $procmux$3095.
+    dead port 2/2 on $mux $procmux$3097.
+    dead port 1/2 on $mux $procmux$3104.
+    dead port 1/2 on $mux $procmux$1438.
+    dead port 1/2 on $mux $procmux$1432.
+    dead port 1/2 on $mux $procmux$1429.
+    dead port 1/2 on $mux $procmux$1423.
+    dead port 1/2 on $mux $procmux$1420.
+    dead port 1/2 on $mux $procmux$1417.
+    dead port 1/2 on $mux $procmux$1398.
+    dead port 1/2 on $mux $procmux$1392.
+    dead port 1/2 on $mux $procmux$1389.
+    dead port 1/2 on $mux $procmux$1383.
+    dead port 1/2 on $mux $procmux$1380.
+    dead port 1/2 on $mux $procmux$1377.
+    dead port 1/2 on $mux $procmux$3278.
+    dead port 2/2 on $mux $procmux$3280.
+    dead port 2/2 on $mux $procmux$3286.
+    dead port 2/2 on $mux $procmux$2719.
+    dead port 2/2 on $mux $procmux$2962.
+    dead port 1/2 on $mux $procmux$3266.
+    dead port 2/2 on $mux $procmux$2956.
+    dead port 2/2 on $mux $procmux$2713.
+    dead port 1/2 on $mux $procmux$3251.
+    dead port 1/2 on $mux $procmux$2711.
+    dead port 2/2 on $mux $procmux$2704.
+    dead port 1/2 on $mux $procmux$2702.
+    dead port 1/2 on $mux $procmux$3254.
+    dead port 1/2 on $mux $procmux$2699.
+    dead port 2/2 on $mux $procmux$2692.
+    dead port 1/2 on $mux $procmux$2690.
+    dead port 1/2 on $mux $procmux$3257.
+    dead port 1/2 on $mux $procmux$2687.
+    dead port 1/2 on $mux $procmux$2684.
+    dead port 2/2 on $mux $procmux$2677.
+    dead port 2/2 on $mux $procmux$3259.
+    dead port 1/2 on $mux $procmux$2675.
+    dead port 1/2 on $mux $procmux$2672.
+    dead port 1/2 on $mux $procmux$2669.
+    dead port 1/2 on $mux $procmux$2666.
+    dead port 1/2 on $mux $procmux$3107.
+    dead port 2/2 on $mux $procmux$3109.
+    dead port 1/2 on $mux $procmux$3116.
+    dead port 2/2 on $mux $procmux$3118.
+    dead port 2/2 on $mux $procmux$3124.
+    dead port 2/2 on $mux $procmux$2638.
+    dead port 2/2 on $mux $procmux$2632.
+    dead port 1/2 on $mux $procmux$2630.
+    dead port 2/2 on $mux $procmux$2623.
+    dead port 2/2 on $mux $procmux$2071.
+    dead port 1/2 on $mux $procmux$2621.
+    dead port 1/2 on $mux $procmux$2618.
+    dead port 2/2 on $mux $procmux$2611.
+    dead port 1/2 on $mux $procmux$2609.
+    dead port 1/2 on $mux $procmux$2606.
+    dead port 1/2 on $mux $procmux$2603.
+    dead port 2/2 on $mux $procmux$2065.
+    dead port 2/2 on $mux $procmux$2596.
+    dead port 1/2 on $mux $procmux$2594.
+    dead port 1/2 on $mux $procmux$2591.
+    dead port 1/2 on $mux $procmux$2588.
+    dead port 1/2 on $mux $procmux$2063.
+    dead port 1/2 on $mux $procmux$2585.
+    dead port 2/2 on $mux $procmux$3001.
+    dead port 1/2 on $mux $procmux$2999.
+    dead port 2/2 on $mux $procmux$2056.
+    dead port 1/2 on $mux $procmux$2996.
+    dead port 1/2 on $mux $procmux$2993.
+    dead port 1/2 on $mux $procmux$2954.
+    dead port 2/2 on $mux $procmux$2557.
+    dead port 2/2 on $mux $procmux$2551.
+    dead port 1/2 on $mux $procmux$2549.
+    dead port 2/2 on $mux $procmux$2542.
+    dead port 1/2 on $mux $procmux$2540.
+    dead port 1/2 on $mux $procmux$2537.
+    dead port 2/2 on $mux $procmux$2530.
+    dead port 1/2 on $mux $procmux$2528.
+    dead port 1/2 on $mux $procmux$2525.
+    dead port 1/2 on $mux $procmux$2522.
+    dead port 2/2 on $mux $procmux$2515.
+    dead port 1/2 on $mux $procmux$2513.
+    dead port 1/2 on $mux $procmux$2054.
+    dead port 1/2 on $mux $procmux$2510.
+    dead port 1/2 on $mux $procmux$2507.
+    dead port 1/2 on $mux $procmux$1903.
+    dead port 1/2 on $mux $procmux$1937.
+    dead port 1/2 on $mux $procmux$2930.
+    dead port 1/2 on $mux $procmux$2504.
+    dead port 1/2 on $mux $procmux$3269.
+    dead port 2/2 on $mux $procmux$3271.
+    dead port 1/2 on $mux $procmux$2990.
+    dead port 1/2 on $mux $procmux$2051.
+    dead port 2/2 on $mux $procmux$3028.
+    dead port 1/2 on $mux $procmux$3152.
+    dead port 1/2 on $mux $procmux$3155.
+    dead port 1/2 on $mux $procmux$3158.
+    dead port 1/2 on $mux $procmux$1900.
+    dead port 1/2 on $mux $procmux$2927.
+    dead port 2/2 on $mux $procmux$2044.
+    dead port 2/2 on $mux $procmux$2476.
+    dead port 2/2 on $mux $procmux$2470.
+    dead port 1/2 on $mux $procmux$2468.
+    dead port 1/2 on $mux $procmux$2042.
+    dead port 2/2 on $mux $procmux$2461.
+    dead port 1/2 on $mux $procmux$2459.
+    dead port 1/2 on $mux $procmux$1897.
+    dead port 1/2 on $mux $procmux$2912.
+    dead port 1/2 on $mux $procmux$2456.
+    dead port 2/2 on $mux $procmux$2449.
+    dead port 1/2 on $mux $procmux$2447.
+    dead port 1/2 on $mux $procmux$2039.
+    dead port 1/2 on $mux $procmux$2444.
+    dead port 1/2 on $mux $procmux$2441.
+    dead port 2/2 on $mux $procmux$2434.
+    dead port 1/2 on $mux $procmux$2432.
+    dead port 1/2 on $mux $procmux$2036.
+    dead port 1/2 on $mux $procmux$2429.
+    dead port 1/2 on $mux $procmux$2426.
+    dead port 1/2 on $mux $procmux$2909.
+    dead port 1/2 on $mux $procmux$2423.
+    dead port 1/2 on $mux $procmux$3161.
+    dead port 2/2 on $mux $procmux$3163.
+    dead port 1/2 on $mux $procmux$3170.
+    dead port 1/2 on $mux $procmux$3173.
+    dead port 1/2 on $mux $procmux$3176.
+    dead port 2/2 on $mux $procmux$3178.
+    dead port 2/2 on $mux $procmux$2029.
+    dead port 1/2 on $mux $procmux$3026.
+    dead port 2/2 on $mux $procmux$2920.
+    dead port 1/2 on $mux $procmux$2027.
+    dead port 2/2 on $mux $procmux$2395.
+    dead port 2/2 on $mux $procmux$2389.
+    dead port 1/2 on $mux $procmux$2387.
+    dead port 1/2 on $mux $procmux$2024.
+    dead port 2/2 on $mux $procmux$2380.
+    dead port 1/2 on $mux $procmux$2378.
+    dead port 1/2 on $mux $procmux$3023.
+    dead port 1/2 on $mux $procmux$2918.
+    dead port 1/2 on $mux $procmux$2375.
+    dead port 2/2 on $mux $procmux$2368.
+    dead port 1/2 on $mux $procmux$2366.
+    dead port 1/2 on $mux $procmux$2021.
+    dead port 1/2 on $mux $procmux$2363.
+    dead port 1/2 on $mux $procmux$2360.
+    dead port 2/2 on $mux $procmux$2353.
+    dead port 1/2 on $mux $procmux$2351.
+    dead port 1/2 on $mux $procmux$2018.
+    dead port 1/2 on $mux $procmux$2348.
+    dead port 1/2 on $mux $procmux$2345.
+    dead port 1/2 on $mux $procmux$2342.
+    dead port 1/2 on $mux $procmux$3185.
+    dead port 1/2 on $mux $procmux$3188.
+    dead port 2/2 on $mux $procmux$3190.
+    dead port 1/2 on $mux $procmux$3197.
+    dead port 2/2 on $mux $procmux$3199.
+    dead port 2/2 on $mux $procmux$2947.
+    dead port 2/2 on $mux $procmux$3205.
+    dead port 1/2 on $mux $procmux$2915.
+    dead port 1/2 on $mux $procmux$2945.
+    dead port 2/2 on $mux $procmux$2314.
+    dead port 2/2 on $mux $procmux$2308.
+    dead port 1/2 on $mux $procmux$2306.
+    dead port 2/2 on $mux $procmux$2299.
+    dead port 1/2 on $mux $procmux$2297.
+    dead port 2/2 on $mux $procmux$3016.
+    dead port 1/2 on $mux $procmux$2294.
+    dead port 2/2 on $mux $procmux$2287.
+    dead port 1/2 on $mux $procmux$2285.
+    dead port 1/2 on $mux $procmux$2942.
+    dead port 1/2 on $mux $procmux$2282.
+    dead port 1/2 on $mux $procmux$2279.
+    dead port 2/2 on $mux $procmux$2272.
+    dead port 1/2 on $mux $procmux$2270.
+    dead port 1/2 on $mux $procmux$2267.
+    dead port 1/2 on $mux $procmux$2264.
+    dead port 1/2 on $mux $procmux$3014.
+    dead port 1/2 on $mux $procmux$1958.
+    dead port 1/2 on $mux $procmux$2261.
+    dead port 2/2 on $mux $procmux$2935.
+    dead port 1/2 on $mux $procmux$3035.
+    dead port 2/2 on $mux $procmux$3037.
+    dead port 1/2 on $mux $procmux$2933.
+    dead port 2/2 on $mux $procmux$2233.
+    dead port 2/2 on $mux $procmux$2227.
+    dead port 1/2 on $mux $procmux$2225.
+    dead port 2/2 on $mux $procmux$2218.
+    dead port 1/2 on $mux $procmux$2216.
+    dead port 1/2 on $mux $procmux$1918.
+    dead port 1/2 on $mux $procmux$1952.
+    dead port 1/2 on $mux $procmux$2213.
+    dead port 2/2 on $mux $procmux$2206.
+    dead port 1/2 on $mux $procmux$2204.
+    dead port 1/2 on $mux $procmux$1998.
+    dead port 1/2 on $mux $procmux$2201.
+    dead port 1/2 on $mux $procmux$2198.
+    dead port 2/2 on $mux $procmux$2191.
+    dead port 1/2 on $mux $procmux$2189.
+    dead port 1/2 on $mux $procmux$2186.
+    dead port 1/2 on $mux $procmux$2183.
+    dead port 1/2 on $mux $procmux$1949.
+    dead port 1/2 on $mux $procmux$2180.
+    dead port 2/2 on $mux $procmux$3043.
+    dead port 1/2 on $mux $procmux$1992.
+    dead port 1/2 on $mux $procmux$3233.
+    dead port 1/2 on $mux $procmux$1989.
+    dead port 1/2 on $mux $procmux$3236.
+    dead port 1/2 on $mux $procmux$1878.
+    dead port 1/2 on $mux $procmux$1912.
+    dead port 2/2 on $mux $procmux$2152.
+    dead port 2/2 on $mux $procmux$2146.
+    dead port 1/2 on $mux $procmux$2144.
+    dead port 1/2 on $mux $procmux$1983.
+    dead port 2/2 on $mux $procmux$2137.
+    dead port 1/2 on $mux $procmux$2135.
+    dead port 1/2 on $mux $procmux$1909.
+    dead port 1/2 on $mux $procmux$1943.
+    dead port 1/2 on $mux $procmux$2132.
+    dead port 2/2 on $mux $procmux$2125.
+    dead port 1/2 on $mux $procmux$2123.
+    dead port 1/2 on $mux $procmux$1980.
+    dead port 1/2 on $mux $procmux$2120.
+    dead port 1/2 on $mux $procmux$2117.
+    dead port 2/2 on $mux $procmux$2110.
+    dead port 1/2 on $mux $procmux$2108.
+    dead port 1/2 on $mux $procmux$1977.
+    dead port 1/2 on $mux $procmux$2105.
+    dead port 1/2 on $mux $procmux$2102.
+    dead port 1/2 on $mux $procmux$1872.
+    dead port 1/2 on $mux $procmux$1940.
+    dead port 1/2 on $mux $procmux$2099.
+    dead port 1/2 on $mux $procmux$3239.
+    dead port 1/2 on $mux $procmux$3242.
+    dead port 2/2 on $mux $procmux$3244.
+Removed 336 multiplexer ports.
+<suppressed ~615 debug messages>
+
+6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \pmp_csr_miter.
+Performed a total of 0 changes.
+
+6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pmp_csr_miter'.
+Computing hashes of 732 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 716 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 700 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 684 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Computing hashes of 668 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+<suppressed ~192 debug messages>
+Removed a total of 64 cells.
+
+6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pmp_csr_miter..
+Removed 0 unused cells and 830 unused wires.
+<suppressed ~1 debug messages>
+
+6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pmp_csr_miter.
+
+6.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \pmp_csr_miter..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~215 debug messages>
+
+6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \pmp_csr_miter.
+Performed a total of 0 changes.
+
+6.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pmp_csr_miter'.
+Computing hashes of 668 cells of `\pmp_csr_miter'.
+Finding duplicate cells in `\pmp_csr_miter'.
+Removed a total of 0 cells.
+
+6.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pmp_csr_miter..
+
+6.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pmp_csr_miter.
+
+6.16. Finished fast OPT passes. (There is nothing left to do.)
+
+7. Printing statistics.
+
+=== pmp_csr_miter ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      825 wires
+    15458 wire bits
+      263 public wires
+    10430 public wire bits
+        9 ports
+     1064 port bits
+      668 cells
+       16   $add
+       18   $and
+       84   $eq
+       16   $ge
+      159   $logic_and
+       96   $logic_not
+       32   $logic_or
+       16   $lt
+       99   $mux
+       32   $ne
+       17   $not
+        1   $or
+       48   $pmux
+        1   $reduce_or
+       33   $xor
+
+8. Executing SAT pass (solving SAT problems in the circuit).
+Using SAT solver `minisat`.
+
+Setting up SAT problem:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \wide
+Import def constraint for this timestep: \acc
+Import def constraint for this timestep: \priv
+Import def constraint for this timestep: \addr
+Import def constraint for this timestep: \cfg_flat
+Import def constraint for this timestep: \paddr_flat
+Imported 668 cells to SAT database.
+Import proof-constraint: \ok = 1'1
+Final proof equation: \ok = 1'1
+Import show expression: \paddr_flat
+Import show expression: \cfg_flat
+Import show expression: \wide
+Import show expression: \priv
+Import show expression: \acc
+Import show expression: \addr
+Import show expression: \par
+Import show expression: \ser
+Import show expression: \ok
+
+Solving problem with 100995 variables and 274997 clauses..
+SAT proof finished - model found: FAIL!
+
+   ______                   ___       ___       _ _            _ _ 
+  (_____ \                 / __)     / __)     (_) |          | | |
+   _____) )___ ___   ___ _| |__    _| |__ _____ _| | _____  __| | |
+  |  ____/ ___) _ \ / _ (_   __)  (_   __|____ | | || ___ |/ _  |_|
+  | |   | |  | |_| | |_| || |       | |  / ___ | | || ____( (_| |_ 
+  |_|   |_|   \___/ \___/ |_|       |_|  \_____|_|\_)_____)\____|_|
+
+
+  Signal Name              Dec       Hex                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 Bin
+  ---------------- ----------- ---------                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  \acc                       1         1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  01
+  \addr                     --        --                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    0000000011110111011011111101111111111111111111111111111111111000
+  \cfg_flat                 --        --                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    00001000000000001000000010010000100100001000101000000000000000001000000010001000100000000000000010000010100000000000100010011001
+  \ok                        0         0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   0
+  \paddr_flat               --        --    111101110110111111011111111111111111111111111111111111111111110110111111011111110111100111111111111111111010111101110110111111011111111111111111111111111111111100111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110010110111111011111111111111111111111111111111111011111111111111111111111111111111111111111111111111111001110001001000000100011111111111101100101111111100110111111110110111111011111111111111111111111111111111111111101111110111111011111111111111111111111111111111111111101110110111111011111111111111111111111111111111111000001110110111110011100111111111111111111011001111101011101110110111111011111111111111111111111111111111111111111110110111111011111111111111111111111111111111111111101110100111111011111111111111111111111111111111111111110110110111111011111111011111111111111111111111111
+  \par                       1         1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   1
+  \priv                      3         3                                                                                                                                                                                                                                                                                                                                                                                                                                             ERROR: Called with -verify and proof did fail!
+                                                                                                                                                                                                                                                                                                                                                                                                                                                     11
+  \ser                       0         0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   0
+  \wide                      1         1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   1
+
