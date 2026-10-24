@@ -69,12 +69,6 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(SRAM_MODELS_SKY130) $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_VRF_OREG $(CORE_RTL) $(CACHE_RTL) $(RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_core $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) +define+SIGIL_COMMIT_TRACE $(CORE_RTL) $(CACHE_RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(SRAM_MODELS_FAKERAM45_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
-	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top -GAXI_DATA_W=512 $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_mbus_axi4 -GAXI_DATA_W=128 rtl/fpga/sigil_mbus_axi4.sv
@@ -82,6 +76,12 @@ lint: ## Verilator lint on all synthesizable RTL
 	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_ocl "-GRAM_SIZE=64'h1400000000" "-GHBM_PRESENT=1'b1" $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_OCL_RTL)
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_memeng -GAXI_DATA_W=64 rtl/fpga/sigil_axi_memeng.sv
 	verilator --lint-only -Wall -Wno-DECLFILENAME --top-module sigil_axi_decerr rtl/fpga/sigil_axi_decerr.sv
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_core $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_cpu $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) +define+SIGIL_COMMIT_TRACE $(CORE_RTL) $(CACHE_RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_SKY130 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(addprefix -G,$(SIGIL_SOC_PARAMS_SKY130)) $(SRAM_MODELS_SKY130_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_soc_top +define+SIGIL_SRAM_FAKERAM45 $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(SRAM_MODELS_FAKERAM45_NOVEC) $(CORE_RTL) $(CACHE_RTL) $(RTL)
+	verilator --lint-only -Wall -Wno-DECLFILENAME -Irtl/core --top-module sigil_fpga_top $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC)) $(CORE_RTL) $(CACHE_RTL) $(RTL) $(FPGA_RTL)
 
 core-test: ## In-house core C++ Verilator TBs + directed asm + coverage (issue #18)
 	$(MAKE) -C sim

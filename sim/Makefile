@@ -73,22 +73,12 @@ TESTS    := rv64i_directed rv64m_directed md_directed md_irq_directed md_kill_di
             ptw_gwidth_redirect_directed ptw_ad_store_race_directed ptw_svadu_race_directed \
             ptw_svadu_race_hyp_directed pmp_partial_directed pmp_modes_directed \
             pmp_whole64_directed
-# Config-aware test lists (issue #13). VEC_TESTS need the vector unit:
-# the default configuration only. The no-vector (MPW) configuration
-# runs every other test, assembled with -DSIGIL_NO_VECTOR (tests that
-# mix scalar and vector sections leave the vector ones out), plus
-# NOVEC_TESTS, which check that V is absent.
-VEC_TESTS := vec_directed fpvec_directed fpvec_nanbox_directed vfcvt_sew16_directed \
-             vec_trap_directed viota_directed viota_cases_directed viota_vstart_directed \
-             viota_overlap_directed vstart_illegal_directed pmp_whole64_directed
-NOVEC_TESTS := novec_trap_directed
-NOVEC_RUN_TESTS := $(filter-out $(VEC_TESTS),$(TESTS)) $(NOVEC_TESTS)
 
 .PHONY: all alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-xinit sw coverage clean riscv-tests riscv-dv \
         crypto sha256 sha512 keccak ecfield cryptotop hashstream sochash core-mdcomb srammacro directed-bins \
         axibridge fpgatop-quick fpgatop-f2-quick fpgatop fpgatop-rvtests fpgatop-hello \
         fpgaocl-quick fpgaocl examples examples-bins fpgatop-examples fpgatop-f2-examples \
-        core-novec core-novec-quick riscv-tests-novec novec-bins
+        core-novec core-novec-quick riscv-tests-novec novec-bins novec-sweep
 all: alu muldiv muldiv_mc decoder regfile csr plic mmu fpu fpu-ds1 bext rvc vec vec-xinit icache dcache core core-ds1 core-mdcomb core-xinit srammacro core-novec axibridge fpgatop-quick fpgatop-f2-quick fpgatop-f2-examples fpgaocl-quick \
      examples fpgatop-example-hello fpgatop-example-timer_irq coverage
 
@@ -905,6 +895,19 @@ srammacro: $(addprefix $(BUILD)/vec_tb_,$(SRAM_MACROS)) $(addprefix $(BUILD)/cor
 # (soc_tb_novec). core-novec-quick (CI): core_tb_novec, random bus
 # only. riscv-tests-novec: the riscv-tests gate on
 # core_tb_novec (not in `all`, like riscv-tests).
+#
+# Config-aware test lists. VEC_TESTS need the vector unit: the default
+# configuration only (run_directed.sh with NOVEC=1 skips every program
+# named here; a directed test added later that uses V goes in this
+# list). The no-vector configuration runs every other test, assembled
+# with -DSIGIL_NO_VECTOR (tests that mix scalar and vector sections
+# leave the vector ones out), plus NOVEC_TESTS, which check that V is
+# absent.
+VEC_TESTS := vec_directed fpvec_directed fpvec_nanbox_directed vfcvt_sew16_directed \
+             vec_trap_directed viota_directed viota_cases_directed viota_vstart_directed \
+             viota_overlap_directed vstart_illegal_directed pmp_whole64_directed
+NOVEC_TESTS := novec_trap_directed
+NOVEC_RUN_TESTS := $(filter-out $(VEC_TESTS),$(TESTS)) $(NOVEC_TESTS)
 NOVEC_DEF := $(addprefix +define+,$(SIGIL_SOC_DEFINES_NOVEC))
 SRAM_DEF_novec := $(NOVEC_DEF)
 SRAM_MOD_novec :=
@@ -924,9 +927,9 @@ $(BUILD)/soc_tb_novec: $(ROOT)/tb/cpp/soc_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(C
 
 core-novec: $(addprefix $(BUILD)/core_tb_,$(NOVEC_CFGS)) $(addprefix $(BUILD)/soc_rtl_tb_,$(NOVEC_CFGS)) \
             $(BUILD)/soc_tb_novec $(NOVEC_BINS) $(SOCFW)/crypto_soc_test.bin
-	NOVEC=1 CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec $(CORE_RAND_ARGS)
-	NOVEC=1 CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec-nocache --no-cache
-	cd $(BUILD) && NOVEC=1 CORE_TB=./core_tb_sky130novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh sky130novec $(CORE_RAND_ARGS) \
+	NOVEC=1 VEC_TESTS="$(VEC_TESTS)" CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec $(CORE_RAND_ARGS)
+	NOVEC=1 VEC_TESTS="$(VEC_TESTS)" CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec-nocache --no-cache
+	cd $(BUILD) && NOVEC=1 VEC_TESTS="$(VEC_TESTS)" CORE_TB=./core_tb_sky130novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh sky130novec $(CORE_RAND_ARGS) \
 	    > novec_core_sky130novec.log 2>&1 || { tail -40 novec_core_sky130novec.log; exit 1; }; \
 	  echo "CORE TB PASS: $$(grep -c 'CORE TB PASS' novec_core_sky130novec.log) directed runs, 0 FAIL [sky130novec]"
 	cd $(BUILD) && for m in $(NOVEC_CFGS); do \
@@ -939,10 +942,21 @@ core-novec: $(addprefix $(BUILD)/core_tb_,$(NOVEC_CFGS)) $(addprefix $(BUILD)/so
 # CI subset (core-regression.yml core-novec job): the novec core TB
 # and its directed suite with random bus timing.
 core-novec-quick: $(BUILD)/core_tb_novec $(NOVEC_BINS)
-	NOVEC=1 CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec $(CORE_RAND_ARGS)
+	NOVEC=1 VEC_TESTS="$(VEC_TESTS)" CORE_TB=./core_tb_novec COV_PREFIX=nocov bash $(abspath $(ROOT))/sim/run_directed.sh novec $(CORE_RAND_ARGS)
 
 riscv-tests-novec: $(BUILD)/core_tb_novec
 	CORE_TB=build/sim/core_tb_novec CORE_TB_ARGS="$(CORE_RAND_ARGS)" bash $(ROOT)/sim/run_riscv_tests.sh $(RVTESTS_CSV)
+
+# Differential sweep of the vector encoding space and the status
+# fields against Spike without V (sim/novec-sweep/run_sweep.sh; not in
+# `all`; SPIKE=/path/to/spike, NOVEC_SWEEP_TB=core_tb_sky130novec for
+# the MPW configuration, NOVEC_SWEEP_MODES="m vu" for a subset).
+SPIKE ?= spike
+NOVEC_SWEEP_TB ?= core_tb_novec
+novec-sweep: $(BUILD)/$(NOVEC_SWEEP_TB)
+	mkdir -p $(BUILD)/novec-sweep
+	cd $(BUILD)/novec-sweep && bash $(abspath $(ROOT))/sim/novec-sweep/run_sweep.sh \
+	  $(abspath $(BUILD))/$(NOVEC_SWEEP_TB) $(SPIKE) $(NOVEC_SWEEP_MODES)
 
 ## ---- FPU_DS_BITS=1 core build: FP directed suites ---------------------
 $(BUILD)/core_tb_ds1: $(ROOT)/tb/cpp/core_tb.cpp $(ROOT)/tb/cpp/mbus_model.h $(CPU_RTL) $(CPU_INC) | $(BUILD) $(OBJ)

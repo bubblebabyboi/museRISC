@@ -11,9 +11,10 @@
 #        run_directed.sh nocache --no-cache
 #        CORE_TB=./core_tb_xinit run_directed.sh xinit1 +verilator+rand+reset+2 +verilator+seed+1
 # NOVEC=1: the no-vector configuration (SIGIL_NO_VECTOR, issue #13):
-# binaries from novec/ (assembled with -DSIGIL_NO_VECTOR), the tests
-# that need the vector unit (sim/Makefile VEC_TESTS) skipped, and the
-# no-vector tests (NOVEC_TESTS) run instead.
+# binaries from novec/ (assembled with -DSIGIL_NO_VECTOR), every
+# program named in VEC_TESTS (sim/Makefile passes its list; tests that
+# need the vector unit) skipped, and the no-vector tests (NOVEC_TESTS)
+# run as well.
 set -euo pipefail
 TAG=$1; shift
 EXTRA=("$@")
@@ -22,21 +23,20 @@ TB=${CORE_TB:-./core_tb}
 COV_PREFIX=${COV_PREFIX:-cov}
 NOVEC=${NOVEC:-0}
 B=""
-[ "$NOVEC" = 1 ] && B="novec/"
+if [ "$NOVEC" = 1 ]; then
+  B="novec/"
+  [ -n "${VEC_TESTS:-}" ] || { echo "run_directed.sh: NOVEC=1 needs VEC_TESTS (sim/Makefile)"; exit 2; }
+fi
 seed=1
 run() {
   local cov=$1 bin=$B$2; shift 2
+  if [ "$NOVEC" = 1 ] && [[ " $VEC_TESTS " == *" $(basename "$bin" .bin) "* ]]; then
+    echo "[$TAG] skip $bin (vector unit; no-vector configuration)"
+    return
+  fi
   echo "[$TAG] core_tb $bin $* ${EXTRA[*]} --mem-seed $seed"
   COV_FILE="${COV_PREFIX}_${cov}_${TAG}.dat" "$TB" "$bin" "$@" "${EXTRA[@]}" --mem-seed "$seed"
   seed=$((seed + 1))
-}
-# Tests that need the vector unit: default configuration only.
-vrun() {
-  if [ "$NOVEC" = 1 ]; then
-    echo "[$TAG] skip $2 (vector unit; no-vector configuration)"
-  else
-    run "$@"
-  fi
 }
 run rv64i rv64i_directed.bin
 run rv64m rv64m_directed.bin
@@ -92,27 +92,33 @@ run irq_seip_rmw irq_seip_rmw.bin
 run irq_mip_rmw_variants irq_mip_rmw_variants.bin
 run counter_time counter_time_directed.bin
 run hyp hyp_directed.bin
-vrun vecsw vec_directed.bin 4000000
-vrun fpvecsw fpvec_directed.bin 4000000
+run vecsw vec_directed.bin 4000000
+run fpvecsw fpvec_directed.bin 4000000
 # .vf scalar NaN-boxing in every .vf class (issue #8).
-vrun fpvecnanbox fpvec_nanbox_directed.bin 4000000
+run fpvecnanbox fpvec_nanbox_directed.bin 4000000
 # int16 <-> f32 conversions at SEW=16 (Zve32f), the reserved forms
 # around them (issue #8).
-vrun vfcvt16 vfcvt_sew16_directed.bin 1000000
-vrun vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
+run vfcvt16 vfcvt_sew16_directed.bin 1000000
+run vectrap vec_trap_directed.bin 4000000 --irq-timer-after 2000
 # viota.m (issue #8): vs2 is one mask register at any LMUL; random
 # vtype/AVL/policies/masks, plus the encodings that must trap.
-vrun viota viota_directed.bin 4000000
+run viota viota_directed.bin 4000000
 # viota.m cases with hand-computed results: LMUL 1-8, vl 0/VLMAX, mu/ma,
 # vs2 = v0, back-to-back producers/consumers, illegal encodings.
-vrun viotacases viota_cases_directed.bin 1000000
+run viotacases viota_cases_directed.bin 1000000
 # viota.m with vstart != 0 and with vs2 inside the vd group must trap.
-vrun viotavstart viota_vstart_directed.bin 4000000
-vrun viotaoverlap viota_overlap_directed.bin 4000000
+run viotavstart viota_vstart_directed.bin 4000000
+run viotaoverlap viota_overlap_directed.bin 4000000
 # Reductions, vcpop/vfirst, vmsbf/sif/sof, viota, vcompress trap on
 # vstart != 0; one right behind a load/store that consumes vstart
 # does not.
-vrun vstartill vstart_illegal_directed.bin
+run vstartill vstart_illegal_directed.bin
+# No-vector configuration only: misa/mstatus.VS, and every vector
+# instruction class and vector CSR access raises illegal-instruction
+# (mtval, mepc, source mode) in M, S, U, VS and VU.
+if [ "$NOVEC" = 1 ]; then
+  run novec_trap novec_trap_directed.bin
+fi
 run trap_pa_fetch trap_pa_fetch.bin 100000 --expect-trap 1
 run trap_pa_load trap_pa_load.bin 100000 --expect-trap 5
 # PMP: an entry matching part of an 8-byte access fails it (issue #8).
@@ -122,7 +128,7 @@ run pmp_partial pmp_partial_directed.bin
 # without X, and locked entries in M.
 run pmp_modes pmp_modes_directed.bin
 # Whole-register loads with EEW=64: an element split by PMP fails.
-vrun pmp_whole64 pmp_whole64_directed.bin
+run pmp_whole64 pmp_whole64_directed.bin
 # L1 cache / memory-interface directed tests
 run smc_fencei smc_fencei_directed.bin
 run amo_cache amo_cache_directed.bin
@@ -155,9 +161,3 @@ run ptw_gwidth_redirect ptw_gwidth_redirect_directed.bin 4000000
 run ptw_ad_store_race ptw_ad_store_race_directed.bin 4000000
 run ptw_svadu_race ptw_svadu_race_directed.bin 4000000
 run ptw_svadu_race_hyp ptw_svadu_race_hyp_directed.bin 4000000
-# No-vector configuration only: misa/mstatus.VS, and every vector
-# instruction class and vector CSR access raises illegal-instruction
-# (mtval, mepc, source mode) in M, S, U, VS and VU.
-if [ "$NOVEC" = 1 ]; then
-  run novec_trap novec_trap_directed.bin
-fi
