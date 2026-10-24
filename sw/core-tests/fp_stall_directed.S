@@ -51,6 +51,7 @@ _start:
     li a2, 1                      // NX from the replayed fdiv only
     bne a1, a2, fail
 
+#ifndef SIGIL_NO_VECTOR  // no-vector core (#13): no sections 2-4
     // ---- 2: an older vector load sequences in MEM (mem_stall)
     //      and then faults while fdiv computes behind it.
     li t0, 2
@@ -145,6 +146,7 @@ _start:
     vmv.x.s a1, v3
     li a2, 0x4018000000000000
     bne a1, a2, fail
+#endif
 
     // ---- 5: FP ops in a taken branch / jump shadow never
     //      execute; FP results feed branches; FP op as target.
@@ -217,6 +219,7 @@ _start:
     li a2, 3
     bne a1, a2, fail
 
+#ifndef SIGIL_NO_VECTOR  // no-vector core (#13): no section 13
     // ---- 13: vector ops interleaved with multi-cycle FP ops:
     //      a vector op waits in ID while fdiv.d holds EX, then
     //      consumes its result (.vf scalar); the next fdiv.d
@@ -250,6 +253,7 @@ _start:
     fmv.x.d a1, ft9
     li a2, 0x40052A7FA9D2F8EA     // sqrt(7)
     bne a1, a2, fail
+#endif
 
 pass:
     li t1, 0x10000000
@@ -265,7 +269,9 @@ handler:
     csrr s9, fflags
     fmv.x.d s10, ft5
     addi s11, s11, 1
+#ifndef SIGIL_NO_VECTOR
     csrw vstart, zero
+#endif
     csrr s7, mepc
     addi s7, s7, 4
     csrw mepc, s7

@@ -93,6 +93,7 @@ _start:
     li t6, 20                    // 4 + 16 writes
     bne t5, t6, fail
 
+#ifndef SIGIL_NO_VECTOR  // no-vector core (#13): no test 6
     // 6: vector strided accesses with stride 0 to the device:
     //    a 4-element load reads the counter 4 times (consecutive
     //    values in element order), a 4-element store writes 4
@@ -127,6 +128,7 @@ _start:
     vcpop.m t2, v3
     li t3, 4
     bne t2, t3, fail
+#endif
 
 pass:
     li t1, 0x10000000

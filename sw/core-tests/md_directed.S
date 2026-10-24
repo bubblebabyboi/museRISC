@@ -233,6 +233,7 @@ _start:
     li t2, 0x0000000b8e38e911
     bne s6, t2, fail
 
+#ifndef SIGIL_NO_VECTOR  // no-vector core (#13): no section 7
     // ---- 7: interleaving with element-serial vector ops
     li t0, 7
     la a6, vbuf
@@ -275,6 +276,7 @@ _start:
     bne s10, t2, fail
     li t2, 0x0000000000000000
     bne s11, t2, fail
+#endif
 
 pass:
     li t1, 0x10000000

@@ -31,6 +31,8 @@
 // 3ae351d it fails at test 1, and tests 6, 9-13, 15 and 20 each fail
 // there when run on their own; the fetch tests (17-19, 21) pass on
 // both, as fetches were and are checked one 4-byte word at a time.
+// No-vector core (SIGIL_NO_VECTOR, #13): the vector accesses (5, 9-12)
+// are left out.
 // Convention: t0 = test number, exit store 0 = pass.
     .option arch, +v
     .option norvc  // norvc last: gas 13 .option arch resets it
@@ -245,8 +247,10 @@ _start:
     CLR
     ld a1, 0(s1)
     sd a1, 0(s1)
+#ifndef SIGIL_NO_VECTOR
     vsetivli zero, 2, e64, m1, tu, mu
     vle64.v v1, (s1)
+#endif
     EXP_NONE
     CLR
     AS_U
@@ -320,6 +324,7 @@ _start:
     fld f1, 0(t2)
     EXP 4, t2
 
+#ifndef SIGIL_NO_VECTOR  // no-vector core (#13): no tests 9-12
     // ---- 9: vector EEW=64, M, NA4 over word 1 of D: vle64.v and
     //      vse64.v from D-8 (vl 2) fault on element 1 (tval D, vstart
     //      1); vle32.v over the same bytes passes ----
@@ -379,6 +384,7 @@ _start:
     vlseg2e64.v v4, (t2)
     EXP 5, s1
     EXP_VSTART 0
+#endif
     csrw pmpcfg0, zero
 
     // ---- Sv39: root[code] identity 1 GiB leaf (no U), root[1] -> l1,
@@ -611,9 +617,11 @@ handler:
     sd a5, 16(a4)
     csrr a5, mtval
     sd a5, 24(a4)
+#ifndef SIGIL_NO_VECTOR
     csrr a5, vstart
     sd a5, 32(a4)
     csrw vstart, zero
+#endif
     csrr a5, mcause
     li a6, 1
     beq a5, a6, 2f
